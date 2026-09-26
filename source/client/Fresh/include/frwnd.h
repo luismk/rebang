@@ -55,13 +55,22 @@ public:
 	virtual void PreCreateWindow(FrWndManager* manager, unsigned long style,
 		const WRect& rect, FrWnd* parent);
 	virtual void MoveWindow(const WPoint& point);
-	virtual void Enable(bool enable);
+	virtual void Enable(bool enable) { m_dwStyle.Turn(FWS_DISABLED, !enable); }
 	virtual void SetVisible(bool visible);
 	bool SendCmdToOwnerTarget(eFrCmd cmd, int var1, sFRESH_HANDLER* pHandler);
+	void SetOwner(FrCmdTarget* pOwner);
 	FrGraphicInterface* GDI() const;
 	FrWndManager* WndManager() const { return m_pWndManager; }
+	void SetRect(const WRect& rect);
+	const WRect& GetRect() { return m_rect; }
 	void SetToolTipText(const std::string& text);
+	bool IsVisible() const { return m_dwStyle.GetFlag(FWS_VISIBLE); }
+	void SetKeyEvent(bool enable) { m_dwStyle.Turn(FWS_KEYEVENT, enable); }
+	void SetTopmost(bool topmost);
+	void UseDblClick(bool use) { m_dwStyle.Turn(FWS_NODBLCLICK, !use); }
+	void EnableHover(bool enable, float time);
 	bool IsViewFocused() const;
+	bool SetKeyFocus(bool focus);
 	bool SetCapture();
 	bool ReleaseCapture();
 	void SetCursor(int cursor);

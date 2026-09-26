@@ -83,3 +83,30 @@ protected:
 	static sFRESH_MSGMAP _MsgMap;
 	static sFRESH_ENTRY _MsgEntries[];
 };
+
+#define DECLARE_FRESH_MSGMAP() \
+private: \
+	static sFRESH_ENTRY _MsgEntries[]; \
+\
+protected: \
+	static sFRESH_MSGMAP _MsgMap; \
+	virtual const sFRESH_MSGMAP* GetMessageMap() const;
+
+#define BEGIN_FRESH_MSGMAP(thisClass, baseClass) \
+	const sFRESH_MSGMAP* thisClass::GetMessageMap() const \
+	{ \
+		return &thisClass::_MsgMap; \
+	} \
+	sFRESH_MSGMAP thisClass::_MsgMap = { &baseClass::_MsgMap, \
+		&thisClass::_MsgEntries[0] }; \
+	sFRESH_ENTRY thisClass::_MsgEntries[] = {
+#define END_FRESH_MSGMAP() \
+	{ 0, FRCMD_NONE, FrFuncNone, 0 } \
+	} \
+	;
+
+#define ON_FRESH_VV(name, cmd, memberFxn) \
+	{ name, cmd, FrFuncVV, (FRESH_PFN) & memberFxn },
+
+#define ON_FRESH_VI(name, cmd, memberFxn) \
+	{ name, cmd, FrFuncVI, (FRESH_PFN)(FRESH_PFN_VI) & memberFxn },

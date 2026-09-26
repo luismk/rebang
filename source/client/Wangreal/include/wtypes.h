@@ -62,6 +62,7 @@ public:
 		this->y = y;
 	}
 	WPoint() { }
+	WPoint operator+(WPoint& p) const { return WPoint(x + p.x, y + p.y); }
 };
 
 class WRect : public _WRECT

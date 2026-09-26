@@ -89,7 +89,7 @@ void FrButton::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent,
 			SetToolTipText(param["tooltip"]);
 	}
 
-	RectangleShort& rc = item.m_rect;
+	_RectangleSHORT& rc = item.m_rect;
 
 	WRect rect;
 	if (bParseParam && m_pBitmap[NORMAL])
