@@ -634,7 +634,11 @@
             "/FIstdafx.h"
           ]
         },
-        "source/client/Fresh/source/fremoticon.obj",
+        {
+          "path": "source/client/Fresh/source/fremoticon.cpp",
+          "pch": "source/client/Fresh/source/stdafx.cpp",
+          "extra_flags": ["/FIstdafx.h"]
+        },
         {
           "path": "source/client/Fresh/source/fresh.cpp",
           "pch": "source/client/Fresh/source/stdafx.cpp",

@@ -6,6 +6,8 @@ class Bitmap;
 class TexCacheManager;
 class WFont;
 class WView;
+class TexCacheManager;
+class WFont;
 
 extern WView* g_view;
 
@@ -44,6 +46,8 @@ public:
 		g_view->DrawLine2D(start, end, first, second, type);
 	}
 	float GetTextExtend(const char* text);
+	unsigned long GetTextColor() const;
+	unsigned long GetTextOutlineColor() const;
 	void SetTextColor(unsigned long color, unsigned long outlineColor);
 	void SetTextStyle(unsigned long style);
 	float Print(const WPoint& point, unsigned long style, const char* format,
