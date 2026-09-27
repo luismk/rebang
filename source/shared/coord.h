@@ -136,7 +136,6 @@ struct _RectangleSHORT : public _Rectangle<short>
 	_RectangleSHORT(const short l, const short t, const short r, const short b);
 	_RectangleSHORT(const _Coordinates<short>& tl,
 		const _Coordinates<short>& br);
-	_RectangleSHORT(const _RectangleSHORT& rc);
 
 	_RectangleSHORT& operator=(const _Rectangle<short>& rc);
 	_RectangleSHORT& operator=(const _Rectangle<float>& rc);
