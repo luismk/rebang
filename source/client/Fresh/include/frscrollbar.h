@@ -1,30 +1,53 @@
 #pragma once
+#include "rtti.h"
 #include "frwnd.h"
+
+class Bitmap;
+class FrWndManager;
+struct FrInputState;
 
 class FrScrollBar : public FrWnd
 {
 public:
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI() const { return &m_RTTI; }
+
 	FrScrollBar();
 	virtual ~FrScrollBar();
-	void Init(FrWndManager* manager, FrWnd* parent, int items, int rows,
-		int columns, bool atLeft);
-	void ScrollUp(int rows);
-	void ScrollDown(int rows);
-
-	void Resize(int rows, int columns, bool reset);
+	void Init(FrWndManager* pManager, FrWnd* parentWnd, int row,
+		int rowCapacity, int colCapacity, bool atLeft);
+	void Resize(int rowCapacity, int colCapacity, bool atLeft);
+	bool IsBarVisible();
+	int GetRowCapacity();
+	int GetColCapacity();
+	int GetItemNum();
+	float GetCurTopRow() { return m_curTopRow; }
+	int GetCurTopRow_Int() { return (int)(m_curTopRow + 0.5f); }
+	void SetCurTopRow(int row);
 	void AddItem();
 	void DelItem();
 	void ClearItem();
 	void ScrollToFirst();
 	void ScrollToBottom();
-	int GetRowCapacity();
-	int GetColCapacity();
-	float GetCurTopRow() { return m_curTopRow; }
-	int GetCurTopRow_Int() { return (int)(m_curTopRow + 0.5f); }
-	void SetCurTopRow(int row);
+	void ScrollUp(int delta);
+	void ScrollDown(int delta);
 	void FollowBottom(bool follow) { m_followBottom = follow; }
+	void SetGuideVisible(bool visible);
 
 protected:
+	virtual void OnDraw();
+	virtual void OnResize();
+	virtual void OnMouseMove(const WPoint& mousePos);
+	virtual bool OnLButtonUp(const WPoint& mousePos);
+	virtual bool OnLButtonDown(const WPoint& mousePos);
+	virtual void OnWheel(FrInputState& istate);
+	int GetCurRowCount()
+	{
+		return m_colCapacity ? (m_itemNum + m_colCapacity - 1) / m_colCapacity
+							 : 0;
+	}
+	void SetBarHnY();
+
 	float m_barH;
 	float m_barY;
 	int m_itemNum;

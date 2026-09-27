@@ -3,8 +3,8 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#include <math.h>
 #include <list>
+#include <math.h>
 #include "../../Wangreal/include/wtypes.h"
 #include <string>
 #include "../../Wangreal/include/bitmap.h"
