@@ -22,11 +22,13 @@ enum eFrTOKENTYPE
 	FrTEXT_TAG_COLOR2
 };
 
+class FrTextLine;
+
 class FrTextToken
 {
 public:
 	FrTextToken();
-	FrTextToken(const char* text) { ComposeData(text); }
+	FrTextToken(const char* text) { ComposeData(std::string(text)); }
 	FrTextToken(const std::string& text) { ComposeData(text); }
 	~FrTextToken() { }
 
@@ -48,27 +50,6 @@ private:
 
 	std::string m_text;
 	eFrTOKENTYPE m_type;
-};
-
-class FrTextLine
-{
-public:
-	typedef std::list<FrTextToken> LTFRTOKEN;
-	typedef LTFRTOKEN::iterator LTFRTOKEN_I;
-	typedef LTFRTOKEN::const_iterator LTFRTOKEN_CI;
-
-	FrTextLine(const char* text);
-	FrTextLine(const std::string& text);
-	~FrTextLine();
-
-	std::string GetLineText(eFrPRINTOPT option) const;
-	void GetTokenList(std::list<FrTextToken>& list) const;
-	float GetTextWidth(FrGraphicInterface* gdi) const;
-
-private:
-	void ComposeData(const std::string& text);
-
-	LTFRTOKEN m_ltFrToken;
 };
 
 class FrTEXT
@@ -114,11 +95,11 @@ inline unsigned int StringExtractFindFirst(const std::string& src,
 
 	unsigned int begin = src.find(szBegin, 0);
 	if (begin == std::string::npos)
-		return begin;
+		return std::string::npos;
 
 	unsigned int end = src.find(szEnd, begin + 1);
 	if (end == std::string::npos)
-		return end;
+		return std::string::npos;
 
 	unsigned int len = strlen(szBegin);
 	out = std::string(src.begin() + begin + len, src.begin() + end);
@@ -131,17 +112,21 @@ inline void StringTrim(std::string& str, const char* chars)
 		return;
 
 	std::string result;
-	unsigned int size = str.size();
+	unsigned int size = str.length();
 	unsigned int count = strlen(chars);
 	for (unsigned int i = 0; i < size; i++)
 	{
+		bool found = false;
 		unsigned int j;
 		for (j = 0; j < count; j++)
 		{
 			if (chars[j] == str[i])
+			{
+				found = true;
 				break;
+			}
 		}
-		if (j == count)
+		if (!found)
 			result += str[i];
 	}
 
