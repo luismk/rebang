@@ -9,3 +9,4 @@
 #include "../../Wangreal/include/bitmap.h"
 #include "../../Wangreal/include/wflag.h"
 #include "../../Wangreal/include/woverlay.h"
+#include "../../Wangreal/include/wfont.h"

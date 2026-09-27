@@ -6,8 +6,7 @@ class Bitmap;
 class TexCacheManager;
 class WFont;
 class WView;
-class TexCacheManager;
-class WFont;
+class FrTEXT;
 
 extern WView* g_view;
 
@@ -61,6 +60,23 @@ public:
 		...);
 	float GetViewWidth();
 	float GetViewHeight();
+
+	void UpdateTextureCacheInfo(const Bitmap* bitmap);
+	void RefreshTexCache(const Bitmap& bitmap);
+	void SetClippingArea11(WRect* rect);
+	int GetFontHeight11();
+	int SetSpace(int space);
+	int SetSpace11(int space);
+	void SetScale(float scale);
+	void SetScale11(float scale);
+	float Print11(const WPoint& point, unsigned long align, const char* format,
+		...);
+	void PrintText(const WPoint& point, const FrTEXT& text);
+	void PrintText11(const WPoint& point, const FrTEXT& text);
+	void PrintText(const WPoint& point, unsigned long align,
+		const FrTEXT& text);
+	void PrintText11(const WPoint& point, unsigned long align,
+		const FrTEXT& text);
 
 protected:
 	WView* m_pView;
