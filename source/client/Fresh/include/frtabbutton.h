@@ -29,18 +29,18 @@ public:
 	virtual ~FrTabButton();
 	void Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent);
 	void ClearTab();
-	void AddTab(const char** images, unsigned long index, WSize* size);
-	void AddTab(const char* image, unsigned long index, WSize* size);
-	void Select(TButtonItem* item);
+	void AddTab(const char* imgNames[], unsigned long index, WSize* size);
+	void AddTab(const char* imgName, unsigned long index, WSize* size);
 	void Select(unsigned long index);
-	void UnSelect(TButtonItem* item);
 	void UnSelect(unsigned long index);
 	void SetSepWidth(float width) { m_sepWidth = width; }
 	TButtonItem* GetItemUnderCursor() { return m_underCursor; }
 	TButtonItem* GetSelected() { return m_selected; }
 
 protected:
-	void InitButtonItem(TButtonItem* item, unsigned long index, WSize* size);
+	void Select(TButtonItem* i);
+	void UnSelect(TButtonItem* i);
+	void InitButtonItem(TButtonItem* tab, unsigned long index, WSize* size);
 	virtual void PreCreateWindow(FrWndManager* manager, unsigned long style,
 		const WRect& rect, FrWnd* parent);
 	virtual void OnDraw();
