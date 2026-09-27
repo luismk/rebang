@@ -26,6 +26,8 @@ public:
 	void DrawTexture(const Bitmap* bitmap, const WRect& src, const WRect& dst,
 		unsigned long color, int flags) const;
 	void SetClippingArea(WRect* rect);
+	void SetAlpha(float alpha);
+	float GetAlpha();
 	int GetFontHeight();
 	float PrintText(const WPoint& point, unsigned long style, const char* text,
 		Bitmap* bitmap);

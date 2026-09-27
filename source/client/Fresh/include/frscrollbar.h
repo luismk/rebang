@@ -17,6 +17,8 @@ public:
 	void ClearItem();
 	void ScrollToFirst();
 	void ScrollToBottom();
+	int GetRowCapacity();
+	int GetColCapacity();
 	float GetCurTopRow() { return m_curTopRow; }
 	int GetCurTopRow_Int() { return (int)(m_curTopRow + 0.5f); }
 	void SetCurTopRow(int row);

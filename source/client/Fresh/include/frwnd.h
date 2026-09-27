@@ -62,7 +62,9 @@ public:
 	void SetOwner(FrCmdTarget* pOwner);
 	FrGraphicInterface* GDI() const;
 	FrWndManager* WndManager() const { return m_pWndManager; }
+	float GetAlpha() const;
 	void SetRect(const WRect& rect);
+	void SetClientRect(const WRect& rect);
 	const WRect& GetRect() { return m_rect; }
 	void SetWindowTextA(const char* text);
 	void SetToolTipText(const std::string& text);

@@ -120,4 +120,6 @@ protected:
 	bool m_useDummy;
 	std::map<int, WRect> m_noRButtonMap;
 	const Bitmap* m_listBgImg;
+
+	DECLARE_FRESH_MSGMAP()
 };
