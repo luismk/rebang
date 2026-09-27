@@ -16,6 +16,10 @@ struct _WPOINT
 {
 	float x, y;
 };
+struct _WSIZE
+{
+	float w, h;
+};
 struct _WRECT
 {
 	float x, y, w, h;
@@ -24,13 +28,78 @@ struct _WRECT
 class WPoint : public _WPOINT
 {
 public:
+	WPoint() { }
 	WPoint(float x, float y)
 	{
 		this->x = x;
 		this->y = y;
 	}
-	WPoint() { }
+	WPoint(WPoint* p)
+	{
+		x = p->x;
+		y = p->y;
+	}
+	void Offset(WPoint& p)
+	{
+		x += p.x;
+		y += p.y;
+	}
+	void Offset(float dx, float dy)
+	{
+		x += dx;
+		y += dy;
+	}
+	int operator==(WPoint& _p) const { return (x == _p.x && y == _p.y); }
+	int operator!=(WPoint& _p) const { return !(x == _p.x && y == _p.y); }
+	void operator+=(WPoint& p)
+	{
+		x += p.x;
+		y += p.y;
+	}
+	void operator-=(WPoint& p)
+	{
+		x -= p.x;
+		y -= p.y;
+	}
+	WPoint operator-() const { return WPoint(-x, -y); }
 	WPoint operator+(WPoint& p) const { return WPoint(x + p.x, y + p.y); }
+	WPoint operator-(WPoint& p) const { return WPoint(x - p.x, y - p.y); }
+};
+
+class WSize : public _WSIZE
+{
+public:
+	WSize() { }
+	WSize(float w, float h)
+	{
+		this->w = w;
+		this->h = h;
+	}
+	WSize(WSize& s)
+	{
+		w = s.w;
+		h = s.h;
+	}
+	WSize(WSize* s)
+	{
+		w = s->w;
+		h = s->h;
+	}
+	int operator==(WSize& s) const { return (w == s.w && h == s.h); }
+	int operator!=(WSize& s) const { return !(w == s.w && h == s.h); }
+	void operator+=(WSize& s)
+	{
+		w += s.w;
+		h += s.h;
+	}
+	void operator-=(WSize& s)
+	{
+		w -= s.w;
+		h -= s.h;
+	}
+	WSize operator+(WSize& s) const { return WSize(w + s.w, h + s.h); }
+	WSize operator-() const { return WSize(-w, -h); }
+	WSize operator-(WSize& s) const { return WSize(w - s.w, h - s.h); }
 };
 
 class WRect : public _WRECT

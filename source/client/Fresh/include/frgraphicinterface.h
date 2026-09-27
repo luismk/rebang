@@ -3,6 +3,8 @@
 #include "../../Wangreal/include/woverlay.h"
 
 class Bitmap;
+class TexCacheManager;
+class WFont;
 class WView;
 
 extern WView* g_view;
@@ -10,6 +12,7 @@ extern WView* g_view;
 class FrGraphicInterface
 {
 public:
+	FrGraphicInterface(WView* view);
 	virtual ~FrGraphicInterface();
 	void Box(const _WRECT& rc, unsigned long color, unsigned long z = 0,
 		float alpha = 0.0f) const
@@ -31,6 +34,10 @@ public:
 	int GetFontHeight();
 	float PrintText(const WPoint& point, unsigned long style, const char* text,
 		Bitmap* bitmap);
+	float PrintText11(const WPoint& point, unsigned long style,
+		const char* text, Bitmap* bitmap);
+	float GetTextExtend11(const char* text);
+	void Reset();
 	void Line(const WPoint& start, const WPoint& end, unsigned long first,
 		unsigned long second, unsigned long type = 0) const
 	{
@@ -46,6 +53,15 @@ public:
 
 protected:
 	WView* m_pView;
+	TexCacheManager* m_pCacheManager;
+	float m_alpha;
+	unsigned long m_textColor;
+	unsigned long m_textOutlineColor;
+	unsigned long m_textStyle;
+	WFont* m_pFont12;
+	WFont* m_pFont11;
+	int m_maxTexCache;
+	int m_cacheTexSize;
 };
 
 inline float FrGraphicInterface::GetViewWidth()

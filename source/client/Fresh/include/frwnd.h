@@ -13,6 +13,24 @@ class CChatMsg;
 struct FrInputState;
 class FrScrollBar;
 class FrGraphicInterface;
+class FrToolTip;
+
+enum eFrFlags
+{
+	FWF_NONE = 0x0,
+	FWF_TOOLTIPS = 0x1,
+	FWF_VIEWFOCUS = 0x8,
+	FWF_KEYFOCUS = 0x10,
+	FWF_DESTROY = 0x20,
+	FWF_FADEOUT = 0x40,
+	FWF_INITED = 0x80,
+	FWF_FADING = 0x100,
+	FWF_TOPFOCUS = 0x200,
+	FWF_FADING_EX = 0x400,
+	FWF_FADEOUT_EX = 0x800,
+	FWF_PRIVACY = 0x1000,
+	FWF_FADEELEMENT = 0x2000
+};
 
 enum eFrStyle
 {
@@ -35,6 +53,7 @@ class FrWnd : public IObject, public FrCmdTarget
 {
 	// Not 100% sure if true.
 	friend class Fresh;
+	friend class FrWndManager;
 
 protected:
 	FrWnd();
@@ -63,11 +82,26 @@ public:
 	FrGraphicInterface* GDI() const;
 	FrWndManager* WndManager() const { return m_pWndManager; }
 	float GetAlpha() const;
+	FrWnd* GetParent() const;
+	FrWnd* FindChild(const FrWnd* pWnd);
+	FrWnd* FindChildByName(const char* name);
+	void CloseChild(FrWnd* pWnd, bool bFade, bool bAll);
+	void CloseChildForm(bool bFade, bool bAll);
+	void GetClientRect(WRect& rect) const;
 	void SetRect(const WRect& rect);
 	void SetClientRect(const WRect& rect);
 	const WRect& GetRect() { return m_rect; }
 	void SetWindowTextA(const char* text);
+	void GetWindowTextA(std::string& text) const;
 	void SetToolTipText(const std::string& text);
+	std::string GetToolTipText() const { return m_wndToolTip; }
+	int IsFixedToolTip() const;
+	const WPoint& GetToolTipWndPos() const;
+	unsigned long GetToolTipFrameStyle() const;
+	void OnDisplay(bool b1, bool b2, bool b3);
+	void OnProcess(const float deltaTime, FrInputState& input, bool b1,
+		bool b2);
+	void SetAlpha2ToChild(float alpha);
 	bool IsEnabled() const { return !m_dwStyle.GetFlag(FWS_DISABLED); }
 	bool IsVisible() const { return m_dwStyle.GetFlag(FWS_VISIBLE); }
 	void SetKeyEvent(bool enable) { m_dwStyle.Turn(FWS_KEYEVENT, enable); }
@@ -75,7 +109,11 @@ public:
 	void SetTopmost(bool topmost);
 	void UseDblClick(bool use) { m_dwStyle.Turn(FWS_NODBLCLICK, !use); }
 	void EnableHover(bool enable, float time);
+	void HidePrivacy(bool hide) { m_nFlags.Turn(FWF_PRIVACY, hide); }
+	void SetViewFocus(bool focus);
+	FrWnd* FindViewFocused(bool b);
 	bool IsViewFocused() const;
+	bool IsTopFocus() const;
 	bool SetKeyFocus(bool focus);
 	bool SetCapture();
 	bool ReleaseCapture();
@@ -122,6 +160,13 @@ protected:
 	bool m_hoverOn;
 	float m_hoverTime;
 	float m_accHoverTime;
+
+private:
 	std::string m_wndToolTip;
+	static FrToolTip* m_pToolTip;
 	sToolTipData* m_pToolTipData;
+	static FrToolTip* ToolTip();
+	static bool IsToolTipInstantiated() { return m_pToolTip != NULL; }
+	static void CreateToolTip(FrWndManager* pManager);
+	static void DestroyToolTip();
 };

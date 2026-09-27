@@ -52,7 +52,7 @@ public:
 	virtual ~FrButton();
 
 	void Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent,
-		bool bParseParam);
+		bool bParseParam = true);
 	void InitExtern(const Bitmap* pBmpNormal, const Bitmap* pBmpOver,
 		const Bitmap* pBmpSelected, eButStyle style, eButPushStyle pushStyle);
 	eButMode GetStatus() { return m_status; }

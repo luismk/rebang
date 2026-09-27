@@ -36,6 +36,9 @@ typedef bool (FrCmdTarget::*FRESH_PFN_BV)();
 typedef void (FrCmdTarget::*FRESH_PFN_VI)(int);
 typedef bool (FrCmdTarget::*FRESH_PFN_BI)(int);
 
+class FrForm;
+typedef bool (FrCmdTarget::*FRESH_PFN_RESULT)(int, FrForm*);
+
 union uFreshFunctions
 {
 	FRESH_PFN pFn;

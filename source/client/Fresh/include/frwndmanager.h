@@ -14,10 +14,11 @@ class FrEmoticon;
 class FrGraphicInterface;
 class FrScrollBar;
 class FrWnd;
+class WSize;
 
 struct FrInputState
 {
-	unsigned int mouse;
+	unsigned long mouse;
 	bool hoverChecked;
 	WPoint mousePos;
 	WPoint oldMousePos;
@@ -40,21 +41,67 @@ public:
 	virtual ~FrWndManager();
 
 	bool Init(const char* wallPaper, bool exclusiveKey);
-	void Process(float deltaTime);
 	void Display(bool drawDesktop);
-	void CloseLayout();
-	bool CreateLayout(const char* layout, FrCmdTarget* owner, bool firstTime);
-	const Bitmap* GetBitmap(const char* resource, const char* id) const;
-	__forceinline bool HidePrivacy() { return this->m_hidePrivacy; }
-	__forceinline void HidePrivacy(bool hide) { this->m_hidePrivacy = hide; }
-	__forceinline FrDesktop* GetDesktop() { return this->m_pDesktop; }
+	void Process(const float deltaTime);
 	FrElementDoc* GetDocument() const;
+	const Bitmap* GetBitmap(const char* resource, const char* id) const;
+	void CreateToolTip();
+	void DestroyToolTip();
+	bool CreateLayout(const char* layout, FrCmdTarget* owner, bool firstTime);
+	void CloseLayout();
+	bool IsValidWindow(FrWnd* pWnd);
+	bool AddTopmostWindow(FrWnd* pWnd);
+	bool DeleteTopmostWindow(FrWnd* pWnd);
+	FrWnd* GetModalForm();
+	FrWnd* DoCreate(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent,
+		FrCmdTarget* pOwner);
+	__forceinline FrDesktop* GetDesktop() { return this->m_pDesktop; }
+	unsigned int& RefIndex();
+	FrGraphicInterface* GetGDI();
+	const WPoint& GetMousePos() const;
 	FrEmoticon* GetEmoticon() { return m_pEmoticon; }
-	FrWnd* DoCreate(FrGuiItem& item, FrWndManager* manager, FrWnd* parent,
-		FrCmdTarget* owner);
+	FrWnd* HandOverViewFocus();
+	bool SetKeyFocus(FrWnd* pWnd, bool resetPrevImeData);
+	FrWnd* GetKeyFocused();
+	bool CanGetKeyFocus(FrWnd* pWnd);
+	bool ResetKeyFocus(FrWnd* pWnd);
+	bool MoveKeyFocusToNext(bool resetPrevImeData);
+	FrScrollBar* GetWheelFocus();
+	void SetWheelFocus(FrScrollBar* pScrBar);
+	void SetCursor(int cursor);
+	int GetCursor();
+	void MoveCursor(FrWnd* pParent, const char* name);
 	__forceinline const char* GetLayoutID() { return this->m_layoutID.c_str(); }
+	bool SetCapture(FrWnd* pWnd);
+	FrWnd* GetCapture();
+	bool ReleaseCapture(FrWnd* pWnd);
+	WPoint GetCreatePosition(const WSize& rectSize);
+	void ConfineRect(WRect& dr);
+	void RemoveFade();
+	void CloseWindow(FrWnd* pWnd, bool bFade);
+	void CloseForm(bool bFade);
+	bool HasEscKeyWindow();
+	bool HasValidWindow();
+	void SetExclusiveKey(bool set);
+	bool IsKeyExclusive();
+	void ResetKey();
+	void ResetTopFocus();
+	float GetTextWidth(const char* text);
+	float PrintText(const WPoint& pos, unsigned long align, const char* text,
+		float limit, unsigned long emoDiffuse);
+	float PrintText11(const WPoint& pos, unsigned long align, const char* text,
+		float limit, unsigned long emoDiffuse);
+	FrInputState* GetInputState();
+	void IME_ShowCandWindow(FrEdit* pFocusedEdit, WPoint& caretPos);
+	std::list<FrWnd*>& GetTopWndList();
+	__forceinline void HidePrivacy(bool hide) { this->m_hidePrivacy = hide; }
+	__forceinline bool HidePrivacy() { return this->m_hidePrivacy; }
 
 protected:
+	void CheckSystemStatus();
+	void ProcessHotKey();
+	void ProcessKey(FrWnd* pOldKeyFocused);
+
 	FrElementDoc* m_pDoc;
 	FrDesktop* m_pDesktop;
 	FrCursor* m_pCursor;

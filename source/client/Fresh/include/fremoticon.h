@@ -10,10 +10,17 @@ class FrWndManager;
 class FrEmoticon
 {
 public:
+	FrEmoticon(FrWndManager* pManager);
 	virtual ~FrEmoticon();
-	float GetTextWidth(const char* text);
+	bool Init();
 	float PrintText(const WPoint& point, unsigned long style, const char* text,
 		unsigned long color);
+	float PrintText11(const WPoint& point, unsigned long style,
+		const char* text, unsigned long color);
+	float GetTextWidth(const char* text);
+	float GetTextWidth11(const char* text);
+	int GetWidth() { return m_selWidth; }
+	int GetHeight() { return m_selHeight; }
 	void SetAnim(bool enable) { m_EnableAnim = enable; }
 	void SetAnimTime(unsigned long time) { m_AnimStart = time; }
 
