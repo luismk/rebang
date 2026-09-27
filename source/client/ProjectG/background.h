@@ -14,7 +14,8 @@ public:
 	virtual void Load(const char* name, bool screenSized);
 	virtual void Process(const float deltaTime);
 	virtual void Draw(unsigned long color);
-	virtual void Draw(const WPoint* pos, const WRect* rect, unsigned long color);
+	virtual void Draw(const WPoint* pos, const WRect* rect,
+		unsigned long color);
 	virtual void ResetScreenSize();
 	virtual int GetWidth();
 	virtual int GetHeight();
