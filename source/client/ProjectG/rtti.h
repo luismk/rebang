@@ -10,3 +10,8 @@ protected:
 	const char* m_pName;
 	const WRTTI* m_pBaseRTTI;
 };
+
+#define DYNAMIC_CAST(type, obj) \
+	((__rtti_obj = (obj)) \
+			? (type*)((IObject*)__rtti_obj)->DynamicCast(&type::m_RTTI) \
+			: NULL)

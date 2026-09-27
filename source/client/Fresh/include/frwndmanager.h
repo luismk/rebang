@@ -3,6 +3,7 @@
 #include <string>
 #include "../../Wangreal/include/wtypes.h"
 #include "frelement.h"
+#include "chatmsg.h"
 
 class Bitmap;
 class CChatMsg;
@@ -56,24 +57,24 @@ public:
 	FrWnd* DoCreate(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent,
 		FrCmdTarget* pOwner);
 	__forceinline FrDesktop* GetDesktop() { return this->m_pDesktop; }
-	unsigned int& RefIndex();
-	FrGraphicInterface* GetGDI();
-	const WPoint& GetMousePos() const;
+	unsigned int& RefIndex() { return m_nRefIndex; }
+	FrGraphicInterface* GetGDI() { return m_pDevice; }
+	const WPoint& GetMousePos() const { return m_istate.mousePos; }
 	FrEmoticon* GetEmoticon() { return m_pEmoticon; }
 	FrWnd* HandOverViewFocus();
 	bool SetKeyFocus(FrWnd* pWnd, bool resetPrevImeData);
-	FrWnd* GetKeyFocused();
+	FrWnd* GetKeyFocused() { return m_istate.keyFocused; }
 	bool CanGetKeyFocus(FrWnd* pWnd);
 	bool ResetKeyFocus(FrWnd* pWnd);
 	bool MoveKeyFocusToNext(bool resetPrevImeData);
-	FrScrollBar* GetWheelFocus();
+	FrScrollBar* GetWheelFocus() { return m_istate.wheelFocused; }
 	void SetWheelFocus(FrScrollBar* pScrBar);
-	void SetCursor(int cursor);
-	int GetCursor();
+	void SetCursor(int cursor) { m_cursorIndex = cursor; }
+	int GetCursor() { return m_cursorIndex; }
 	void MoveCursor(FrWnd* pParent, const char* name);
 	__forceinline const char* GetLayoutID() { return this->m_layoutID.c_str(); }
 	bool SetCapture(FrWnd* pWnd);
-	FrWnd* GetCapture();
+	FrWnd* GetCapture() { return m_pCaptured; }
 	bool ReleaseCapture(FrWnd* pWnd);
 	WPoint GetCreatePosition(const WSize& rectSize);
 	void ConfineRect(WRect& dr);
@@ -83,8 +84,12 @@ public:
 	bool HasEscKeyWindow();
 	bool HasValidWindow();
 	void SetExclusiveKey(bool set);
-	bool IsKeyExclusive();
-	void ResetKey();
+	bool IsKeyExclusive() { return m_exclusiveKey; }
+	void ResetKey()
+	{
+		if (m_istate.im)
+			m_istate.im->Reset();
+	}
 	void ResetTopFocus();
 	float GetTextWidth(const char* text);
 	float PrintText(const WPoint& pos, unsigned long align, const char* text,
@@ -93,7 +98,7 @@ public:
 		float limit, unsigned long emoDiffuse);
 	FrInputState* GetInputState();
 	void IME_ShowCandWindow(FrEdit* pFocusedEdit, WPoint& caretPos);
-	std::list<FrWnd*>& GetTopWndList();
+	std::list<FrWnd*>& GetTopWndList() { return m_topmostList; }
 	__forceinline void HidePrivacy(bool hide) { this->m_hidePrivacy = hide; }
 	__forceinline bool HidePrivacy() { return this->m_hidePrivacy; }
 

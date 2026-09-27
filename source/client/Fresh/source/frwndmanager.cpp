@@ -26,11 +26,6 @@
 
 static __declspec(thread) void* __rtti_obj;
 
-#define DYNAMIC_CAST(type, obj) \
-	((__rtti_obj = (obj)) \
-			? (type*)((IObject*)__rtti_obj)->DynamicCast(&type::m_RTTI) \
-			: NULL)
-
 typedef std::list<FrWnd*> FRWNDLIST;
 
 bool FocusWndCompare(const void* d1, const void* d2)
@@ -330,7 +325,7 @@ void FrWndManager::ProcessHotKey()
 	if (g_input->GetDown("ESCAPE", true) == 1)
 	{
 		FrForm* pForm = DYNAMIC_CAST(FrForm, m_pDesktop->FindViewFocused(true));
-		if (pForm && pForm->GetFlag(FFL_ESCAPE) &&
+		if (pForm && pForm->GetFlag(FrESCAPE) &&
 			pForm->m_nFlags.GetFlag(FWF_INITED) &&
 			!pForm->m_nFlags.GetFlag(FWF_FADEOUT))
 		{
@@ -343,7 +338,7 @@ void FrWndManager::ProcessHotKey()
 		g_input->GetDown("PADENTER", true) == 1)
 	{
 		FrForm* pForm = DYNAMIC_CAST(FrForm, m_pDesktop->FindViewFocused(true));
-		if (pForm && pForm->GetFlag(FFL_ENTER) &&
+		if (pForm && pForm->GetFlag(FrENTER) &&
 			pForm->m_nFlags.GetFlag(FWF_INITED))
 		{
 			pForm->OnOK();
@@ -578,7 +573,7 @@ FrWnd* FrWndManager::GetModalForm()
 	{
 		FrForm* pForm = DYNAMIC_CAST(FrForm, *rit);
 
-		if (pForm && !pForm->GetFlag(FFL_MODELESS) &&
+		if (pForm && !pForm->GetFlag(FrMODALESS) &&
 			!(pForm->m_nFlags.GetFlag(FWF_FADING) &&
 				pForm->m_nFlags.GetFlag(FWF_FADEOUT)) &&
 			!pForm->m_nFlags.GetFlag(FWF_DESTROY) && *rit != m_pDesktop)
@@ -774,7 +769,7 @@ bool FrWndManager::HasEscKeyWindow()
 	for (; rit != m_pDesktop->m_childList.rend(); ++rit)
 	{
 		FrForm* pForm = DYNAMIC_CAST(FrForm, *rit);
-		if (pForm && pForm->GetFlag(FFL_ESCAPE))
+		if (pForm && pForm->GetFlag(FrESCAPE))
 			return true;
 	}
 

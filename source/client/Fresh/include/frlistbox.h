@@ -40,12 +40,12 @@ public:
 
 	void Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent);
 	void RecalcColCapacity(bool b);
-	void SetMultiSelect(bool multi);
-	void UseRightButton(bool use);
+	void SetMultiSelect(bool multi) { m_multiSelect = multi; }
+	void UseRightButton(bool use) { m_useRightButton = use; }
 	const Bitmap* GetBitmap(const char* name);
 	FrListItem* GetItemUnderCursor() { return m_pItemUnderCursor; }
-	FrListItem* GetSelected();
-	FrListItem* GetPreviousSelected();
+	FrListItem* GetSelected() { return m_pSelected; }
+	FrListItem* GetPreviousSelected() { return m_pPreviousSelected; }
 	void SelectItem(FrListItem* item, bool b);
 	void UnselectItem(FrListItem* item);
 	void UnselectAllItem();
@@ -75,9 +75,9 @@ public:
 	void EnableRollOver(bool enable);
 	bool MoveTopItem(int n);
 	void Resize(int w, int h);
-	void UseDummy(bool use);
+	void UseDummy(bool use) { m_useDummy = use; }
 	void AddNoRButtonRect(const WRect& rect, int idx);
-	void ResetTopRow();
+	void ResetTopRow() { m_prevTopRow = -1; }
 	void SetMouseEvent(bool active);
 	int GetColCapacity() { return m_colCapacity; }
 

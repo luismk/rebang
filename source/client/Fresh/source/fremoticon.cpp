@@ -10,18 +10,6 @@ static __declspec(thread) void* __rtti_obj;
 
 extern "C" __declspec(dllimport) int __cdecl strcmpi(const char*, const char*);
 
-inline FrGraphicInterface* FrWndManager::GetGDI()
-{
-	return m_pDevice;
-}
-inline unsigned long FrGraphicInterface::GetTextColor() const
-{
-	return m_textColor;
-}
-inline unsigned long FrGraphicInterface::GetTextOutlineColor() const
-{
-	return m_textOutlineColor;
-}
 inline const char* cTokenV::GetBuf() const
 {
 	return m_pcBuf;

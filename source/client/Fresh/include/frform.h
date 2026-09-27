@@ -21,11 +21,19 @@ enum eFormRet
 	FrNO
 };
 
-enum eFormFlag
+enum eFormFlags
 {
-	FFL_ESCAPE = 0x1,
-	FFL_ENTER = 0x2,
-	FFL_MODELESS = 0x4
+	FrESCAPE = 0x1,
+	FrENTER = 0x2,
+	FrMODALESS = 0x4,
+	FrNOTAIL = 0x8,
+	FrICON = 0x10,
+	FrRET_NONE = 0x20,
+	FrRET_OK = 0x40,
+	FrRET_CANCEL = 0x80,
+	FrNOSOUND = 0x100,
+	FrEXCLUSIVE = 0x200,
+	FrRESIZABLE = 0x400
 };
 
 class FrForm : public FrWnd
@@ -39,29 +47,33 @@ public:
 	FrForm();
 	virtual ~FrForm();
 	void Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent);
-	FrForm* _Init(FrWndManager* pManager, FrCmdTarget* pOwner,
-		const char* layout, FrWnd* pParent);
+	FrForm* _Init(FrWndManager* pManager, FrCmdTarget* pCmdDest,
+		const char* lpszTemplateID, FrWnd* pParent);
+	virtual bool Open(FRESH_PFN_RESULT pFnResult, unsigned long flag);
 	virtual bool Open(FRESH_PFN_RESULT pFnResult, const WPoint& pos,
-		unsigned long style);
-	virtual bool Open(FRESH_PFN_RESULT pFnResult, unsigned long style);
-	virtual bool Close(eFormRet ret, bool immediate);
-	virtual bool Close(bool immediate);
+		unsigned long flag);
+	virtual bool Close(eFormRet result, bool bFade);
+	virtual bool Close(bool bFade);
 	void SetResultCallback(FRESH_PFN_RESULT pFnResult);
 	virtual void SetCaption(const char* caption);
 	virtual void SetDesc(const char* desc);
-	virtual void SetMessage(const char* message, bool b);
-	virtual void EnableDrag(bool enable);
-	virtual void SetTimeLimit(float limit) { m_timeLimit = limit; }
+	virtual void SetMessage(const char* msg, bool spaceAlign);
+	virtual void EnableDrag(bool drag);
+	virtual void SetTimeLimit(float limit)
+	{
+		m_timeLimit = limit;
+		m_dt = 0.0f;
+	}
 	void DescHidePrivacy() { m_pBaseFrm->HidePrivacy(true); }
 	bool GetFlag(unsigned long flag) { return (m_flag & flag) ? true : false; }
 	void SetFlag(unsigned long flag) { m_flag = flag; }
 	void EnableFlag(unsigned long flag) { m_flag |= flag; }
 	void DisableFlag(unsigned long flag) { m_flag &= ~flag; }
 	void SetCloseResult(eFormRet ret) { m_retCode = ret; }
-	void Adjust(WRect& rect);
-	void SetFrameCaptionFocus(bool focus);
+	void Adjust(WRect& rtRect);
+	void SetFrameCaptionFocus(bool bEnable);
 	void SetCaptionOffset(bool offset) { m_pBaseFrm->SetCaptionOffset(offset); }
-	void SetMessageControlByType(enumGuiType type, FrWnd* pWnd);
+	void SetMessageControlByType(enumGuiType type, FrWnd* pChild);
 	virtual bool OnInit();
 
 protected:
@@ -71,10 +83,10 @@ protected:
 	virtual void OnCancel();
 
 public:
-	virtual void OnMouseMove(const WPoint& point);
-	virtual bool OnLButtonDown(const WPoint& point);
-	virtual bool OnLButtonUp(const WPoint& point);
-	virtual void OnSetCursor(bool bInClient, const WPoint& point);
+	virtual void OnMouseMove(const WPoint& mousePos);
+	virtual bool OnLButtonDown(const WPoint& mousePos);
+	virtual bool OnLButtonUp(const WPoint& mousePos);
+	virtual void OnSetCursor(bool bInClient, const WPoint& mousePos);
 	virtual void SetRect(const WRect& rect);
 	virtual void SetIconRect(const WRect& rect);
 	virtual void SetClientRect(const WRect& rect);
@@ -95,8 +107,8 @@ protected:
 	eFormRet m_defaultRetCode;
 
 private:
-	bool IsTitleBarArea(const WPoint& point);
-	virtual bool IsResizeBtnArea(const WPoint& point);
+	bool IsTitleBarArea(const WPoint& pos);
+	virtual bool IsResizeBtnArea(const WPoint& pos);
 	static WPoint ms_oldPos;
 
 protected:

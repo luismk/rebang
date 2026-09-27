@@ -107,15 +107,19 @@ public:
 	void SetKeyEvent(bool enable) { m_dwStyle.Turn(FWS_KEYEVENT, enable); }
 	void SetWheelEvent(bool enable);
 	void SetTopmost(bool topmost);
+	bool IsFixed() { return m_dwStyle.GetFlag(FWS_FIXED); }
 	void UseDblClick(bool use) { m_dwStyle.Turn(FWS_NODBLCLICK, !use); }
 	void EnableHover(bool enable, float time);
 	void HidePrivacy(bool hide) { m_nFlags.Turn(FWF_PRIVACY, hide); }
+	void SetFadeout(bool fadeout);
 	void SetViewFocus(bool focus);
 	FrWnd* FindViewFocused(bool b);
 	bool IsViewFocused() const;
 	bool IsTopFocus() const;
 	bool SetKeyFocus(bool focus);
+	void FindNextTopFocus(bool b);
 	bool SetCapture();
+	FrWnd* GetCapture();
 	bool ReleaseCapture();
 	void SetCursor(int cursor);
 	bool PlayPushSound();
@@ -123,7 +127,7 @@ public:
 
 protected:
 	virtual void OnDraw();
-	virtual void OnProc(const float deltaTime);
+	virtual void OnProc(const float deltaTime) { }
 	virtual void OnResize();
 	virtual void OnMouseMove(const WPoint& mousePos) { }
 	virtual bool OnLButtonUp(const WPoint& mousePos) { return false; }

@@ -63,7 +63,7 @@ public:
 	}
 	WPoint operator-() const { return WPoint(-x, -y); }
 	WPoint operator+(WPoint& p) const { return WPoint(x + p.x, y + p.y); }
-	WPoint operator-(WPoint& p) const { return WPoint(x - p.x, y - p.y); }
+	WPoint operator-(WPoint& _p) const { return WPoint(x - _p.x, y - _p.y); }
 };
 
 class WSize : public _WSIZE
@@ -97,7 +97,7 @@ public:
 		w -= s.w;
 		h -= s.h;
 	}
-	WSize operator+(WSize& s) const { return WSize(w + s.w, h + s.h); }
+	WSize operator+(WSize& _s) const { return WSize(w + _s.w, h + _s.h); }
 	WSize operator-() const { return WSize(-w, -h); }
 	WSize operator-(WSize& s) const { return WSize(w - s.w, h - s.h); }
 };
@@ -133,6 +133,15 @@ public:
 		this->w = width;
 		this->h = height;
 	}
+	WRect(const WPoint& pt, const WSize& size)
+	{
+		x = pt.x;
+		y = pt.y;
+		w = size.w;
+		h = size.h;
+	}
+	WPoint TopLeft() const { return WPoint(x, y); }
+	WSize Size() const { return WSize(w, h); }
 };
 
 template <>

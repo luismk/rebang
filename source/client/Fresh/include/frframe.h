@@ -21,7 +21,7 @@ public:
 	void SetCaption(const char* caption) { m_caption = caption; }
 	void SetDesc(const char* desc) { m_desc = desc; }
 	void UseEmoAtDesc(bool use) { m_emoAtDesc = use; }
-	void SetCaptionFocus(bool focus) { m_bCaptionFocus = focus; }
+	void SetCaptionFocus(bool bEnable) { m_bCaptionFocus = bEnable; }
 	void SetBlink(bool blink);
 	void SetCaptionOffset(bool offset) { m_captionOffset = offset; }
 
