@@ -52,13 +52,7 @@ public:
 	}
 	float Right() const { return w + x; }
 	float Bottom() const { return h + y; }
-	bool IsInRect(const WPoint& point)
-	{
-		if (point.x >= x && point.x <= x + w && point.y >= y &&
-			point.y <= y + h)
-			return true;
-		return false;
-	}
+	bool IsInRect(const WPoint& point);
 
 	__forceinline WRect() { }
 
@@ -79,4 +73,11 @@ inline WRect::WRect(float x, float y, float width, float height)
 	this->y = y;
 	this->w = width;
 	this->h = height;
+}
+
+inline bool WRect::IsInRect(const WPoint& point)
+{
+	if (point.x >= x && point.x <= x + w && point.y >= y && point.y <= y + h)
+		return true;
+	return false;
 }

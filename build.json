@@ -613,7 +613,13 @@
           ]
         },
         "source/client/Fresh/source/frcursor.cpp",
-        "source/client/Fresh/source/frdesktop.obj",
+        {
+          "path": "source/client/Fresh/source/frdesktop.cpp",
+          "pch": "source/client/Fresh/source/stdafx.cpp",
+          "extra_flags": [
+            "/FIstdafx.h"
+          ]
+        },
         {
           "path": "source/client/Fresh/source/fredit.cpp",
           "pch": "source/client/Fresh/source/stdafx.cpp",

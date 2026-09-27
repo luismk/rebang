@@ -69,6 +69,7 @@ public:
 	bool IsEnabled() const { return !m_dwStyle.GetFlag(FWS_DISABLED); }
 	bool IsVisible() const { return m_dwStyle.GetFlag(FWS_VISIBLE); }
 	void SetKeyEvent(bool enable) { m_dwStyle.Turn(FWS_KEYEVENT, enable); }
+	void SetWheelEvent(bool enable);
 	void SetTopmost(bool topmost);
 	void UseDblClick(bool use) { m_dwStyle.Turn(FWS_NODBLCLICK, !use); }
 	void EnableHover(bool enable, float time);
@@ -84,18 +85,18 @@ protected:
 	virtual void OnDraw();
 	virtual void OnProc(const float deltaTime);
 	virtual void OnResize();
-	virtual void OnMouseMove(const WPoint& point);
-	virtual bool OnLButtonUp(const WPoint& point);
-	virtual bool OnLButtonDown(const WPoint& point);
+	virtual void OnMouseMove(const WPoint& mousePos) { }
+	virtual bool OnLButtonUp(const WPoint& mousePos) { return false; }
+	virtual bool OnLButtonDown(const WPoint& mousePos) { return false; }
 	virtual bool OnRButtonUp(const WPoint& point);
 	virtual bool OnRButtonDown(const WPoint& point);
 	virtual void OnDblClick(const WPoint& point);
 	virtual void OnWheel(FrInputState& input) { }
 	virtual const char* OnSelectText(const FrInputState* input) { return NULL; }
 	virtual void OnKeyFocus(CChatMsg* message);
-	virtual void OnSetCursor(bool active, const WPoint& point);
+	virtual void OnSetCursor(bool bInClient, const WPoint& mousePos) { }
 	virtual void EnableKeyFocus(FrInputState& input) { m_nFlags.Enable(0x10); }
-	virtual void SetIconRect(const WRect& rect);
+	virtual void SetIconRect(const WRect& rect) { }
 
 	WFlags m_nFlags;
 	FrWnd* m_pParentWnd;

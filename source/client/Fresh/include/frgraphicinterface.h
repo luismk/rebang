@@ -10,6 +10,7 @@ extern WView* g_view;
 class FrGraphicInterface
 {
 public:
+	virtual ~FrGraphicInterface();
 	void Box(const _WRECT& rc, unsigned long color, unsigned long z = 0,
 		float alpha = 0.0f) const
 	{
@@ -38,7 +39,22 @@ public:
 	void SetTextStyle(unsigned long style);
 	float Print(const WPoint& point, unsigned long style, const char* format,
 		...);
+	float GetViewWidth();
+	float GetViewHeight();
+
+protected:
+	WView* m_pView;
 };
+
+inline float FrGraphicInterface::GetViewWidth()
+{
+	return m_pView ? m_pView->GetWidth() : 0.0f;
+}
+
+inline float FrGraphicInterface::GetViewHeight()
+{
+	return m_pView ? m_pView->GetHeight() : 0.0f;
+}
 
 inline unsigned long FrALPHA(unsigned long color, float alpha)
 {
