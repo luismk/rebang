@@ -49,6 +49,7 @@ public:
 	__forceinline void HidePrivacy(bool hide) { this->m_hidePrivacy = hide; }
 	__forceinline FrDesktop* GetDesktop() { return this->m_pDesktop; }
 	FrElementDoc* GetDocument() const;
+	FrEmoticon* GetEmoticon() { return m_pEmoticon; }
 	FrWnd* DoCreate(FrGuiItem& item, FrWndManager* manager, FrWnd* parent,
 		FrCmdTarget* owner);
 	__forceinline const char* GetLayoutID() { return this->m_layoutID.c_str(); }

@@ -24,6 +24,16 @@ public:
 		unsigned long color, int flags) const;
 	void DrawTexture(const Bitmap* bitmap, const WRect& src, const WRect& dst,
 		unsigned long color, int flags) const;
+	void SetClippingArea(WRect* rect);
+	int GetFontHeight();
+	float PrintText(const WPoint& point, unsigned long style, const char* text,
+		Bitmap* bitmap);
+	void Line(const WPoint& start, const WPoint& end, unsigned long first,
+		unsigned long second, unsigned long type = 0) const
+	{
+		g_view->DrawLine2D(start, end, first, second, type);
+	}
+	float GetTextExtend(const char* text);
 	void SetTextColor(unsigned long color, unsigned long outlineColor);
 	void SetTextStyle(unsigned long style);
 	float Print(const WPoint& point, unsigned long style, const char* format,

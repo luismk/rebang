@@ -1,4 +1,5 @@
 #pragma once
+#include "wflag.h"
 #include <map>
 #include <vector>
 #include <stdio.h>

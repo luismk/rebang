@@ -7,4 +7,5 @@
 #include "../../Wangreal/include/wtypes.h"
 #include "../../Wangreal/include/bitmap.h"
 #include <string>
+#include "../../Wangreal/include/wflag.h"
 #include "../../Wangreal/include/woverlay.h"

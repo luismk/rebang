@@ -503,8 +503,8 @@ public:
 	virtual int GetState(int type, int index);
 	virtual unsigned long GetEventTime(int index);
 	virtual bool IsAlphaNumericMode();
-	virtual void SetAlphaNumericMode();
 	virtual void SetAlphaNumericMode(bool enabled);
+	virtual void SetAlphaNumericMode();
 	virtual bool IsUpdated();
 	virtual unsigned long GetLastInputTime();
 	virtual void ResetInputTime();

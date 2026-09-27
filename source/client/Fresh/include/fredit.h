@@ -63,9 +63,9 @@ public:
 	void SetAutoLine(bool autoLine);
 	int GetSelectLine();
 	void SetSelectLine(int line);
-	void EnableEditStyle(eEditStyle style);
+	void EnableEditStyle(eEditStyle style) { m_editProperty.Enable(style); }
 	void DisableEditStyle(eEditStyle style);
-	bool IsEditStyle(eEditStyle style);
+	bool IsEditStyle(eEditStyle style) { return m_editProperty.GetFlag(style); }
 	bool IsEmoticonStyle();
 
 protected:

@@ -1,4 +1,5 @@
 #pragma once
+#include "wflag.h"
 #include "rtti.h"
 #include "frcmdtarget.h"
 #include "objectfactory.h"
@@ -63,7 +64,9 @@ public:
 	FrWndManager* WndManager() const { return m_pWndManager; }
 	void SetRect(const WRect& rect);
 	const WRect& GetRect() { return m_rect; }
+	void SetWindowTextA(const char* text);
 	void SetToolTipText(const std::string& text);
+	bool IsEnabled() const { return !m_dwStyle.GetFlag(FWS_DISABLED); }
 	bool IsVisible() const { return m_dwStyle.GetFlag(FWS_VISIBLE); }
 	void SetKeyEvent(bool enable) { m_dwStyle.Turn(FWS_KEYEVENT, enable); }
 	void SetTopmost(bool topmost);
