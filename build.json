@@ -654,7 +654,13 @@
             "/FIstdafx.h"
           ]
         },
-        "source/client/Fresh/source/frframe.obj",
+        {
+          "path": "source/client/Fresh/source/frframe.cpp",
+          "pch": "source/client/Fresh/source/stdafx.cpp",
+          "extra_flags": [
+            "/FIstdafx.h"
+          ]
+        },
         {
           "path": "source/client/Fresh/source/frgaugebar.cpp",
           "pch": "source/client/Fresh/source/stdafx.cpp",
