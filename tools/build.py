@@ -8,74 +8,24 @@ import fcntl
 import functools
 import hashlib
 import json
-import os
 import re
 import shutil
 import subprocess
 import tarfile
 import tempfile
 import zipfile
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping
 from pathlib import Path, PurePosixPath
-from typing import BinaryIO, TypedDict, cast
+from typing import BinaryIO, cast
+
+import common
+import imgcmp
 
 
-class EntryOptions(TypedDict, total=False):
-    path: str
-    library: str
-    members: list[Entry]
-    member: str
-    patch: str
-    flags: list[str]
-    includes: list[str]
-    extra_flags: list[str]
-    dependencies: list[str]
-    pch: str
-
-
-Entry = str | EntryOptions
-PathArgument = str | Path
-ArchiveData = bytes | bytearray
-
-
-class OptionalBuildConfig(TypedDict, total=False):
-    precompiled_headers: list[Entry]
-    source_archives: dict[str, Entry]
-
-
-class BuildConfig(OptionalBuildConfig):
-    inputs: list[Entry]
-    cflags: list[str]
-    includes: list[str]
-    link_flags: list[str]
-
-
-ROOT = Path(__file__).resolve().parents[1]
-PREFIX = Path(os.environ.get("PROJECTG_WINEPREFIX", ROOT / ".wine")).resolve()
-CONFIG = ROOT / "build.json"
-BIN = ROOT / "tools/VC7.1/bin"
-IMAGE = Path("build/ProjectG_ReleaseQA.exe")
-LINKED = Path("build/ProjectG_ReleaseQA.link.exe")
-IMAGE_SIZE = 7618560
-EXPECTED = "761252876446178ad5190e78656aa8790b9dbaf2e86a248f31bb4678347e44fc"
-HEADER_SUFFIXES = ("", ".h", ".hpp", ".hxx", ".inl", ".inc")
-CLANG_TARGET = "i386-pc-windows-msvc"
-MSC_VERSION = "13.10"
-IDENTITY = (
-    (320, "e1e6a04e"),
-    (6184036, "e1e6a04e"),
-    (6594392, "b0c094b607038c45a37f50dcaaff0630"),
-)
-
-
-def path(entry: Entry) -> str:
-    return entry if isinstance(entry, str) else entry["path"]
-
-
-def product(entry: Entry) -> str:
+def product(entry: common.Entry) -> str:
     if isinstance(entry, dict) and "library" in entry:
         return "build/" + entry["library"]
-    source = path(entry)
+    source = common.entry_path(entry)
     if isinstance(entry, dict) and "member" in entry:
         return str(Path("build", source).with_suffix("") / entry["member"])
     suffix = Path(source).suffix.lower()
@@ -87,40 +37,11 @@ def product(entry: Entry) -> str:
         return source
 
 
-def settings() -> tuple[BuildConfig, dict[str, Entry]]:
-    config: BuildConfig = json.loads(CONFIG.read_text())
-    entries = list(config.get("precompiled_headers", []))
-    for entry in config["inputs"]:
-        if isinstance(entry, dict) and "library" in entry:
-            defaults: EntryOptions = {}
-            if "flags" in entry:
-                defaults["flags"] = entry["flags"]
-            if "includes" in entry:
-                defaults["includes"] = entry["includes"]
-            if "extra_flags" in entry:
-                defaults["extra_flags"] = entry["extra_flags"]
-            for member in entry["members"]:
-                member_options: EntryOptions
-                if isinstance(member, str):
-                    member_options = {"path": member}
-                else:
-                    member_options = member
-                merged_options: EntryOptions = {**defaults, **member_options}
-                entries.append(merged_options)
-        else:
-            entries.append(entry)
-    return config, {path(e): e for e in entries}
-
-
-def pch_product(source: str) -> str:
-    return str(Path("build", source).with_suffix(".pch"))
-
-
 def unpack_stamp(directory: str) -> str:
     return str(Path("build", directory) / ".unpacked")
 
 
-def source_files(archive: PathArgument) -> Iterator[tuple[Path, bytes]]:
+def source_files(archive: common.PathArgument) -> Iterator[tuple[Path, bytes]]:
     def relative(name: str) -> Path:
         p = PurePosixPath(name)
         if p.is_absolute() or ".." in p.parts or len(p.parts) < 2:
@@ -141,13 +62,15 @@ def source_files(archive: PathArgument) -> Iterator[tuple[Path, bytes]]:
 
 
 def unpack(directory: str) -> None:
-    entry: Entry = json.loads(CONFIG.read_text())["source_archives"][directory]
-    dest = ROOT / directory
+    entry: common.Entry = json.loads(common.CONFIG.read_text())["source_archives"][
+        directory
+    ]
+    dest = common.ROOT / directory
     dest.parent.mkdir(parents=True, exist_ok=True)
-    print("UNPACK", path(entry), flush=True)
+    print("UNPACK", common.entry_path(entry), flush=True)
     with tempfile.TemporaryDirectory(dir=dest.parent) as temporary:
         tree = Path(temporary) / "source"
-        for relative, data in source_files(ROOT / path(entry)):
+        for relative, data in source_files(common.ROOT / common.entry_path(entry)):
             output = tree / relative
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_bytes(data)
@@ -160,7 +83,7 @@ def unpack(directory: str) -> None:
                     "--fuzz=0",
                     "-p1",
                     "-i",
-                    str(ROOT / entry["patch"]),
+                    str(common.ROOT / entry["patch"]),
                 ],
                 cwd=tree,
                 check=True,
@@ -174,87 +97,15 @@ def unpack(directory: str) -> None:
 
 
 def clean() -> None:
-    for directory in json.loads(CONFIG.read_text()).get("source_archives", {}):
-        dest = ROOT / directory
+    for directory in json.loads(common.CONFIG.read_text()).get("source_archives", {}):
+        dest = common.ROOT / directory
         if dest.exists():
             shutil.rmtree(dest)
-    shutil.rmtree(ROOT / "build", ignore_errors=True)
-    (ROOT / "compile_commands.json").unlink(missing_ok=True)
+    shutil.rmtree(common.ROOT / "build", ignore_errors=True)
+    (common.ROOT / "compile_commands.json").unlink(missing_ok=True)
 
 
-def windows(p: PathArgument) -> str:
-    return "Z:" + str((ROOT / p).resolve()).replace("/", "\\")
-
-
-def environment() -> dict[str, str]:
-    return dict(
-        os.environ,
-        WINEPREFIX=str(PREFIX),
-        WINEDEBUG="-all",
-        WINEDLLOVERRIDES="mscoree,mshtml=",
-        WINEPATH=windows(BIN),
-    )
-
-
-def prepare_wine() -> None:
-    (ROOT / "build").mkdir(exist_ok=True)
-    with (ROOT / "build/wine.lock").open("w") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        marker = PREFIX / ".projectg-ready"
-        if not marker.exists():
-            with (ROOT / "build/wineboot.log").open("w") as log:
-                subprocess.run(
-                    ["wineboot", "-u"],
-                    env=environment(),
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    check=True,
-                )
-            marker.touch()
-        drive = ROOT / "build/pdb-drive"
-        (drive / "Build/Custom/temp/bin").mkdir(parents=True, exist_ok=True)
-        link = PREFIX / "dosdevices/d:"
-        if link.is_symlink() or link.exists():
-            if link.resolve() != drive:
-                raise ValueError(f"Wine D: points elsewhere: {link}")
-        else:
-            link.symlink_to(drive)
-
-
-def response(output: PathArgument, args: Iterable[PathArgument]) -> Path:
-    output = Path(output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    rsp = output.with_suffix(output.suffix + ".rsp")
-    rsp.write_bytes(
-        ("\r\n".join('"' + str(a) + '"' for a in args) + "\r\n").encode("ascii")
-    )
-    return rsp
-
-
-def invoke(
-    tool: str, output: PathArgument, args: Sequence[str], cwd: PathArgument = ROOT
-) -> str:
-    prepare_wine()
-    output = Path(output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    command = args if tool == "rc.exe" else ["@" + windows(response(output, args))]
-    log = output.with_suffix(output.suffix + ".log")
-    with log.open("w") as stream:
-        result = subprocess.run(
-            ["wine", str(BIN / tool), *command],
-            cwd=cwd,
-            env=environment(),
-            stdout=stream,
-            stderr=subprocess.STDOUT,
-            check=False,
-        )
-    log_text = log.read_text(errors="replace")
-    if result.returncode:
-        raise RuntimeError(f"{tool} failed; see {log}\n{log_text}")
-    return log_text
-
-
-def make_escape(p: PathArgument) -> str:
+def make_escape(p: common.PathArgument) -> str:
     return (
         str(p)
         .replace("\\", "/")
@@ -267,14 +118,14 @@ def make_escape(p: PathArgument) -> str:
 @functools.cache
 def include_mirror(directory: str) -> str | None:
     """Build lowercase mirror of headers for clangd."""
-    source = ROOT / directory
-    mirror = ROOT / "build/include-mirror" / directory
+    source = common.ROOT / directory
+    mirror = common.ROOT / "build/include-mirror" / directory
     if not source.is_dir():
         return None
     links = {
         str(p.relative_to(source)).lower(): p
         for p in sorted(source.rglob("*"))
-        if p.is_file() and p.suffix.lower() in HEADER_SUFFIXES
+        if p.is_file() and p.suffix.lower() in common.HEADER_SUFFIXES
     }
     links = {n: p for n, p in links.items() if str(p.relative_to(source)) != n}
     shutil.rmtree(mirror, ignore_errors=True)
@@ -288,7 +139,7 @@ def include_mirror(directory: str) -> str | None:
 
 
 def clang_arguments(
-    source: str, options: EntryOptions, config: BuildConfig, output: str
+    source: str, options: common.EntryOptions, config: common.BuildConfig, output: str
 ) -> list[str]:
     """Rough translation from MSVC command to clangd driver command."""
     flags = [*options.get("flags", config["cflags"]), *options.get("extra_flags", [])]
@@ -296,8 +147,8 @@ def clang_arguments(
     c = Path(source).suffix.lower() == ".c" and "/TP" not in flags
     args = [
         "clang",
-        f"--target={CLANG_TARGET}",
-        f"-fms-compatibility-version={MSC_VERSION}",
+        f"--target={common.CLANG_TARGET}",
+        f"-fms-compatibility-version={common.MSC_VERSION}",
         "-fms-extensions",
         "-fms-compatibility",
         "-Wno-switch",
@@ -311,49 +162,52 @@ def clang_arguments(
             args.append("-" + flag[1:])
         elif flag[:1] in "-/" and flag[1:3] == "FI":
             args += ["-include", flag[3:]]
-    args += ["-I" + str(ROOT / i) for i in includes]
+    args += ["-I" + str(common.ROOT / i) for i in includes]
     args += ["-I" + m for i in includes if (m := include_mirror(i)) is not None]
-    args += ["-c", "-o", str(ROOT / output), str(ROOT / source)]
+    args += ["-c", "-o", str(common.ROOT / output), str(common.ROOT / source)]
     return args
 
 
 def compile_commands() -> None:
-    config, entries = settings()
-    pch_sources = {path(e) for e in config.get("precompiled_headers", [])}
+    config, entries = common.build_settings()
+    pch_sources = {common.entry_path(e) for e in config.get("precompiled_headers", [])}
     database: list[dict[str, object]] = []
     for source, entry in entries.items():
         if Path(source).suffix.lower() not in (".c", ".cpp", ".cxx", ".h"):
             continue
-        options: EntryOptions = entry if isinstance(entry, dict) else {}
+        options: common.EntryOptions = entry if isinstance(entry, dict) else {}
         if "member" in options:
             continue
-        output = pch_product(source) if source in pch_sources else product(entry)
+        output = common.pch_product(source) if source in pch_sources else product(entry)
         database.append(
             {
-                "directory": str(ROOT),
-                "file": str(ROOT / source),
-                "output": str(ROOT / output),
+                "directory": str(common.ROOT),
+                "file": str(common.ROOT / source),
+                "output": str(common.ROOT / output),
                 "arguments": clang_arguments(source, options, config, output),
             }
         )
-    (ROOT / "compile_commands.json").write_text(json.dumps(database, indent=2) + "\n")
+    (common.ROOT / "compile_commands.json").write_text(
+        json.dumps(database, indent=2) + "\n"
+    )
 
 
 def rules() -> None:
-    config, entries = settings()
+    config, entries = common.build_settings()
     lines = ["# Generated from build.json.", ""]
     source_targets: list[str] = []
     for directory, entry in config.get("source_archives", {}).items():
         stamp = unpack_stamp(directory)
         files = [
-            str(Path(directory) / name) for name, _ in source_files(ROOT / path(entry))
+            str(Path(directory) / name)
+            for name, _ in source_files(common.ROOT / common.entry_path(entry))
         ]
         source_targets += [stamp, *files]
-        dependencies = [path(entry), "build.json", "tools/build.py"]
+        dependencies = [common.entry_path(entry), "build.json", "tools/build.py"]
         if isinstance(entry, dict) and "patch" in entry:
             dependencies.append(entry["patch"])
         lines += [
-            f"build/rules.mk: {make_escape(path(entry))}",
+            f"build/rules.mk: {make_escape(common.entry_path(entry))}",
             " ".join(map(make_escape, [stamp, *files]))
             + " &: "
             + " ".join(map(make_escape, dependencies)),
@@ -366,24 +220,26 @@ def rules() -> None:
         "",
     ]
     tool_deps = " ".join(
-        str(p.relative_to(ROOT)) for p in sorted(BIN.iterdir()) if p.is_file()
+        str(p.relative_to(common.ROOT))
+        for p in sorted(common.BIN.iterdir())
+        if p.is_file()
     )
-    common = "build.json tools/build.py " + tool_deps
+    common_deps = "build.json tools/build.py " + tool_deps
     outputs: set[str] = set()
     depfiles: list[str] = []
-    pch_sources = {path(e) for e in config.get("precompiled_headers", [])}
+    pch_sources = {common.entry_path(e) for e in config.get("precompiled_headers", [])}
     for source, entry in entries.items():
         precompile = source in pch_sources
-        dest = pch_product(source) if precompile else product(entry)
+        dest = common.pch_product(source) if precompile else product(entry)
         if dest == source:
             continue
         if dest in outputs:
             raise ValueError(f"conflicting sources for {dest}")
         outputs.add(dest)
-        options: EntryOptions = entry if isinstance(entry, dict) else {}
+        options: common.EntryOptions = entry if isinstance(entry, dict) else {}
         dependencies = list(options.get("dependencies", []))
         if "pch" in options:
-            dependencies.append(pch_product(options["pch"]))
+            dependencies.append(common.pch_product(options["pch"]))
         resource = Path(source).suffix.lower() == ".rc"
         extract = "member" in options
         if resource:
@@ -404,7 +260,7 @@ def rules() -> None:
             f"{dest}: {source} "
             + " ".join(map(make_escape, dependencies))
             + " "
-            + common
+            + common_deps
             + " | sources",
             f"\t@python3 tools/build.py {action} {source}",
             "",
@@ -417,15 +273,18 @@ def rules() -> None:
         dest = product(entry)
         members = [product(m) for m in entry["members"]]
         lines += [
-            f"{dest}: " + " ".join(members) + " " + common,
+            f"{dest}: " + " ".join(members) + " " + common_deps,
             f"\t@python3 tools/build.py library {entry['library']}",
             "",
         ]
     lines += [
-        f"{LINKED}: " + " ".join(product(e) for e in config["inputs"]) + " " + common,
+        f"{common.LINKED}: "
+        + " ".join(product(e) for e in config["inputs"])
+        + " "
+        + common_deps,
         "\t@python3 tools/build.py link",
         "",
-        f"{IMAGE}: {LINKED} tools/build.py",
+        f"{common.IMAGE}: {common.LINKED} tools/build.py",
         "\t@python3 tools/build.py normalize",
         "",
     ]
@@ -436,41 +295,40 @@ def rules() -> None:
 
 
 def compile_source(source: str, precompile: bool = False) -> None:
-    config, entries = settings()
+    _, entries = common.build_settings()
     entry = entries[source]
-    options: EntryOptions = entry if isinstance(entry, dict) else {}
-    output = pch_product(source) if precompile else product(entry)
-    flags = [*options.get("flags", config["cflags"]), *options.get("extra_flags", [])]
-    includes = [*config["includes"], *options.get("includes", [])]
+    options: common.EntryOptions = entry if isinstance(entry, dict) else {}
+    output = common.pch_product(source) if precompile else product(entry)
+    flags, includes, _ = common.compile_settings(source)
     pdb = Path(output).with_suffix(".pdb")
     if precompile or "pch" in options:
         pch_source = source if precompile else options["pch"]
         flags += [
             ("/Yc" if precompile else "/Yu") + Path(pch_source).with_suffix(".h").name,
-            "/Fp" + windows(pch_product(pch_source)),
+            "/Fp" + common.windows(common.pch_product(pch_source)),
         ]
-        pdb = Path(pch_product(pch_source)).with_suffix(".pdb")
+        pdb = Path(common.pch_product(pch_source)).with_suffix(".pdb")
     obj = output + ".obj" if precompile else output
     args = [
         "/nologo",
         "/c",
         "/showIncludes",
         *flags,
-        *["/I" + windows(p) for p in includes],
-        "/Fo" + windows(obj),
-        "/Fd" + windows(pdb),
-        windows(source),
+        *["/I" + common.windows(p) for p in includes],
+        "/Fo" + common.windows(obj),
+        "/Fd" + common.windows(pdb),
+        common.windows(source),
     ]
     print("PCH" if precompile else "CL", source, flush=True)
     # Workaround for C1033 errors.
     pdb.parent.mkdir(parents=True, exist_ok=True)
     with pdb.with_suffix(".pdb.lock").open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        log = invoke("cl.exe", output, args)
+        log = common.invoke("cl.exe", output, args)
     headers: list[str] = []
     actual_paths = {
         str(p).lower(): p
-        for tree in (ROOT / "source", ROOT / "tools")
+        for tree in (common.ROOT / "source", common.ROOT / "tools")
         for p in tree.rglob("*")
         if p.is_file()
     }
@@ -482,7 +340,7 @@ def compile_source(source: str, precompile: bool = False) -> None:
             if not p.exists():
                 raise ValueError(f"cannot resolve included header: {name}")
             try:
-                headers.append(str(p.relative_to(ROOT)))
+                headers.append(str(p.relative_to(common.ROOT)))
             except ValueError:
                 headers.append(str(p))
     headers = sorted(set(headers))
@@ -496,18 +354,28 @@ def compile_source(source: str, precompile: bool = False) -> None:
 
 
 def resource(source: str) -> None:
-    _, entries = settings()
+    _, entries = common.build_settings()
     output = product(entries[source])
     print("RC", source, flush=True)
-    invoke(
+    common.invoke(
         "rc.exe",
         output,
-        ["/c", "65001", "/l", "0x412", "/fo", windows(output), windows(source)],
-        cwd=(ROOT / source).parent,
+        [
+            "/c",
+            "65001",
+            "/l",
+            "0x412",
+            "/fo",
+            common.windows(output),
+            common.windows(source),
+        ],
+        cwd=(common.ROOT / source).parent,
     )
 
 
-def archive_members(data: ArchiveData) -> Iterator[tuple[int, str, ArchiveData]]:
+def archive_members(
+    data: common.ArchiveData,
+) -> Iterator[tuple[int, str, common.ArchiveData]]:
     if data[:8] != b"!<arch>\n":
         raise ValueError("not a COFF archive")
     pos, names = 8, b""
@@ -532,24 +400,7 @@ def archive_members(data: ArchiveData) -> Iterator[tuple[int, str, ArchiveData]]
         pos += 60 + size + (size & 1)
 
 
-def extract_member(source: str) -> None:
-    _, entries = settings()
-    entry = cast(EntryOptions, entries[source])
-    matches = [
-        body
-        for _, name, body in archive_members(Path(source).read_bytes())
-        if name == entry["member"]
-    ]
-    if len(matches) != 1:
-        raise ValueError(f"expected one {entry['member']} in {source}")
-    output = Path(product(entry))
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_bytes(matches[0])
-    print("EXTRACT", source, entry["member"], flush=True)
-
-
 def member_names(data: bytearray, overrides: Mapping[str, str]) -> None:
-    """Retain short import-member names; LINK uses them when ordering .idata."""
     found: set[str] = set()
     for pos, name, _ in archive_members(data):
         if name in overrides:
@@ -564,8 +415,24 @@ def member_names(data: bytearray, overrides: Mapping[str, str]) -> None:
         raise ValueError("archive import name did not match an input")
 
 
+def extract_member(source: str) -> None:
+    _, entries = common.build_settings()
+    entry = cast(common.EntryOptions, entries[source])
+    matches = [
+        body
+        for _, name, body in archive_members(Path(source).read_bytes())
+        if name == entry["member"]
+    ]
+    if len(matches) != 1:
+        raise ValueError(f"expected one {entry['member']} in {source}")
+    output = Path(product(entry))
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_bytes(matches[0])
+    print("EXTRACT", source, entry["member"], flush=True)
+
+
 def library(name: str) -> None:
-    config, _ = settings()
+    config, _ = common.build_settings()
     entry = next(
         e for e in config["inputs"] if isinstance(e, dict) and e.get("library") == name
     )
@@ -589,13 +456,13 @@ def library(name: str) -> None:
         else:
             members.append(source)
     Path(output).unlink(missing_ok=True)
-    invoke(
+    common.invoke(
         "lib.exe",
         output,
         [
             "/nologo",
-            "/OUT:" + windows(output),
-            *[windows(m) for m in reversed(members)],
+            "/OUT:" + common.windows(output),
+            *[common.windows(m) for m in reversed(members)],
         ],
     )
     if overrides:
@@ -605,45 +472,51 @@ def library(name: str) -> None:
 
 
 def link() -> None:
-    config, _ = settings()
-    prepare_wine()
-    pdb = ROOT / "build/pdb-drive/Build/Custom/temp/bin/ProjectG_ReleaseQA.pdb"
+    config, _ = common.build_settings()
+    common.prepare_wine()
+    pdb = common.ROOT / "build/pdb-drive/Build/Custom/temp/bin/ProjectG_ReleaseQA.pdb"
     pdb.unlink(missing_ok=True)
     args = [
         *config["link_flags"],
-        "/OUT:" + windows(LINKED),
-        "/MAP:" + windows("build/ProjectG_ReleaseQA.map"),
+        "/OUT:" + common.windows(common.LINKED),
+        "/MAP:" + common.windows("build/ProjectG_ReleaseQA.map"),
         "/PDB:d:\\Build\\Custom\\temp\\bin\\ProjectG_ReleaseQA.pdb",
-        *[windows(product(e)) for e in config["inputs"]],
+        *[common.windows(product(e)) for e in config["inputs"]],
     ]
-    print("LINK", LINKED, flush=True)
-    invoke("link.exe", LINKED, args)
-    shutil.copyfile(pdb, ROOT / "build/ProjectG_ReleaseQA.pdb")
+    print("LINK", common.LINKED, flush=True)
+    common.invoke("link.exe", common.LINKED, args)
+    shutil.copyfile(pdb, common.ROOT / "build/ProjectG_ReleaseQA.pdb")
+
+
+def show_diff() -> None:
+    imgcmp.explain(common.LINKED, limit=20)
 
 
 def normalize() -> None:
-    data = bytearray(LINKED.read_bytes())
-    if len(data) != IMAGE_SIZE:
+    data = bytearray(common.LINKED.read_bytes())
+    if len(data) != common.IMAGE_SIZE:
+        show_diff()
         raise ValueError(
-            f"unexpected image size: {len(data)}, expected {IMAGE_SIZE} (diff: {len(data) - IMAGE_SIZE})"
+            f"unexpected image size: {len(data)}, expected {common.IMAGE_SIZE} (diff: {len(data) - common.IMAGE_SIZE})"
         )
-    for offset, value in IDENTITY:
+    for offset, value in common.IDENTITY:
         replacement = bytes.fromhex(value)
         data[offset : offset + len(replacement)] = replacement
     actual = hashlib.sha256(data).hexdigest()
-    if actual != EXPECTED:
+    if actual != common.EXPECTED:
+        show_diff()
         raise ValueError(f"image hash mismatch: {actual}")
-    temporary = IMAGE.with_suffix(".tmp")
+    temporary = common.IMAGE.with_suffix(".tmp")
     temporary.write_bytes(data)
-    temporary.replace(IMAGE)
-    print(actual, IMAGE)
+    temporary.replace(common.IMAGE)
+    print(actual, common.IMAGE)
 
 
 def verify() -> None:
-    actual = hashlib.sha256(IMAGE.read_bytes()).hexdigest()
-    if actual != EXPECTED:
+    actual = hashlib.sha256(common.IMAGE.read_bytes()).hexdigest()
+    if actual != common.EXPECTED:
         raise ValueError(f"image hash mismatch: {actual}")
-    print(actual, IMAGE)
+    print(actual, common.IMAGE)
 
 
 if __name__ == "__main__":

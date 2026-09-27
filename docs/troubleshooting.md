@@ -18,6 +18,60 @@ For example:
 $ python tools/coffsym.py set-selection ./source/client/Wangreal/source/wview.obj '??1WView@@UAE@XZ' any
 ```
 
+# VC7.1 compiler internals
+
+The VC7.1 compiler is primarily broken into three parts:
+
+- `c1.dll`: The C frontend. C goes in, CIL goes out.
+- `c1xx.dll`: The C++ frontend. C++ goes in, CIL goes out.
+- `c2.dll`: The compiler backend, also known as the Universal Tuple Compiler.
+
+For our purposes, `c1` and `c1xx` are not terribly interesting. We're more interested in `c2`/the UTC, as it is the part of MSVC where code generation happens. If you want to be able to make decompilations efficiently, you need to understand and be able to trace `c2` behavior.
+
+## Register allocation overview
+
+Callee-saved registers are assigned first by rank then colored in rounds. For each block, a live candidate that is referenced gains roughly `2 * refs * pressure * weight`, whereas a live-but-unreferenced candidate loses `pressure * weight`, where block weight is `2 ^ loop depth`. The first round colors candidates with a positive rank, in rank order, and anything with a free register gets one. The rest go through split rounds, one candidate at a time. Coloring a candidate that empties another candidate's register mask starts a split round immediately. Worth is `(2 * weight * use) - (2 * weight * reload)`. A candidate whose worth is `< 0` is dropped or split. Allocation differences can occur because of seemingly inoccuous declarations or assignments; declaring variables earlier and assigning them later can impact register allocation even when the emitted code is identical.
+
+## Emission order overview
+
+From the frontend perspective, functions are emitted mostly in source order, except template instantiations, which are _usually_ emitted at the end (although, as an exception, virtual functions from templated classes seem to be instantiated inline with the class itself.) This impacts the IL offset, which the backend will use for its ordering. The backend doesn't really care about things like templates, so the ordering of templates is one of the few non-trivial side-effects from the frontend that we care about.
+
+From the backend perspective, there are two primary mechanisms that play into emission order:
+
+- `getsym` pulls functions by IL offset, roughly the same order as the frontend, but with PCH interleaving
+- `CgBottomUpOrder` iteratively emits every function whose callees have already been emitted
+
+Inline asm `CALL`s do not count as callees in `CgBottomUpOrder`, so as a hack, a DCE'd branch (`if (0) callee();`) can be used to force deferral instead. (But don't use inline asm - go for matching.)
+
+PCH functions keep their original IL offsets, and both the PCH and TU will start at offset zero, so their emission is interleaved with the TU itself, since `getsym` is sorting by IL offset. That means large includes in the PCH can impact interleaving. For reference, some known IL sizes: `<list>` is 22 KiB, `<string>` 40 KiB and `<math.h>` 11 KiB.
+
+In some cases we're including `.inl` files at the _end_ of TUs, which causes callees to be deferred.
+
+Static functions are omitted if nothing references them, but they are emitted as COMDAT if anything _does_ reference them, _even if they were always inlined_ and thus none of those references make it into the final image.
+
+Some surprisingly simple things can lead to extra unmatched COMDAT symbols if they lead to different calls, for example, `(*it).x` vs `it->x`, or using `begin()` to get an iterator instead of default-initializing one directly.
+
+Different ways of instantiating functions can sometimes cause emission order to change - explicit args vs forwarding overloads, direct vs indirect operator calls, etc. This may depend on *all* instantiations of a function in a translation unit, so some experimentation will be necessary.
+
+## Inlining overview
+
+VC 7.1 computes a cost for each call site using the callee's size and the call site's "weight", and rejects the call when the cost reaches 74 (`InlSpeedLimit`.) This heuristic can vary on details that emits identical code, like branches that get folded or DCE'd. For example, `if (a) return; if (b) return;` has a different weight than `if (a || b) return;` even though the emitted code may be identical.
+
+## Scheduling overview
+
+Blocks are scheduled top-down, with up to three instructions per cycle, one per functional unit. 
+
+## Compare folding overview
+
+`GoptConstantFoldCompareBlk` folds a chain of comparisons when the next comparison is reached through labels and
+branches. `GoptCommonSubExpression` elides a re-test whose condition is known on every path entering the block. In some cases, statements that generate no code can prevent comparisons from being folded together, even as simple as unused local variable declarations.
+
+## Loops overview
+
+- Loop unrolling is sensitive to the type of the loop counter.
+- Loops are unrolled _after_ CSE.
+- `ptr[y * len + x]` can usually be rewritten as `ptr += len` by the compiler, but despite similar codegen behavior allocation will differ.
+
 # Codegen troubleshooting
 
 ## Register allocation varies based on temporaries
@@ -81,18 +135,18 @@ This can happen even if the conditional is eliminated from the code, which is pr
 
 ### Floating point casts can impact scheduling without emitting instructions
 
-With `/Op`, casts to floating point types can impact instruction scheduling counterintuitively. Where a and b are `float`, `a + b` may result in different scheduling than `(float)(a + b)`. This effect applies within subexpressions, e.g. `(float)(c ? a + b : d - e)` is not equivalent to `c ? (float)(a + b) : (float)(d - e)`.
+Operands of commutative operations are sorted descending by `complexity << 16 | hash`. A memory operand's hash comes from its base temporary's ID. IDs are assigned in creation order. Named variables get IDs in the order they are referenced, parameters first, right-to-left. Inlined parameters have their own pool, also right to left. Hash variable IDs start at the next multiple of 0x20 after the last temporary. Float sums are flattened and sorted early, keyed on address expressions, then re-hashed and sorted twice more, keyed on hash-variable IDs. Anything that generates the same IL will also get the same operand order - the operand order is determined strictly by IL. That means in a matrix's union'd variables, `m11` is the same as `m[0][0]`, for example, since both generate the same IL.
+
+#### Parentheses and casts
+
+Parentheses and casts on floating point expressions are IL nodes and have an impact on the instruction scheduler even though they don't actually emit any code. That means that an extra pair of parenthesis in a helper function can shift the IDs and thus the instruction order of float ops in all of the callers.
+
+With `/Op`, casts to floating point types can impact instruction scheduling counterintuitively. Even where a and b are `float`, `a + b` may result in different scheduling than `(float)(a + b)`. This effect applies within subexpressions, e.g. `(float)(c ? a + b : d - e)` is not equivalent to `c ? (float)(a + b) : (float)(d - e)`.
 
 ### Code generation variations caused by counterintuitive cost heuristics
 
 - The compiler heuristics used to determine when to apply optimizations like inlining or loop unrolling often depends on seemingly superficial details, like no-op casts, temporaries, wrappers, etc.
 - Equivalent ways of expressing loops often produce identical machine code but different cost heuristics, which can change whether a later call is eligible for inlining.
-
-### Emission order
-
-- Generally, MSVC orders functions roughly by the order of their dependency on inline functions, then by the order they appear in the translation unit.
-- Emission order is dependent on the state at the point the function is defined at the point a function depends on it.
-- Different ways of instantiating functions can sometimes cause emission order to change - explicit args vs forwarding overloads, direct vs indirect operator calls, etc. This may depend on *all* instantiations of a function in a translation unit, so some experimentation will be necessary.
 
 ## General advice
 
@@ -131,6 +185,10 @@ Remember to confirm the full image diff when working on things, not just per-sym
 The PDB often offers insight that can be used to narrow the scope of possible matching source codes. (Note that you will have to use the whole-image PDB - the delinked objects don't contain any debug information by their nature.) It can be wise to _start_ with the PDB information _first_ when decompiling, rather than work backwards into it.
 
 Since these PDBs are old, you can't use `llvm-pdbutil` or most other tools to read them. IDA Pro handles them fairly well, and Ghidra also handles them reasonably well, but neither of those tools allow access to _all_ of the useful information of the PDB (to my knowledge.) A copy of Microsoft's useful `cvdump` utility is included, for convenience. It isn't necessarily easy to use, but it is the best option available as far as I know. Check [the corresponding README](../tools/cvdump/README.md) for information on how to use `cvdump` in this project.
+
+For convenience, there is also a wrapper around cvdump, [pdbinfo.py](../tools/pdbinfo.py). It is just for convenience and doesn't really produce anything cvdump could not, but since it's easier to use it should probably be reached for first.
+
+Note that this only applies to units that actually contain useful PDB information. Unfortunately, most (all?) of the ProjectG units don't, so these techniques can't be used for those.
 
 ## Line tables
 
@@ -190,3 +248,29 @@ Putting `__declspec(dllimport)` on an inline function will actually stop the out
 # COMDAT emission order follows code generation order
 
 The linker outputs sections in the order the compiler emits them, and the compiler emits inline bodies as soon as it finishes code generation for them. Therefore, restructuring a class can change the image identity.
+
+# Trace the backend
+
+If all else fails, you can debug the compiler backend itself to figure out what's going on. `tools/c2trace.py` runs the compilation of a single unit with breakpoints added for instrumentation. You can insert breakpoints anywhere, but here are some useful candidates:
+
+| Function | Address | Use |
+| --- | --- | --- |
+| `ShouldInlineCallTuple` | 10760c81 | Inlining decisions per call |
+| `InlCallGraphDecision` | 10760ac1 | Inlining decisions per call site |
+| `OptCmpHashVal` | 10795bc5 | Commutative operand/FP sum order |
+| `MscMergeSort` | 10795adb | Operand order sort |
+| `getsym` | 1074f85c | Function list construction |
+| `CgBuildCallGraph` | 1070c93c | Call graph (used for emission order) |
+| `CgBottomUpOrder` | 1070d05b | Function emission wave |
+| `GlobalOptimize` | 10758bb3 | Global optimizer |
+| `GoptConstantFoldCompareBlk` | 1074b29d | Compare chain folding logic |
+| `GoptCommonSubExpression` | 1074d6a8 | CSE opt pass |
+| `OrderGlobregs` | 107ac06a | Register ordering |
+| `UpdateAffectedGlobregs` | 107aa17f | Split rounds during reg alloc |
+| `FPSpillWorthless` | 10710c46 | Freed register ranges |
+| `LoptBuildAddressModes` | 1076e33e | Address mode (`lea`, SIB operand) formation |
+| `AvoidAirlocks` | 107a711b | Extra stack copies |
+| `DagBuildGraph` | 107addc0 | Instruction scheduler dependence graph |
+| `Schedule`, `SchSchedGraph` | 107b1009, 107b0b9b | Instruction scheduling |
+
+At each breakpoint, the tracer prints out a dump of the registers and stack; the actual values are not interpreted, so you'll need a disassembly of the relevant function (via Ghidra or IDA) to follow along with the logic. The c2trace program is hardcoded for tracing the backend for now.
