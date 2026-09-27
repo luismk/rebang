@@ -30,6 +30,13 @@ public:
 		unsigned long color, int flags) const;
 	void DrawTexture(const Bitmap* bitmap, const WRect& src, const WRect& dst,
 		unsigned long color, int flags) const;
+	void InvalidateCache(const Bitmap& bitmap);
+	void RefreshTextureCacheInfo(const Bitmap* bitmap);
+	void RainbowBox(const _WRECT& rect, unsigned long* const colors,
+		unsigned long type = 0, float depth = 0.0f) const
+	{
+		WOverlay::DrawRainbowBox(g_view, rect, colors, type, depth);
+	}
 	void SetClippingArea(WRect* rect);
 	void SetAlpha(float alpha);
 	float GetAlpha();
