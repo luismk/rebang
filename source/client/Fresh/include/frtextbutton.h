@@ -33,12 +33,12 @@ public:
 	void SetClippingArea(WRect* rect);
 	const char* GetUnderCursor();
 	const char* GetSelected();
-	void Select(TBUTTON_LIST::iterator it);
 	void Select(int index);
-	void Unselect(TBUTTON_LIST::iterator it);
 	void Unselect(int index);
 
 protected:
+	void Select(TBUTTON_LIST::iterator it);
+	void Unselect(TBUTTON_LIST::iterator it);
 	virtual void OnDraw();
 	virtual void OnProc(const float deltaTime);
 	virtual void OnMouseMove(const WPoint& point);
