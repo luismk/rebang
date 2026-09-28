@@ -22,7 +22,7 @@ must not be misrepresented as being the original software.
 distribution.
 */
 
-#include "tinyxml_pch.h"
+#include "stdafx.h"
 #include "minatl.h"
 #include "tinyxml.h"
 #include <ctype.h>

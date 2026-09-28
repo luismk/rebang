@@ -345,21 +345,21 @@
       "extra_flags": [
         "/Zd"
       ],
-      "pch": "source/client/ProjectG/tinyxml_pch.cpp"
+      "pch": "source/client/ProjectG/stdafx.cpp"
     },
     {
       "path": "source/client/ProjectG/tinyxml.cpp",
       "extra_flags": [
         "/Zd"
       ],
-      "pch": "source/client/ProjectG/tinyxml_pch.cpp"
+      "pch": "source/client/ProjectG/stdafx.cpp"
     },
     {
       "path": "source/client/ProjectG/tinyxmlparser.cpp",
       "extra_flags": [
         "/Zd"
       ],
-      "pch": "source/client/ProjectG/tinyxml_pch.cpp"
+      "pch": "source/client/ProjectG/stdafx.cpp"
     },
     "source/client/ProjectG/uwin.obj",
     "source/client/ProjectG/ggc_dlg.obj",
@@ -369,9 +369,21 @@
     "source/client/ProjectG/crcdef.obj",
     "source/client/ProjectG/md5.obj",
     "source/client/ProjectG/paper.obj",
-    "source/shared/LuaSystem/luascript.obj",
-    "source/shared/LuaSystem/luascriptmanager.obj",
-    "source/shared/LuaSystem/luautilitylib.obj",
+    {
+      "path": "source/shared/LuaSystem/luascript.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/shared/LuaSystem/luascriptmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/shared/LuaSystem/luautilitylib.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/shared/LuaSystem/lua_tinker/lua_tinker.lib",
       "member": "lua_tinker.obj"
@@ -858,7 +870,7 @@
   ],
   "precompiled_headers": [
     {
-      "path": "source/client/ProjectG/tinyxml_pch.cpp",
+      "path": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": [
         "/Zd"
       ]

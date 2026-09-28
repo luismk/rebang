@@ -187,7 +187,8 @@ def compile_variant(s: Setup, name: str, edits: list[Edit]) -> tuple[Path | None
             else:
                 product = common.ROOT / common.pch_product(s.pch)
                 shutil.copy(product, work / f"{stem}.pch")
-                shutil.copy(product.with_suffix(".pdb"), work / f"{stem}.pdb")
+                if product.with_suffix(".pdb").exists():
+                    shutil.copy(product.with_suffix(".pdb"), work / f"{stem}.pdb")
             pch_flags = [f"/Yu{stem}.h", "/Fp" + windows(work / f"{stem}.pch")]
         pdb = work / (f"{Path(s.pch).stem}.pdb" if s.pch else f"{s.source.stem}.pdb")
         log = common.invoke(

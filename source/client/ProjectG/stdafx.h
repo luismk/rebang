@@ -1,0 +1,43 @@
+#pragma once
+
+#include <windows.h>
+
+#include "wmath.h"
+#include "wtypes.h"
+#include "wutil.h"
+#include "wminmax.h"
+#include "wlist.h"
+#include "wmemblock.h"
+#include "wlock.h"
+#include "wflag.h"
+#include "wmempak.h"
+#include "rectmng.h"
+#include "wscene.h"
+#include "wvideo.h"
+#include "wmesh.h"
+#include "wdevmng.h"
+#include "wxtnlbuffer.h"
+#include "xzip.h"
+#include "cfile.h"
+#include "singleton.h"
+#include "wreg.h"
+#include "bitmap.h"
+#include "wavi.h"
+#include "westpak.h"
+#include "wblockmodel.h"
+#include "wboneset.h"
+#include "wpetfile.h"
+#include "inputmanager.h"
+#include "soundmanager.h"
+#include "objectfactory.h"
+#include "commonutil.h"
+#include "background.h"
+#include "wview.h"
+
+#include <string>
+#include <list>
+#include <map>
+#include <vector>
+#include <algorithm>
+
+#include "tinyxml.h"
