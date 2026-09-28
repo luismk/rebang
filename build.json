@@ -736,7 +736,11 @@
             "/FIstdafx.h"
           ]
         },
-        "source/client/Fresh/source/frtooltip.obj",
+        {
+          "path": "source/client/Fresh/source/frtooltip.cpp",
+          "pch": "source/client/Fresh/source/stdafx.cpp",
+          "extra_flags": ["/FIstdafx.h"]
+        },
         {
           "path": "source/shared/thirties/gamath.cpp",
           "flags": [

@@ -121,6 +121,10 @@ public:
 	}
 	float Right() const { return w + x; }
 	float Bottom() const { return h + y; }
+	int operator!=(WRect& rect) const
+	{
+		return !(x == rect.x && y == rect.y && w == rect.w && h == rect.h);
+	}
 	bool IsInRect(const WPoint& point);
 
 	__forceinline WRect() { }
