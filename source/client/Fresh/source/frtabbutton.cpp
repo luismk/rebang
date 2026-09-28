@@ -22,6 +22,7 @@
 #include "frgroupbox.h"
 #include "frmacroitem.h"
 #include "frtooltip.h"
+#include "../texturecache/rectcache.h"
 #include "commonutil.h"
 #include "../../../shared/token.h"
 

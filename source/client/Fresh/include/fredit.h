@@ -52,19 +52,19 @@ public:
 	void DeleteEndLine();
 	void AddText(const char* text, bool a, bool b);
 	void SetCharLimit(int limit, bool b);
-	void SetWidthLimit(float limit);
-	const char* GetEditText_Front();
-	const char* GetEditText_Comp();
-	const char* GetEditText_End();
-	void SetFontColor(unsigned long color);
-	float GetWidthLimit() const;
-	int GetLineHeight() const;
+	void SetWidthLimit(float limit) { m_widthLimit = limit; }
+	const char* GetEditText_Front() { return m_editText[ETT_FRONT].c_str(); }
+	const char* GetEditText_Comp() { return m_editText[ETT_COMP].c_str(); }
+	const char* GetEditText_End() { return m_editText[ETT_END].c_str(); }
+	void SetFontColor(unsigned long color) { m_fontColor = color; }
+	float GetWidthLimit() const { return m_widthLimit; }
+	int GetLineHeight() const { return m_lineHeight; }
 	unsigned long GetAnimTime(int line);
 	void SetAutoLine(bool autoLine);
-	int GetSelectLine();
+	int GetSelectLine() { return m_selectedLine; }
 	void SetSelectLine(int line);
 	void EnableEditStyle(eEditStyle style) { m_editProperty.Enable(style); }
-	void DisableEditStyle(eEditStyle style);
+	void DisableEditStyle(eEditStyle style) { m_editProperty.Disable(style); }
 	bool IsEditStyle(eEditStyle style) { return m_editProperty.GetFlag(style); }
 	bool IsEmoticonStyle();
 

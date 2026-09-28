@@ -1,36 +1,4 @@
-template <class T>
-struct _Coordinates
-{
-	T x;
-	T y;
-};
-
-template <class T>
-struct _Rectangle
-{
-	union
-	{
-		struct
-		{
-			_Coordinates<T> tl;
-			_Coordinates<T> br;
-		};
-		struct
-		{
-			T left;
-			T top;
-			T right;
-			T bottom;
-		};
-	};
-
-	T Height() const { return bottom - top; }
-	T Width() const { return right - left; }
-};
-
-struct _RectangleSHORT : public _Rectangle<short>
-{
-};
+#include "../../../shared/coord.h"
 
 class RectCache
 {

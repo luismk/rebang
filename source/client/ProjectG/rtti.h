@@ -15,3 +15,7 @@ protected:
 	((__rtti_obj = (obj)) \
 			? (type*)((IObject*)__rtti_obj)->DynamicCast(&type::m_RTTI) \
 			: NULL)
+
+#define IS_KINDOF(type, obj) \
+	((__rtti_obj = (obj)) ? ((IObject*)__rtti_obj)->IsKindOf(&type::m_RTTI) \
+						  : false)

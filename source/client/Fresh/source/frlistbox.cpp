@@ -9,14 +9,6 @@
 #include "commonutil.h"
 
 // HACK: workaround to preserve emission order
-inline int FrScrollBar::GetRowCapacity()
-{
-	return m_rowCapacity;
-}
-inline int FrScrollBar::GetColCapacity()
-{
-	return m_colCapacity;
-}
 inline float FrWnd::GetAlpha() const
 {
 	return m_wndAlpha;

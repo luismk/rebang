@@ -17,10 +17,13 @@ public:
 	void Init(FrWndManager* pManager, FrWnd* parentWnd, int row,
 		int rowCapacity, int colCapacity, bool atLeft);
 	void Resize(int rowCapacity, int colCapacity, bool atLeft);
-	bool IsBarVisible();
-	int GetRowCapacity();
-	int GetColCapacity();
-	int GetItemNum();
+	bool IsBarVisible()
+	{
+		return m_rowCapacity && m_rowCapacity < GetCurRowCount();
+	}
+	int GetRowCapacity() { return m_rowCapacity; }
+	int GetColCapacity() { return m_colCapacity; }
+	int GetItemNum() { return m_itemNum; }
 	float GetCurTopRow() { return m_curTopRow; }
 	int GetCurTopRow_Int() { return (int)(m_curTopRow + 0.5f); }
 	void SetCurTopRow(int row);
@@ -32,7 +35,7 @@ public:
 	void ScrollUp(int delta);
 	void ScrollDown(int delta);
 	void FollowBottom(bool follow) { m_followBottom = follow; }
-	void SetGuideVisible(bool visible);
+	void SetGuideVisible(bool visible) { m_showGuide = visible; }
 
 protected:
 	virtual void OnDraw();

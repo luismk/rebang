@@ -1,4 +1,5 @@
 #include "frtooltip.h"
+#include "frwnd.h"
 #include "frwndmanager.h"
 #include "frgraphicinterface.h"
 #include "inputmanager.h"

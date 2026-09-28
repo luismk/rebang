@@ -69,7 +69,7 @@ public:
 	bool MoveKeyFocusToNext(bool resetPrevImeData);
 	FrScrollBar* GetWheelFocus() { return m_istate.wheelFocused; }
 	void SetWheelFocus(FrScrollBar* pScrBar);
-	void SetCursor(int cursor) { m_cursorIndex = cursor; }
+	void SetCursor(int hCursor) { m_cursorIndex = hCursor; }
 	int GetCursor() { return m_cursorIndex; }
 	void MoveCursor(FrWnd* pParent, const char* name);
 	__forceinline const char* GetLayoutID() { return this->m_layoutID.c_str(); }

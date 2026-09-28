@@ -4,7 +4,9 @@
 class IObject
 {
 public:
+	static const WRTTI m_RTTI;
 	virtual const WRTTI* GetRTTI() const = 0;
+	bool IsExactKindOf(const WRTTI* pRTTI) const { return GetRTTI() == pRTTI; }
 	bool IsKindOf(const WRTTI* pRTTI) const
 	{
 		const WRTTI* pBase = GetRTTI();

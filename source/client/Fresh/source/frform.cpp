@@ -3,6 +3,7 @@
 #include "frform.h"
 #include "frframe.h"
 #include "frstatic.h"
+#include "frtext.h"
 #include "fredit.h"
 #include "frwndmanager.h"
 #include "frelement.h"

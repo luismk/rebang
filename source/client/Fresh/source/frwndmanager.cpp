@@ -21,6 +21,7 @@
 #include "frgroupbox.h"
 #include "frmacroitem.h"
 #include "frtooltip.h"
+#include "../texturecache/tcachemanager.h"
 #include "inputmanager.h"
 #include "chatmsg.h"
 

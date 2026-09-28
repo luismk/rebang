@@ -13,6 +13,7 @@ class CChatMsg;
 struct FrInputState;
 class FrScrollBar;
 class FrGraphicInterface;
+class FrEmoticon;
 class FrToolTip;
 
 enum eFrFlags
@@ -54,78 +55,121 @@ class FrWnd : public IObject, public FrCmdTarget
 	// Not 100% sure if true.
 	friend class Fresh;
 	friend class FrWndManager;
-
-protected:
-	FrWnd();
+	friend IObject* FrWndMakeInstance();
 
 public:
-	class sToolTipData
+	struct sToolTipData
 	{
 		int bFixWnd;
 		WPoint posFixWnd;
-		unsigned int style;
+		unsigned long style;
 	};
 
-	virtual const WRTTI* GetRTTI() const;
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI() const { return &m_RTTI; }
 	virtual ~FrWnd();
-	virtual bool Close(bool immediate);
-	virtual bool Create(const char* text, const char* name,
-		FrWndManager* manager, unsigned long style, const WRect& rect,
-		FrWnd* parent);
-	virtual void PreCreateWindow(FrWndManager* manager, unsigned long style,
-		const WRect& rect, FrWnd* parent);
-	virtual void MoveWindow(const WPoint& point);
-	virtual void Enable(bool enable) { m_dwStyle.Turn(FWS_DISABLED, !enable); }
-	virtual void SetVisible(bool visible);
+	void DestroyChild();
+	virtual bool Close(bool bFade);
+	virtual bool Create(const char* lpszWindowText, const char* lpszWindowName,
+		FrWndManager* pManager, unsigned long dwStyle, const WRect& rect,
+		FrWnd* pParentWnd);
+	virtual void PreCreateWindow(FrWndManager* pManager, unsigned long dwStyle,
+		const WRect& rect, FrWnd* pParentWnd);
+	bool SendCmdToOwnerTarget(FrCmdTarget* pCmdTarget, eFrCmd cmd, int var1,
+		sFRESH_HANDLER* pHandler);
 	bool SendCmdToOwnerTarget(eFrCmd cmd, int var1, sFRESH_HANDLER* pHandler);
 	void SetOwner(FrCmdTarget* pOwner);
-	FrGraphicInterface* GDI() const;
+	void AddChild(FrWnd* pChild);
 	FrWndManager* WndManager() const { return m_pWndManager; }
-	float GetAlpha() const;
+	FrGraphicInterface* GDI() const;
+	FrEmoticon* Emo() const;
 	FrWnd* GetParent() const;
+	FrWnd* FindChild(const char* lpszWindowText);
 	FrWnd* FindChild(const FrWnd* pWnd);
-	FrWnd* FindChildByName(const char* name);
-	void CloseChild(FrWnd* pWnd, bool bFade, bool bAll);
-	void CloseChildForm(bool bFade, bool bAll);
+	FrWnd* FindChildByName(const char* lpszWindowName);
+	FrWnd* FindChildByStyle(unsigned long style);
+	FrWnd* FindChildForm(const char* lpszWindowName);
+	bool IsChild(const FrWnd* pWnd) const;
+	void CloseChild(FrWnd* pChildWnd, bool bFade, bool force);
+	void CloseChildForm(bool bFade, bool force);
+	void RemoveWindow(FrWnd* pWnd);
+	void EnumerateChildWindow(bool (*callback)(FrWnd*, void*), void* parm);
 	void GetClientRect(WRect& rect) const;
-	void SetRect(const WRect& rect);
 	void SetClientRect(const WRect& rect);
+	void ClientToScreen(WPoint& point) const;
+	void ClientToScreen(WRect& rect) const;
+	void ScreenToClient(WPoint& point) const;
+	void ScreenToClient(WRect& rect) const;
+	virtual void MoveWindow(const WPoint& point);
+	void SetRect(const WRect& rect);
 	const WRect& GetRect() { return m_rect; }
-	void SetWindowTextA(const char* text);
-	void GetWindowTextA(std::string& text) const;
+	void SetWindowTextA(const char* lpszText);
+	void GetWindowTextA(std::string& outText) const;
+	void GetWindowTextA(char* lpszTextBuf, unsigned int nBuffMax) const;
+	unsigned int GetWindowTextLengthA() const;
+	void SetWindowName(const char* lpszName);
+	void GetWindowName(std::string& outName) const;
+	void GetWindowName(char* lpszNameBuf, unsigned int nBuffMax) const;
+	unsigned int GetWindowNameLength() const;
+	void EnableToolTip(bool enable);
+	bool IsEnableToolTip() const;
 	void SetToolTipText(const std::string& text);
 	std::string GetToolTipText() const { return m_wndToolTip; }
+	void SetFixTooltipWnd(const WPoint& pos);
+	void SetUnFixToolTipWnd();
 	int IsFixedToolTip() const;
 	const WPoint& GetToolTipWndPos() const;
+	void SetToolTipFrameStyle(unsigned long style);
 	unsigned long GetToolTipFrameStyle() const;
-	void OnDisplay(bool b1, bool b2, bool b3);
-	void OnProcess(const float deltaTime, FrInputState& input, bool b1,
-		bool b2);
-	void SetAlpha2ToChild(float alpha);
+	void OnDisplay(bool checkTopmost, bool drawChild, bool drawOneself);
+	void OnProcess(const float deltaTime, FrInputState& istate,
+		bool checkTopmost, bool bUnableMode);
+
+	WFlags m_nFlags;
+
+	const WFlags& GetStyle() const;
+	float GetAlpha() const;
+	void SetAlpha(float alpha);
+	float GetAlpha2() const;
+	void SetAlpha2(float alpha);
+	void SetAlpha2ToChild(float a);
+	virtual void Enable(bool enable) { m_dwStyle.Turn(FWS_DISABLED, !enable); }
 	bool IsEnabled() const { return !m_dwStyle.GetFlag(FWS_DISABLED); }
+	virtual void SetVisible(bool visible);
 	bool IsVisible() const { return m_dwStyle.GetFlag(FWS_VISIBLE); }
 	void SetKeyEvent(bool enable) { m_dwStyle.Turn(FWS_KEYEVENT, enable); }
-	void SetWheelEvent(bool enable);
 	void SetTopmost(bool topmost);
+	void SetFixed(bool fixed);
 	bool IsFixed() { return m_dwStyle.GetFlag(FWS_FIXED); }
 	void UseDblClick(bool use) { m_dwStyle.Turn(FWS_NODBLCLICK, !use); }
 	void EnableHover(bool enable, float time);
+	void SetWheelEvent(bool enable);
 	void HidePrivacy(bool hide) { m_nFlags.Turn(FWF_PRIVACY, hide); }
-	void SetFadeout(bool fadeout);
-	void SetViewFocus(bool focus);
-	FrWnd* FindViewFocused(bool b);
+	void SetFadeout(bool bOut);
+	void SetElementFadeOut(bool bOut);
+	void SetViewFocus(bool takeFromOthers);
+	void ResetViewFocus(FrWnd* pWndStop);
+	FrWnd* FindViewFocused(bool enabled_visible);
 	bool IsViewFocused() const;
 	bool IsTopFocus() const;
-	bool SetKeyFocus(bool focus);
-	void FindNextTopFocus(bool b);
+	bool SetKeyFocus(bool resetPrevImeData);
+	bool HasKeyFocus();
+	bool ResetKeyFocus();
+	void FindNextTopFocus(bool bForce);
 	bool SetCapture();
 	FrWnd* GetCapture();
 	bool ReleaseCapture();
-	void SetCursor(int cursor);
+	void SetCursor(int hCursor);
+	int GetCursor() const;
+	void MoveCursor(const char* name);
+	void SetPushSound(const char* name_const);
 	bool PlayPushSound();
-	static const WRTTI m_RTTI;
+	FrScrollBar* GetScrollBar();
+	void SetWheelFocus();
 
 protected:
+	FrWnd(FrWnd&);
+	FrWnd();
 	virtual void OnDraw();
 	virtual void OnProc(const float deltaTime) { }
 	virtual void OnResize();
@@ -142,7 +186,12 @@ protected:
 	virtual void EnableKeyFocus(FrInputState& input) { m_nFlags.Enable(0x10); }
 	virtual void SetIconRect(const WRect& rect) { }
 
-	WFlags m_nFlags;
+private:
+	void DoFadeDisplay();
+	void DoFadeProcess(const float deltaTime, bool bExtend);
+	void CheckHover(float deltaTime, bool bInClient, bool& hoverChecked);
+
+protected:
 	FrWnd* m_pParentWnd;
 	FrCmdTarget* m_pOwner;
 	std::list<FrWnd*> m_childList;

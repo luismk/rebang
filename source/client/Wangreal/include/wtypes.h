@@ -105,14 +105,24 @@ public:
 class WRect : public _WRECT
 {
 public:
-	WRect(const _WRECT& rect)
+	__forceinline WRect() { }
+
+	template <class Width, class Height>
+	WRect(float x, float y, Width width, Height height)
+	{
+		this->x = x;
+		this->y = y;
+		this->w = width;
+		this->h = height;
+	}
+	WRect(const WRect& rect)
 	{
 		x = rect.x;
 		y = rect.y;
 		w = rect.w;
 		h = rect.h;
 	}
-	WRect(const WRect& rect)
+	WRect(const _WRECT& rect)
 	{
 		x = rect.x;
 		y = rect.y;
@@ -126,17 +136,6 @@ public:
 		return !(x == rect.x && y == rect.y && w == rect.w && h == rect.h);
 	}
 	bool IsInRect(const WPoint& point);
-
-	__forceinline WRect() { }
-
-	template <class Width, class Height>
-	WRect(float x, float y, Width width, Height height)
-	{
-		this->x = x;
-		this->y = y;
-		this->w = width;
-		this->h = height;
-	}
 	WRect(const WPoint& pt, const WSize& size)
 	{
 		x = pt.x;
