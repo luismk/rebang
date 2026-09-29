@@ -45,7 +45,8 @@ public:
 	int m_gachaTicket[2];
 	std::list<unsigned long> m_refreshGuidList;
 	std::list<unsigned short> m_refreshCountList;
-	unsigned char m_itemManager[0x1f8]; // TODO: replace with CItemManager (shared/itemmanager.h)
+	unsigned char m_itemManager
+		[0x1f8]; // TODO: replace with CItemManager (shared/itemmanager.h)
 	sMyInfo m_myInfo;
 	// TODO: this struct definition is incomplete
 };
