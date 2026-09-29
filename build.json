@@ -288,7 +288,11 @@
     "source/client/ProjectG/binstr.obj",
     "source/client/ProjectG/commonutil.obj",
     "source/client/ProjectG/dxdiaginfo.obj",
-    "source/shared/exceptionreport.obj",
+    {
+      "path": "source/shared/exceptionreport.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/inifile.obj",
     "source/client/ProjectG/monitor.obj",
     "source/client/ProjectG/networkmonitor.obj",

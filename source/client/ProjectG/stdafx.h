@@ -41,3 +41,7 @@
 #include <algorithm>
 
 #include "tinyxml.h"
+
+#include "shareddoc.h"
+#include "../../shared/exceptionreport.h"
+#include "lock.hpp"
