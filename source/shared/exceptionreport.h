@@ -2,47 +2,46 @@
 
 #define EXCEPTION_WITH_USER_INFO 0xe0000001
 
-long __stdcall RecordExceptionInfo(EXCEPTION_POINTERS* pExceptionInfo);
-void __cdecl SecurityErrorHandler(int code, void* data);
+long __stdcall RecordExceptionInfo(EXCEPTION_POINTERS* data);
+void __cdecl SecurityErrorHandler(int code, void* unused);
 
 class CExceptionReport
 {
-	friend long __stdcall RecordExceptionInfo(
-		EXCEPTION_POINTERS* pExceptionInfo);
-	friend void __cdecl SecurityErrorHandler(int code, void* data);
+	friend long __stdcall RecordExceptionInfo(EXCEPTION_POINTERS* data);
+	friend void __cdecl SecurityErrorHandler(int code, void* unused);
 
 private:
 	void Init();
 	void Shutdown();
 
-	void StartLog(const char* pszFileName);
-	void LogPrintf(const char* pszFormat, ...) const;
+	void StartLog(const char* filename);
+	void LogPrintf(const char* fmt, ...) const;
 	void EndLog();
 
 	void CollectSystemInfo();
 	void DumpHeaderInfo(EXCEPTION_POINTERS* pExceptionInfo);
 	void EndStackLog();
-	void DumpHeader(EXCEPTION_POINTERS* pExceptionInfo) const;
+	void DumpHeader(EXCEPTION_POINTERS* data) const;
 	void DumpSystemInfo() const;
-	void DumpErrorMessage(const CONTEXT* pContext,
-		const EXCEPTION_RECORD* pRecord) const;
-	void DumpRegisters(const CONTEXT* pContext) const;
-	void PrintStack(unsigned long dwBegin, unsigned long dwEnd) const;
-	void IntelStackWalk(CONTEXT* pContext) const;
-	void ImageHelpStackWalk(CONTEXT* pContext) const;
-	void DumpStackTrace(const CONTEXT* pContext) const;
-	void DumpMemory(const CONTEXT* pContext) const;
-	void DumpExceptionReport(EXCEPTION_POINTERS* pExceptionInfo);
+	void DumpErrorMessage(const CONTEXT* contextRecord,
+		const EXCEPTION_RECORD* exceptionRecord) const;
+	void DumpRegisters(const CONTEXT* contextRecord) const;
+	void PrintStack(unsigned long begin, unsigned long end) const;
+	void IntelStackWalk(CONTEXT* ptrContext) const;
+	void ImageHelpStackWalk(CONTEXT* ptrContext) const;
+	void DumpStackTrace(const CONTEXT* contextRecord) const;
+	void DumpMemory(const CONTEXT* contextRecord) const;
+	void DumpExceptionReport(EXCEPTION_POINTERS* data);
 
-	bool m_bInit;
-	HANDLE m_hReportFile;
-	long m_bEnable;
-	char m_szTime[200];
-	char m_szOSVersion[200];
-	char m_szUserName[200];
-	char m_szComputerName[200];
+	bool m_initialized;
+	HANDLE m_logFileHandle;
+	long m_enable;
+	char m_crashTime[200];
+	char m_osName[200];
+	char m_userName[200];
+	char m_computerName[200];
 	SYSTEM_INFO m_systemInfo;
-	MEMORYSTATUS m_memoryStatus;
+	MEMORYSTATUS m_memInfo;
 
 	static __declspec(thread) HANDLE m_curThread;
 	static __declspec(thread) unsigned long m_curThreadId;

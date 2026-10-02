@@ -11,40 +11,40 @@
 extern "C" void* _ReturnAddress(void);
 #pragma intrinsic(_ReturnAddress)
 
-typedef BOOL(__stdcall* SYMCLEANUPPROC)(HANDLE);
-typedef PVOID(__stdcall* SYMFUNCTIONTABLEACCESSPROC)(HANDLE, DWORD);
-typedef DWORD(__stdcall* SYMGETMODULEBASEPROC)(HANDLE, DWORD);
-typedef BOOL(__stdcall* SYMGETMODULEINFOPROC)(HANDLE, DWORD, PIMAGEHLP_MODULE);
-typedef DWORD(__stdcall* SYMGETOPTIONSPROC)();
+typedef BOOL(__stdcall* PSYMCLEANUP)(HANDLE);
+typedef PVOID(__stdcall* PSYMFUNCTIONTABLEACCESS)(HANDLE, DWORD);
+typedef DWORD(__stdcall* PSYMGETMODULEBASE)(HANDLE, DWORD);
+typedef BOOL(__stdcall* PSYMGETMODULEINFO)(HANDLE, DWORD, PIMAGEHLP_MODULE);
+typedef DWORD(__stdcall* PSYMGETOPTIONS)();
 typedef BOOL(
-	__stdcall* SYMGETSYMFROMADDRPROC)(HANDLE, DWORD, PDWORD, PIMAGEHLP_SYMBOL);
-typedef BOOL(__stdcall* SYMINITIALIZEPROC)(HANDLE, PSTR, BOOL);
-typedef DWORD(__stdcall* SYMSETOPTIONSPROC)(DWORD);
-typedef BOOL(__stdcall* STACKWALKPROC)(DWORD, HANDLE, HANDLE, LPSTACKFRAME,
-	PVOID, PREAD_PROCESS_MEMORY_ROUTINE, PFUNCTION_TABLE_ACCESS_ROUTINE,
+	__stdcall* PSYMGETSYMFROMADDR)(HANDLE, DWORD, PDWORD, PIMAGEHLP_SYMBOL);
+typedef BOOL(__stdcall* PSYMINITIALIZE)(HANDLE, PSTR, BOOL);
+typedef DWORD(__stdcall* PSYMSETOPTIONS)(DWORD);
+typedef BOOL(__stdcall* PSTACKWALK)(DWORD, HANDLE, HANDLE, LPSTACKFRAME, PVOID,
+	PREAD_PROCESS_MEMORY_ROUTINE, PFUNCTION_TABLE_ACCESS_ROUTINE,
 	PGET_MODULE_BASE_ROUTINE, PTRANSLATE_ADDRESS_ROUTINE);
-typedef DWORD(__stdcall* UNDECORATESYMBOLNAMEPROC)(PCSTR, PSTR, DWORD, DWORD);
+typedef DWORD(__stdcall* PUNDECORATESYMBOLNAME)(PCSTR, PSTR, DWORD, DWORD);
 typedef BOOL(
-	__stdcall* SYMLOADMODULEPROC)(HANDLE, HANDLE, PSTR, PSTR, DWORD, DWORD);
+	__stdcall* PSYMLOADMODULE)(HANDLE, HANDLE, PSTR, PSTR, DWORD, DWORD);
 typedef BOOL(
-	__stdcall* SYMGETLINEFROMADDRPROC)(HANDLE, DWORD, PDWORD, PIMAGEHLP_LINE);
+	__stdcall* PSYMGETLINEFROMADDR)(HANDLE, DWORD, PDWORD, PIMAGEHLP_LINE);
 
 CExceptionReport g_exceptionReport;
 
 _client::CCriticalSection g_criticalSection;
 
-static UNDECORATESYMBOLNAMEPROC s_pfnUnDecorateSymbolName;
-static STACKWALKPROC s_pfnStackWalk;
-static SYMSETOPTIONSPROC s_pfnSymSetOptions;
-static SYMLOADMODULEPROC s_pfnSymLoadModule;
-static SYMINITIALIZEPROC s_pfnSymInitialize;
-static SYMGETSYMFROMADDRPROC s_pfnSymGetSymFromAddr;
-static SYMGETOPTIONSPROC s_pfnSymGetOptions;
-static SYMGETMODULEINFOPROC s_pfnSymGetModuleInfo;
-static SYMGETMODULEBASEPROC s_pfnSymGetModuleBase;
-static SYMGETLINEFROMADDRPROC s_pfnSymGetLineFromAddr;
-static SYMFUNCTIONTABLEACCESSPROC s_pfnSymFunctionTableAccess;
-static SYMCLEANUPPROC s_pfnSymCleanup;
+static PUNDECORATESYMBOLNAME pUnDecorateSymbolName;
+static PSTACKWALK pStackWalk;
+static PSYMSETOPTIONS pSymSetOptions;
+static PSYMLOADMODULE pSymLoadModule;
+static PSYMINITIALIZE pSymInitialize;
+static PSYMGETSYMFROMADDR pSymGetSymFromAddr;
+static PSYMGETOPTIONS pSymGetOptions;
+static PSYMGETMODULEINFO pSymGetModuleInfo;
+static PSYMGETMODULEBASE pSymGetModuleBase;
+static PSYMGETLINEFROMADDR pSymGetLineFromAddr;
+static PSYMFUNCTIONTABLEACCESS pSymFunctionTableAccess;
+static PSYMCLEANUP pSymCleanup;
 LPTOP_LEVEL_EXCEPTION_FILTER g_pPrevUnhandledExceptionFilter;
 DWORD g_dwStack;
 DWORD g_dwStackBottom;
@@ -53,39 +53,35 @@ HINSTANCE g_hDLL;
 __declspec(thread) HANDLE CExceptionReport::m_curThread = INVALID_HANDLE_VALUE;
 __declspec(thread) unsigned long CExceptionReport::m_curThreadId = 0;
 
-static bool LoadDbgHelp()
+static bool InitSymFunctions()
 {
 	HINSTANCE hDLL = LoadLibraryA("dbghelp.dll");
 	if (!hDLL && !(hDLL = LoadLibraryA("imagehlp.dll")))
 		return false;
 
-	s_pfnSymCleanup = (SYMCLEANUPPROC)GetProcAddress(hDLL, "SymCleanup");
-	s_pfnSymFunctionTableAccess = (SYMFUNCTIONTABLEACCESSPROC)GetProcAddress(
-		hDLL, "SymFunctionTableAccess");
-	s_pfnSymGetModuleBase =
-		(SYMGETMODULEBASEPROC)GetProcAddress(hDLL, "SymGetModuleBase");
-	s_pfnSymGetModuleInfo =
-		(SYMGETMODULEINFOPROC)GetProcAddress(hDLL, "SymGetModuleInfo");
-	s_pfnSymGetOptions =
-		(SYMGETOPTIONSPROC)GetProcAddress(hDLL, "SymGetOptions");
-	s_pfnSymGetSymFromAddr =
-		(SYMGETSYMFROMADDRPROC)GetProcAddress(hDLL, "SymGetSymFromAddr");
-	s_pfnSymInitialize =
-		(SYMINITIALIZEPROC)GetProcAddress(hDLL, "SymInitialize");
-	s_pfnSymSetOptions =
-		(SYMSETOPTIONSPROC)GetProcAddress(hDLL, "SymSetOptions");
-	s_pfnStackWalk = (STACKWALKPROC)GetProcAddress(hDLL, "StackWalk");
-	s_pfnUnDecorateSymbolName =
-		(UNDECORATESYMBOLNAMEPROC)GetProcAddress(hDLL, "UnDecorateSymbolName");
-	s_pfnSymLoadModule =
-		(SYMLOADMODULEPROC)GetProcAddress(hDLL, "SymLoadModule");
-	s_pfnSymGetLineFromAddr =
-		(SYMGETLINEFROMADDRPROC)GetProcAddress(hDLL, "SymGetLineFromAddr");
+	pSymCleanup = (PSYMCLEANUP)GetProcAddress(hDLL, "SymCleanup");
+	pSymFunctionTableAccess =
+		(PSYMFUNCTIONTABLEACCESS)GetProcAddress(hDLL, "SymFunctionTableAccess");
+	pSymGetModuleBase =
+		(PSYMGETMODULEBASE)GetProcAddress(hDLL, "SymGetModuleBase");
+	pSymGetModuleInfo =
+		(PSYMGETMODULEINFO)GetProcAddress(hDLL, "SymGetModuleInfo");
+	pSymGetOptions = (PSYMGETOPTIONS)GetProcAddress(hDLL, "SymGetOptions");
+	pSymGetSymFromAddr =
+		(PSYMGETSYMFROMADDR)GetProcAddress(hDLL, "SymGetSymFromAddr");
+	pSymInitialize = (PSYMINITIALIZE)GetProcAddress(hDLL, "SymInitialize");
+	pSymSetOptions = (PSYMSETOPTIONS)GetProcAddress(hDLL, "SymSetOptions");
+	pStackWalk = (PSTACKWALK)GetProcAddress(hDLL, "StackWalk");
+	pUnDecorateSymbolName =
+		(PUNDECORATESYMBOLNAME)GetProcAddress(hDLL, "UnDecorateSymbolName");
+	pSymLoadModule = (PSYMLOADMODULE)GetProcAddress(hDLL, "SymLoadModule");
+	pSymGetLineFromAddr =
+		(PSYMGETLINEFROMADDR)GetProcAddress(hDLL, "SymGetLineFromAddr");
 
-	if (s_pfnSymCleanup && s_pfnSymFunctionTableAccess &&
-		s_pfnSymGetModuleBase && s_pfnSymGetModuleInfo && s_pfnSymGetOptions &&
-		s_pfnSymGetSymFromAddr && s_pfnSymInitialize && s_pfnSymSetOptions &&
-		s_pfnStackWalk && s_pfnUnDecorateSymbolName && s_pfnSymLoadModule)
+	if (pSymCleanup && pSymFunctionTableAccess && pSymGetModuleBase &&
+		pSymGetModuleInfo && pSymGetOptions && pSymGetSymFromAddr &&
+		pSymInitialize && pSymSetOptions && pStackWalk &&
+		pUnDecorateSymbolName && pSymLoadModule)
 	{
 		g_hDLL = hDLL;
 		return true;
@@ -95,7 +91,7 @@ static bool LoadDbgHelp()
 	return false;
 }
 
-static void FreeDbgHelp()
+static void FreeSymFunctions()
 {
 	if (g_hDLL)
 	{
@@ -104,20 +100,23 @@ static void FreeDbgHelp()
 	}
 }
 
-static BOOL GetModulePath(const void* pAddress, char* pszPath, DWORD dwSize)
+static BOOL GetModuleFileNameWithAddress(const void* addr, char* moduleName,
+	DWORD size)
 {
-	MEMORY_BASIC_INFORMATION mbi;
-	if (VirtualQuery(pAddress, &mbi, sizeof(mbi)) &&
-		GetModuleFileNameA((HMODULE)mbi.AllocationBase, pszPath, dwSize) > 0)
+	MEMORY_BASIC_INFORMATION MemInfo;
+	if (VirtualQuery(addr, &MemInfo, sizeof(MemInfo)) &&
+		GetModuleFileNameA((HMODULE)MemInfo.AllocationBase, moduleName, size) >
+			0)
 		return TRUE;
 
-	strncpy(pszPath, "Unknown", dwSize);
+	strncpy(moduleName, "Unknown", size);
 	return FALSE;
 }
 
-static const char* GetExceptionString(const EXCEPTION_RECORD* pRecord)
+static const char* GetExceptionDescription(
+	const EXCEPTION_RECORD* exceptionRecord)
 {
-	switch (pRecord->ExceptionCode)
+	switch (exceptionRecord->ExceptionCode)
 	{
 	case DBG_CONTROL_C:
 		return "Control-C";
@@ -173,16 +172,16 @@ static const char* GetExceptionString(const EXCEPTION_RECORD* pRecord)
 	{
 		static __declspec(thread) char szMessage[8192];
 
-		if (pRecord->NumberParameters >= 3)
+		if (exceptionRecord->NumberParameters >= 3)
 			sprintf(szMessage,
 				"EXCEPTION_WITH_USER_INFO => msg: %s, arg1: %d, arg2: %d",
-				pRecord->ExceptionInformation[0],
-				pRecord->ExceptionInformation[1],
-				pRecord->ExceptionInformation[2]);
+				exceptionRecord->ExceptionInformation[0],
+				exceptionRecord->ExceptionInformation[1],
+				exceptionRecord->ExceptionInformation[2]);
 		else
 			sprintf(szMessage,
 				"EXCEPTION_WITH_USER_INFO => invalid parameter count(%d)",
-				pRecord->NumberParameters);
+				exceptionRecord->NumberParameters);
 		return szMessage;
 	}
 	default:
@@ -190,27 +189,26 @@ static const char* GetExceptionString(const EXCEPTION_RECORD* pRecord)
 	}
 }
 
-static void MakeMiniDump(const char* pszFileName,
-	EXCEPTION_POINTERS* pExceptionInfo)
+static void CreateMiniDump(const char* filename,
+	EXCEPTION_POINTERS* pExceptionPointers)
 {
-	MINIDUMP_EXCEPTION_INFORMATION info;
+	MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
 	PMINIDUMP_EXCEPTION_INFORMATION pInfo;
 
-	HANDLE hFile = CreateFileA(pszFileName, GENERIC_WRITE, FILE_SHARE_READ,
-		NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH,
-		NULL);
+	HANDLE hFile = CreateFileA(filename, GENERIC_WRITE, FILE_SHARE_READ, NULL,
+		CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
 	if (hFile == INVALID_HANDLE_VALUE)
 		return;
 
 	SetThreadPriority(CExceptionReport::GetCurrentThread(),
 		THREAD_PRIORITY_HIGHEST);
 
-	if (pExceptionInfo)
+	if (pExceptionPointers)
 	{
-		info.ThreadId = CExceptionReport::GetCurrentThreadId();
-		info.ClientPointers = TRUE;
-		info.ExceptionPointers = pExceptionInfo;
-		pInfo = &info;
+		exceptionInfo.ThreadId = CExceptionReport::GetCurrentThreadId();
+		exceptionInfo.ClientPointers = TRUE;
+		exceptionInfo.ExceptionPointers = pExceptionPointers;
+		pInfo = &exceptionInfo;
 	}
 	else
 	{
@@ -225,7 +223,7 @@ static void MakeMiniDump(const char* pszFileName,
 	CloseHandle(hFile);
 }
 
-void __cdecl SecurityErrorHandler(int code, void* data)
+void __cdecl SecurityErrorHandler(int code, void* unused)
 {
 	if (g_exceptionReport.IsEnabled())
 	{
@@ -237,31 +235,31 @@ void __cdecl SecurityErrorHandler(int code, void* data)
 	ExitProcess(1);
 }
 
-long __stdcall RecordExceptionInfo(EXCEPTION_POINTERS* pExceptionInfo)
+long __stdcall RecordExceptionInfo(EXCEPTION_POINTERS* data)
 {
-	static BOOL s_bReentered = FALSE;
+	static BOOL beenHere = FALSE;
 
-	char szMessage[1024] = { 0 };
+	char text[1024] = { 0 };
 
 	if (g_exceptionReport.IsEnabled())
 	{
 		_client::_private::CLock<_client::CCriticalSection> lock(
 			g_criticalSection);
 
-		if (s_bReentered)
+		if (beenHere)
 			goto CallPreviousFilter;
 
-		s_bReentered = TRUE;
-		g_exceptionReport.DumpExceptionReport(pExceptionInfo);
+		beenHere = TRUE;
+		g_exceptionReport.DumpExceptionReport(data);
 
-		wsprintfA(szMessage,
+		wsprintfA(text,
 			"%s Exception raised at 0x%08x. Program will be terminated.",
-			GetExceptionString(pExceptionInfo->ExceptionRecord),
-			pExceptionInfo->ExceptionRecord->ExceptionAddress);
+			GetExceptionDescription(data->ExceptionRecord),
+			data->ExceptionRecord->ExceptionAddress);
 	}
 	else
 	{
-		MessageBoxA(NULL, szMessage, "g_exceptionReport.IsEnabled() == false",
+		MessageBoxA(NULL, text, "g_exceptionReport.IsEnabled() == false",
 			MB_OK);
 	}
 
@@ -271,26 +269,26 @@ long __stdcall RecordExceptionInfo(EXCEPTION_POINTERS* pExceptionInfo)
 		WSendPacket packet((enumClientPacket)0x33);
 		packet.Encode1(0);
 		packet.EncodeStr(strType);
-		packet.Send((eSendTo)0);
+		packet.Send(TO_GAME);
 	}
 
 CallPreviousFilter:
 	if (g_pPrevUnhandledExceptionFilter)
-		return g_pPrevUnhandledExceptionFilter(pExceptionInfo);
+		return g_pPrevUnhandledExceptionFilter(data);
 
 	return EXCEPTION_CONTINUE_SEARCH;
 }
 
 void CExceptionReport::Init()
 {
-	LoadDbgHelp();
+	InitSymFunctions();
 	g_pPrevUnhandledExceptionFilter =
 		SetUnhandledExceptionFilter(RecordExceptionInfo);
 	_set_security_error_handler(SecurityErrorHandler);
 	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX |
 		SEM_NOOPENFILEERRORBOX);
-	m_bEnable = TRUE;
-	m_bInit = true;
+	m_enable = TRUE;
+	m_initialized = true;
 }
 
 void CExceptionReport::Shutdown()
@@ -298,40 +296,40 @@ void CExceptionReport::Shutdown()
 	if (g_pPrevUnhandledExceptionFilter)
 		SetUnhandledExceptionFilter(g_pPrevUnhandledExceptionFilter);
 	SetErrorMode(0);
-	FreeDbgHelp();
-	m_bInit = false;
+	FreeSymFunctions();
+	m_initialized = false;
 }
 
 int CExceptionReport::Enable()
 {
-	return InterlockedExchange(&m_bEnable, TRUE) == FALSE;
+	return InterlockedExchange(&m_enable, TRUE) == FALSE;
 }
 
 int CExceptionReport::Disable()
 {
-	return InterlockedExchange(&m_bEnable, FALSE);
+	return InterlockedExchange(&m_enable, FALSE);
 }
 
 int CExceptionReport::IsEnabled() const
 {
-	return m_bEnable;
+	return m_enable;
 }
 
-void CExceptionReport::StartLog(const char* pszFileName)
+void CExceptionReport::StartLog(const char* filename)
 {
-	m_hReportFile =
-		CreateFileA(pszFileName, GENERIC_WRITE, FILE_SHARE_READ, NULL,
-			OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
+	m_logFileHandle =
+		CreateFileA(filename, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH, NULL);
 }
 
-void CExceptionReport::LogPrintf(const char* pszFormat, ...) const
+void CExceptionReport::LogPrintf(const char* fmt, ...) const
 {
-	char szBuffer[4096];
+	char buffer[4096];
 	va_list args;
-	va_start(args, pszFormat);
-	vsprintf(szBuffer, pszFormat, args);
-	DWORD dwWritten;
-	WriteFile(m_hReportFile, szBuffer, strlen(szBuffer), &dwWritten, NULL);
+	va_start(args, fmt);
+	vsprintf(buffer, fmt, args);
+	DWORD numBytes;
+	WriteFile(m_logFileHandle, buffer, strlen(buffer), &numBytes, NULL);
 	va_end(args);
 }
 
@@ -339,15 +337,15 @@ void CExceptionReport::EndLog()
 {
 	LogPrintf(
 		"--------------------------------- END_OF_LOG ---------------------------------\r\n");
-	if (m_hReportFile != INVALID_HANDLE_VALUE)
-		CloseHandle(m_hReportFile);
-	m_hReportFile = INVALID_HANDLE_VALUE;
+	if (m_logFileHandle != INVALID_HANDLE_VALUE)
+		CloseHandle(m_logFileHandle);
+	m_logFileHandle = INVALID_HANDLE_VALUE;
 }
 
 void CExceptionReport::CollectSystemInfo()
 {
 	OSVERSIONINFOA osvi;
-	const char* pszName;
+	char* os;
 
 	memset(&osvi, 0, sizeof(osvi));
 	osvi.dwOSVersionInfoSize = sizeof(osvi);
@@ -357,52 +355,51 @@ void CExceptionReport::CollectSystemInfo()
 		{
 		case VER_PLATFORM_WIN32_WINDOWS:
 			if (osvi.dwMajorVersion == 4 && osvi.dwMinorVersion == 0)
-				pszName = "Windows 95";
+				os = "Windows 95";
 			else if (osvi.dwMajorVersion == 4 && osvi.dwMinorVersion == 10)
-				pszName = "Windows 98/98SE";
+				os = "Windows 98/98SE";
 			else if (osvi.dwMajorVersion == 4 && osvi.dwMinorVersion == 90)
-				pszName = "Windows ME";
+				os = "Windows ME";
 			else
-				pszName = "Windows ME or later";
+				os = "Windows ME or later";
 			break;
 		case VER_PLATFORM_WIN32_NT:
 			if (osvi.dwMajorVersion <= 4)
-				pszName = "Windows NT";
+				os = "Windows NT";
 			else if (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 0)
-				pszName = "Windows 2000";
+				os = "Windows 2000";
 			else if (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 1)
-				pszName = "Microsoft Windows XP";
+				os = "Microsoft Windows XP";
 			else if (osvi.dwMajorVersion == 5 && osvi.dwMinorVersion == 2)
-				pszName = "Microsoft Windows Server 2003 family";
+				os = "Microsoft Windows Server 2003 family";
 			else
-				pszName = "Microsoft Vista or later";
+				os = "Microsoft Vista or later";
 			break;
 		default:
-			pszName = "Unknown Windows variant";
+			os = "Unknown Windows variant";
 			break;
 		}
 
-		wsprintfA(m_szOSVersion, "%s %i.%02d.%i %s", pszName,
-			osvi.dwMajorVersion, osvi.dwMinorVersion, osvi.dwBuildNumber,
-			osvi.szCSDVersion);
+		wsprintfA(m_osName, "%s %i.%02d.%i %s", os, osvi.dwMajorVersion,
+			osvi.dwMinorVersion, osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 	else
 	{
-		strcpy(m_szOSVersion, "Unknown");
+		strcpy(m_osName, "Unknown");
 	}
 
 	GetSystemInfo(&m_systemInfo);
 
-	m_memoryStatus.dwLength = sizeof(m_memoryStatus);
-	GlobalMemoryStatus(&m_memoryStatus);
+	m_memInfo.dwLength = sizeof(m_memInfo);
+	GlobalMemoryStatus(&m_memInfo);
 
-	DWORD dwSize = 200;
-	if (!GetUserNameA(m_szUserName, &dwSize))
-		strcpy(m_szUserName, "Unknown");
+	DWORD size = 200;
+	if (!GetUserNameA(m_userName, &size))
+		strcpy(m_userName, "Unknown");
 
-	dwSize = 200;
-	if (!GetComputerNameA(m_szComputerName, &dwSize))
-		strcpy(m_szComputerName, "Unknown");
+	size = 200;
+	if (!GetComputerNameA(m_computerName, &size))
+		strcpy(m_computerName, "Unknown");
 }
 
 static void GetBaseName(const char* pszSrc, char* pszDst)
@@ -438,15 +435,16 @@ void CExceptionReport::DumpHeaderInfo(EXCEPTION_POINTERS* pExceptionInfo)
 
 void CExceptionReport::EndStackLog()
 {
-	if (m_hReportFile != INVALID_HANDLE_VALUE)
-		CloseHandle(m_hReportFile);
-	m_hReportFile = INVALID_HANDLE_VALUE;
+	if (m_logFileHandle != INVALID_HANDLE_VALUE)
+		CloseHandle(m_logFileHandle);
+	m_logFileHandle = INVALID_HANDLE_VALUE;
 }
 
-void CExceptionReport::DumpHeader(EXCEPTION_POINTERS* pExceptionInfo) const
+void CExceptionReport::DumpHeader(EXCEPTION_POINTERS* data) const
 {
 	char szPath[MAX_PATH];
-	GetModulePath((void*)pExceptionInfo->ContextRecord->Eip, szPath, MAX_PATH);
+	GetModuleFileNameWithAddress((void*)data->ContextRecord->Eip, szPath,
+		MAX_PATH);
 	GetBaseName(szPath, szPath);
 
 	char* pszID = "NotDetected";
@@ -454,8 +452,8 @@ void CExceptionReport::DumpHeader(EXCEPTION_POINTERS* pExceptionInfo) const
 		pszID = MyId();
 
 	LogPrintf("<%s %s %s %04x:%08x %s>\r\n", pszID, PY_PUBLIC_VERSION,
-		PY_CLIENT_VERSION, pExceptionInfo->ContextRecord->SegCs,
-		pExceptionInfo->ContextRecord->Eip, szPath);
+		PY_CLIENT_VERSION, data->ContextRecord->SegCs, data->ContextRecord->Eip,
+		szPath);
 	LogPrintf(
 		"==============================================================================\r\n");
 	LogPrintf("  Pangya (Version: %s, Packet Version: %d)\r\n",
@@ -466,18 +464,18 @@ void CExceptionReport::DumpHeader(EXCEPTION_POINTERS* pExceptionInfo) const
 
 void CExceptionReport::DumpSystemInfo() const
 {
-	LogPrintf("Time:      %s\r\n", m_szTime);
-	LogPrintf("User:      %s\r\n", m_szUserName);
-	LogPrintf("Computer:  %s\r\n", m_szComputerName);
+	LogPrintf("Time:      %s\r\n", m_crashTime);
+	LogPrintf("User:      %s\r\n", m_userName);
+	LogPrintf("Computer:  %s\r\n", m_computerName);
 	if (CProjectG::Instance() && CProjectG::Instance()->m_pDxDiagInfo)
 		LogPrintf("OS:        %s\r\n",
 			CProjectG::Instance()->m_pDxDiagInfo->GetOSName());
 	else
-		LogPrintf("OS:        %s\r\n", m_szOSVersion);
+		LogPrintf("OS:        %s\r\n", m_osName);
 	LogPrintf("Processor: %d processor(s), type %d.\r\n",
 		m_systemInfo.dwNumberOfProcessors, m_systemInfo.dwProcessorType);
 	LogPrintf("Memory:    %d MBytes physical memory.\r\n",
-		(m_memoryStatus.dwTotalPhys + 0xfffff) >> 20);
+		(m_memInfo.dwTotalPhys + 0xfffff) >> 20);
 	if (CProjectG::Instance() && CProjectG::Instance()->m_pDxDiagInfo)
 	{
 		LogPrintf("Graphic Card: %s\r\n",
@@ -489,105 +487,109 @@ void CExceptionReport::DumpSystemInfo() const
 		"------------------------------------------------------------------------------\r\n");
 }
 
-void CExceptionReport::DumpErrorMessage(const CONTEXT* pContext,
-	const EXCEPTION_RECORD* pRecord) const
+void CExceptionReport::DumpErrorMessage(const CONTEXT* contextRecord,
+	const EXCEPTION_RECORD* exceptionRecord) const
 {
-	char szPath[MAX_PATH];
-	GetModulePath((void*)pContext->Eip, szPath, MAX_PATH);
+	char crashModuleFilename[MAX_PATH];
+	GetModuleFileNameWithAddress((void*)contextRecord->Eip, crashModuleFilename,
+		MAX_PATH);
 
 	LogPrintf("\r\n");
-	LogPrintf("Program:   %s\r\n", szPath);
-	LogPrintf("Exception: %08x (%s) at %04x:%08x.\r\n", pRecord->ExceptionCode,
-		GetExceptionString(pRecord), pContext->SegCs, pContext->Eip);
+	LogPrintf("Program:   %s\r\n", crashModuleFilename);
+	LogPrintf("Exception: %08x (%s) at %04x:%08x.\r\n",
+		exceptionRecord->ExceptionCode,
+		GetExceptionDescription(exceptionRecord), contextRecord->SegCs,
+		contextRecord->Eip);
 
-	if (pRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION &&
-		pRecord->NumberParameters >= 2)
+	if (exceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION &&
+		exceptionRecord->NumberParameters >= 2)
 	{
 		LogPrintf(
 			"\r\nThe instruction at \"%08x\" referenced memory at \"%08x\"\r\nThe memory could not be %s\r\n",
-			pContext->Eip, pRecord->ExceptionInformation[1],
-			pRecord->ExceptionInformation[0] ? "\"write\"" : "\"read\"");
+			contextRecord->Eip, exceptionRecord->ExceptionInformation[1],
+			exceptionRecord->ExceptionInformation[0] ? "\"write\""
+													 : "\"read\"");
 	}
 
 	LogPrintf("\r\n");
 }
 
-void CExceptionReport::DumpRegisters(const CONTEXT* pContext) const
+void CExceptionReport::DumpRegisters(const CONTEXT* contextRecord) const
 {
 	LogPrintf("----------------------------------------\r\n");
 	LogPrintf("  x86 Registers\r\n");
 	LogPrintf("----------------------------------------\r\n");
-	LogPrintf("EAX=%08x  CS=%04x  EIP=%08x  EFLGS=%08x\r\n", pContext->Eax,
-		pContext->SegCs, pContext->Eip, pContext->EFlags);
-	LogPrintf("EBX=%08x  SS=%04x  ESP=%08x  EBP=%08x\r\n", pContext->Ebx,
-		pContext->SegSs, pContext->Esp, pContext->Ebp);
-	LogPrintf("ECX=%08x  DS=%04x  ESI=%08x  FS=%04x\r\n", pContext->Ecx,
-		pContext->SegDs, pContext->Esi, pContext->SegFs);
-	LogPrintf("EDX=%08x  ES=%04x  EDI=%08x  GS=%04x\r\n", pContext->Edx,
-		pContext->SegEs, pContext->Edi, pContext->SegGs);
+	LogPrintf("EAX=%08x  CS=%04x  EIP=%08x  EFLGS=%08x\r\n", contextRecord->Eax,
+		contextRecord->SegCs, contextRecord->Eip, contextRecord->EFlags);
+	LogPrintf("EBX=%08x  SS=%04x  ESP=%08x  EBP=%08x\r\n", contextRecord->Ebx,
+		contextRecord->SegSs, contextRecord->Esp, contextRecord->Ebp);
+	LogPrintf("ECX=%08x  DS=%04x  ESI=%08x  FS=%04x\r\n", contextRecord->Ecx,
+		contextRecord->SegDs, contextRecord->Esi, contextRecord->SegFs);
+	LogPrintf("EDX=%08x  ES=%04x  EDI=%08x  GS=%04x\r\n", contextRecord->Edx,
+		contextRecord->SegEs, contextRecord->Edi, contextRecord->SegGs);
 	LogPrintf("\r\n");
 }
 
-void CExceptionReport::PrintStack(unsigned long dwBegin,
-	unsigned long dwEnd) const
+void CExceptionReport::PrintStack(unsigned long begin, unsigned long end) const
 {
-	char szLine[92] = { 0 };
+	char buffer[92] = { 0 };
 
-	dwBegin &= ~31;
-	if (dwBegin < g_dwStack)
-		dwBegin = g_dwStack;
+	begin &= ~31;
+	if (begin < g_dwStack)
+		begin = g_dwStack;
 
-	if (dwEnd > g_dwStackBottom)
-		dwEnd = g_dwStackBottom;
+	if (end > g_dwStackBottom)
+		end = g_dwStackBottom;
 	else
-		dwEnd = (dwEnd + 31) & ~31;
+		end = (end + 31) & ~31;
 
 	__try
 	{
-		char* pszCursor = szLine;
-		while (dwBegin < dwEnd)
+		char* output = buffer;
+		while (begin < end)
 		{
-			if (!(dwBegin & 31))
-				pszCursor += wsprintfA(pszCursor, "%08x:", dwBegin);
-			pszCursor += wsprintfA(pszCursor, " %08x", *(DWORD*)dwBegin);
-			dwBegin += 4;
-			if (!(dwBegin & 31))
+			if (!(begin & 31))
+				output += wsprintfA(output, "%08x:", begin);
+			output += wsprintfA(output, " %08x", *(DWORD*)begin);
+			begin += 4;
+			if (!(begin & 31))
 			{
-				LogPrintf("%s\r\n", szLine);
-				szLine[0] = '\0';
-				pszCursor = szLine;
+				LogPrintf("%s\r\n", buffer);
+				buffer[0] = '\0';
+				output = buffer;
 			}
 		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
-		LogPrintf("*** Exception encountered during stack dump\r\n", dwBegin);
-		g_dwStackBottom = dwBegin;
+		LogPrintf("*** Exception encountered during stack dump\r\n", begin);
+		g_dwStackBottom = begin;
 	}
 }
 
-void CExceptionReport::IntelStackWalk(CONTEXT* pContext) const
+void CExceptionReport::IntelStackWalk(CONTEXT* ptrContext) const
 {
-	DWORD* pFrame = (DWORD*)pContext->Ebp;
-	DWORD dwEip = pContext->Eip;
-	DWORD* pNext;
+	DWORD* pFrame = (DWORD*)ptrContext->Ebp;
+	DWORD dwEip = ptrContext->Eip;
+	DWORD* pPrevFrame;
 
 	do
 	{
-		char szPath[MAX_PATH];
-		GetModulePath((void*)dwEip, szPath, MAX_PATH);
+		char crashModulePathname[MAX_PATH];
+		GetModuleFileNameWithAddress((void*)dwEip, crashModulePathname,
+			MAX_PATH);
 
-		LogPrintf("Module=%s\r\n", szPath);
+		LogPrintf("Module=%s\r\n", crashModulePathname);
 		LogPrintf("Frame=%08x\r\n", pFrame);
 		PrintStack((DWORD)pFrame, (DWORD)(pFrame + 40));
 
 		LogPrintf("Address=%08x: ", dwEip);
-		BYTE* pCode = (BYTE*)dwEip;
-		for (int i = 0; i < 16; i++)
+		BYTE* code = (BYTE*)dwEip;
+		for (int codebyte = 0; codebyte < 16; codebyte++)
 		{
 			__try
 			{
-				LogPrintf("%02x ", pCode[i]);
+				LogPrintf("%02x ", code[codebyte]);
 			}
 			__except (EXCEPTION_EXECUTE_HANDLER)
 			{
@@ -596,91 +598,92 @@ void CExceptionReport::IntelStackWalk(CONTEXT* pContext) const
 		}
 		LogPrintf("\r\n\r\n");
 
-		pNext = (DWORD*)pFrame[0];
+		pPrevFrame = (DWORD*)pFrame[0];
 		dwEip = pFrame[1];
 
-		if ((DWORD)pNext & 3)
+		if ((DWORD)pPrevFrame & 3)
 			break;
 
-		if (pNext <= pFrame)
+		if (pPrevFrame <= pFrame)
 			break;
 
-		if (IsBadWritePtr(pNext, sizeof(void*) * 2))
+		if (IsBadWritePtr(pPrevFrame, sizeof(void*) * 2))
 			break;
 
-		pFrame = pNext;
+		pFrame = pPrevFrame;
 	} while (1);
 }
 
-void CExceptionReport::ImageHelpStackWalk(CONTEXT* pContext) const
+void CExceptionReport::ImageHelpStackWalk(CONTEXT* ptrContext) const
 {
-	STACKFRAME frame;
-	memset(&frame, 0, sizeof(frame));
-	frame.AddrPC.Offset = pContext->Eip;
-	frame.AddrPC.Mode = AddrModeFlat;
-	frame.AddrStack.Offset = pContext->Esp;
-	frame.AddrStack.Mode = AddrModeFlat;
-	frame.AddrFrame.Offset = pContext->Ebp;
-	frame.AddrFrame.Mode = AddrModeFlat;
+	STACKFRAME sf;
+	memset(&sf, 0, sizeof(sf));
+	sf.AddrPC.Offset = ptrContext->Eip;
+	sf.AddrPC.Mode = AddrModeFlat;
+	sf.AddrStack.Offset = ptrContext->Esp;
+	sf.AddrStack.Mode = AddrModeFlat;
+	sf.AddrFrame.Offset = ptrContext->Ebp;
+	sf.AddrFrame.Mode = AddrModeFlat;
 
 	while (1)
 	{
-		if (!s_pfnStackWalk(IMAGE_FILE_MACHINE_I386, GetCurrentProcess(),
-				GetCurrentThread(), &frame, pContext, NULL,
-				s_pfnSymFunctionTableAccess, s_pfnSymGetModuleBase, NULL))
+		if (!pStackWalk(IMAGE_FILE_MACHINE_I386, GetCurrentProcess(),
+				GetCurrentThread(), &sf, ptrContext, NULL,
+				pSymFunctionTableAccess, pSymGetModuleBase, NULL))
 			break;
 
-		if (frame.AddrFrame.Offset == 0)
+		if (sf.AddrFrame.Offset == 0)
 			break;
 
-		LogPrintf("Frame=%08x\r\n", frame.AddrFrame.Offset);
-		PrintStack(frame.AddrFrame.Offset, frame.AddrFrame.Offset + 40);
+		LogPrintf("Frame=%08x\r\n", sf.AddrFrame.Offset);
+		PrintStack(sf.AddrFrame.Offset, sf.AddrFrame.Offset + 40);
 
 		BYTE symbolBuffer[sizeof(IMAGEHLP_SYMBOL) + 1024];
 		PIMAGEHLP_SYMBOL pSymbol = (PIMAGEHLP_SYMBOL)symbolBuffer;
 		pSymbol->SizeOfStruct = sizeof(IMAGEHLP_SYMBOL);
 		pSymbol->MaxNameLength = 1024;
 
-		char szUndecorated[512];
-		szUndecorated[0] = '\0';
+		char UnDName[512];
+		UnDName[0] = '\0';
 
-		DWORD dwDisplacement = 0;
+		DWORD symDisplacement = 0;
 
-		LogPrintf("Address=%08x\r\n", frame.AddrPC.Offset);
-		if (s_pfnSymGetSymFromAddr(GetCurrentProcess(), frame.AddrPC.Offset,
-				&dwDisplacement, pSymbol))
+		LogPrintf("Address=%08x\r\n", sf.AddrPC.Offset);
+		if (pSymGetSymFromAddr(GetCurrentProcess(), sf.AddrPC.Offset,
+				&symDisplacement, pSymbol))
 		{
-			LogPrintf("%s +0x%x\r\n", pSymbol->Name, dwDisplacement);
-			s_pfnUnDecorateSymbolName(pSymbol->Name, szUndecorated,
-				sizeof(szUndecorated), UNDNAME_COMPLETE);
+			LogPrintf("%s +0x%x\r\n", pSymbol->Name, symDisplacement);
+			pUnDecorateSymbolName(pSymbol->Name, UnDName, sizeof(UnDName),
+				UNDNAME_COMPLETE);
 
 			IMAGEHLP_LINE64 line;
-			DWORD dwLineDisplacement = 0;
+			DWORD lineDisplacement = 0;
 			line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-			if (SymGetLineFromAddr64(GetCurrentProcess(), frame.AddrPC.Offset,
-					&dwLineDisplacement, &line))
+			if (SymGetLineFromAddr64(GetCurrentProcess(), sf.AddrPC.Offset,
+					&lineDisplacement, &line))
 			{
 				LogPrintf("%s(%d) : %s\r\n", line.FileName, line.LineNumber,
-					szUndecorated);
+					UnDName);
 				goto PrintParams;
 			}
 		}
 
 		{
-			char szPath[MAX_PATH];
-			GetModulePath((void*)frame.AddrPC.Offset, szPath, MAX_PATH);
-			LogPrintf("%s %s\r\n", szPath, szUndecorated);
+			char crashModulePathname[MAX_PATH];
+			GetModuleFileNameWithAddress((void*)sf.AddrPC.Offset,
+				crashModulePathname, MAX_PATH);
+			LogPrintf("%s %s\r\n", crashModulePathname, UnDName);
 		}
 
 PrintParams:
-		LogPrintf("Params: %08x %08x %08x %08x\r\n\r\n", frame.Params[0],
-			frame.Params[1], frame.Params[2], frame.Params[3]);
+		LogPrintf("Params: %08x %08x %08x %08x\r\n\r\n", sf.Params[0],
+			sf.Params[1], sf.Params[2], sf.Params[3]);
 	}
 }
 
-void CExceptionReport::DumpStackTrace(const CONTEXT* pContext) const
+void CExceptionReport::DumpStackTrace(const CONTEXT* contextRecord) const
 {
-	g_dwStack = pContext->Esp & ~31;
+	g_dwStack = contextRecord->Esp & ~31;
 
 	__asm
 		{
@@ -693,40 +696,40 @@ void CExceptionReport::DumpStackTrace(const CONTEXT* pContext) const
 	LogPrintf("  Stack Trace (Using DBGHELP.DLL)\r\n");
 	LogPrintf("----------------------------------------\r\n");
 
-	if (!s_pfnSymInitialize(GetCurrentProcess(), NULL, TRUE))
+	if (!pSymInitialize(GetCurrentProcess(), NULL, TRUE))
 		return;
 
-	DWORD dwOptions = s_pfnSymGetOptions();
+	DWORD dwOptions = pSymGetOptions();
 	if ((dwOptions &
 			(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES)) !=
 		(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES))
-		s_pfnSymSetOptions((dwOptions & ~SYMOPT_UNDNAME) |
+		pSymSetOptions((dwOptions & ~SYMOPT_UNDNAME) |
 			(SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES));
 
-	CONTEXT context = *pContext;
+	CONTEXT context = *contextRecord;
 	ImageHelpStackWalk(&context);
 
-	s_pfnSymCleanup(GetCurrentProcess());
+	pSymCleanup(GetCurrentProcess());
 }
 
-void CExceptionReport::DumpMemory(const CONTEXT* pContext) const
+void CExceptionReport::DumpMemory(const CONTEXT* contextRecord) const
 {
 	LogPrintf("----------------------------------------\r\n");
 	LogPrintf("  Memory dump\r\n");
 	LogPrintf("----------------------------------------\r\n");
 	LogPrintf("Code: %d Bytes starting at CS:EIP = %08x:%08x\r\n\r\n", 16,
-		pContext->SegCs, pContext->Eip);
+		contextRecord->SegCs, contextRecord->Eip);
 
-	BYTE* pBytes = (BYTE*)pContext->Eip;
+	BYTE* ptr = (BYTE*)contextRecord->Eip;
 	unsigned int i, j;
 	for (i = 0; i < 16; i++)
 	{
 		if (((i + 1) & 15) == 1)
-			LogPrintf("%08x: ", pBytes + i);
+			LogPrintf("%08x: ", ptr + i);
 
 		__try
 		{
-			LogPrintf("%02x ", pBytes[i]);
+			LogPrintf("%02x ", ptr[i]);
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
@@ -742,7 +745,7 @@ void CExceptionReport::DumpMemory(const CONTEXT* pContext) const
 			{
 				__try
 				{
-					LogPrintf("%c", isprint(pBytes[j]) ? pBytes[j] : '.');
+					LogPrintf("%c", isprint(ptr[j]) ? ptr[j] : '.');
 				}
 				__except (EXCEPTION_EXECUTE_HANDLER)
 				{
@@ -755,10 +758,10 @@ void CExceptionReport::DumpMemory(const CONTEXT* pContext) const
 
 	LogPrintf("\r\n");
 	LogPrintf("Stack: %d Bytes starting at ESP = %08x\r\n", 1024,
-		pContext->Esp);
+		contextRecord->Esp);
 	LogPrintf("\r\n* = addr\r\n");
 	LogPrintf("          ");
-	for (i = 0; i < (pContext->Esp & 15); i++)
+	for (i = 0; i < (contextRecord->Esp & 15); i++)
 	{
 		LogPrintf("   ");
 		if (!((i + 1) & 3))
@@ -766,15 +769,15 @@ void CExceptionReport::DumpMemory(const CONTEXT* pContext) const
 	}
 	LogPrintf("**\r\n");
 
-	pBytes = (BYTE*)(pContext->Esp - (pContext->Esp & 15));
+	ptr = (BYTE*)(contextRecord->Esp - (contextRecord->Esp & 15));
 	for (i = 0; i < 1024; i++)
 	{
 		if (((i + 1) & 15) == 1)
-			LogPrintf("%08x: ", pBytes + i);
+			LogPrintf("%08x: ", ptr + i);
 
 		__try
 		{
-			LogPrintf("%02x ", pBytes[i]);
+			LogPrintf("%02x ", ptr[i]);
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
@@ -790,7 +793,7 @@ void CExceptionReport::DumpMemory(const CONTEXT* pContext) const
 			{
 				__try
 				{
-					LogPrintf("%c", isprint(pBytes[j]) ? pBytes[j] : '.');
+					LogPrintf("%c", isprint(ptr[j]) ? ptr[j] : '.');
 				}
 				__except (EXCEPTION_EXECUTE_HANDLER)
 				{
@@ -805,8 +808,8 @@ void CExceptionReport::DumpMemory(const CONTEXT* pContext) const
 
 __declspec(naked) DWORD SnapCurrentContext(CONTEXT* pContext)
 {
-	CONTEXT ctx;
-	BOOL bResult;
+	CONTEXT initialContext;
+	DWORD eRetVal;
 
 	__asm
 		{
@@ -814,33 +817,33 @@ __declspec(naked) DWORD SnapCurrentContext(CONTEXT* pContext)
 		mov ebp, esp
 		sub esp, __LOCAL_SIZE
 
-		mov ctx.Eax, eax
-		mov ctx.Ebx, ebx
-		mov ctx.Ecx, ecx
-		mov ctx.Edx, edx
-		mov ctx.Edi, edi
-		mov ctx.Esi, esi
+		mov initialContext.Eax, eax
+		mov initialContext.Ebx, ebx
+		mov initialContext.Ecx, ecx
+		mov initialContext.Edx, edx
+		mov initialContext.Edi, edi
+		mov initialContext.Esi, esi
 
 		xor eax, eax
 		mov ax, gs
-		mov ctx.SegGs, eax
+		mov initialContext.SegGs, eax
 		mov ax, fs
-		mov ctx.SegFs, eax
+		mov initialContext.SegFs, eax
 		mov ax, es
-		mov ctx.SegEs, eax
+		mov initialContext.SegEs, eax
 		mov ax, ds
-		mov ctx.SegDs, eax
+		mov initialContext.SegDs, eax
 		mov ax, cs
-		mov ctx.SegCs, eax
+		mov initialContext.SegCs, eax
 		mov ax, ss
-		mov ctx.SegSs, eax
+		mov initialContext.SegSs, eax
 
 		mov eax, [ebp]
-		mov ctx.Ebp, eax
+		mov initialContext.Ebp, eax
 
 		mov eax, ebp
 		add eax, 8
-		mov ctx.Esp, eax
+		mov initialContext.Esp, eax
 
 		push esi
 		push edi
@@ -855,25 +858,25 @@ __declspec(naked) DWORD SnapCurrentContext(CONTEXT* pContext)
 
 	if (GetThreadContext(CExceptionReport::GetCurrentThread(), pContext))
 	{
-		pContext->Eax = ctx.Eax;
-		pContext->Ebx = ctx.Ebx;
-		pContext->Ecx = ctx.Ecx;
-		pContext->Edx = ctx.Edx;
-		pContext->Edi = ctx.Edi;
-		pContext->Esi = ctx.Esi;
-		pContext->SegGs = ctx.SegGs;
-		pContext->SegFs = ctx.SegFs;
-		pContext->SegEs = ctx.SegEs;
-		pContext->SegDs = ctx.SegDs;
-		pContext->SegCs = ctx.SegCs;
-		pContext->SegSs = ctx.SegSs;
-		pContext->Ebp = ctx.Ebp;
+		pContext->Eax = initialContext.Eax;
+		pContext->Ebx = initialContext.Ebx;
+		pContext->Ecx = initialContext.Ecx;
+		pContext->Edx = initialContext.Edx;
+		pContext->Edi = initialContext.Edi;
+		pContext->Esi = initialContext.Esi;
+		pContext->SegGs = initialContext.SegGs;
+		pContext->SegFs = initialContext.SegFs;
+		pContext->SegEs = initialContext.SegEs;
+		pContext->SegDs = initialContext.SegDs;
+		pContext->SegCs = initialContext.SegCs;
+		pContext->SegSs = initialContext.SegSs;
+		pContext->Ebp = initialContext.Ebp;
 		pContext->Eip = (DWORD)_ReturnAddress();
-		bResult = TRUE;
+		eRetVal = TRUE;
 	}
 	else
 	{
-		bResult = FALSE;
+		eRetVal = FALSE;
 	}
 
 	__asm
@@ -883,61 +886,61 @@ __declspec(naked) DWORD SnapCurrentContext(CONTEXT* pContext)
 		pop ebx
 		pop edi
 		pop esi
-		mov eax, bResult
+		mov eax, eRetVal
 		mov esp, ebp
 		pop ebp
 		ret
 	}
 }
 
-void CExceptionReport::DumpExceptionReport(EXCEPTION_POINTERS* pExceptionInfo)
+void CExceptionReport::DumpExceptionReport(EXCEPTION_POINTERS* data)
 {
-	SYSTEMTIME st;
-	char szName[64];
-	char szFileName[64];
-	CONTEXT context;
-	EXCEPTION_RECORD record;
-	EXCEPTION_POINTERS pointers;
+	SYSTEMTIME time;
+	char name[64];
+	char filename[64];
+	CONTEXT stContext;
+	EXCEPTION_RECORD stExRec;
+	EXCEPTION_POINTERS stExpPtrs;
 
-	GetLocalTime(&st);
-	wsprintfA(m_szTime, "%04d/%02d/%02d %02d:%02d:%02d.%03d %s", st.wYear,
-		st.wMonth, st.wDay, (st.wHour % 12) == 0 ? 12 : st.wHour % 12,
-		st.wMinute, st.wSecond, st.wMilliseconds, st.wHour >= 12 ? "PM" : "AM");
+	GetLocalTime(&time);
+	wsprintfA(m_crashTime, "%04d/%02d/%02d %02d:%02d:%02d.%03d %s", time.wYear,
+		time.wMonth, time.wDay, (time.wHour % 12) == 0 ? 12 : time.wHour % 12,
+		time.wMinute, time.wSecond, time.wMilliseconds,
+		time.wHour >= 12 ? "PM" : "AM");
 
-	strcpy(szName, "exception");
+	strcpy(name, "exception");
 
-	if (!pExceptionInfo)
+	if (!data)
 	{
-		SnapCurrentContext(&context);
+		SnapCurrentContext(&stContext);
 
-		memset(&record, 0, sizeof(record));
-		record.ExceptionAddress = (PVOID)context.Eip;
+		memset(&stExRec, 0, sizeof(stExRec));
+		stExRec.ExceptionAddress = (PVOID)stContext.Eip;
 
-		memset(&pointers, 0, sizeof(pointers));
-		pointers.ContextRecord = &context;
-		pointers.ExceptionRecord = &record;
+		memset(&stExpPtrs, 0, sizeof(stExpPtrs));
+		stExpPtrs.ContextRecord = &stContext;
+		stExpPtrs.ExceptionRecord = &stExRec;
 
-		pExceptionInfo = &pointers;
+		data = &stExpPtrs;
 	}
 
-	wsprintfA(szFileName, "%s.dmp", szName);
-	MakeMiniDump(szFileName, pExceptionInfo);
+	wsprintfA(filename, "%s.dmp", name);
+	CreateMiniDump(filename, data);
 
 	CollectSystemInfo();
-	wsprintfA(szFileName, "%s.log", szName);
-	StartLog(szFileName);
-	DumpHeader(pExceptionInfo);
+	wsprintfA(filename, "%s.log", name);
+	StartLog(filename);
+	DumpHeader(data);
 	DumpSystemInfo();
-	DumpErrorMessage(pExceptionInfo->ContextRecord,
-		pExceptionInfo->ExceptionRecord);
-	DumpRegisters(pExceptionInfo->ContextRecord);
-	DumpStackTrace(pExceptionInfo->ContextRecord);
-	DumpMemory(pExceptionInfo->ContextRecord);
+	DumpErrorMessage(data->ContextRecord, data->ExceptionRecord);
+	DumpRegisters(data->ContextRecord);
+	DumpStackTrace(data->ContextRecord);
+	DumpMemory(data->ContextRecord);
 	EndLog();
 
-	wsprintfA(szFileName, "%s.log", "stack");
-	StartLog(szFileName);
-	DumpHeaderInfo(pExceptionInfo);
+	wsprintfA(filename, "%s.log", "stack");
+	StartLog(filename);
+	DumpHeaderInfo(data);
 	EndStackLog();
 }
 
