@@ -174,6 +174,29 @@ inline void WMatrix::operator*=(float scalar)
 	za *= scalar;
 }
 
+inline WMatrix WMatrix::operator~() const
+{
+	WMatrix r;
+	WVector c;
+	c.x = yy * zz - yz * zy;
+	c.y = xz * zy - zz * xy;
+	c.z = yz * xy - yy * xz;
+	float inv = 1.0f / (xx * c.x + yx * c.y + zx * c.z);
+	r.xx = c.x * inv;
+	r.yx = (yz * zx - yx * zz) * inv;
+	r.zx = (yx * zy - zx * yy) * inv;
+	r.xy = c.y * inv;
+	r.yy = (xx * zz - zx * xz) * inv;
+	r.zy = (zx * xy - xx * zy) * inv;
+	r.xz = c.z * inv;
+	r.yz = (yx * xz - yz * xx) * inv;
+	r.zz = (yy * xx - yx * xy) * inv;
+	r.xm = -(r.xx * xm + r.xy * ym + r.xz * zm);
+	r.ym = -(r.yx * xm + r.yy * ym + r.yz * zm);
+	r.zm = -(r.zx * xm + r.zy * ym + r.zz * zm);
+	return r;
+}
+
 inline bool operator==(const WMatrix& left, const WMatrix& right)
 {
 	return WisEqual(left.xa, right.xa, 1.0e-5f) &&

@@ -1164,1110 +1164,6 @@ struct w_temp_vertex_list
 	int kind;
 };
 
-#ifndef REBANG_SEMANTIC_ONLY
-extern "C" void __cdecl rb_SWMatrix__QBE_AV0_XZ(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_SWMatrix__QBE_AV0_XZ=??SWMatrix@@QBE?AV0@XZ")
-extern "C" void __cdecl rb_pg_c_000b6d(void);
-#pragma comment(linker, "/alternatename:_rb_pg_c_000b6d=__pg_c_000b6d")
-extern "C" void __cdecl rb_U_YAPAXI_Z(void);
-#pragma comment(linker, "/alternatename:_rb_U_YAPAXI_Z=??_U@YAPAXI@Z")
-extern "C" void __cdecl rb_WisEqual__YIHABVWVector__0M_Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_WisEqual__YIHABVWVector__0M_Z=?WisEqual@@YIHABVWVector@@0M@Z")
-extern "C" void __cdecl rb_fabs(void);
-#pragma comment(linker, "/alternatename:_rb_fabs=_fabs")
-#pragma comment(linker, "/include:_fabs")
-extern "C" int rb_real_3a83126f;
-#pragma comment(linker, "/alternatename:_rb_real_3a83126f=__real@3a83126f")
-extern "C" void __cdecl rb_2_YAPAXI_Z(void);
-#pragma comment(linker, "/alternatename:_rb_2_YAPAXI_Z=??2@YAPAXI@Z")
-extern "C" int rb_real_437f0000;
-#pragma comment(linker, "/alternatename:_rb_real_437f0000=__real@437f0000")
-extern "C" int rb_real_3f800000;
-#pragma comment(linker, "/alternatename:_rb_real_3f800000=__real@3f800000")
-extern "C" int rb_m_tex_piece_WPuppet__0PAV__WList_PAUw_tex_piece_WPuppet____A;
-#pragma comment(linker, \
-	"/alternatename:_rb_m_tex_piece_WPuppet__0PAV__WList_PAUw_tex_piece_WPuppet____A=?m_tex_piece@WPuppet@@0PAV?$WList@PAUw_tex_piece@WPuppet@@@@A")
-extern "C" void __cdecl rb_Alloc_WMemFillBlock__QAEPAXH_Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_Alloc_WMemFillBlock__QAEPAXH_Z=?Alloc@WMemFillBlock@@QAEPAXH@Z")
-extern "C" int rb_m_vtxList_WBone__0PAUWTVertex__A;
-#pragma comment(linker, \
-	"/alternatename:_rb_m_vtxList_WBone__0PAUWTVertex__A=?m_vtxList@WBone@@0PAUWTVertex@@A")
-extern "C" void __cdecl rb_V_YAXPAX_Z(void);
-#pragma comment(linker, "/alternatename:_rb_V_YAXPAX_Z=??_V@YAXPAX@Z")
-extern "C" void __cdecl rb_pg_c_000b6b(void);
-#pragma comment(linker, "/alternatename:_rb_pg_c_000b6b=__pg_c_000b6b")
-extern "C" void __cdecl rb_CalcMeshAABB_WBone__SIXAAV1_AAUw_mesh___Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_CalcMeshAABB_WBone__SIXAAV1_AAUw_mesh___Z=?CalcMeshAABB@WBone@@SIXAAV1@AAUw_mesh@@@Z")
-
-__declspec(naked) w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList,
-	w_pet_tri_point* triList, WBone** triBoneTable,
-	w_pet_texture_info** texInfo, int faceNum, int* faceIndex)
-{
-	if (0)
-		CalcMeshAABB(*this, *(w_mesh*)0);
-	__asm {
-		push ebp
-		mov ebp, esp
-		sub esp, 160h
-		push ebx
-		push esi
-		push edi
-		xor edi, edi
-		lea eax, [ebp-0D0h]
-		mov dword ptr [ebp-28h], ecx
-		push eax
-		add ecx, 124h
-		mov dword ptr [ebp-10h], edi
-		mov dword ptr [ebp-24h], edi
-		mov dword ptr [ebp-1Ch], edi
-		call rb_SWMatrix__QBE_AV0_XZ
-		push eax
-		lea ecx, [ebp-70h]
-		call rb_pg_c_000b6d
-		mov eax, dword ptr [ebp+18h]
-		lea esi, [eax+eax*2]
-		lea ecx, [esi*8]
-		sub ecx, esi
-		add ecx, ecx
-		add ecx, ecx
-		add ecx, ecx
-		push ecx
-		mov dword ptr [ebp-8], esi
-		call rb_U_YAPAXI_Z
-		add esp, 4
-		cmp esi, edi
-		mov dword ptr [ebp-18h], eax
-		mov dword ptr [ebp+18h], edi
-		mov dword ptr [ebp-14h], edi
-		mov dword ptr [ebp-20h], edi
-		jle L_02c9
-		mov edx, eax
-		mov dword ptr [ebp-0Ch], edx
-		_emit 0x90
-L_0070:
-		mov eax, dword ptr [ebp+18h]
-		cdq
-		mov ecx, 3
-		idiv ecx
-		mov ecx, dword ptr [ebp+1Ch]
-		xor ebx, ebx
-		mov ecx, dword ptr [ecx+eax*4]
-		lea eax, [edx+ecx*2]
-		add eax, ecx
-		lea edx, [eax+eax*2]
-		mov eax, dword ptr [ebp+0Ch]
-		mov ecx, dword ptr [eax+edx*8]
-		lea edi, [eax+edx*8]
-		mov edx, dword ptr [ebp+8]
-		shl ecx, 5
-		cmp dword ptr [ebp-14h], ebx
-		lea eax, [ecx+edx]
-		mov ecx, dword ptr [eax+8]
-		mov edx, dword ptr [eax+4]
-		mov eax, dword ptr [eax]
-		mov dword ptr [ebp-34h], eax
-		mov dword ptr [ebp-30h], edx
-		mov dword ptr [ebp-2Ch], ecx
-		mov dword ptr [ebp-40h], eax
-		mov dword ptr [ebp-3Ch], edx
-		mov dword ptr [ebp-38h], ecx
-		jle L_01e0
-		mov esi, dword ptr [ebp-18h]
-		add esi, 1Ch
-		jmp L_00d0
-		_emit 0x8d
-		_emit 0xa4
-		_emit 0x24
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-		_emit 0x90
-L_00d0:
-		push 3727C5ACh
-		lea ecx, [esi-18h]
-		lea edx, [ebp-40h]
-		call rb_WisEqual__YIHABVWVector__0M_Z
-		test eax, eax
-		je L_01d1
-		mov eax, dword ptr [edi]
-		mov ecx, dword ptr [ebp+8]
-		shl eax, 5
-		fld dword ptr [eax+ecx+0Ch]
-		fld dword ptr [esi]
-		fucompp
-		fnstsw ax
-		test ah, 44h
-		jp L_01d1
-		fld dword ptr [edi+10h]
-		fld dword ptr [esi+8]
-		fucompp
-		fnstsw ax
-		test ah, 44h
-		jp L_01d1
-		fld dword ptr [edi+14h]
-		fld dword ptr [esi+0Ch]
-		fucompp
-		fnstsw ax
-		test ah, 44h
-		jp L_01d1
-		fld dword ptr [esi-0Ch]
-		sub esp, 8
-		fsub dword ptr [edi+4]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-4]
-		fstp qword ptr [esp]
-		call rb_fabs
-		fstp dword ptr [ebp-4]
-		add esp, 8
-		fld dword ptr [ebp-4]
-		fcomp dword ptr [rb_real_3a83126f]
-		fnstsw ax
-		test ah, 41h
-		jp L_01d1
-		fld dword ptr [esi-8]
-		sub esp, 8
-		fsub dword ptr [edi+8]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-4]
-		fstp qword ptr [esp]
-		call rb_fabs
-		fstp dword ptr [ebp-4]
-		add esp, 8
-		fld dword ptr [ebp-4]
-		fcomp dword ptr [rb_real_3a83126f]
-		fnstsw ax
-		test ah, 41h
-		jp L_01d1
-		fld dword ptr [esi-4]
-		sub esp, 8
-		fsub dword ptr [edi+0Ch]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-4]
-		fstp qword ptr [esp]
-		call rb_fabs
-		fstp dword ptr [ebp-4]
-		add esp, 8
-		fld dword ptr [ebp-4]
-		fcomp dword ptr [rb_real_3a83126f]
-		fnstsw ax
-		test ah, 41h
-		jp L_01d1
-		mov ecx, edi
-		sub ecx, dword ptr [ebp+0Ch]
-		mov eax, 2AAAAAABh
-		imul ecx
-		mov ecx, dword ptr [esi+4]
-		sar edx, 2
-		mov eax, edx
-		shr eax, 1Fh
-		add eax, edx
-		mov edx, dword ptr [ebp+10h]
-		cmp ecx, dword ptr [edx+eax*4]
-		je L_01e0
-L_01d1:
-		add ebx, 1
-		add esi, 38h
-		cmp ebx, dword ptr [ebp-14h]
-		jl L_00d0
-L_01e0:
-		cmp ebx, dword ptr [ebp-14h]
-		mov eax, dword ptr [ebp-0Ch]
-		mov word ptr [eax], bx
-		jne L_02af
-		mov edx, dword ptr [ebp-18h]
-		lea ecx, [ebx*8]
-		sub ecx, ebx
-		lea ecx, [edx+ecx*8]
-		mov edx, dword ptr [ebp-34h]
-		lea eax, [ecx+4]
-		mov dword ptr [eax], edx
-		mov edx, dword ptr [ebp-30h]
-		mov dword ptr [eax+4], edx
-		mov edx, dword ptr [ebp-2Ch]
-		mov dword ptr [eax+8], edx
-		mov eax, dword ptr [edi]
-		mov edx, dword ptr [ebp+8]
-		shl eax, 5
-		mov eax, dword ptr [eax+edx+0Ch]
-		mov dword ptr [ecx+1Ch], eax
-		mov edx, dword ptr [edi+10h]
-		mov dword ptr [ecx+24h], edx
-		mov eax, dword ptr [edi+14h]
-		mov dword ptr [ecx+28h], eax
-		mov eax, dword ptr [edi+0Ch]
-		mov edx, dword ptr [edi+8]
-		mov esi, dword ptr [edi+4]
-		lea ebx, [ecx+10h]
-		mov dword ptr [ebx], esi
-		mov dword ptr [ebx+4], edx
-		mov dword ptr [ebx+8], eax
-		mov edx, edi
-		sub edx, dword ptr [ebp+0Ch]
-		mov eax, 2AAAAAABh
-		imul edx
-		sar edx, 2
-		mov eax, edx
-		shr eax, 1Fh
-		add eax, edx
-		mov edx, dword ptr [ebp+10h]
-		mov eax, dword ptr [edx+eax*4]
-		mov dword ptr [ecx+20h], eax
-		mov edx, dword ptr [edi]
-		mov eax, dword ptr [ebp+8]
-		shl edx, 5
-		add edx, eax
-		mov dword ptr [ecx+30h], edx
-		mov edx, dword ptr [edi]
-		shl edx, 5
-		cmp dword ptr [edx+eax+18h], 0
-		je L_0280
-		mov eax, 2
-		jmp L_028b
-L_0280:
-		mov edx, dword ptr [ebp-28h]
-		xor eax, eax
-		cmp dword ptr [ecx+20h], edx
-		setne al
-L_028b:
-		mov edx, 1
-		add dword ptr [ebp-14h], edx
-		test eax, eax
-		mov dword ptr [ecx+34h], eax
-		jle L_029d
-		add dword ptr [ebp-20h], edx
-L_029d:
-		cmp eax, edx
-		jle L_02b4
-		mov eax, dword ptr [ecx+30h]
-		mov ecx, dword ptr [eax+1Ch]
-		add dword ptr [ebp-24h], edx
-		add dword ptr [ebp-10h], ecx
-		jmp L_02b4
-L_02af:
-		mov edx, 1
-L_02b4:
-		mov eax, dword ptr [ebp+18h]
-		add dword ptr [ebp-0Ch], 38h
-		add eax, edx
-		cmp eax, dword ptr [ebp-8]
-		mov dword ptr [ebp+18h], eax
-		jl L_0070
-L_02c9:
-		push 110h
-		call rb_2_YAPAXI_Z
-		xor ebx, ebx
-		add esp, 4
-		cmp eax, ebx
-		je L_0302
-		mov dword ptr [eax+0C0h], ebx
-		mov dword ptr [eax+0BCh], ebx
-		mov dword ptr [eax+0B8h], ebx
-		mov dword ptr [eax+0CCh], ebx
-		mov dword ptr [eax+0C8h], ebx
-		mov dword ptr [eax+0C4h], ebx
-		mov ebx, eax
-L_0302:
-		mov esi, dword ptr [ebp+1Ch]
-		xor eax, eax
-		mov ecx, 44h
-		mov edi, ebx
-		rep stosd
-		mov edx, dword ptr [esi]
-		mov ecx, dword ptr [ebp+14h]
-		mov eax, dword ptr [ecx+edx*4]
-		mov eax, dword ptr [eax+50h]
-		mov dword ptr [ebx+84h], eax
-		mov dword ptr [ebx+38h], eax
-		mov edx, dword ptr [esi]
-		mov eax, dword ptr [ecx+edx*4]
-		mov eax, dword ptr [eax+5Ch]
-		mov dword ptr [ebx+88h], eax
-		mov dword ptr [ebx+3Ch], eax
-		mov edx, dword ptr [esi]
-		mov eax, dword ptr [ecx+edx*4]
-		mov eax, dword ptr [eax+60h]
-		mov dword ptr [ebx+8Ch], eax
-		mov dword ptr [ebx+40h], eax
-		mov edx, dword ptr [esi]
-		mov eax, dword ptr [ecx+edx*4]
-		mov eax, dword ptr [eax+64h]
-		mov dword ptr [ebx+90h], eax
-		mov dword ptr [ebx+44h], eax
-		mov edx, dword ptr [esi]
-		mov eax, dword ptr [ecx+edx*4]
-		mov eax, dword ptr [eax+68h]
-		mov dword ptr [ebx+94h], eax
-		mov dword ptr [ebx+48h], eax
-		mov edx, dword ptr [esi]
-		mov eax, dword ptr [ecx+edx*4]
-		mov edx, dword ptr [eax+44h]
-		mov dword ptr [ebx+4Ch], edx
-		xor edx, edx
-		mov dword ptr [ebx+5Ch], edx
-		mov dword ptr [ebx+64h], edx
-		mov eax, dword ptr [esi]
-		mov eax, dword ptr [ecx+eax*4]
-		movzx eax, byte ptr [eax+40h]
-		mov dword ptr [ebp+8], eax
-		fild dword ptr [ebp+8]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp+8]
-		fdiv dword ptr [rb_real_437f0000]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp+8]
-		fcomp dword ptr [rb_real_3f800000]
-		mov eax, dword ptr [ebp+8]
-		mov dword ptr [ebx+68h], eax
-		fnstsw ax
-		test ah, 5
-		jp L_03b6
-		mov eax, 20400000h
-		jmp L_03b8
-L_03b6:
-		xor eax, eax
-L_03b8:
-		mov edx, dword ptr [esi]
-		mov edx, dword ptr [ecx+edx*4]
-		mov edx, dword ptr [edx+48h]
-		or edx, eax
-		mov dword ptr [ebx+60h], edx
-		mov eax, dword ptr [esi]
-		mov edx, dword ptr [ecx+eax*4]
-		mov eax, dword ptr [edx+4Ch]
-		mov dword ptr [ebx+0B0h], eax
-		mov edx, dword ptr [esi]
-		mov eax, dword ptr [ecx+edx*4]
-		mov eax, dword ptr [eax+54h]
-		cmp eax, 1
-		je L_03e9
-		cmp eax, 2
-		je L_03e9
-		xor al, al
-		jmp L_03eb
-L_03e9:
-		mov al, 1
-L_03eb:
-		mov edx, dword ptr [ebp+14h]
-		mov byte ptr [ebx+58h], al
-		mov ecx, dword ptr [esi]
-		mov eax, dword ptr [edx+ecx*4]
-		cmp dword ptr [eax+54h], 3
-		mov eax, dword ptr [ebp-8]
-		lea edx, [eax+eax]
-		sete cl
-		push edx
-		mov byte ptr [ebx+59h], cl
-		mov dword ptr [ebx+30h], eax
-		call rb_U_YAPAXI_Z
-		mov dword ptr [ebx+34h], eax
-		mov eax, dword ptr [ebp-20h]
-		add esp, 4
-		test eax, eax
-		mov dword ptr [ebx+4], eax
-		jle L_0430
-		add eax, eax
-		add eax, eax
-		push eax
-		mov ecx, offset rb_m_tex_piece_WPuppet__0PAV__WList_PAUw_tex_piece_WPuppet____A+8h
-		call rb_Alloc_WMemFillBlock__QAEPAXH_Z
-		jmp L_0432
-L_0430:
-		xor eax, eax
-L_0432:
-		mov dword ptr [ebx+78h], eax
-		mov eax, dword ptr [ebx+4]
-		test eax, eax
-		jle L_0452
-		lea ecx, [eax*4]
-		push ecx
-		mov ecx, offset rb_m_tex_piece_WPuppet__0PAV__WList_PAUw_tex_piece_WPuppet____A+8h
-		call rb_Alloc_WMemFillBlock__QAEPAXH_Z
-		mov edi, eax
-		jmp L_0454
-L_0452:
-		xor edi, edi
-L_0454:
-		test edi, edi
-		mov dword ptr [ebx+6Ch], edi
-		je L_0472
-		mov ecx, dword ptr [ebx+4]
-		add ecx, ecx
-		add ecx, ecx
-		mov edx, ecx
-		shr ecx, 2
-		xor eax, eax
-		rep stosd
-		mov ecx, edx
-		and ecx, 3
-		rep stosb
-L_0472:
-		mov edi, dword ptr [ebp-10h]
-		test edi, edi
-		mov eax, dword ptr [ebp-24h]
-		mov dword ptr [ebx+8], eax
-		mov dword ptr [ebx+0Ch], edi
-		jle L_0496
-		lea ecx, [edi*4]
-		push ecx
-		mov ecx, offset rb_m_tex_piece_WPuppet__0PAV__WList_PAUw_tex_piece_WPuppet____A+8h
-		call rb_Alloc_WMemFillBlock__QAEPAXH_Z
-		jmp L_0498
-L_0496:
-		xor eax, eax
-L_0498:
-		test edi, edi
-		mov dword ptr [ebx+1Ch], eax
-		jle L_04b3
-		lea edx, [edi*4]
-		push edx
-		mov ecx, offset rb_m_tex_piece_WPuppet__0PAV__WList_PAUw_tex_piece_WPuppet____A+8h
-		call rb_Alloc_WMemFillBlock__QAEPAXH_Z
-		jmp L_04b5
-L_04b3:
-		xor eax, eax
-L_04b5:
-		test edi, edi
-		mov dword ptr [ebx+70h], eax
-		jle L_04ce
-		lea eax, [edi+edi*2]
-		add eax, eax
-		add eax, eax
-		push eax
-		call rb_U_YAPAXI_Z
-		add esp, 4
-		jmp L_04d0
-L_04ce:
-		xor eax, eax
-L_04d0:
-		test edi, edi
-		mov dword ptr [ebx+18h], eax
-		jle L_04e9
-		lea ecx, [edi+edi*2]
-		add ecx, ecx
-		add ecx, ecx
-		push ecx
-		call rb_U_YAPAXI_Z
-		add esp, 4
-		jmp L_04eb
-L_04e9:
-		xor eax, eax
-L_04eb:
-		mov dword ptr [ebx+20h], eax
-		mov eax, dword ptr [ebp-14h]
-		lea edx, [eax+eax*2]
-		add edx, edx
-		add edx, edx
-		push edx
-		mov dword ptr [ebx], eax
-		call rb_U_YAPAXI_Z
-		mov dword ptr [ebx+10h], eax
-		mov eax, dword ptr [ebx]
-		lea eax, [eax+eax*2]
-		add eax, eax
-		add eax, eax
-		push eax
-		call rb_U_YAPAXI_Z
-		mov ecx, dword ptr [ebx]
-		add ecx, ecx
-		add ecx, ecx
-		push ecx
-		mov dword ptr [ebx+14h], eax
-		call rb_U_YAPAXI_Z
-		mov edx, dword ptr [ebx]
-		add edx, edx
-		add edx, edx
-		push edx
-		mov dword ptr [ebx+74h], eax
-		call rb_U_YAPAXI_Z
-		xor edi, edi
-		mov dword ptr [ebx+24h], eax
-		mov eax, dword ptr [ebp-28h]
-		add esp, 10h
-		mov dword ptr [ebx+80h], edi
-		mov dword ptr [ebx+7Ch], edi
-		test byte ptr [eax+0F2h], 1
-		je L_0561
-		mov ecx, dword ptr [ebx]
-		add ecx, ecx
-		add ecx, ecx
-		push ecx
-		call rb_U_YAPAXI_Z
-		add esp, 4
-		mov dword ptr [ebx+2Ch], eax
-		jmp L_0564
-L_0561:
-		mov dword ptr [ebx+2Ch], edi
-L_0564:
-		mov edx, dword ptr [ebx]
-		add edx, edx
-		add edx, edx
-		add edx, edx
-		push edx
-		call rb_U_YAPAXI_Z
-		mov ecx, dword ptr [ebp+14h]
-		mov dword ptr [ebx+54h], eax
-		mov eax, dword ptr [esi]
-		mov edx, dword ptr [ecx+eax*4]
-		add esp, 4
-		cmp dword ptr [edx+54h], 1
-		jle L_0599
-		mov eax, dword ptr [ebx]
-		add eax, eax
-		add eax, eax
-		add eax, eax
-		push eax
-		call rb_U_YAPAXI_Z
-		add esp, 4
-		jmp L_059b
-L_0599:
-		xor eax, eax
-L_059b:
-		mov dword ptr [ebx+50h], eax
-		xor eax, eax
-		cmp dword ptr [ebx], edi
-		jle L_05c0
-L_05a4:
-		mov ecx, dword ptr [ebx+74h]
-		mov edx, dword ptr [ebx+4Ch]
-		mov dword ptr [ecx+eax*4], edx
-		mov ecx, dword ptr [ebx+74h]
-		mov ecx, dword ptr [ecx+eax*4]
-		mov edx, dword ptr [ebx+24h]
-		mov dword ptr [edx+eax*4], ecx
-		add eax, 1
-		cmp eax, dword ptr [ebx]
-		jl L_05a4
-L_05c0:
-		mov eax, dword ptr [ebx]
-		cmp dword ptr [rb_m_vtxList_WBone__0PAUWTVertex__A+8h], eax
-		jge L_05fe
-		mov ecx, dword ptr [rb_m_vtxList_WBone__0PAUWTVertex__A]
-		cmp ecx, edi
-		mov dword ptr [rb_m_vtxList_WBone__0PAUWTVertex__A+8h], eax
-		je L_05e7
-		push ecx
-		call rb_V_YAXPAX_Z
-		mov eax, dword ptr [rb_m_vtxList_WBone__0PAUWTVertex__A+8h]
-		add esp, 4
-L_05e7:
-		lea edx, [eax+eax*4]
-		add edx, edx
-		add edx, edx
-		add edx, edx
-		push edx
-		call rb_U_YAPAXI_Z
-		add esp, 4
-		mov dword ptr [rb_m_vtxList_WBone__0PAUWTVertex__A], eax
-L_05fe:
-		mov eax, dword ptr [ebx]
-		add eax, eax
-		push eax
-		call rb_U_YAPAXI_Z
-		mov ecx, dword ptr [ebp-24h]
-		mov edi, eax
-		xor edx, edx
-		mov dword ptr [ebp+0Ch], ecx
-		mov ecx, dword ptr [ebp-20h]
-		add esp, 4
-		xor eax, eax
-		cmp dword ptr [ebx+30h], edx
-		mov dword ptr [ebp+8], edi
-		mov dword ptr [ebp+10h], edx
-		mov dword ptr [ebp-8], ecx
-		jle L_068b
-		mov ecx, dword ptr [ebp-18h]
-		mov esi, ecx
-		add ecx, 34h
-		mov dword ptr [ebp+18h], ecx
-L_0633:
-		movsx ecx, word ptr [esi]
-		cmp ecx, eax
-		jne L_0680
-		mov ecx, dword ptr [ebp+18h]
-		mov ecx, dword ptr [ecx]
-		sub ecx, 0
-		je L_066c
-		sub ecx, 1
-		je L_065d
-		sub ecx, 1
-		jne L_0679
-		mov ecx, dword ptr [ebp+10h]
-		mov word ptr [edi+eax*2], cx
-		add ecx, 1
-		mov dword ptr [ebp+10h], ecx
-		jmp L_0679
-L_065d:
-		mov ecx, dword ptr [ebp+0Ch]
-		mov word ptr [edi+eax*2], cx
-		add ecx, 1
-		mov dword ptr [ebp+0Ch], ecx
-		jmp L_0679
-L_066c:
-		mov ecx, dword ptr [ebp-8]
-		mov word ptr [edi+eax*2], cx
-		add ecx, 1
-		mov dword ptr [ebp-8], ecx
-L_0679:
-		add eax, 1
-		add dword ptr [ebp+18h], 38h
-L_0680:
-		add edx, 1
-		add esi, 38h
-		cmp edx, dword ptr [ebx+30h]
-		jl L_0633
-L_068b:
-		xor eax, eax
-		cmp dword ptr [ebx+30h], eax
-		mov dword ptr [ebp+18h], eax
-		mov dword ptr [ebp+0Ch], eax
-		mov dword ptr [ebp-10h], eax
-		jle L_0b5f
-		mov esi, dword ptr [ebp-18h]
-		mov eax, esi
-		mov dword ptr [ebp-8], eax
-		add esi, 0Ch
-		_emit 0x8d
-		_emit 0x9b
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-L_06b0:
-		movsx edx, word ptr [eax]
-		mov dx, word ptr [edi+edx*2]
-		mov ecx, dword ptr [ebx+34h]
-		mov edi, dword ptr [ebp+18h]
-		mov word ptr [ecx+edi*2], dx
-		movsx edx, word ptr [eax]
-		mov ecx, dword ptr [ebp-10h]
-		cmp edx, ecx
-		jne L_0b3e
-		mov eax, dword ptr [ebp+8]
-		movsx ecx, word ptr [eax+ecx*2]
-		cmp ecx, dword ptr [ebp-24h]
-		jge L_0868
-		mov edx, dword ptr [esi+24h]
-		cmp dword ptr [edx+1Ch], 0
-		mov dword ptr [ebp+10h], 0
-		jle L_085a
-		mov edi, dword ptr [ebp+0Ch]
-		lea edi, [edi+edi*2]
-		add edi, edi
-		add edi, edi
-		_emit 0x8d
-		_emit 0x49
-		_emit 0x00
-L_0700:
-		mov eax, dword ptr [esi+24h]
-		mov ecx, dword ptr [eax+18h]
-		mov eax, dword ptr [ebp+10h]
-		mov ecx, dword ptr [ecx+eax*8+4]
-		mov eax, dword ptr [ebp+0Ch]
-		mov edx, dword ptr [ebx+70h]
-		mov dword ptr [edx+eax*4], ecx
-		mov edx, dword ptr [esi+24h]
-		mov ecx, dword ptr [edx+18h]
-		mov edx, dword ptr [ebp+10h]
-		movzx ecx, byte ptr [ecx+edx*8]
-		mov dword ptr [ebp-4], ecx
-		mov edx, dword ptr [ebx+1Ch]
-		fild dword ptr [ebp-4]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-4]
-		fdiv dword ptr [rb_real_437f0000]
-		fstp dword ptr [edx+eax*4]
-		mov ecx, dword ptr [ebx+70h]
-		mov ecx, dword ptr [ecx+eax*4]
-		lea edx, [ebp-0D0h]
-		add ecx, 124h
-		push edx
-		call rb_SWMatrix__QBE_AV0_XZ
-		fld dword ptr [eax+20h]
-		fmul dword ptr [esi]
-		mov ecx, dword ptr [ebx+18h]
-		fld dword ptr [eax+14h]
-		add ecx, edi
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [eax+8]
-		fmul dword ptr [esi-8]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-0Ch]
-		fld dword ptr [eax+1Ch]
-		fmul dword ptr [esi]
-		fld dword ptr [eax+10h]
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [eax+4]
-		fmul dword ptr [esi-8]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [eax+18h]
-		fmul dword ptr [esi]
-		fld dword ptr [eax+0Ch]
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [esi-8]
-		fmul dword ptr [eax]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		mov eax, dword ptr [ebp-4]
-		fstp dword ptr [ebp-40h]
-		mov edx, dword ptr [ebp-40h]
-		mov dword ptr [ecx], edx
-		mov dword ptr [ecx+4], eax
-		mov eax, dword ptr [ebp-0Ch]
-		mov dword ptr [ecx+8], eax
-		mov eax, dword ptr [ebx+70h]
-		mov ecx, dword ptr [ebp+0Ch]
-		mov ecx, dword ptr [eax+ecx*4]
-		lea edx, [ebp-130h]
-		add ecx, 124h
-		push edx
-		call rb_SWMatrix__QBE_AV0_XZ
-		fld dword ptr [eax+20h]
-		fmul dword ptr [esi+0Ch]
-		fld dword ptr [eax+14h]
-		fmul dword ptr [esi+8]
-		faddp st(1), st
-		fld dword ptr [eax+8]
-		fmul dword ptr [esi+4]
-		faddp st(1), st
-		fstp dword ptr [ebp-0Ch]
-		fld dword ptr [eax+1Ch]
-		fmul dword ptr [esi+0Ch]
-		fld dword ptr [eax+10h]
-		fmul dword ptr [esi+8]
-		mov ecx, dword ptr [ebx+20h]
-		add ecx, edi
-		faddp st(1), st
-		fld dword ptr [eax+4]
-		fmul dword ptr [esi+4]
-		faddp st(1), st
-		fstp dword ptr [ebp-4]
-		fld dword ptr [eax+18h]
-		fmul dword ptr [esi+0Ch]
-		fld dword ptr [eax+0Ch]
-		fmul dword ptr [esi+8]
-		faddp st(1), st
-		fld dword ptr [esi+4]
-		fmul dword ptr [eax]
-		mov eax, dword ptr [ebp-4]
-		faddp st(1), st
-		fstp dword ptr [ebp-34h]
-		mov edx, dword ptr [ebp-34h]
-		mov dword ptr [ecx], edx
-		mov dword ptr [ecx+4], eax
-		mov eax, dword ptr [ebp-0Ch]
-		mov dword ptr [ecx+8], eax
-		mov ecx, dword ptr [ebx+20h]
-		add ecx, edi
-		call rb_pg_c_000b6b
-		mov eax, dword ptr [ebp+10h]
-		mov ecx, dword ptr [esi+24h]
-		add dword ptr [ebp+0Ch], 1
-		add eax, 1
-		add edi, 0Ch
-		cmp eax, dword ptr [ecx+1Ch]
-		mov dword ptr [ebp+10h], eax
-		jl L_0700
-L_085a:
-		mov edx, dword ptr [esi+24h]
-		mov eax, dword ptr [edx+1Ch]
-		cmp dword ptr [ebp-1Ch], eax
-		jge L_0868
-		mov dword ptr [ebp-1Ch], eax
-L_0868:
-		mov edi, dword ptr [ebp-10h]
-		mov eax, dword ptr [ebp+8]
-		movsx eax, word ptr [eax+edi*2]
-		cmp eax, dword ptr [ebp-20h]
-		jge L_09a2
-		mov ecx, dword ptr [ebx+6Ch]
-		mov edx, dword ptr [esi+14h]
-		mov dword ptr [ecx+eax*4], edx
-		mov ecx, dword ptr [esi+14h]
-		lea eax, [ebp-100h]
-		push eax
-		add ecx, 124h
-		call rb_SWMatrix__QBE_AV0_XZ
-		fld dword ptr [eax+20h]
-		fmul dword ptr [esi]
-		mov ecx, dword ptr [ebp+8]
-		fld dword ptr [eax+14h]
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [eax+8]
-		fmul dword ptr [esi-8]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [eax+1Ch]
-		fmul dword ptr [esi]
-		fld dword ptr [eax+10h]
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [eax+4]
-		fmul dword ptr [esi-8]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+10h]
-		fld dword ptr [eax+18h]
-		fmul dword ptr [esi]
-		fld dword ptr [eax+0Ch]
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [eax]
-		fmul dword ptr [esi-8]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		movsx eax, word ptr [ecx+edi*2]
-		lea edx, [eax+eax*2]
-		mov eax, dword ptr [ebx+10h]
-		lea edx, [eax+edx*4]
-		fstp dword ptr [ebp-88h]
-		mov eax, dword ptr [ebp-88h]
-		mov dword ptr [edx], eax
-		mov eax, dword ptr [ebp+10h]
-		mov dword ptr [edx+4], eax
-		mov eax, dword ptr [ebp-4]
-		mov dword ptr [edx+8], eax
-		movsx eax, word ptr [ecx+edi*2]
-		mov ecx, dword ptr [ebx+74h]
-		mov edx, dword ptr [ebx+78h]
-		add eax, eax
-		add eax, eax
-		add ecx, eax
-		mov dword ptr [eax+edx], ecx
-		mov ecx, dword ptr [esi+14h]
-		lea eax, [ebp-160h]
-		push eax
-		add ecx, 124h
-		call rb_SWMatrix__QBE_AV0_XZ
-		fld dword ptr [eax+8]
-		fmul dword ptr [esi+4]
-		fld dword ptr [eax+20h]
-		fmul dword ptr [esi+0Ch]
-		faddp st(1), st
-		fld dword ptr [eax+14h]
-		fmul dword ptr [esi+8]
-		faddp st(1), st
-		fstp dword ptr [ebp-4]
-		fld dword ptr [eax+4]
-		fmul dword ptr [esi+4]
-		fld dword ptr [eax+1Ch]
-		fmul dword ptr [esi+0Ch]
-		faddp st(1), st
-		fld dword ptr [eax+10h]
-		fmul dword ptr [esi+8]
-		faddp st(1), st
-		fstp dword ptr [ebp+10h]
-		fld dword ptr [eax+18h]
-		fmul dword ptr [esi+0Ch]
-		fld dword ptr [eax+0Ch]
-		mov edx, dword ptr [ebp+8]
-		fmul dword ptr [esi+8]
-		faddp st(1), st
-		fld dword ptr [esi+4]
-		fmul dword ptr [eax]
-		movsx eax, word ptr [edx+edi*2]
-		mov edx, dword ptr [ebx+14h]
-		lea eax, [eax+eax*2]
-		faddp st(1), st
-		lea eax, [edx+eax*4]
-		mov edx, eax
-		fstp dword ptr [ebp-0A0h]
-		mov eax, dword ptr [ebp-0A0h]
-		jmp L_0a73
-L_09a2:
-		fld dword ptr [ebp-68h]
-		lea edx, [eax+eax*2]
-		fmul dword ptr [esi-8]
-		mov eax, dword ptr [ebx+10h]
-		fld dword ptr [ebp-5Ch]
-		lea edx, [eax+edx*4]
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [ebp-50h]
-		fmul dword ptr [esi]
-		faddp st(1), st
-		fadd dword ptr [ebp-44h]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-6Ch]
-		fmul dword ptr [esi-8]
-		fld dword ptr [ebp-60h]
-		fmul dword ptr [esi-4]
-		faddp st(1), st
-		fld dword ptr [ebp-54h]
-		fmul dword ptr [esi]
-		faddp st(1), st
-		fadd dword ptr [ebp-48h]
-		fstp dword ptr [ebp+10h]
-		fld dword ptr [ebp-64h]
-		mov ecx, dword ptr [ebp+10h]
-		fmul dword ptr [esi-4]
-		fld dword ptr [ebp-58h]
-		fmul dword ptr [esi]
-		faddp st(1), st
-		fld dword ptr [ebp-70h]
-		fmul dword ptr [esi-8]
-		faddp st(1), st
-		fadd dword ptr [ebp-4Ch]
-		fstp dword ptr [ebp-94h]
-		mov eax, dword ptr [ebp-94h]
-		fld dword ptr [ebp-5Ch]
-		mov dword ptr [edx], eax
-		mov eax, dword ptr [ebp-4]
-		mov dword ptr [edx+4], ecx
-		mov dword ptr [edx+8], eax
-		fmul dword ptr [esi+8]
-		fld dword ptr [ebp-50h]
-		mov edx, dword ptr [ebp+8]
-		fmul dword ptr [esi+0Ch]
-		movsx eax, word ptr [edx+edi*2]
-		mov edx, dword ptr [ebx+14h]
-		lea eax, [eax+eax*2]
-		faddp st(1), st
-		lea eax, [edx+eax*4]
-		fld dword ptr [ebp-68h]
-		mov edx, eax
-		fmul dword ptr [esi+4]
-		faddp st(1), st
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-60h]
-		fmul dword ptr [esi+8]
-		fld dword ptr [ebp-54h]
-		fmul dword ptr [esi+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-6Ch]
-		fmul dword ptr [esi+4]
-		faddp st(1), st
-		fstp dword ptr [ebp+10h]
-		fld dword ptr [ebp-70h]
-		fmul dword ptr [esi+4]
-		fld dword ptr [ebp-64h]
-		fmul dword ptr [esi+8]
-		faddp st(1), st
-		fld dword ptr [ebp-58h]
-		fmul dword ptr [esi+0Ch]
-		faddp st(1), st
-		fstp dword ptr [ebp-7Ch]
-		mov eax, dword ptr [ebp-7Ch]
-L_0a73:
-		mov ecx, dword ptr [ebp+10h]
-		mov dword ptr [edx], eax
-		mov eax, dword ptr [ebp-4]
-		mov dword ptr [edx+4], ecx
-		mov dword ptr [edx+8], eax
-		mov eax, dword ptr [ebx+2Ch]
-		test eax, eax
-		je L_0a95
-		mov ecx, dword ptr [ebp+8]
-		movsx edx, word ptr [ecx+edi*2]
-		mov ecx, dword ptr [esi+10h]
-		mov dword ptr [eax+edx*4], ecx
-L_0a95:
-		mov edx, dword ptr [ebp+8]
-		movsx eax, word ptr [edx+edi*2]
-		mov ecx, dword ptr [ebx+14h]
-		lea eax, [eax+eax*2]
-		lea ecx, [ecx+eax*4]
-		call rb_pg_c_000b6b
-		mov ecx, dword ptr [ebp+1Ch]
-		mov eax, 55555556h
-		imul dword ptr [ebp+18h]
-		mov eax, edx
-		shr eax, 1Fh
-		add eax, edx
-		mov edx, dword ptr [ecx+eax*4]
-		lea eax, [ecx+eax*4]
-		mov ecx, dword ptr [ebp+14h]
-		mov ecx, dword ptr [ecx+edx*4]
-		mov edx, dword ptr [ebp+8]
-		fld dword ptr [ecx+64h]
-		fmul dword ptr [esi+18h]
-		fadd dword ptr [ecx+5Ch]
-		movsx ecx, word ptr [edx+edi*2]
-		mov edx, dword ptr [ebx+54h]
-		fstp dword ptr [edx+ecx*8]
-		mov eax, dword ptr [eax]
-		mov ecx, dword ptr [ebp+14h]
-		mov eax, dword ptr [ecx+eax*4]
-		fld dword ptr [eax+68h]
-		mov edx, dword ptr [ebp+8]
-		fmul dword ptr [esi+1Ch]
-		mov ecx, dword ptr [ebx+54h]
-		fadd dword ptr [eax+60h]
-		movsx eax, word ptr [edx+edi*2]
-		fstp dword ptr [ecx+eax*8+4]
-		mov eax, dword ptr [ebx+50h]
-		test eax, eax
-		je L_0b32
-		movsx ecx, word ptr [edx+edi*2]
-		mov edx, dword ptr [ebx+54h]
-		add ecx, ecx
-		add ecx, ecx
-		add ecx, ecx
-		mov edx, dword ptr [ecx+edx]
-		mov dword ptr [ecx+eax], edx
-		mov eax, dword ptr [ebp+8]
-		movsx eax, word ptr [eax+edi*2]
-		mov ecx, dword ptr [ebx+54h]
-		mov edx, dword ptr [ebx+50h]
-		add eax, eax
-		add eax, eax
-		add eax, eax
-		mov ecx, dword ptr [eax+ecx+4]
-		mov dword ptr [eax+edx+4], ecx
-L_0b32:
-		mov eax, dword ptr [ebp-8]
-		add edi, 1
-		mov dword ptr [ebp-10h], edi
-		add esi, 38h
-L_0b3e:
-		mov ecx, dword ptr [ebp+18h]
-		mov edi, dword ptr [ebp+8]
-		add ecx, 1
-		add eax, 38h
-		cmp ecx, dword ptr [ebx+30h]
-		mov dword ptr [ebp+18h], ecx
-		mov dword ptr [ebp-8], eax
-		jl L_06b0
-		cmp dword ptr [ebp-1Ch], 0
-		jne L_0b6c
-L_0b5f:
-		cmp dword ptr [ebx+4], 0
-		jle L_0b6c
-		mov dword ptr [ebp-1Ch], 1
-L_0b6c:
-		mov edx, dword ptr [ebp-1Ch]
-		mov ecx, dword ptr [ebp-28h]
-		mov dword ptr [ebx+28h], edx
-		mov edx, ebx
-		call rb_CalcMeshAABB_WBone__SIXAAV1_AAUw_mesh___Z
-		push edi
-		call rb_V_YAXPAX_Z
-		mov eax, dword ptr [ebp-18h]
-		push eax
-		call rb_V_YAXPAX_Z
-		add esp, 8
-		pop edi
-		pop esi
-		mov eax, ebx
-		pop ebx
-		mov esp, ebp
-		pop ebp
-		ret 18h
-	}
-}
-#else
 w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 	WBone** triBoneTable, w_pet_texture_info** texInfo, int faceNum,
 	int* faceIndex)
@@ -2471,7 +1367,6 @@ w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 	delete[] list;
 	return mesh;
 }
-#endif
 
 void WBone::SetMesh(w_faces* faces, int count)
 {
@@ -2788,252 +1683,6 @@ ulong* WBone::FindVColor(const WVector& pos, const WVector& normal)
 	return 0;
 }
 
-#ifndef REBANG_SEMANTIC_ONLY
-extern "C" void __cdecl rb_pg_c_000e99(void);
-#pragma comment(linker, "/alternatename:_rb_pg_c_000e99=__pg_c_000e99")
-extern "C" void __cdecl rb_pg_c_000b6d(void);
-#pragma comment(linker, "/alternatename:_rb_pg_c_000b6d=__pg_c_000b6d")
-extern "C" void __cdecl rb_AxisScale_WMatrix__QAEXAAVWVector___Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_AxisScale_WMatrix__QAEXAAVWVector___Z=?AxisScale@WMatrix@@QAEXAAVWVector@@@Z")
-extern "C" void __cdecl rb_D_YI_AVWVector__ABV0_ABVWMatrix___Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_D_YI_AVWVector__ABV0_ABVWMatrix___Z=??D@YI?AVWVector@@ABV0@ABVWMatrix@@@Z")
-extern "C" void __cdecl rb_InFrustum_WView__QAE_NABVWSphere___Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_InFrustum_WView__QAE_NABVWSphere___Z=?InFrustum@WView@@QAE_NABVWSphere@@@Z")
-extern "C" void __cdecl rb_InFrustumSafe_WView__QAE_NABVWSphere___Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_InFrustumSafe_WView__QAE_NABVWSphere___Z=?InFrustumSafe@WView@@QAE_NABVWSphere@@@Z")
-
-__declspec(naked) void WBone::Transform(const WMatrix& mat, WView* view,
-	float matscale, int flag)
-{
-	if (0)
-		WisZero(matscale, g_EPSILON);
-	__asm {
-L_0000:
-		push ebp
-		mov ebp, esp
-		sub esp, 0C4h
-		push ebx
-		mov ebx, dword ptr [ebp+14h]
-		mov eax, ebx
-		push esi
-		and eax, 2
-		push edi
-		mov esi, ecx
-		mov dword ptr [ebp-0Ch], eax
-		_emit 0x8d
-		_emit 0xa4
-		_emit 0x24
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-L_0020:
-		test eax, eax
-		jne L_0112
-		mov eax, dword ptr [esi+0F0h]
-		test eax, 80600h
-		je L_00f1
-		shr eax, 9
-		test al, 1
-		lea edi, [esi+124h]
-		je L_005e
-		lea eax, [esi+0F4h]
-		push eax
-		lea edx, [esi+154h]
-		lea ecx, [ebp-64h]
-		call rb_pg_c_000e99
-		push eax
-		jmp L_0065
-L_005e:
-		lea ecx, [esi+0F4h]
-		push ecx
-L_0065:
-		mov ecx, edi
-		call rb_pg_c_000b6d
-		mov edx, dword ptr [esi+0F0h]
-		shr edx, 13h
-		test dl, 1
-		je L_0098
-		mov eax, dword ptr [esi+1B0h]
-		mov ecx, eax
-		mov edx, eax
-		mov dword ptr [ebp-2Ch], eax
-		lea eax, [ebp-34h]
-		mov dword ptr [ebp-30h], ecx
-		push eax
-		mov ecx, edi
-		mov dword ptr [ebp-34h], edx
-		call rb_AxisScale_WMatrix__QAEXAAVWVector___Z
-L_0098:
-		mov ecx, dword ptr [esi+0F0h]
-		shr ecx, 0Ah
-		test cl, 1
-		je L_00dc
-		fld dword ptr [esi+148h]
-		fsub dword ptr [esi+184h]
-		fstp dword ptr [esi+148h]
-		fld dword ptr [esi+14Ch]
-		fsub dword ptr [esi+188h]
-		fstp dword ptr [esi+14Ch]
-		fld dword ptr [esi+150h]
-		fsub dword ptr [esi+18Ch]
-		fstp dword ptr [esi+150h]
-L_00dc:
-		mov edx, dword ptr [ebp+8]
-		push edx
-		mov edx, edi
-		lea ecx, [ebp-94h]
-		call rb_pg_c_000e99
-		mov ecx, edi
-		jmp L_010c
-L_00f1:
-		mov eax, dword ptr [ebp+8]
-		push eax
-		lea edx, [esi+0F4h]
-		lea ecx, [ebp-0C4h]
-		call rb_pg_c_000e99
-		lea ecx, [esi+124h]
-L_010c:
-		push eax
-		call rb_pg_c_000b6d
-L_0112:
-		cmp dword ptr [ebp+0Ch], 0
-		je L_01e7
-		fld dword ptr [ebp+10h]
-		lea ecx, [esi+124h]
-		fmul dword ptr [esi+0ECh]
-		push ecx
-		lea edx, [esi+90h]
-		lea ecx, [ebp-28h]
-		fstp dword ptr [ebp-4]
-		call rb_D_YI_AVWVector__ABV0_ABVWMatrix___Z
-		fld dword ptr [ebp-4]
-		mov edx, dword ptr [ebp-28h]
-		fmul dword ptr [esi+9Ch]
-		mov ecx, dword ptr [ebp-20h]
-		mov eax, dword ptr [ebp-24h]
-		mov dword ptr [ebp-1Ch], edx
-		fstp dword ptr [ebp-4]
-		lea edx, [ebp-1Ch]
-		mov edi, dword ptr [ebp-4]
-		mov dword ptr [ebp-14h], ecx
-		mov ecx, dword ptr [ebp+0Ch]
-		push edx
-		mov dword ptr [ebp-18h], eax
-		mov dword ptr [ebp-10h], edi
-		call rb_InFrustum_WView__QAE_NABVWSphere___Z
-		cmp al, 1
-		je L_0196
-		test edi, edi
-		jns L_017f
-		fld dword ptr [ebp-4]
-		fchs
-		fstp dword ptr [ebp-8]
-		jmp L_0182
-L_017f:
-		mov dword ptr [ebp-8], edi
-L_0182:
-		fld dword ptr [ebp-8]
-		fcomp dword ptr [g_EPSILON]
-		fnstsw ax
-		test ah, 5
-		jnp L_0196
-		xor al, al
-		jmp L_0198
-L_0196:
-		mov al, 1
-L_0198:
-		mov ecx, dword ptr [esi+0F0h]
-		mov ebx, dword ptr [ebp+14h]
-		shr ecx, 2
-		test cl, 1
-		jne L_01b2
-		test bl, 1
-		jne L_01b2
-		test al, al
-		je L_01b4
-L_01b2:
-		mov al, 1
-L_01b4:
-		cmp al, 1
-		jne L_01c1
-		or dword ptr [esi+0F0h], 8
-		jmp L_01c8
-L_01c1:
-		and dword ptr [esi+0F0h], 0FFFFFFF7h
-L_01c8:
-		mov eax, dword ptr [esi+0F0h]
-		mov edx, eax
-		shr edx, 2
-		test dl, 1
-		je L_0229
-		mov al, bl
-		not al
-		test al, 1
-		jne L_024f
-L_01e0:
-		and dword ptr [esi+0F0h], 0FFFFFFEFh
-L_01e7:
-		mov ecx, dword ptr [esi+0D4h]
-		test ecx, ecx
-		je L_0203
-		mov edx, dword ptr [ebp+10h]
-		mov eax, dword ptr [ebp+0Ch]
-		push ebx
-		push edx
-		mov edx, dword ptr [ebp+8]
-		push eax
-		push edx
-		call L_0000
-L_0203:
-		mov eax, dword ptr [esi+0D0h]
-		test eax, eax
-		je L_0258
-		fld dword ptr [ebp+10h]
-		add esi, 124h
-		fmul dword ptr [esi-38h]
-		mov dword ptr [ebp+8], esi
-		mov esi, eax
-		mov eax, dword ptr [ebp-0Ch]
-		fstp dword ptr [ebp+10h]
-		jmp L_0020
-L_0229:
-		test bl, 1
-		jne L_0249
-		shr eax, 3
-		test al, 1
-		je L_0245
-		lea ecx, [ebp-1Ch]
-		push ecx
-		mov ecx, dword ptr [ebp+0Ch]
-		call rb_InFrustumSafe_WView__QAE_NABVWSphere___Z
-		test al, al
-		jne L_0249
-L_0245:
-		mov al, 1
-		jmp L_024b
-L_0249:
-		xor al, al
-L_024b:
-		cmp al, 1
-		jne L_01e0
-L_024f:
-		or dword ptr [esi+0F0h], 10h
-		jmp L_01e7
-L_0258:
-		pop edi
-		pop esi
-		pop ebx
-		mov esp, ebp
-		pop ebp
-		ret 10h
-	}
-}
-#else
 void WBone::Transform(const WMatrix& mat, WView* view, float matscale, int flag)
 {
 	WSphere tr_bound_sphere;
@@ -3063,9 +1712,9 @@ void WBone::Transform(const WMatrix& mat, WView* view, float matscale, int flag)
 		scale = matscale * m_scale;
 		tr_bound_sphere.pos = Transform(m_bound_sphere.pos);
 		scale *= m_bound_sphere.radius;
-		tr_bound_sphere.radius = scale;
+		tr_bound_sphere = WSphere(tr_bound_sphere.pos, scale);
 		bool inside = view->InFrustum(tr_bound_sphere) == true ||
-			WisZero(scale, g_EPSILON);
+			WisZero(tr_bound_sphere.radius, g_EPSILON);
 		m_flag.Turn(VISIBLE,
 			m_flag.GetFlag(HASRIGIDVTX) || (flag & NOCLIP) || inside);
 		if (m_flag.GetFlag(HASRIGIDVTX))
@@ -3080,7 +1729,6 @@ void WBone::Transform(const WMatrix& mat, WView* view, float matscale, int flag)
 	if (m_child)
 		m_child->Transform(m_matrix, view, matscale * m_scale, flag);
 }
-#endif
 
 void WBone::DisableFog(void)
 {
@@ -3296,124 +1944,121 @@ void WBone::CalcLight_SelfIllum(void)
 	}
 }
 
-void WBone::CalcLight_Point(LightSet* light, int flag, WScene* scene)
+void WBone::CalcLight_Point(LightSet* lig, int lightmode, WScene* scene)
 {
 	w_mesh* mesh = m_mesh;
 	if (mesh == 0)
 		return;
 
-	WVector lpos, dir;
-	float value;
-	ulong diffuse, ambient, alpha, color;
-	int i, slot;
-	lpos = light->nearOne * ~m_matrix;
+	ulong diffuse, ambient, calcAlpha, c;
+	WVector vLocLightPos, vLightDir;
+	float t;
+	int i, k;
+	vLocLightPos = lig->nearOne * ~m_matrix;
 
 	for (; mesh != 0; mesh = mesh->next)
 	{
 		if (mesh->texHandle == 0)
 		{
-			diffuse = Modulate(light->diffuse, mesh->diffuse);
-			ambient = Modulate(light->ambient, mesh->diffuse);
+			diffuse = Modulate(lig->diffuse, mesh->diffuse);
+			ambient = Modulate(lig->ambient, mesh->diffuse);
 		}
 		else
 		{
-			diffuse = light->diffuse;
-			ambient = light->ambient;
+			diffuse = lig->diffuse;
+			ambient = lig->ambient;
 		}
-		alpha = (ulong)(int)(m_alpha * mesh->alpha) << 24;
+		calcAlpha = (ulong)(int)(m_alpha * mesh->alpha) << 24;
 
 		if ((mesh->xiDrawFlag2 & 0x4) != 0)
 		{
 			for (i = 0; i < mesh->vtxNum; ++i)
-				mesh->vtxColorList[i] = light->ambient2 | alpha;
+				mesh->vtxColorList[i] = lig->ambient2 | calcAlpha;
 			continue;
 		}
 		if ((mesh->xiDrawFlag2 & 0x10) != 0)
 		{
 			for (i = 0; i < mesh->vtxNum; ++i)
-				mesh->vtxColorList[i] = alpha | 0xffffff;
+				mesh->vtxColorList[i] = calcAlpha | 0xffffff;
 			continue;
 		}
-		if ((flag & 0x2000000) != 0)
+		if ((lightmode & 0x2000000) != 0)
 			continue;
 
-		slot = 0;
+		k = 0;
 		for (i = 0; i < mesh->blendedRigidNum; ++i)
 		{
-			WVector posSum, nrmSum;
-			nrmSum.x = nrmSum.y = nrmSum.z = 0.0f;
-			posSum.x = posSum.y = posSum.z = 0.0f;
-			float total = 0.0f;
-			for (; total < 0.999f; ++slot)
+			WVector v, vN;
+			vN.x = vN.y = vN.z = 0.0f;
+			v.x = v.y = v.z = 0.0f;
+			float fTotal = 0.0f;
+			for (; fTotal < 0.999f; ++k)
 			{
-				posSum += mesh->blendedBoneList[slot]->Transform(
-							  mesh->blendedVecList[slot]) *
-					mesh->blendWeightList[slot];
-				nrmSum += RotVec(mesh->blendedNormalList[slot],
-							  mesh->blendedBoneList[slot]->GetMatrix()) *
-					mesh->blendWeightList[slot];
-				total += mesh->blendWeightList[slot];
+				v += mesh->blendedBoneList[k]->Transform(
+						 mesh->blendedVecList[k]) *
+					mesh->blendWeightList[k];
+				vN += RotVec(mesh->blendedNormalList[k],
+						  mesh->blendedBoneList[k]->GetMatrix()) *
+					mesh->blendWeightList[k];
+				fTotal += mesh->blendWeightList[k];
 			}
-			nrmSum.Normalize();
-			dir = (light->nearOne - posSum).Normalize();
-			value = (float)(dir * nrmSum) * 255.0f;
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && value < 0.0f)
-				value = value * -1.0f;
-			color = value <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)value);
-			if ((flag & 0x8000000) != 0)
+			vN.Normalize();
+			vLightDir = (lig->nearOne - v).Normalize();
+			t = (float)(vLightDir * vN) * 255.0f;
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+				t = t * -1.0f;
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) | alpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | alpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
 		for (; i < mesh->rigidNum; ++i)
 		{
-			WVector pos, nrm;
-			pos = mesh->boneList[i]->Transform(mesh->vecList[i]);
-			nrm = RotVec(mesh->normList[i], mesh->boneList[i]->GetMatrix());
-			nrm.Normalize();
-			dir = (light->nearOne - pos).Normalize();
-			value = dir * nrm * 255.0f;
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && value < 0.0f)
-				value = value * -1.0f;
-			color = value <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)value);
-			if ((flag & 0x8000000) != 0)
+			WVector v, vN;
+			v = mesh->boneList[i]->Transform(mesh->vecList[i]);
+			vN = RotVec(mesh->normList[i], mesh->boneList[i]->GetMatrix());
+			vN.Normalize();
+			vLightDir = (lig->nearOne - v).Normalize();
+			t = vLightDir * vN * 255.0f;
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+				t = t * -1.0f;
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) | alpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | alpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
 		for (; i < mesh->vtxNum; ++i)
 		{
-			dir = (lpos - mesh->vecList[i]).Normalize();
-			value = dir * mesh->normList[i] * 255.0f;
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && value < 0.0f)
-				value = value * -1.0f;
-			color = value <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)value);
-			if ((flag & 0x8000000) != 0)
+			vLightDir = (vLocLightPos - mesh->vecList[i]).Normalize();
+			t = vLightDir * mesh->normList[i] * 255.0f;
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+				t = t * -1.0f;
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) | alpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | alpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 	}
@@ -3430,127 +2075,126 @@ void WBone::CalcLight_Point(LightSet* light, int flag, WScene* scene)
 	}
 }
 
-void WBone::CalcLight_Directional_Per_Bone(LightSet* light, int flag,
+void WBone::CalcLight_Directional_Per_Bone(LightSet* lig, int lightmode,
 	WScene* scene)
 {
 	if (m_mesh == 0)
 		return;
 
-	float value, total;
-	ulong diffuse, ambient, alpha, color;
-	int i, slot;
+	float t;
+	ulong diffuse, ambient, calcAlpha;
+	WVector vWorLightDir;
+	ulong c;
+	int i, k;
 	w_mesh* mesh;
-	WVector wdir;
-	WVector ldir;
+	WVector vLocLightDir;
 	if (m_flag.GetFlag(4))
 	{
-		wdir = light->nearOne - m_matrix.pivot;
-		wdir = wdir.Normalize() * 255.0f;
-		ldir = RotVec(wdir, ~m_matrix);
-		ldir = ldir.Normalize() * 255.0f;
+		vWorLightDir = lig->nearOne - m_matrix.pivot;
+		vWorLightDir = vWorLightDir.Normalize() * 255.0f;
+		vLocLightDir = RotVec(vWorLightDir, ~m_matrix);
+		vLocLightDir = vLocLightDir.Normalize() * 255.0f;
 	}
 	else
 	{
-		ldir = RotVec(light->nearOne - m_matrix.pivot, ~m_matrix);
-		ldir.Normalize();
+		vLocLightDir = RotVec(lig->nearOne - m_matrix.pivot, ~m_matrix);
+		vLocLightDir.Normalize();
 	}
 
 	for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
 	{
 		if (mesh->texHandle == 0)
 		{
-			diffuse = Modulate(light->diffuse, mesh->diffuse);
-			ambient = Modulate(light->ambient, mesh->diffuse);
+			diffuse = Modulate(lig->diffuse, mesh->diffuse);
+			ambient = Modulate(lig->ambient, mesh->diffuse);
 		}
 		else
 		{
-			diffuse = light->diffuse;
-			ambient = light->ambient;
+			diffuse = lig->diffuse;
+			ambient = lig->ambient;
 		}
-		alpha = (ulong)(int)(m_alpha * mesh->alpha) << 24;
+		calcAlpha = (ulong)(int)(m_alpha * mesh->alpha) << 24;
 
 		if ((mesh->xiDrawFlag2 & 0x4) != 0)
 		{
 			for (i = 0; i < mesh->vtxNum; ++i)
-				mesh->vtxColorList[i] = light->ambient2 | alpha;
+				mesh->vtxColorList[i] = lig->ambient2 | calcAlpha;
 			continue;
 		}
 		if ((mesh->xiDrawFlag2 & 0x10) != 0)
 		{
 			for (i = 0; i < mesh->vtxNum; ++i)
-				mesh->vtxColorList[i] = alpha | 0xffffff;
+				mesh->vtxColorList[i] = calcAlpha | 0xffffff;
 			continue;
 		}
-		if ((flag & 0x2000000) != 0)
+		if ((lightmode & 0x2000000) != 0)
 			continue;
 
-		for (slot = 0, i = 0; i < mesh->blendedRigidNum; ++i)
+		for (k = 0, i = 0; i < mesh->blendedRigidNum; ++i)
 		{
-			WVector sum;
-			sum.x = sum.y = sum.z = 0.0f;
-			for (total = 0.0f; total < 0.999f; ++slot)
+			WVector vN;
+			float fTotal;
+			vN.x = vN.y = vN.z = 0.0f;
+			for (fTotal = 0.0f; fTotal < 0.999f; ++k)
 			{
-				sum += RotVec(mesh->blendedNormalList[slot],
-						   mesh->blendedBoneList[slot]->m_matrix) *
-					mesh->blendWeightList[slot];
-				total += mesh->blendWeightList[slot];
+				vN += RotVec(mesh->blendedNormalList[k],
+						  mesh->blendedBoneList[k]->m_matrix) *
+					mesh->blendWeightList[k];
+				fTotal += mesh->blendWeightList[k];
 			}
-			sum.Normalize();
-			value = (float)(sum * wdir);
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && value < 0.0f)
-				value = value * -1.0f;
-			color = value <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)value);
-			if ((flag & 0x8000000) != 0)
+			vN.Normalize();
+			t = (float)(vN * vWorLightDir);
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+				t = t * -1.0f;
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) | alpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | alpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
 		for (; i < mesh->rigidNum; ++i)
 		{
-			WVector normal;
-			normal = RotVec(mesh->normList[i], mesh->boneList[i]->GetMatrix());
-			normal.Normalize();
-			value = (float)(normal * wdir);
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && value < 0.0f)
-				value = value * -1.0f;
-			color = value <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)value);
-			if ((flag & 0x8000000) != 0)
+			WVector vN;
+			vN = RotVec(mesh->normList[i], mesh->boneList[i]->GetMatrix());
+			vN.Normalize();
+			t = (float)(vN * vWorLightDir);
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+				t = t * -1.0f;
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) | alpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | alpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
 		for (; i < mesh->vtxNum; ++i)
 		{
-			value = (float)(ldir * mesh->normList[i]);
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && value < 0.0f)
-				value = value * -1.0f;
-			color = value <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)value);
-			if ((flag & 0x8000000) != 0)
+			t = (float)(vLocLightDir * mesh->normList[i]);
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+				t = t * -1.0f;
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) | alpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | alpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 	}
@@ -4184,7 +2828,8 @@ void WBone::CalcLight_Directional(LightSet* lig, int lightmode, WScene* scene)
 	WVector vLocLightDir;
 	ulong calcAlpha;
 	w_mesh* mesh;
-	int i;
+	int i, k;
+	ulong c;
 	if (m_flag.GetFlag(4))
 		vWorLightDir = lig->nearOne * -255.0f;
 
@@ -4226,35 +2871,33 @@ void WBone::CalcLight_Directional(LightSet* lig, int lightmode, WScene* scene)
 											 : mesh->blendedNormalList;
 		if (normList != 0)
 		{
-			int slot = 0;
 			float fTotal;
-			for (i = 0; i < mesh->blendedRigidNum; ++i)
+			for (k = 0, i = 0; i < mesh->blendedRigidNum; ++i)
 			{
 				vN.Reset();
 				for (fTotal = 0.0f;
-					fTotal < 0.999999f && slot < mesh->blendedTotalNum; ++slot)
+					fTotal < 0.999999f && k < mesh->blendedTotalNum; ++k)
 				{
-					vN += RotVec(normList[slot],
-							  mesh->blendedBoneList[slot]->GetMatrix()) *
-						mesh->blendWeightList[slot];
-					fTotal += mesh->blendWeightList[slot];
+					vN += RotVec(normList[k],
+							  mesh->blendedBoneList[k]->GetMatrix()) *
+						mesh->blendWeightList[k];
+					fTotal += mesh->blendWeightList[k];
 				}
 				vN.Normalize();
 				t = (float)(vN * vWorLightDir);
 				if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
 					t = t * -1.0f;
-				ulong color = t <= 0.0f
-					? ambient
-					: AddDiffuse(ambient, diffuse, (unsigned char)t);
+				c = t <= 0.0f ? ambient
+							  : AddDiffuse(ambient, diffuse, (unsigned char)t);
 				if ((lightmode & 0x8000000) != 0)
 				{
 					mesh->vtxColorList[i] =
-						AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) |
+						AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) |
 						calcAlpha;
 				}
 				else
 				{
-					mesh->vtxColorList[i] = color | calcAlpha;
+					mesh->vtxColorList[i] = c | calcAlpha;
 				}
 			}
 		}
@@ -4276,18 +2919,16 @@ void WBone::CalcLight_Directional(LightSet* lig, int lightmode, WScene* scene)
 			t = (float)(vN * vWorLightDir);
 			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
 				t = t * -1.0f;
-			ulong color = t <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)t);
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
 			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) |
-					calcAlpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | calcAlpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
@@ -4296,18 +2937,16 @@ void WBone::CalcLight_Directional(LightSet* lig, int lightmode, WScene* scene)
 			t = vLocLightDir * normList[i];
 			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
 				t = t * -1.0f;
-			ulong color = t <= 0.0f
-				? ambient
-				: AddDiffuse(ambient, diffuse, (unsigned char)t);
+			c = t <= 0.0f ? ambient
+						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
 			if ((lightmode & 0x8000000) != 0)
 			{
 				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, color) |
-					calcAlpha;
+					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
 			else
 			{
-				mesh->vtxColorList[i] = color | calcAlpha;
+				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 	}
@@ -4580,613 +3219,6 @@ void WBone::CalcHilightCoord(WView* view, const LightSet& light, w_mesh* mesh)
 	}
 }
 
-#ifndef REBANG_SEMANTIC_ONLY
-extern "C" void __cdecl rb_DrawLine_WView__QAEXABVWVector__K0KH_Z(void);
-#pragma comment(linker, \
-	"/alternatename:_rb_DrawLine_WView__QAEXABVWVector__K0KH_Z=?DrawLine@WView@@QAEXABVWVector@@K0KH@Z")
-
-__declspec(naked) void RenderAABB(WView* view, const Waabb& aabb,
-	const WMatrix& mat, float rlen)
-{
-	static int box_v[8][3] = {
-		{ 0, 0, 0 },
-        { 1, 0, 0 },
-        { 0, 1, 0 },
-        { 1, 1, 0 },
-        { 0, 0, 1 },
-		{ 1, 0, 1 },
-        { 0, 1, 1 },
-        { 1, 1, 1 }
-	};
-	static int box_p[6][4] = {
-		{ 0, 2, 3, 1 },
-        { 4, 5, 7, 6 },
-        { 0, 1, 5, 4 },
-        { 3, 2, 6, 7 },
-		{ 1, 3, 7, 5 },
-        { 2, 0, 4, 6 }
-	};
-	__asm {
-		push ebp
-		mov ebp, esp
-		sub esp, 80h
-		cmp dword ptr [box_v+8h], 0
-		mov dword ptr [ebp-14h], ecx
-		je L_001d
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_0023
-L_001d:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_0023:
-		cmp dword ptr [box_v+4h], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_0037
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_003d
-L_0037:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_003d:
-		cmp dword ptr [box_v], 0
-		fstp dword ptr [ebp-8]
-		je L_0051
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_0056
-L_0051:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_0056:
-		cmp dword ptr [box_v+14h], 0
-		mov eax, dword ptr [ebp+8]
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		push ebx
-		fmul dword ptr [eax+14h]
-		push esi
-		fld dword ptr [ebp-4]
-		push edi
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov esi, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-78h], esi
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp+8]
-		fmul dword ptr [eax]
-		mov dword ptr [ebp-7Ch], ecx
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		fstp dword ptr [ebp-20h]
-		mov edi, dword ptr [ebp-20h]
-		mov dword ptr [ebp-80h], edi
-		je L_00d5
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_00db
-L_00d5:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_00db:
-		cmp dword ptr [box_v+10h], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_00ef
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_00f5
-L_00ef:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_00f5:
-		cmp dword ptr [box_v+0Ch], 0
-		fstp dword ptr [ebp-8]
-		je L_0109
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_010e
-L_0109:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_010e:
-		cmp dword ptr [box_v+20h], 0
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+14h]
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov esi, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-6Ch], esi
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp+8]
-		fmul dword ptr [eax]
-		mov dword ptr [ebp-70h], ecx
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		fstp dword ptr [ebp-20h]
-		mov edi, dword ptr [ebp-20h]
-		mov dword ptr [ebp-74h], edi
-		je L_0187
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_018d
-L_0187:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_018d:
-		cmp dword ptr [box_v+1Ch], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_01a1
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_01a7
-L_01a1:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_01a7:
-		cmp dword ptr [box_v+18h], 0
-		fstp dword ptr [ebp-8]
-		je L_01bb
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_01c0
-L_01bb:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_01c0:
-		cmp dword ptr [box_v+2Ch], 0
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+14h]
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov esi, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-60h], esi
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp+8]
-		fmul dword ptr [eax]
-		mov dword ptr [ebp-64h], ecx
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		fstp dword ptr [ebp-20h]
-		mov edi, dword ptr [ebp-20h]
-		mov dword ptr [ebp-68h], edi
-		je L_0239
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_023f
-L_0239:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_023f:
-		cmp dword ptr [box_v+28h], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_0253
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_0259
-L_0253:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_0259:
-		cmp dword ptr [box_v+24h], 0
-		fstp dword ptr [ebp-8]
-		je L_026d
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_0272
-L_026d:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_0272:
-		cmp dword ptr [box_v+38h], 0
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+14h]
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov esi, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-54h], esi
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp+8]
-		fmul dword ptr [eax]
-		mov dword ptr [ebp-58h], ecx
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		fstp dword ptr [ebp-20h]
-		mov edi, dword ptr [ebp-20h]
-		mov dword ptr [ebp-5Ch], edi
-		je L_02eb
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_02f1
-L_02eb:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_02f1:
-		cmp dword ptr [box_v+34h], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_0305
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_030b
-L_0305:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_030b:
-		cmp dword ptr [box_v+30h], 0
-		fstp dword ptr [ebp-8]
-		je L_031f
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_0324
-L_031f:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_0324:
-		cmp dword ptr [box_v+44h], 0
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+14h]
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov esi, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-48h], esi
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp+8]
-		fmul dword ptr [eax]
-		mov dword ptr [ebp-4Ch], ecx
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		fstp dword ptr [ebp-20h]
-		mov edi, dword ptr [ebp-20h]
-		mov dword ptr [ebp-50h], edi
-		je L_039d
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_03a3
-L_039d:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_03a3:
-		cmp dword ptr [box_v+40h], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_03b7
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_03bd
-L_03b7:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_03bd:
-		cmp dword ptr [box_v+3Ch], 0
-		fstp dword ptr [ebp-8]
-		je L_03d1
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_03d6
-L_03d1:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_03d6:
-		cmp dword ptr [box_v+50h], 0
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+14h]
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov esi, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-3Ch], esi
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp+8]
-		fmul dword ptr [eax]
-		mov dword ptr [ebp-40h], ecx
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		fstp dword ptr [ebp-20h]
-		mov edi, dword ptr [ebp-20h]
-		mov dword ptr [ebp-44h], edi
-		je L_044f
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_0455
-L_044f:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_0455:
-		cmp dword ptr [box_v+4Ch], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_0469
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_046f
-L_0469:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_046f:
-		cmp dword ptr [box_v+48h], 0
-		fstp dword ptr [ebp-8]
-		je L_0483
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_0488
-L_0483:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_0488:
-		cmp dword ptr [box_v+5Ch], 0
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+14h]
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov esi, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-30h], esi
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp+8]
-		fmul dword ptr [eax]
-		mov dword ptr [ebp-34h], ecx
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		fstp dword ptr [ebp-20h]
-		mov edi, dword ptr [ebp-20h]
-		mov dword ptr [ebp-38h], edi
-		je L_0501
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+14h]
-		jmp L_0507
-L_0501:
-		fld dword ptr [edx+8]
-		fsub dword ptr [ebp+0Ch]
-L_0507:
-		cmp dword ptr [box_v+58h], 0
-		fstp dword ptr [ebp-0Ch]
-		je L_051b
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+10h]
-		jmp L_0521
-L_051b:
-		fld dword ptr [edx+4]
-		fsub dword ptr [ebp+0Ch]
-L_0521:
-		cmp dword ptr [box_v+54h], 0
-		fstp dword ptr [ebp-8]
-		je L_0535
-		fld dword ptr [ebp+0Ch]
-		fadd dword ptr [edx+0Ch]
-		jmp L_053a
-L_0535:
-		fld dword ptr [edx]
-		fsub dword ptr [ebp+0Ch]
-L_053a:
-		fstp dword ptr [ebp-4]
-		fld dword ptr [ebp-8]
-		xor ebx, ebx
-		fmul dword ptr [eax+14h]
-		mov edi, offset box_p
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax+8]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+20h]
-		faddp st(1), st
-		fadd dword ptr [eax+2Ch]
-		fstp dword ptr [ebp-10h]
-		fld dword ptr [ebp-4]
-		mov ecx, dword ptr [ebp-10h]
-		fmul dword ptr [eax+4]
-		mov dword ptr [ebp-24h], ecx
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+1Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+10h]
-		faddp st(1), st
-		fadd dword ptr [eax+28h]
-		fstp dword ptr [ebp+8]
-		fld dword ptr [ebp-4]
-		fmul dword ptr [eax]
-		fld dword ptr [ebp-8]
-		fmul dword ptr [eax+0Ch]
-		faddp st(1), st
-		fld dword ptr [ebp-0Ch]
-		fmul dword ptr [eax+18h]
-		faddp st(1), st
-		fadd dword ptr [eax+24h]
-		mov eax, dword ptr [ebp+8]
-		mov dword ptr [ebp-28h], eax
-		fstp dword ptr [ebp-20h]
-		mov edx, dword ptr [ebp-20h]
-		mov dword ptr [ebp-2Ch], edx
-		_emit 0x8d
-		_emit 0xa4
-		_emit 0x24
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-		_emit 0x00
-L_05b0:
-		xor esi, esi
-L_05b2:
-		mov eax, dword ptr [edi]
-		push 0
-		lea eax, [eax+eax*2]
-		lea edx, [esi-1]
-		lea ecx, [ebp+eax*4-80h]
-		and edx, 3
-		push 0FFFF0000h
-		add edx, ebx
-		mov eax, dword ptr box_p[edx*4]
-		push ecx
-		lea eax, [eax+eax*2]
-		lea ecx, [ebp+eax*4-80h]
-		push 0FFFF0000h
-		push ecx
-		mov ecx, dword ptr [ebp-14h]
-		call rb_DrawLine_WView__QAEXABVWVector__K0KH_Z
-		add esi, 1
-		add edi, 4
-		cmp esi, 4
-		jl L_05b2
-		add ebx, 4
-		cmp edi, offset box_v
-		jl L_05b0
-		pop edi
-		pop esi
-		pop ebx
-		mov esp, ebp
-		pop ebp
-		ret 8
-	}
-}
-#else
 void RenderAABB(WView* view, const Waabb& aabb, const WMatrix& mat, float rlen)
 {
 	static int box_v[8][3] = {
@@ -5209,43 +3241,42 @@ void RenderAABB(WView* view, const Waabb& aabb, const WMatrix& mat, float rlen)
 	};
 	WVector vt[8];
 	for (int i = 0; i < 8; ++i)
-		vt[i] = WVector(box_v[i & 7][0] ? aabb.max.x + rlen : aabb.min.x - rlen,
-					box_v[i & 7][1] ? aabb.max.y + rlen : aabb.min.y - rlen,
-					box_v[i & 7][2] ? aabb.max.z + rlen : aabb.min.z - rlen) *
+		vt[i] = WVector(box_v[i][0] ? (aabb.max.x + rlen) : (aabb.min.x - rlen),
+					box_v[i][1] ? (aabb.max.y + rlen) : (aabb.min.y - rlen),
+					box_v[i][2] ? (aabb.max.z + rlen) : aabb.min.z - rlen) *
 			mat;
 	for (int f = 0; f < 6; ++f)
 		for (int k = 0; k < 4; ++k)
 			view->DrawLine(vt[box_p[f][(k - 1) & 3]], 0xffff0000,
 				vt[box_p[f][k]], 0xffff0000, 0);
 }
-#endif
 
-static void DebugTest(WView* view, const WVector& p, ulong color, float size)
+static void DebugTest(WView* view, const WVector& pos, ulong diffuse,
+	float rlen)
 {
-	view->DrawLine(p - WVector(size, 0.0f, 0.0f), color,
-		p + WVector(size, 0.0f, 0.0f), color, 0);
-	view->DrawLine(p - WVector(0.0f, size, 0.0f), color,
-		p + WVector(0.0f, size, 0.0f), color, 0);
-	view->DrawLine(p - WVector(0.0f, 0.0f, size), color,
-		p + WVector(0.0f, 0.0f, size), color, 0);
+	view->DrawLine(pos - WVector(rlen, 0.0f, 0.0f), diffuse,
+		pos + WVector(rlen, 0.0f, 0.0f), diffuse, 0);
+	view->DrawLine(pos - WVector(0.0f, rlen, 0.0f), diffuse,
+		pos + WVector(0.0f, rlen, 0.0f), diffuse, 0);
+	view->DrawLine(pos - WVector(0.0f, 0.0f, rlen), diffuse,
+		pos + WVector(0.0f, 0.0f, rlen), diffuse, 0);
 }
 
 void WBone::Render(WView* view, const LightSet& light)
 {
+	WVector vWorLightDir, vLocLightDir, vLocEyePos;
+	int i, k, n;
+	float t, w;
+	w_mesh* f;
+	WVector vec, v;
+	WTVertex* pv;
+	int d0 = 0;
+
 	if (IsVisible() && !m_flag.GetFlag(INVISIBLE) && !IsHidden())
 	{
-		WVector vWorLightDir, vLocLightDir, vLocEyePos;
 		vWorLightDir = light.nearOne * -1.0f;
 		vLocLightDir = RotVec(vWorLightDir, ~GetMatrix());
 		vLocEyePos = view->GetCamera().pivot * ~GetMatrix();
-		int n;
-		w_mesh* f;
-		WVector vec, v, pos, normal;
-		WVector* normList;
-		WTVertex* pv;
-		float lightDot, eyeDot;
-		int i, k;
-		float t, w;
 
 		for (f = m_mesh, n = 0; f != 0; f = f->next, ++n)
 		{
@@ -5298,8 +3329,7 @@ void WBone::Render(WView* view, const LightSet& light)
 					pv->lu = f->uvBackup[i][0];
 					pv->lv = f->uvBackup[i][1];
 					pv->diffuse = *f->vtxColorPtrList[i];
-					WBone*& bone = f->boneList[i];
-					pv->SetPosition(bone->Transform(f->vecList[i]));
+					pv->SetPosition(f->boneList[i]->Transform(f->vecList[i]));
 				}
 				if (f->vtxNum - i > 0)
 				{
@@ -5367,8 +3397,7 @@ void WBone::Render(WView* view, const LightSet& light)
 					pv->tu = f->uvData[i][0];
 					pv->tv = f->uvData[i][1];
 					pv->diffuse = *f->vtxColorPtrList[i];
-					WBone*& bone = f->boneList[i];
-					pv->SetPosition(bone->Transform(f->vecList[i]));
+					pv->SetPosition(f->boneList[i]->Transform(f->vecList[i]));
 				}
 				if (f->vtxNum - i > 0)
 				{
@@ -5406,7 +3435,9 @@ void WBone::Render(WView* view, const LightSet& light)
 			{
 				if ((f->xiDrawFlag2 & 0x14) == 0)
 				{
-					WTVertex* vtx;
+					WVector pos, normal;
+					WVector* normList;
+					float lightDot, eyeDot;
 					normList = f->myBlendedNormalList ? f->myBlendedNormalList
 													  : f->blendedNormalList;
 					for (i = k = 0; i < f->blendedRigidNum; ++i)
@@ -5427,7 +3458,7 @@ void WBone::Render(WView* view, const LightSet& light)
 						lightDot = (float)(vWorLightDir * normal);
 						if (lightDot * eyeDot < 0.0f)
 						{
-							vtx = GetVtxBuff(i);
+							WTVertex* vtx = GetVtxBuff(i);
 							vtx->diffuse =
 								(vtx->diffuse & 0xff000000) | light.ambient;
 						}
@@ -5435,14 +3466,14 @@ void WBone::Render(WView* view, const LightSet& light)
 					normList = f->myNormalList ? f->myNormalList : f->normList;
 					for (; i < f->rigidNum; ++i)
 					{
-						WBone*& bone = f->boneList[i];
-						v = view->GetCamera().pivot * ~bone->GetMatrix();
+						v = view->GetCamera().pivot *
+							~f->boneList[i]->GetMatrix();
 						eyeDot = (v - f->vecList[i]) * normList[i];
-						lightDot = vWorLightDir *
-							RotVec(normList[i], bone->GetMatrix());
-						if ((lightDot * eyeDot) < 0.0f)
+						lightDot = (float)(vWorLightDir *
+							RotVec(normList[i], f->boneList[i]->GetMatrix()));
+						if (lightDot * eyeDot < 0.0f)
 						{
-							vtx = GetVtxBuff(i);
+							WTVertex* vtx = GetVtxBuff(i);
 							vtx->diffuse =
 								(vtx->diffuse & 0xff000000) | light.ambient;
 						}
@@ -5453,7 +3484,7 @@ void WBone::Render(WView* view, const LightSet& light)
 						lightDot = vLocLightDir * normList[i];
 						if (lightDot * eyeDot < 0.0f)
 						{
-							vtx = GetVtxBuff(i);
+							WTVertex* vtx = GetVtxBuff(i);
 							vtx->diffuse =
 								(vtx->diffuse & 0xff000000) | light.ambient;
 						}
