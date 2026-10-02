@@ -550,7 +550,11 @@
     "source/client/ProjectG/ggc_wrapper.obj",
     "source/client/ProjectG/ccrc32.obj",
     "source/client/ProjectG/crcdef.obj",
-    "source/client/ProjectG/md5.obj",
+    {
+      "path": "source/client/ProjectG/md5.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/paper.obj",
     {
       "path": "source/shared/LuaSystem/luascript.cpp",
