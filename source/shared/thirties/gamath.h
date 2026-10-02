@@ -1208,12 +1208,12 @@ inline gaQ gaQ::operator*(const gaQ& q) const
 
 inline void gaQ::FromAxisAngle(const gaV3& axis, float radian)
 {
-	float fHalfAngle = gaMath::HALF * radian;
-	float fSin = gaMath::Sin(fHalfAngle);
+	radian *= gaMath::HALF;
+	float fSin = gaMath::Sin(radian);
 	x = fSin * axis.x;
 	y = fSin * axis.y;
 	z = fSin * axis.z;
-	w = gaMath::Cos(fHalfAngle);
+	w = gaMath::Cos(radian);
 }
 
 inline float gaQ::Length() const

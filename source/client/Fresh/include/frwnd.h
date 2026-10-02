@@ -127,7 +127,7 @@ public:
 
 	WFlags m_nFlags;
 
-	const WFlags& GetStyle() const;
+	const WFlags& GetStyle() const { return m_dwStyle; }
 	float GetAlpha() const;
 	void SetAlpha(float alpha);
 	float GetAlpha2() const;

@@ -198,17 +198,26 @@ def rules() -> None:
     source_targets: list[str] = []
     for directory, entry in config.get("source_archives", {}).items():
         stamp = unpack_stamp(directory)
-        files = [
+        files = {
             str(Path(directory) / name)
             for name, _ in source_files(common.ROOT / common.entry_path(entry))
-        ]
-        source_targets += [stamp, *files]
+        }
         dependencies = [common.entry_path(entry), "build.json", "tools/build.py"]
         if isinstance(entry, dict) and "patch" in entry:
             dependencies.append(entry["patch"])
+            patch = (common.ROOT / entry["patch"]).read_text()
+            for old, new in re.findall(
+                r"^--- ([^\t\n]+)(?:\t[^\n]*)?\n\+\+\+ ([^\t\n]+)", patch, re.MULTILINE
+            ):
+                if old != "/dev/null":
+                    files.discard(str(Path(directory, *PurePosixPath(old).parts[1:])))
+                if new != "/dev/null":
+                    files.add(str(Path(directory, *PurePosixPath(new).parts[1:])))
+        targets = [stamp, *sorted(files)]
+        source_targets += targets
         lines += [
-            f"build/rules.mk: {make_escape(common.entry_path(entry))}",
-            " ".join(map(make_escape, [stamp, *files]))
+            "build/rules.mk: " + " ".join(map(make_escape, dependencies)),
+            " ".join(map(make_escape, targets))
             + " &: "
             + " ".join(map(make_escape, dependencies)),
             f"\t@python3 tools/build.py unpack {directory}",

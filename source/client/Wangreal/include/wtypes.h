@@ -34,6 +34,11 @@ public:
 		this->x = x;
 		this->y = y;
 	}
+	WPoint(WPoint& p)
+	{
+		x = p.x;
+		y = p.y;
+	}
 	WPoint(WPoint* p)
 	{
 		x = p->x;

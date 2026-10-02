@@ -218,8 +218,17 @@
     "source/client/ProjectG/ghostplayer.obj",
     "source/client/ProjectG/ghosttask.obj",
     "source/client/ProjectG/sequencestatemachine.obj",
-    "source/shared/titlemanager.obj",
-    "source/client/ProjectG/titles_client.obj",
+    {
+      "path": "source/shared/titlemanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"],
+      "includes": ["source/client/ProjectG"]
+    },
+    {
+      "path": "source/client/ProjectG/titles_client.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/avatarwaitroommain.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -273,10 +282,26 @@
     "source/client/ProjectG/shufflebonus.obj",
     "source/client/ProjectG/caddiebonus.obj",
     "source/client/ProjectG/powergauge.obj",
-    "source/client/ProjectG/netsyncactor.obj",
-    "source/client/ProjectG/grounditemman.obj",
-    "source/client/ProjectG/grounditem.obj",
-    "source/client/ProjectG/util.obj",
+    {
+      "path": "source/client/ProjectG/netsyncactor.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/grounditemman.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/grounditem.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/util.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/approachresultdlg.obj",
     "source/client/ProjectG/replaydlg.obj",
     "source/client/ProjectG/trainingoptiondlg.obj",
@@ -394,7 +419,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/inifile.obj",
+    {
+      "path": "source/client/ProjectG/inifile.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/monitor.obj",
     "source/client/ProjectG/networkmonitor.obj",
     "source/client/ProjectG/ppl.obj",
@@ -423,7 +452,11 @@
     "source/client/ProjectG/scenemanager.obj",
     "source/client/ProjectG/soundmanager.obj",
     "source/client/ProjectG/taskmanager.obj",
-    "source/shared/itemmanager.obj",
+    {
+      "path": "source/shared/itemmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/gamedatadb.obj",
     "source/client/ProjectG/gdbitmapbox.obj",
     "source/client/ProjectG/gdeventnotice.obj",
@@ -436,12 +469,21 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/objectfactory.obj",
-    "source/client/ProjectG/rtti.cpp",
+    {
+      "path": "source/client/ProjectG/rtti.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/chttp.obj",
     "source/client/ProjectG/clientsocket.obj",
     "source/client/ProjectG/csharedmemory.obj",
     "source/client/ProjectG/networksystem.obj",
-    "source/client/ProjectG/packet.obj",
+    {
+      "path": "source/client/ProjectG/packet.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"],
+      "includes": ["source/shared", "source/shared/minilzo"]
+    },
     "source/client/ProjectG/socket.obj",
     "source/client/ProjectG/finitestate.obj",
     "source/client/ProjectG/finitestatemachine.obj",
@@ -450,17 +492,37 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/gameunit.obj",
+    {
+      "path": "source/client/ProjectG/gameunit.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/loginunit.obj",
     "source/client/ProjectG/msnunit.obj",
     "source/client/ProjectG/networkunit.obj",
     "source/client/ProjectG/rankunit.obj",
     "source/client/ProjectG/shopunit.obj",
-    "source/client/ProjectG/blowfish.obj",
-    "source/client/ProjectG/jrencrypt.obj",
+    {
+      "path": "source/client/ProjectG/blowfish.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/jrencrypt.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/rc4.obj",
-    "source/client/ProjectG/imessage.obj",
-    "source/client/ProjectG/udpspoon.obj",
+    {
+      "path": "source/client/ProjectG/imessage.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/udpspoon.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/tinystr.cpp",
       "extra_flags": [
@@ -506,8 +568,9 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     {
-      "path": "source/shared/LuaSystem/lua_tinker/lua_tinker.lib",
-      "member": "lua_tinker.obj"
+      "path": "source/shared/LuaSystem/lua_tinker/lua_tinker.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/Zd"]
     },
     "source/client/ProjectG/mainframe.obj",
     "source/client/ProjectG/projectg.obj",
@@ -517,10 +580,15 @@
     "source/client/ProjectG/threadowner.obj",
     "source/client/ProjectG/threadpool.obj",
     "source/client/ProjectG/gmtoolkit.obj",
-    "source/shared/localize.obj",
     {
-      "path": "source/shared/minilzo.lib",
-      "member": "minilzo.obj"
+      "path": "source/shared/localize.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/shared/minilzo/minilzo.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/Zd"]
     },
     {
       "path": "source/client/ProjectG/packetversion.cpp",
@@ -532,8 +600,17 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/shared/tikimagicboxtable.obj",
-    "source/shared/uselzo.obj",
+    {
+      "path": "source/shared/tikimagicboxtable.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/shared/uselzo.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"],
+      "includes": ["source/shared/minilzo"]
+    },
     "source/client/ProjectG/deleteitem.obj",
     "source/client/ProjectG/mascotinfodlg.obj",
     "source/client/ProjectG/panggiftdlg.obj",
@@ -646,7 +723,11 @@
     "source/client/ProjectG/s5/skinnedtheme.obj",
     "source/client/ProjectG/s5/utilities.obj",
     "source/client/ProjectG/s5/classicserver/classicserver.obj",
-    "source/shared/s5/sharedutilities.obj",
+    {
+      "path": "source/shared/s5/sharedutilities.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/s5/cutinsystem/cutinsystem.obj",
     "source/client/ProjectG/s5/rentalextensiondlg.obj",
     "source/client/ProjectG/opentournament.obj",
@@ -1055,6 +1136,10 @@
     },
     "source/shared/LuaSystem/Lua": "source/shared/LuaSystem/lua-5.1.tar.gz",
     "source/client/Fresh/third_party/libpng-1.2.8": "source/client/Fresh/third_party/libpng-1.2.8.tar.gz",
-    "source/client/Fresh/third_party/zlib-1.2.2": "source/client/Fresh/third_party/zlib-1.2.2.tar.gz"
+    "source/client/Fresh/third_party/zlib-1.2.2": "source/client/Fresh/third_party/zlib-1.2.2.tar.gz",
+    "source/shared/minilzo": {
+      "path": "source/shared/minilzo-2.02.tar.gz",
+      "patch": "source/shared/minilzo-2.02.patch"
+    }
   }
 }

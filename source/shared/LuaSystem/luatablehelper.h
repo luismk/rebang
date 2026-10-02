@@ -8,7 +8,7 @@ namespace lua_system
 	{
 	public:
 		lua_table_helper(lua_tinker::table value)
-			: table(value), state(value.object->state)
+			: table(value), state(value.m_obj->m_L)
 		{
 		}
 		lua_table_helper(const lua_table_helper& value)

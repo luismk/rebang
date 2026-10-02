@@ -4,6 +4,7 @@ class WRTTI
 {
 public:
 	WRTTI(const char* name, const WRTTI* baseRTTI);
+	const char* GetName() const { return m_pName; }
 	const WRTTI* GetBaseRTTI() const { return m_pBaseRTTI; }
 
 protected:

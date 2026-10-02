@@ -2,7 +2,7 @@
 
 #include "networkunit.h"
 
-class WNetworkSystem : public BaseObject, public WSingleton<WNetworkSystem>
+class WNetworkSystem : public WSingleton<WNetworkSystem>
 {
 public:
 	enum eNetUnit

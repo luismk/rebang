@@ -3,6 +3,9 @@
 #include <string>
 #include <list>
 #include "../../shared/globalgamedefine.h"
+#include "../../shared/classdefine.h"
+ILFILL2
+#include "../../shared/itemmanager.h"
 
 struct sGameTypeInfo
 {
@@ -12,11 +15,19 @@ struct sGameTypeInfo
 	unsigned char holes;
 };
 
-class CSharedDoc : public BaseObject, public WSingleton<CSharedDoc>
+class CGolfDoc;
+
+class CSharedDoc : public WSingleton<CSharedDoc>
 {
 public:
 	CSharedDoc();
 	virtual ~CSharedDoc();
+
+	int FindUserInfoTimeUID(unsigned long uid,
+		std::map<unsigned long, sUserInfoTime>::iterator& it);
+	std::map<unsigned char, sMapStatistics>& GetMyPastMapStat(
+		unsigned char season);
+	std::string GetLoginAuthKey();
 
 	std::string m_password;
 	std::string m_gameServerAddr;
@@ -45,10 +56,17 @@ public:
 	int m_gachaTicket[2];
 	std::list<unsigned long> m_refreshGuidList;
 	std::list<unsigned short> m_refreshCountList;
-	unsigned char m_itemManager
-		[0x1f8]; // TODO: replace with CItemManager (shared/itemmanager.h)
+	CItemManager m_itemManager;
 	sMyInfo m_myInfo;
+	unsigned char m_unusedd4c[0x584];
+	sUserInfo m_userInfo[4];
+	unsigned char m_unused4118[0xf28];
+	CGolfDoc* m_pGolfDoc;
 	// TODO: this struct definition is incomplete
 };
+
+int OnlinePlay();
+
+ILFILL3
 
 #include "shareddoc.inl"

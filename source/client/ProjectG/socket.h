@@ -25,11 +25,11 @@ public:
 	int SetSocketOpt(int level, int optname, const char* optval, int optlen);
 	int GetSocketOpt(int level, int optname, char* optval, int* optlen);
 
-protected:
 	SOCKET m_socket;
 	sockaddr_in m_addr;
 	int m_bConnected;
 
+protected:
 	static sockaddr_in ms_addrEmpty;
 	static int ms_bInit;
 };

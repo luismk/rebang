@@ -242,7 +242,8 @@ void FrGraphicInterface::PrintText(const WPoint& point, const FrTEXT& text)
 {
 	FrTextTokenList tokens;
 	text.GetTokenList(tokens);
-	WPoint p = point;
+	WPoint p;
+	p = point;
 	for (FrTextTokenList::iterator it = tokens.begin(); it != tokens.end();
 		++it)
 	{
@@ -262,7 +263,8 @@ void FrGraphicInterface::PrintText11(const WPoint& point, const FrTEXT& text)
 {
 	FrTextTokenList tokens;
 	text.GetTokenList(tokens);
-	WPoint p = point;
+	WPoint p;
+	p = point;
 	for (FrTextTokenList::iterator it = tokens.begin(); it != tokens.end();
 		++it)
 	{
@@ -304,7 +306,8 @@ void FrGraphicInterface::PrintText(const WPoint& point, unsigned long align,
 	}
 	widths.push_back(length);
 	std::vector<float>::iterator width = widths.begin();
-	WPoint p = point;
+	WPoint p;
+	p = point;
 	switch (align)
 	{
 	case 1:
@@ -369,7 +372,8 @@ void FrGraphicInterface::PrintText11(const WPoint& point, unsigned long align,
 	}
 	widths.push_back(length);
 	std::vector<float>::iterator width = widths.begin();
-	WPoint p = point;
+	WPoint p;
+	p = point;
 	switch (align)
 	{
 	case 1:

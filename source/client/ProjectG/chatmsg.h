@@ -6,7 +6,7 @@
 class WFont;
 class WOverlay;
 
-class CChatMsg : public BaseObject, public WSingleton<CChatMsg>
+class CChatMsg : public WSingleton<CChatMsg>
 {
 public:
 	void Reset();

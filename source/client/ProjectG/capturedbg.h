@@ -2,7 +2,7 @@
 #include "baseobject.h"
 #include "singleton.h"
 
-class CCapturedBg : public BaseObject, public WSingleton<CCapturedBg>
+class CCapturedBg : public WSingleton<CCapturedBg>
 {
 public:
 	CCapturedBg();

@@ -2,7 +2,7 @@
 #include "baseobject.h"
 #include "singleton.h"
 
-class CMouseCursor : public BaseObject, public WSingleton<CMouseCursor>
+class CMouseCursor : public WSingleton<CMouseCursor>
 {
 public:
 	enum

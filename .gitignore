@@ -13,3 +13,4 @@ __pycache__/
 /source/shared/LuaSystem/Lua/
 /source/client/Fresh/third_party/libpng-1.2.8/
 /source/client/Fresh/third_party/zlib-1.2.2/
+/source/shared/minilzo/

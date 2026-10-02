@@ -7,9 +7,12 @@ source/client/ProjectG/tinystr.h
 source/client/ProjectG/tinyxml.cpp
 source/client/ProjectG/tinyxml.h
 source/client/ProjectG/tinyxmlparser.cpp
+source/shared/LuaSystem/lua_tinker/lua_tinker.cpp
+source/shared/LuaSystem/lua_tinker/lua_tinker.h
 
 # Third-party libraries: keep original formatting.
 source/client/Wangreal/lib/freetype-2.2.1/**
 source/shared/LuaSystem/Lua/**
 source/client/Fresh/third_party/libpng-1.2.8/**
 source/client/Fresh/third_party/zlib-1.2.2/**
+source/shared/mtrand1p1.h

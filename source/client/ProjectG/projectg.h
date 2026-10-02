@@ -12,6 +12,9 @@ class WReceivedPacket;
 class WProcManager;
 
 extern unsigned long g_CurrentTime;
+extern char g_executeDirectory[];
+extern WView* g_view;
+extern LightSet g_lightset;
 
 class CTmpLogo
 {
@@ -24,7 +27,6 @@ public:
 
 class CProjectG : public CMainFrame,
 				  public CWangrealApplication,
-				  public BaseObject,
 				  public WSingleton<CProjectG>,
 				  public FrCmdTarget
 {
