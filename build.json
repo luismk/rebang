@@ -17,6 +17,7 @@
   "includes": [
     "source/rebang",
     "tools/VC7.1/include",
+    "tools/VC7.1/atlmfc/include",
     "tools/PlatformSDK-Aug2002/include",
     "source/client/Wangreal/include",
     "source/client/Wangreal/lib/freetype-2.2.1/include",
