@@ -93,6 +93,12 @@ struct sRecordedItemInfo
 
 class CGolfDoc;
 
+struct sChatLine
+{
+	std::string text;
+	unsigned long color;
+};
+
 class CSharedDoc : public WSingleton<CSharedDoc>
 {
 public:
@@ -108,9 +114,16 @@ public:
 	void ClearUserInfoTimeMap(unsigned long uid);
 	void SetIndex(unsigned long uid);
 	float GetWtPepPangyaComboGauge(unsigned char player);
+	float GetComboGaugeLimit(unsigned char team);
+	SYSTEMTIME& GetServerTime();
 	int CollapseItemSlot(unsigned char slot);
 
+	unsigned long GetMapEventPangRate(int course);
+	bool CanCompound(unsigned long uid);
+	bool CanUseRookieChannelMap(unsigned int course);
+
 	char* GetFileName() { return m_fileName; }
+	const std::list<sItemInfo>& GetConstMyItemList() { return m_myItemList; }
 	eReplayModeType GetPlayingMode() { return m_playingMode; }
 
 	std::string m_password;
@@ -142,34 +155,70 @@ public:
 	std::list<unsigned short> m_refreshCountList;
 	CItemManager m_itemManager;
 	sMyInfo m_myInfo;
-	unsigned char m_unusedd4c[0x454];
+	unsigned char m_unusedd4c[0x40c];
+	std::map<unsigned int, sCharacterInfo> m_charMap;
+	std::map<unsigned int, sCaddieInfo> m_caddieMap;
+	unsigned char m_unused1170[0x24];
+	std::list<sItemInfo> m_ballList;
 	std::list<sItemInfo> m_myItemList;
 	std::list<sRecordedItemInfo> m_recordedItemList;
-	unsigned char m_unused11b8[0x118];
+	unsigned char m_unused11b8[0x90];
+	std::list<sSCardAvilityPeriodInfo> m_cardAbilityList[4];
+	unsigned char m_unused1278[0x10];
+	__int64 m_cookie;
+	unsigned char m_unused1290[0x40];
 	sUserInfo m_userInfo[4];
 	unsigned char m_unused4118[0x3ec];
 	std::vector<sRivalData> m_rivalList;
-	unsigned char m_unused4514[0x4c];
+	unsigned char m_unused4514[0x48];
+	bool m_bGameOver;
+	unsigned char m_unused455d[3];
 	int m_gameMode;
 	unsigned char m_holeType;
-	unsigned char m_unused4565[0x8d];
+	unsigned char m_unused4565[0x69];
+	unsigned char m_courseMap[18];
+	unsigned char m_unused45e0[0x12];
 	unsigned char m_holeOrder[19];
 	unsigned char m_unused4605[3];
 	unsigned long m_holeRandom[18];
 	unsigned long m_approachStartTime;
 	unsigned char m_unused4654[0xc];
 	sGolfGame m_golfGame;
-	unsigned char m_unused4778[0x2f8];
+	unsigned char m_unused4778[0x2d4];
+	std::map<unsigned long, sBriefUserInfo> m_briefUserInfoMap;
+	unsigned char m_unused4a58[0x18];
 	std::list<sSlotInfo> m_slotList;
 	unsigned char m_unused4a7c[0x3c];
 	sChannelInfo m_curChannel;
 	unsigned char m_unused4b05[0x79];
 	bool m_bBackgroundVideo;
-	unsigned char m_unused4b7f[0xed];
+	unsigned char m_unused4b7f[0x51];
+	std::map<unsigned long, sFriend> m_friendMap;
+	unsigned char m_unused4bdc[0x90];
 	ChatManager m_chatManager;
-	unsigned char m_unused4ca4[0xe8];
+	std::list<sChatLine> m_chatLineList;
+	unsigned char m_unused4cb0[0xc];
+	std::list<std::string> m_ignoreList;
+	unsigned char m_unused4cc8[0x40];
+	std::list<sNoteInfo> m_noteList;
+	unsigned char m_unused4d14[0x58];
+	int m_offlinePlay;
+	unsigned char m_unused4d70[0xd];
+	bool m_bTutorialResume;
+	unsigned char m_unused4d7e[2];
+	unsigned long m_newMapEventMask;
+	unsigned char m_unused4d84[0x8];
 	unsigned long m_tutorialComplete[3];
-	unsigned char m_unused4d98[0x2a8];
+	unsigned char m_unused4d98[0x28];
+	struct
+	{
+		unsigned long exp, totalExp;
+	} m_levelTable[71];
+	struct
+	{
+		unsigned long exp, pang;
+	} m_bonusPangTable[3];
+	unsigned char m_unused5010[0x30];
 	CGolfDoc* m_pGolfDoc;
 	unsigned char m_unused5044[0xb50];
 	int m_replayState;
@@ -184,6 +233,7 @@ public:
 };
 
 int OnlinePlay();
+bool SetCurMap(unsigned char map);
 
 ILFILL3
 

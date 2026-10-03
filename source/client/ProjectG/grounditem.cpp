@@ -9,11 +9,7 @@
 #include "projectg.h"
 #include "wresrcmng.h"
 #include "wpuppet.h"
-
-static bool IsValid(float f)
-{
-	return f < g_HUGE && f > g_EPSILON;
-}
+#include "mathconsts.h"
 
 IObject* GroundItemMakeInstance()
 {

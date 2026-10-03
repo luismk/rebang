@@ -10,6 +10,7 @@ class CChatMsg : public WSingleton<CChatMsg>
 {
 public:
 	void Reset();
+	unsigned long ConvertToUIColor(unsigned long color);
 	void AddChatMsg(const std::string& msg, unsigned long color, bool b1,
 		bool b2);
 	void SetActive(bool active, bool b2, bool b3);

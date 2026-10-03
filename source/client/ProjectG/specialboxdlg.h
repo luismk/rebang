@@ -1,20 +1,17 @@
 #pragma once
-
 #include "frform.h"
-
 class FrArea;
 class FrEdit;
 class FrGaugeBar;
 class Bitmap;
-
 namespace _gateway
 {
 	class FrSpecialBoxDlg : public FrForm
 	{
-	public:
 		DECLARE_OBJECT(FrSpecialBoxDlg)
 
 		FrSpecialBoxDlg();
+
 		virtual ~FrSpecialBoxDlg() { }
 
 		virtual bool OnInit();

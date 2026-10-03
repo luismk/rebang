@@ -59,7 +59,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/golfrulebase.obj",
+    {
+      "path": "source/client/ProjectG/golfrulebase.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/golfruleguildmatch.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -90,13 +94,21 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/golfruleteam.obj",
+    {
+      "path": "source/client/ProjectG/golfruleteam.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/golfruletimeattack.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/golfruletutorial.obj",
+    {
+      "path": "source/client/ProjectG/golfruletutorial.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/club.obj",
     {
       "path": "source/client/ProjectG/golfball.cpp",
@@ -139,12 +151,32 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/simpleoverlay.obj",
-    "source/client/ProjectG/taileffect.obj",
-    "source/client/ProjectG/talkbox.obj",
-    "source/client/ProjectG/titlefontex.obj",
+    {
+      "path": "source/client/ProjectG/simpleoverlay.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/taileffect.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/talkbox.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/titlefontex.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/rival.obj",
-    "source/client/ProjectG/beach.obj",
+    {
+      "path": "source/client/ProjectG/beach.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/grass.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -155,8 +187,16 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/lensflare.obj",
-    "source/client/ProjectG/petal.obj",
+    {
+      "path": "source/client/ProjectG/lensflare.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/petal.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/pool.obj",
     {
       "path": "source/client/ProjectG/rain.cpp",
@@ -164,7 +204,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/river.obj",
-    "source/client/ProjectG/sea.obj",
+    {
+      "path": "source/client/ProjectG/sea.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/sky.obj",
     {
       "path": "source/client/ProjectG/snow.cpp",
@@ -232,7 +276,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/spin.obj",
+    {
+      "path": "source/client/ProjectG/spin.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/trajectory.obj",
     {
       "path": "source/client/ProjectG/videorecorder.cpp",
@@ -244,29 +292,49 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/effectmanager.obj",
+    {
+      "path": "source/client/ProjectG/effectmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/avatar_avatar.obj",
     "source/client/ProjectG/avatar_main.obj",
     "source/client/ProjectG/avatar_mainui.obj",
     "source/client/ProjectG/avatar_task.obj",
     "source/client/ProjectG/balloontext.obj",
-    "source/client/ProjectG/avatarchatlogdlg.obj",
+    {
+      "path": "source/client/ProjectG/avatarchatlogdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/avatartipdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/avataruserlistdlg.obj",
+    {
+      "path": "source/client/ProjectG/avataruserlistdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/gamepartydlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/jukeboxdlg.obj",
+    {
+      "path": "source/client/ProjectG/jukeboxdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/ts_parser.obj",
     "source/client/ProjectG/tutorial.obj",
     "source/client/ProjectG/questinfodlg.obj",
-    "source/client/ProjectG/quizdlg.obj",
+    {
+      "path": "source/client/ProjectG/quizdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/tutorialmain.obj",
     {
       "path": "source/client/ProjectG/tutorialsystem.cpp",
@@ -290,11 +358,23 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/overlaycursor.obj",
-    "source/client/ProjectG/securitykeymanager.obj",
+    {
+      "path": "source/client/ProjectG/securitykeymanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/tabmanager.obj",
-    "source/client/ProjectG/tooltipmanager.obj",
+    {
+      "path": "source/client/ProjectG/tooltipmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/uccbase.obj",
-    "source/client/ProjectG/uccbrush.obj",
+    {
+      "path": "source/client/ProjectG/uccbrush.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/uccclothes.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -307,12 +387,24 @@
     },
     "source/client/ProjectG/ucccopydlg.obj",
     "source/client/ProjectG/uccdrawdlg.obj",
-    "source/client/ProjectG/ucceditbrushdlg.obj",
+    {
+      "path": "source/client/ProjectG/ucceditbrushdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/ucclibrary.obj",
     "source/client/ProjectG/uccmanager.obj",
     "source/client/ProjectG/uccpickcolordlg.obj",
-    "source/client/ProjectG/uccsetinfodlg.obj",
-    "source/client/ProjectG/furniture_ability.obj",
+    {
+      "path": "source/client/ProjectG/uccsetinfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/furniture_ability.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/realmyroom_authoritydlg.obj",
     "source/client/ProjectG/realmyroom_avatar.obj",
     "source/client/ProjectG/realmyroomdata.obj",
@@ -323,12 +415,20 @@
     "source/client/ProjectG/itemstorage.obj",
     "source/client/ProjectG/cardremove.obj",
     "source/client/ProjectG/carddlg.obj",
-    "source/client/ProjectG/cardsystem.obj",
+    {
+      "path": "source/client/ProjectG/cardsystem.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/post_recivedlg.obj",
     "source/client/ProjectG/post_senddlg.obj",
     "source/client/ProjectG/transferableitem.obj",
     "source/client/ProjectG/offlinetradedlg.obj",
-    "source/client/ProjectG/standinginline.obj",
+    {
+      "path": "source/client/ProjectG/standinginline.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/itembuffactor.obj",
     "source/client/ProjectG/ghostdocument.obj",
     "source/client/ProjectG/ghostgamedlg.obj",
@@ -341,7 +441,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/sequencestatemachine.obj",
+    {
+      "path": "source/client/ProjectG/sequencestatemachine.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/shared/titlemanager.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -443,13 +547,25 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/approachresultdlg.obj",
-    "source/client/ProjectG/replaydlg.obj",
+    {
+      "path": "source/client/ProjectG/replaydlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/trainingoptiondlg.obj",
     "source/client/ProjectG/browser.obj",
-    "source/client/ProjectG/codetinker.obj",
+    {
+      "path": "source/client/ProjectG/codetinker.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/exhibition.obj",
     "source/client/ProjectG/fx.obj",
-    "source/client/ProjectG/fxinterpreter.obj",
+    {
+      "path": "source/client/ProjectG/fxinterpreter.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/indexcontrol.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -463,7 +579,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/onelineboard.obj",
+    {
+      "path": "source/client/ProjectG/onelineboard.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/onelinereqdlg.obj",
     {
       "path": "source/client/ProjectG/pangfbi.cpp",
@@ -475,7 +595,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/tooltip.obj",
+    {
+      "path": "source/client/ProjectG/tooltip.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/user_info.obj",
     "source/client/ProjectG/winnernotice.obj",
     {
@@ -499,11 +623,23 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/partsinfo.obj",
-    "source/client/ProjectG/parttidlist.obj",
+    {
+      "path": "source/client/ProjectG/parttidlist.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/bongdarishopdlg.obj",
     "source/client/ProjectG/cardboxdlg.obj",
-    "source/client/ProjectG/emoticondlg.obj",
-    "source/client/ProjectG/formbar.obj",
+    {
+      "path": "source/client/ProjectG/emoticondlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/formbar.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/frrandomboxprogress.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -527,7 +663,11 @@
     },
     "source/client/ProjectG/schooldlg.obj",
     "source/client/ProjectG/scratchdlg.obj",
-    "source/client/ProjectG/setitemdlg.obj",
+    {
+      "path": "source/client/ProjectG/setitemdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/tradedlg.obj",
     {
       "path": "source/client/ProjectG/addguildmemberdlg.cpp",
@@ -546,25 +686,49 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/msnusersnapshot.obj",
+    {
+      "path": "source/client/ProjectG/msnusersnapshot.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/contentsdoc.obj",
     "source/client/ProjectG/icontentsdoc.obj",
     "source/client/ProjectG/bonusticket.obj",
-    "source/client/ProjectG/initdelegate.obj",
-    "source/client/ProjectG/messagemanager.obj",
+    {
+      "path": "source/client/ProjectG/initdelegate.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/messagemanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/secondarypassword.obj",
     "source/client/ProjectG/secondarypassworddlg.obj",
-    "source/client/ProjectG/golfitemhandler.obj",
+    {
+      "path": "source/client/ProjectG/golfitemhandler.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/tradehandler.obj",
     "source/client/ProjectG/gatewayactor.obj",
-    "source/client/ProjectG/gatewaydoc.obj",
+    {
+      "path": "source/client/ProjectG/gatewaydoc.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/eventactor.obj",
     {
       "path": "source/client/ProjectG/specialbox.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/specialboxdlg.obj",
+    {
+      "path": "source/client/ProjectG/specialboxdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/hatofsuneventhandler.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -587,7 +751,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/binstr.obj",
+    {
+      "path": "source/client/ProjectG/binstr.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/commonutil.obj",
     {
       "path": "source/client/ProjectG/dxdiaginfo.cpp",
@@ -637,18 +805,34 @@
     },
     "source/client/ProjectG/tweaker.obj",
     "source/client/ProjectG/wtimer.obj",
-    "source/client/ProjectG/buddymanager.obj",
+    {
+      "path": "source/client/ProjectG/buddymanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/chatmsg.obj",
     {
       "path": "source/client/ProjectG/gameoverlaymanager.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/hackingmanager.obj",
+    {
+      "path": "source/client/ProjectG/hackingmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/hatmanager.obj",
-    "source/client/ProjectG/inputmanager.obj",
+    {
+      "path": "source/client/ProjectG/inputmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/netresourcemanager.obj",
-    "source/client/ProjectG/rssmanager.obj",
+    {
+      "path": "source/client/ProjectG/rssmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/scenemanager.obj",
     "source/client/ProjectG/soundmanager.obj",
     "source/client/ProjectG/taskmanager.obj",
@@ -665,7 +849,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/gdtextbox.obj",
-    "source/client/ProjectG/gdvoiceitem.obj",
+    {
+      "path": "source/client/ProjectG/gdvoiceitem.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/actor.obj",
     {
       "path": "source/client/ProjectG/exception.cpp",
@@ -678,7 +866,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/chttp.obj",
+    {
+      "path": "source/client/ProjectG/chttp.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/clientsocket.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -700,9 +892,21 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"],
       "includes": ["source/shared", "source/shared/minilzo"]
     },
-    "source/client/ProjectG/socket.obj",
-    "source/client/ProjectG/finitestate.obj",
-    "source/client/ProjectG/finitestatemachine.obj",
+    {
+      "path": "source/client/ProjectG/socket.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/finitestate.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/finitestatemachine.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/networkstate.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -718,7 +922,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/msnunit.obj",
+    {
+      "path": "source/client/ProjectG/msnunit.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/networkunit.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -780,7 +988,11 @@
       ],
       "pch": "source/client/ProjectG/stdafx.cpp"
     },
-    "source/client/ProjectG/uwin.obj",
+    {
+      "path": "source/client/ProjectG/uwin.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/ggc_dlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -871,9 +1083,17 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"],
       "includes": ["source/shared/minilzo"]
     },
-    "source/client/ProjectG/deleteitem.obj",
+    {
+      "path": "source/client/ProjectG/deleteitem.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/mascotinfodlg.obj",
-    "source/client/ProjectG/panggiftdlg.obj",
+    {
+      "path": "source/client/ProjectG/panggiftdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/replaymodedlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -888,7 +1108,11 @@
     "source/client/ProjectG/shoptask.obj",
     "source/client/ProjectG/caddieinfodlg.obj",
     "source/client/ProjectG/checkoutdlg.obj",
-    "source/client/ProjectG/compounddlg.obj",
+    {
+      "path": "source/client/ProjectG/compounddlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/downgradedlg.obj",
     "source/client/ProjectG/enchantdlg.obj",
     {
@@ -896,15 +1120,27 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/fortuneopendlg.obj",
-    "source/client/ProjectG/frienddlg.obj",
+    {
+      "path": "source/client/ProjectG/fortuneopendlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/frienddlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/giftdlg.obj",
     {
       "path": "source/client/ProjectG/helpdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/repaydlg.obj",
+    {
+      "path": "source/client/ProjectG/repaydlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/returngiftdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -922,11 +1158,23 @@
     },
     "source/client/ProjectG/lobbymain.obj",
     "source/client/ProjectG/lobbytask.obj",
-    "source/client/ProjectG/addfrienddlg.obj",
+    {
+      "path": "source/client/ProjectG/addfrienddlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/awarddlg.obj",
-    "source/client/ProjectG/caddiewarningdlg.obj",
+    {
+      "path": "source/client/ProjectG/caddiewarningdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/changeroominfodlg.obj",
-    "source/client/ProjectG/createnickdlg.obj",
+    {
+      "path": "source/client/ProjectG/createnickdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/detaildlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -940,12 +1188,36 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/finalrankdlg.obj",
-    "source/client/ProjectG/friendinfodlg.obj",
-    "source/client/ProjectG/frimagenoticedlg.obj",
-    "source/client/ProjectG/frquickmovedlg.obj",
-    "source/client/ProjectG/guilddlg.obj",
-    "source/client/ProjectG/guildnoticedlg.obj",
+    {
+      "path": "source/client/ProjectG/finalrankdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/friendinfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/frimagenoticedlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/frquickmovedlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/guilddlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/guildnoticedlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/invitedlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -958,17 +1230,37 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/logoutdlg.obj",
-    "source/client/ProjectG/mailboxdlg.obj",
+    {
+      "path": "source/client/ProjectG/logoutdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/mailboxdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/makeroomdlg.obj",
-    "source/client/ProjectG/mapselectdlg.obj",
+    {
+      "path": "source/client/ProjectG/mapselectdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/memodlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/newrecorddlg.obj",
-    "source/client/ProjectG/notedlg.obj",
+    {
+      "path": "source/client/ProjectG/newrecorddlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/notedlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/noticedlg.obj",
     {
       "path": "source/client/ProjectG/parannickdlg.cpp",
@@ -980,12 +1272,24 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/reportdlg.obj",
+    {
+      "path": "source/client/ProjectG/reportdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/resultdlg.obj",
     "source/client/ProjectG/scoredlg.obj",
     "source/client/ProjectG/serverdlg.obj",
-    "source/client/ProjectG/tikimagicboxdlg.obj",
-    "source/client/ProjectG/trainingdlg.obj",
+    {
+      "path": "source/client/ProjectG/tikimagicboxdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/trainingdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/userlistdlg.obj",
     "source/client/ProjectG/bingoeventdlg.obj",
     "source/client/ProjectG/christamseventdlg.obj",
@@ -1007,7 +1311,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/missioneventdlg.obj",
-    "source/client/ProjectG/newmapeventdlg.obj",
+    {
+      "path": "source/client/ProjectG/newmapeventdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/pointeventdlg.obj",
     "source/client/ProjectG/valentineeventdlg.obj",
     "source/client/ProjectG/worldtoureventdlg.obj",
@@ -1029,7 +1337,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/familymain.obj",
-    "source/client/ProjectG/familytask.obj",
+    {
+      "path": "source/client/ProjectG/familytask.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/g_starmode.obj",
     "source/client/ProjectG/playerdlg.obj",
     "source/client/ProjectG/rankingdlg.obj",
@@ -1048,7 +1360,11 @@
     "source/client/ProjectG/ingameguildlobbydlg.obj",
     "source/client/ProjectG/ingameguildmyroomdlg.obj",
     "source/client/ProjectG/logininfo.obj",
-    "source/client/ProjectG/s5/skinnedtheme.obj",
+    {
+      "path": "source/client/ProjectG/s5/skinnedtheme.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/s5/utilities.obj",
     {
       "path": "source/client/ProjectG/s5/classicserver/classicserver.cpp",
@@ -1061,7 +1377,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/s5/cutinsystem/cutinsystem.obj",
-    "source/client/ProjectG/s5/rentalextensiondlg.obj",
+    {
+      "path": "source/client/ProjectG/s5/rentalextensiondlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/opentournament.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",

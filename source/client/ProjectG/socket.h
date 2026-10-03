@@ -1,5 +1,7 @@
 #pragma once
 
+#include "exception.h"
+
 class WSocket
 {
 public:
@@ -24,6 +26,9 @@ public:
 	int Connect(unsigned long addr, unsigned short port);
 	int SetSocketOpt(int level, int optname, const char* optval, int optlen);
 	int GetSocketOpt(int level, int optname, char* optval, int* optlen);
+	std::string& GetInfo(std::string& str);
+	std::string& GetAddressString(std::string& str);
+	static std::string& GetAddressString(std::string& str, unsigned long addr);
 
 	SOCKET m_socket;
 	sockaddr_in m_addr;

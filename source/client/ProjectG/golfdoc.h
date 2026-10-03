@@ -79,6 +79,65 @@ struct sPlayerData
 	unsigned char level;
 };
 
+struct sTeamData
+{
+	int state;
+	WCrypticValue<unsigned char> stroke[18];
+	WCrypticValue<unsigned char> putt[18];
+	WCrypticValue<int> pang[18];
+	unsigned char totalStroke;
+	int score;
+	WCrypticValue<int> totalPang;
+	WCrypticValue<int> bonusPang;
+	WVector pos;
+	unsigned long color;
+	WCrypticValue<float> gauge;
+	unsigned char bunker;
+	unsigned char shooter;
+	unsigned char club;
+	unsigned char turn;
+	unsigned char teeShooter;
+	unsigned char holeInPose;
+	unsigned char holeInCollision;
+};
+
+struct sProperty
+{
+	float bound;
+	float roll;
+	float min[3];
+	float max[3];
+	unsigned char pass;
+	unsigned char ground;
+
+	sProperty()
+	{
+		boundSound[0] = 0;
+		rollSound[0] = 0;
+	}
+	~sProperty() { }
+
+	char boundSound[64];
+	char rollSound[64];
+	char stepSound[64];
+};
+
+class CPropertyInfo
+{
+public:
+	CPropertyInfo() { m_defaultIndex = -1; }
+	~CPropertyInfo();
+
+	void Init(const TiXmlDocument& doc);
+	int GetPropertyIndex(const char* texture);
+	const sProperty& GetProperty(int index);
+
+private:
+	std::vector<sProperty> m_property;
+	std::map<std::string, int> m_textureIndex;
+	int m_defaultIndex;
+};
+
 struct sWave
 {
 	char texture[32];
@@ -90,6 +149,10 @@ class CWaveInfo
 {
 public:
 	void Load(const char* filename);
+
+	char* GetTexture(int index) { return m_wave[index].texture; }
+	float GetWidth(int index) { return m_wave[index].width; }
+	float GetFreq(int index) { return m_wave[index].freq; }
 
 private:
 	std::map<int, sWave> m_wave;
@@ -112,6 +175,9 @@ private:
 	std::map<int, sRiver> m_river;
 };
 
+const float BAR_END = 500.0f;
+const float BAR_START = 140.0f;
+
 struct sHoleData
 {
 	WVector tee;
@@ -127,6 +193,18 @@ struct sHoleData
 	unsigned long reserved;
 };
 
+struct sCameraData
+{
+	float distance;
+	float height;
+	float clearance;
+	WVector target;
+	float angle;
+	float angleOffset;
+	WMatrix mat;
+	float pitch;
+};
+
 class CGolfDoc
 {
 public:
@@ -134,12 +212,19 @@ public:
 	virtual ~CGolfDoc();
 
 	sPlayerData* GetPlayer(unsigned char index);
+	sTeamData* GetTeam(unsigned char index);
 	void MakePlayer(unsigned char num);
+	void MakeTeam();
+	void ResetTeamVars();
 	void RefreshPlayerNum();
 	void SetPlayerLevel(unsigned char index);
 	CPartTidList& GetPartTidList(unsigned char index);
+	void SetPartTidList(unsigned char index, unsigned long charTid,
+		unsigned char hairColor, unsigned char shirtColor,
+		unsigned long* partTid, unsigned long* partId);
 	void ApproachDataAllClear();
 
+	unsigned char GetCurrentPlayer() { return m_currentPlayer; }
 	sHoleData& GetHoleData() { return m_pHoleData[m_currentHole - 1]; }
 	sHoleData& GetHoleData(unsigned char hole) { return m_pHoleData[hole - 1]; }
 
@@ -156,11 +241,16 @@ public:
 	unsigned char m_playerNum;
 	unsigned char m_unusedc6[2];
 	sHoleData* m_pHoleData;
-	unsigned char m_unusedcc[0x7c];
+	unsigned char m_unusedcc[0x28];
+	sCameraData m_cameraData;
 	unsigned long m_gameMode;
 	unsigned char m_unused14c[1];
 	bool m_bPause;
-	unsigned char m_unused14e[0x1a];
+	unsigned char m_unused14e[3];
+	bool m_bShowChat;
+	unsigned char m_unused152[2];
+	int m_saveChatNum;
+	unsigned char m_unused158[0x10];
 	unsigned char m_currentHole;
 	unsigned char m_unused169[3];
 	unsigned long m_remainTime;

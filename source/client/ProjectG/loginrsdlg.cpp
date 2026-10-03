@@ -3,13 +3,9 @@
 #include "frbutton.h"
 #include "rankingdlg.h"
 #include "user_info.h"
+#include "mathconsts.h"
 
 static __declspec(thread) int __rtti_obj;
-
-static bool IsValid(float f)
-{
-	return f < g_HUGE && f > g_EPSILON;
-}
 
 IMPLEMENT_OBJECT(FrLoginRsDlg, FrForm)
 

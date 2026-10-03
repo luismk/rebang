@@ -30,5 +30,6 @@ namespace S5
 
 		int Base64Encode(char* pSrc, int nLength, char* pDst);
 		int Base64Decode(char* pSrc, unsigned char* pDst, int nLength);
+		unsigned long GetServerProperty();
 	}
 }

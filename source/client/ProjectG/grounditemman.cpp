@@ -6,11 +6,7 @@
 #include "golfdoc.h"
 #include "projectg.h"
 #include "wresrcmng.h"
-
-static bool IsValid(float f)
-{
-	return f < g_HUGE && f > g_EPSILON;
-}
+#include "mathconsts.h"
 
 IObject* GroundItemManMakeInstance()
 {

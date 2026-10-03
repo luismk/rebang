@@ -10,13 +10,9 @@
 #include "scenemanager.h"
 #include "clientsetting.h"
 #include "lobbybg.h"
+#include "mathconsts.h"
 
 extern bool g_bQuit;
-
-static bool IsValid(float f)
-{
-	return f < g_HUGE && f > g_EPSILON;
-}
 
 int LOBBYBG_MAP = 19;
 char* LOBBYBG_MAPNAME = "wizcity";

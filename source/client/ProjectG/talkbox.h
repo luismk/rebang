@@ -33,8 +33,7 @@ private:
 	int m_lineNum;
 	float m_transparency;
 	float m_time;
-	float m_x;
-	float m_y;
+	WPoint m_pos;
 	char m_text[512];
 	unsigned char m_maxLineLen;
 };

@@ -70,7 +70,7 @@ private:
 
 public:
 	unsigned char m_playerSlot[5];
-	unsigned char m_charInfo[5][0x1bc];
+	sCharacterInfo m_charInfo[5];
 
 private:
 	int m_periodStatus[5][5];

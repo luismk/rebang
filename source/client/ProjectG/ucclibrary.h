@@ -142,5 +142,9 @@ void RGBToHLS(unsigned char r, unsigned char g, unsigned char b,
 void HLSToRGB(unsigned char h, unsigned char l, unsigned char s,
 	unsigned char& r, unsigned char& g, unsigned char& b);
 void ClearTexCache(Bitmap* bitmap);
+void Convert24to32(Bitmap* src, Bitmap* dst, const Bitmap* mask);
+void CreateItemThumbnail(const Bitmap* texture, const Bitmap* mask,
+	Bitmap* thumbnail);
+FrGraphicInterface* GetGDI();
 void RefreshTexCache(Bitmap* bitmap);
 void RefreshTexCache(Bitmap& bitmap);

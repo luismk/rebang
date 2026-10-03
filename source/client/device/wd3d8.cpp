@@ -7,6 +7,8 @@
 #include <wlist.h>
 #include <wvideo.h>
 #include <xmmintrin.h>
+#include "wlocalize.h"
+
 extern void AddVideoDevice(WVideoDev* video);
 
 unsigned long WDirect3D8::ms_ZbuffHistogram[256] = { 0 };
@@ -79,11 +81,6 @@ WDirect3D8::sRtFormat WDirect3D8::ms_RtDepthFmt[5] = {
 	{ D3DFMT_D24X4S4, 4 },
 	{ D3DFMT_D15S1,   2 },
 };
-
-inline const char* K2L_Compatibility(const char* s)
-{
-	return s;
-}
 
 extern const char* const g_msgD3DInitFailed = K2L_Compatibility(
 	"Direct3D 9\xb8\xa6 \xc3\xca\xb1\xe2\xc8\xad \xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.");

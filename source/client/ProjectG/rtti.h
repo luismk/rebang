@@ -20,3 +20,8 @@ protected:
 #define IS_KINDOF(type, obj) \
 	((__rtti_obj = (obj)) ? ((IObject*)__rtti_obj)->IsKindOf(&type::m_RTTI) \
 						  : false)
+
+#define IS_EXACTKINDOF(type, obj) \
+	((__rtti_obj = (obj)) \
+			? ((IObject*)__rtti_obj)->IsExactKindOf(&type::m_RTTI) \
+			: false)

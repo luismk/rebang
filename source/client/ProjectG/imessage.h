@@ -5,15 +5,15 @@
 class MemBlock
 {
 public:
+	const unsigned char* GetBuffer() const { return m_Buffer; }
+
+	unsigned char* LockBuffer(int offset) { return &m_Buffer[offset]; }
+
+	unsigned int GetLength() const { return m_offset; }
+
 	MemBlock();
 	MemBlock(unsigned int uSize);
 	virtual ~MemBlock();
-
-	const unsigned char* GetBuffer() const { return m_pBuffer; }
-
-	unsigned char* LockBuffer(int offset);
-
-	unsigned int GetLength() const { return m_offset; }
 
 	int Free();
 	int Alloc(unsigned int uSize);
@@ -28,11 +28,6 @@ protected:
 	unsigned int m_uSize;
 	unsigned int m_offset;
 };
-
-unsigned char* MemBlock::LockBuffer(int offset)
-{
-	return &m_Buffer[offset];
-}
 
 class ISendMsg : public MemBlock
 {
@@ -49,7 +44,9 @@ public:
 	void FixData(int OffSet, char* Buffer, int Len);
 
 	virtual void MakePacketComplete();
+
 	virtual void MakeCheckSum();
+
 	virtual void RollBack() { }
 
 protected:

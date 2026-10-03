@@ -36,6 +36,21 @@ public:
 	virtual void SetReady();
 };
 
+class CGolfRuleTeam : public CGolfRuleBase
+{
+public:
+	CGolfRuleTeam(CGolfRule* pGolfRule);
+	virtual ~CGolfRuleTeam();
+
+	virtual void SetPlayer();
+	virtual void SetGrade();
+	virtual void SetReady();
+	virtual void AddPlayer(unsigned char index, const char* name,
+		unsigned long uid, unsigned long oid, unsigned long caddie);
+	virtual int GetNumTimeout();
+	virtual bool CheckGiveUp();
+};
+
 class CGolfRuleGuildMatch : public CGolfRuleBase
 {
 public:

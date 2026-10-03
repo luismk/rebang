@@ -1170,6 +1170,19 @@ struct sMailIncludeItem
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+struct sGiftInfo
+{
+	unsigned long guid;
+	unsigned long tid;
+	unsigned short Arg0;
+	char sFromID[128];
+	char sMsg[80];
+	char sDate[32];
+	unsigned char ItemType;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct sMailInfo
 {
 	unsigned long dwIndex;
@@ -1569,3 +1582,20 @@ struct GimmickDispositionInformation
 	{
 	}
 };
+
+#pragma pack(push, 1)
+struct sSCardAvilityPeriodInfo
+{
+	unsigned long uid;
+	unsigned long tid;
+	unsigned long partsTid;
+	unsigned long partsUid;
+	int Avility;
+	unsigned int AvilityValue;
+	int slotNum;
+	_SYSTEMTIME useStartTime;
+	_SYSTEMTIME useEndTime;
+	int cardType;
+	unsigned char valid;
+};
+#pragma pack(pop)

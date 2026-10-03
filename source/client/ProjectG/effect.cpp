@@ -68,10 +68,10 @@ void CRing::Process(float dt)
 
 	for (int i = 0; i < m_num; i++)
 	{
-		float a = g_PI * 2 * i;
-		m_pos[i] = m_center + m_radius * RotMat(a / m_num + m_angle, 1).xa;
-		m_pos2[i] =
-			m_center + m_radius * m_scale * RotMat(a / m_num - m_angle, 1).xa;
+		m_pos[i] =
+			m_center + m_radius * RotMat(g_PI * 2 * i / m_num + m_angle, 1).xa;
+		m_pos2[i] = m_center +
+			m_radius * m_scale * RotMat(g_PI * 2 * i / m_num - m_angle, 1).xa;
 	}
 }
 

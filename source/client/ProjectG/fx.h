@@ -2,13 +2,20 @@
 
 #include "scenemanager.h"
 
-class CFxSequence
+#include "fxsequence.h"
+
+struct Attacher
 {
-public:
-	unsigned char m_unused0[0x1104];
-	bool m_bActive;
-	WVector m_pos;
+	float x;
+	float y;
+	WMatrix* mat[4];
+	WVector* pos[4];
+
+	Attacher();
+	bool Get(WVector& out);
 };
+
+struct defines_t;
 
 class CFx : public CRenderFuncPtr, public WSingleton<CFx>
 {
@@ -20,5 +27,10 @@ public:
 	virtual void Display();
 
 	CFxSequence* OpenSequence(const char* filename, bool bDelete);
+	void CloseSequence(CFxSequence* sequence, bool bDeleteChild);
+	CFxSpray* OpenSpray(const char* filename);
+	void CloseSpray(CFxSpray* spray);
+	void* Attach(const Attacher& attacher, const char* filename, bool bMark,
+		defines_t* defines);
 	void SetActive(bool bActive);
 };

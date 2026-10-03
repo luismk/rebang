@@ -46,6 +46,7 @@ public:
 		: x(x_), y(y_)
 	{
 	}
+	void operator+=(const WVector2D& v);
 	float x;
 	float y;
 };

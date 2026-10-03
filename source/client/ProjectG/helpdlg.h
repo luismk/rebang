@@ -27,9 +27,3 @@ protected:
 
 	DECLARE_FRESH_MSGMAP()
 };
-
-// TODO: should be in frwnd.h? Broken emission order...
-inline FrScrollBar* FrWnd::GetScrollBar()
-{
-	return m_pScrBar;
-}

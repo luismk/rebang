@@ -20,8 +20,11 @@ public:
 		WCrypticValue<float> barSpeed;
 	};
 
+	float GetRange(const char* name = NULL);
+	float GetPower();
 	unsigned char GetType() { return m_pClub->type; }
 	int PowerShotType() { return m_powerShot; }
+	unsigned char GetApproachMode() { return m_approachMode; }
 
 private:
 	int m_reserved;
@@ -30,6 +33,7 @@ private:
 	unsigned char m_curIndex;
 	unsigned char m_limitIndex;
 	WCrypticValue<int> m_powerShot;
+	unsigned char m_approachMode;
 	// TODO: incomplete
 };
 

@@ -1,12 +1,15 @@
 #pragma once
 
+#define WLIST_ALLOC(size) malloc(size)
+#define WLIST_FREE(ptr) free(ptr)
+
 #include <winsock2.h>
 #include <windows.h>
+#include "../Wangreal/include/wtypes.h"
 #include <atlbase.h>
 
 #include "wmath.h"
 #include "gamath.h"
-#include "wtypes.h"
 #include "wutil.h"
 #include "wminmax.h"
 #include "wlist.h"
@@ -35,8 +38,15 @@
 #include "background.h"
 #include "wview.h"
 #include "w3danispr.h"
+#include "wpuppet.h"
 #include "woverlay.h"
 #include "singleton.h"
+
+inline void WVector2D::operator+=(const WVector2D& v)
+{
+	x += v.x;
+	y += v.y;
+}
 
 #include <string>
 #include <list>
@@ -56,16 +66,33 @@
 #include "networksystem.h"
 #include "taskmanager.h"
 #include "frbutton.h"
+#include "frwndinl.h"
+#include "frgaugebar.h"
+#include "frlistbox.h"
 #include "frviewer.h"
 #include "frstatic.h"
+#include "frframe.h"
+#include "fremoticon.h"
+#include "frgraphicinterface.h"
+#include "fredit.h"
+#include "frarea.h"
+#include "fresh.h"
+#include "wfont.h"
 #include "ucclibrary.h"
+#include "hackingmanager.h"
+#include "frwndmanager.h"
 #include "z_ilfill.h"
 ILFILL1
+#include "tweaker.h"
+#include "gdvoiceitem.h"
 #include "actor.h"
 #include "polysoup.h"
 #include "golfrule.h"
+#include "scenemanager.h"
+#include "courseorder.h"
 
 #include "autotarget.h"
+#include "golfdoc.h"
 #include "shareddoc.h"
 #include "frtext.h"
 #include "mainframe.h"

@@ -10,7 +10,7 @@ public:
 	int GetLen() const { return m_Len; }
 	void MovePos(int pos);
 	bool IsOutOfToken() const;
-	bool GetToken(char* out, const char* separators, int length);
+	bool GetToken(char* const out, const char* separators, int length);
 	bool GetToken(char** out, const char* separators, int length)
 	{
 		if (!GetResultBuf())
@@ -24,7 +24,7 @@ public:
 		return GetToken(m_pcResBuf, separators, length);
 	}
 	int GetTokenNum(int pos, const char* separators, int length) const;
-	bool GetTokenFullSep(char* out, const char* separators, int length);
+	bool GetTokenFullSep(char* const out, const char* separators, int length);
 	bool GetTokenFullSep(char** out, const char* separators, int length)
 	{
 		if (!GetResultBuf())

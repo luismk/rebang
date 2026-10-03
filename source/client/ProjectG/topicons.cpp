@@ -3,11 +3,7 @@
 #include "actor.h"
 #include "gatewayactor.h"
 #include "topicons.h"
-
-static bool IsValid(float f)
-{
-	return f < g_HUGE && f > g_EPSILON;
-}
+#include "mathconsts.h"
 
 void CWizcityOpenEvent::OnInit(FrButton& button)
 {

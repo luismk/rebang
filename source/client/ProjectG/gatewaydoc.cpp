@@ -1,0 +1,247 @@
+#include "minatl.h"
+
+#include "gatewaydoc.h"
+#include "messagemanager.h"
+#include "specialbox.h"
+#include "gatewayactor.h"
+
+using namespace _gateway;
+
+CSecondPwdDoc::CSecondPwdDoc()
+	: m_pHandler(NULL)
+{
+}
+
+bool CSecondPwdDoc::Initialize()
+{
+	m_pHandler = _util::NewCreator<CSecondaryPassword>::CreateObject();
+	if (m_pHandler)
+	{
+		m_pHandler->Initialize();
+	}
+
+	InitializeForLogout();
+
+	_systemmsg::
+		sMsgInfo
+			msgInfo
+				[] = {
+
+					{ (_systemmsg::eMsgIdentifier)100,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb8\xa6 \xc8\xae\xc0\xce\xc7\xd8\xc1\xd6\xbd\xc3\xb1\xe2 \xb9\xd9\xb6\xf8\xb4\xcf\xb4\xd9."																																																																																																																																																																																																												 },
+					{ (_systemmsg::eMsgIdentifier)101,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb8\xa6 8\xc0\xda\xb8\xae \xc0\xcc\xc7\xcf\xb7\xce \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbd\xc3\xb1\xe2 \xb9\xd9\xb6\xf8\xb4\xcf\xb4\xd9."																																																																																																																																																																																																	  },
+					{ (_systemmsg::eMsgIdentifier)102,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb8\xa6 5\xc0\xda\xb8\xae \xc0\xcc\xbb\xf3\xc0\xb8\xb7\xce \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbd\xc3\xb1\xe2 \xb9\xd9\xb6\xf8\xb4\xcf\xb4\xd9."																																																																																																																																																																																															  },
+					{ (_systemmsg::eMsgIdentifier)103,
+                     "\xc8\xad\xb8\xe9\xc0\xc7 \xbc\xfd\xc0\xda\xc6\xd0\xb5\xe5\xb8\xa6 \xc0\xcc\xbf\xeb\xc7\xd8 \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbd\xc3\xb1\xe2 \xb9\xd9\xb6\xf8\xb4\xcf\xb4\xd9."																																																																																																																																																																																															   },
+					{ (_systemmsg::eMsgIdentifier)104,
+                     "2\xc2\xf7 \xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb0\xa1 \xbb\xfd\xbc\xba\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9."																																																																																																																																																																																																																},
+					{ (_systemmsg::eMsgIdentifier)105,
+                     "2\xc2\xf7 \xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3 \xbb\xfd\xbc\xba\xbf\xa1 \xbd\xc7\xc6\xd0\xc7\xcf\xbf\xb4\xbd\xc0\xb4\xcf\xb4\xd9. : "																																																																																																																																																																																																											},
+					{ (_systemmsg::eMsgIdentifier)106,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb8\xa6 \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbd\xc3\xb1\xe2 \xb9\xd9\xb6\xf8\xb4\xcf\xb4\xd9."																																																																																																																																																																																																												 },
+					{ (_systemmsg::eMsgIdentifier)107,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3 \xc0\xd4\xb7\xc2 \xc1\xa4\xba\xb8\xbf\xcd \xc8\xae\xc0\xce \xc1\xa4\xba\xb8\xb0\xa1 \xc0\xcf\xc4\xa1\xc7\xcf\xc1\xf6 \xbe\xca\xbd\xc0\xb4\xcf\xb4\xd9."																																																																																																																																																																																													 },
+					{ (_systemmsg::eMsgIdentifier)108,
+                     "\xbc\xfd\xc0\xda\xb0\xa1 \xbe\xc6\xb4\xd1 \xb9\xae\xc0\xda\xb0\xa1 \xc0\xd4\xb7\xc2\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9. \xc0\xe7\xc0\xd4\xb7\xc2\xc7\xcf\xbc\xc5\xbe\xdf \xc7\xd5\xb4\xcf\xb4\xd9."																																																																																																																																																																																									 },
+					{ (_systemmsg::eMsgIdentifier)109,
+                     "\xbe\xc6\xc1\xf7 \xba\xbb\xc0\xce \xc0\xce\xc1\xf5 \xc0\xfd\xc2\xf7\xb8\xa6 \xb0\xc5\xc4\xa1\xc1\xf6 \xbe\xca\xbe\xd2\xbd\xc0\xb4\xcf\xb4\xd9.\x0a\xc7\xd8\xb4\xe7 \xb1\xe2\xb4\xc9\xc0\xc7 \xbb\xe7\xbf\xeb\xb1\xe2\xb0\xa3\xb1\xee\xc1\xf6 \xbe\xd5\xc0\xb8\xb7\xce %d\xc0\xcf \xb3\xb2\xbe\xd2\xbd\xc0\xb4\xcf\xb4\xd9.\x0a\xba\xbb\xc0\xce \xc0\xce\xc1\xf5\xc0\xbb \xc7\xcf\xbd\xc3\xb8\xe9 \xc1\xef\xbd\xc3 \xc7\xd8\xb4\xe7 \xb1\xe2\xb4\xc9\xc0\xc7 \xbb\xe7\xbf\xeb\xc0\xcc \xb0\xa1\xb4\xc9\xc7\xd5\xb4\xcf\xb4\xd9."                                                                                                                                                                                                                                                                                                                                                                                                                                              },
+					{ (_systemmsg::eMsgIdentifier)110,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb0\xa1 \xc0\xcf\xc4\xa1\xc7\xcf\xc1\xf6 \xbe\xca\xbd\xc0\xb4\xcf\xb4\xd9. \xbf\xac\xbc\xd3 5\xc8\xb8 \xbf\xc0\xb7\xf9 \xbd\xc3 \xc5\xac\xb6\xf3\xc0\xcc\xbe\xf0\xc6\xae\xb0\xa1 \xb0\xad\xc1\xa6\xc1\xbe\xb7\xe1\xb5\xcb\xb4\xcf\xb4\xd9."																																																																																																																																																																								 },
+					{ (_systemmsg::eMsgIdentifier)111,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3 5\xc8\xb8 \xbf\xc0\xb7\xf9\xc0\xd4\xb4\xcf\xb4\xd9.\x0a\xc6\xce\xbe\xdf\xb0\xa1 \xb0\xad\xc1\xa6\xc1\xbe\xb7\xe1\xb5\xcb\xb4\xcf\xb4\xd9."																																																																																																																																																																																																  },
+					{ (_systemmsg::eMsgIdentifier)112,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3 \xc0\xfc\xc3\xbc\xb8\xa6 \xb5\xbf\xc0\xcf\xc7\xd1 \xbc\xfd\xc0\xda\xb7\xce \xc0\xd4\xb7\xc2\xc7\xcf\xbd\xc7 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9."																																																																																																																																																																																													 },
+					{ (_systemmsg::eMsgIdentifier)113,
+                     "\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3 \xc0\xfc\xc3\xbc\xb8\xa6 \xbf\xac\xbc\xd3\xb5\xc8 \xbc\xfd\xc0\xda\xb7\xce \xc0\xd4\xb7\xc2\xc7\xcf\xbd\xc7 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9."																																																																																																																																																																																													 },
+					{ (_systemmsg::eMsgIdentifier)114,
+                     "2\xc2\xf7 \xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb4\xc2 \xc8\xb8\xbf\xf8\xb4\xd4\xc0\xc7 \xbe\xc6\xc0\xcc\xc5\xdb \xb9\xd7 \xb0\xb3\xc0\xce\xc1\xa4\xba\xb8 \xba\xb8\xc8\xa3\xb8\xa6 \xc0\xa7\xc7\xd8 \xb5\xb5\xc0\xd4\xb5\xc8 \xbd\xc3\xbd\xba\xc5\xdb\xc0\xd4\xb4\xcf\xb4\xd9.\x0a"
+						"2\xc2\xf7 \xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb8\xa6 \xbc\xb3\xc1\xa4\xc7\xcf\xbc\xc5\xbe\xdf\xb8\xb8 \xb0\xd4\xc0\xd3 \xb7\xce\xb1\xd7\xc0\xce\xc0\xcc \xb0\xa1\xb4\xc9\xc7\xd5\xb4\xcf\xb4\xd9.\x0a\x0a\x0a\x0a\x0a\x0a\xb4\xd9\xc0\xbd\xb0\xfa \xb0\xb0\xc0\xba \xb1\xe2\xb4\xc9\xc0\xbb \xc1\xef\xbd\xc3 \xc0\xcc\xbf\xeb\xc7\xcf\xb1\xe2 \xc0\xa7\xc7\xd8\xbc\xad\xb4\xc2 \xba\xbb\xc0\xce\xc0\xce\xc1\xf5\xc0\xbb \xbf\xcf\xb7\xe1\xc7\xcf\xbc\xc5\xbe\xdf \xc7\xd5\xb4\xcf\xb4\xd9.\x0a\\c0xffff0000\\c\xb1\xb8\xb8\xc5, \xbc\xb1\xb9\xb0, \xb0\xb3\xc0\xce\xbb\xf3\xc1\xa1\xb0\xc5\xb7\xa1, \xbf\xec\xc6\xed\xc7\xd4(\xc3\xb7\xba\xce), \xc0\xfc\xb1\xa4\xc6\xc7, \xb4\xd0\xb3\xd7\xc0\xd3 \xba\xaf\xb0\xe6\x0a\\c0xff000000\\c\xba\xbb\xc0\xce\xc0\xce\xc1\xf5\xc0\xbb \xc7\xcf\xc1\xf6 \xbe\xca\xc0\xb8\xbd\xc5 \xb0\xe6\xbf\xec\xbf\xa1\xb4\xc2 10\xc0\xcf \xb0\xe6\xb0\xfa \xc8\xc4\xbf\xa1 \xc0\xcc\xbf\xeb\xc0\xcc \xb0\xa1\xb4\xc9\xc7\xd5\xb4\xcf\xb4\xd9." },
+					{ (_systemmsg::eMsgIdentifier)115,
+                     "\xba\xbb\xc0\xce \xc0\xce\xc1\xf5\xc0\xbb \xc7\xcf\xb8\xe9 \xc1\xef\xbd\xc3\x0a\xb8\xf0\xb5\xe7 \xb1\xe2\xb4\xc9\xc0\xbb \xc0\xcc\xbf\xeb\xc7\xcf\xbd\xc7 \xbc\xf6\x0a\xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9."																																																																																																																																																																																									 },
+					{ (_systemmsg::eMsgIdentifier)116,
+                     "\xc1\xf6\xb1\xdd\xc0\xb8\xb7\xce\xba\xce\xc5\xcd 10\xc0\xcf\xb0\xa3\x0a\xb4\xd9\xc0\xbd\xb0\xfa \xb0\xb0\xc0\xba \xb1\xe2\xb4\xc9\xc0\xc7 \xc0\xcc\xbf\xeb\xc0\xcc\x0a\xc1\xa6\xc7\xd1\xb5\xcb\xb4\xcf\xb4\xd9.\x0a\\c0xffff0000\\c\xb1\xb8\xb8\xc5, \xbc\xb1\xb9\xb0, \xb0\xb3\xc0\xce\xbb\xf3\xc1\xa1\xb0\xc5\xb7\xa1,\x0a\xbf\xec\xc6\xed\xc7\xd4(\xc3\xb7\xba\xce), \xc0\xfc\xb1\xa4\xc6\xc7,\x0a\xb4\xd0\xb3\xd7\xc0\xd3 \xba\xaf\xb0\xe6"																																																																																																																															  },
+					{ (_systemmsg::eMsgIdentifier)117,
+                     "\xc7\xf6\xc0\xe7 \xc8\xb8\xbf\xf8\xb4\xd4\xc0\xc7 \xb0\xe8\xc1\xa4\xc0\xba 2\xc2\xf7 \xba\xf1\xb9\xd0 \xb9\xf8\xc8\xa3\xb0\xa1 \xbb\xfd\xbc\xba\xb5\xc7\xbe\xee \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9.\x0a \\c0xffff0000\\c\xc6\xce\xbe\xdf \xc8\xa8\xc6\xe4\xc0\xcc\xc1\xf6> \xb0\xed\xb0\xb4\xbc\xbe\xc5\xcd> 1:1\xb9\xae\xc0\xc7\\c0xffffffff\\c\xb8\xa6 \xc5\xeb\xc7\xd8\x0a\xbd\xc5\xb0\xed\xc7\xd8 \xc1\xd6\xbd\xc3\xb1\xe2 \xb9\xd9\xb6\xf8\xb4\xcf\xb4\xd9."																																																																																																																											  },
+					{ (_systemmsg::eMsgIdentifier)118,
+                     "2\xc2\xf7 \xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3 \xc1\xa4\xba\xb8 \xc8\xa3\xc3\xe2\xbf\xa1 \xbd\xc7\xc6\xd0\xc7\xcf\xbf\xb4\xbd\xc0\xb4\xcf\xb4\xd9. : "																																																																																																																																																																																																						   },
+					{ (_systemmsg::eMsgIdentifier)119,
+                     "2\xc2\xf7 \xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3 \xb7\xce\xb1\xd7\xc0\xce\xbf\xa1 \xbd\xc7\xc6\xd0\xc7\xcf\xbf\xb4\xbd\xc0\xb4\xcf\xb4\xd9. : "																																																																																																																																																																																																									},
+    };
+
+	_systemmsg::CMessageManager::Instance()->InsertMessageGroup(msgInfo,
+		sizeof(msgInfo) / sizeof(msgInfo[0]) - 1);
+
+	return true;
+}
+
+bool CSecondPwdDoc::Release()
+{
+	if (m_pHandler)
+	{
+		delete m_pHandler;
+		m_pHandler = NULL;
+	}
+
+	return true;
+}
+
+void CSecondPwdDoc::InitializeForLogout()
+{
+	m_passwordState = (eSecondPasswordState)0;
+	m_remainDay = 0;
+	m_invalidInputCount = 0;
+	m_bSecondPasswordConfirm = false;
+	m_bCertifyFlag = false;
+}
+
+CGolfItemDoc::CGolfItemDoc()
+	: m_pHandler(NULL),
+	  m_calipersCount(0),
+	  m_specialBoxCount(0),
+	  m_ownSpecialBoxCount(0)
+{
+}
+
+bool CGolfItemDoc::Initialize()
+{
+	m_pHandler = _util::NewCreator<CGolfItemHandler>::CreateObject();
+	if (m_pHandler)
+	{
+		m_pHandler->Initialize();
+	}
+
+	for (int i = 0; i < 2; ++i)
+	{
+		m_usableItemList.push_back(0);
+	}
+
+	_systemmsg::sMsgInfo msgInfo[] = {
+
+		{ (_systemmsg::eMsgIdentifier)300,
+         "(\xbe\xcb\xb8\xb2) %s \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xba %d\xb0\xb3\xb1\xee\xc1\xf6\xb8\xb8 \xbe\xf2\xc0\xbb \xbc\xf6 \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9." },
+		{ (_systemmsg::eMsgIdentifier)301,
+         "(\xbe\xcb\xb8\xb2) \xb4\xf5 \xc0\xcc\xbb\xf3 %s \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xbb \xbe\xf2\xc0\xbb \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9."          },
+		{ (_systemmsg::eMsgIdentifier)302,
+         "(\xbe\xcb\xb8\xb2) \xc7\xf6\xc0\xe7 %d\xb0\xb3 \xba\xb8\xc0\xaf, %d\xb0\xb3 \xc8\xb9\xb5\xe6\xb0\xa1\xb4\xc9"                                          },
+	};
+
+	_systemmsg::CMessageManager::Instance()->InsertMessageGroup(msgInfo,
+		sizeof(msgInfo) / sizeof(msgInfo[0]) - 1);
+
+	return true;
+}
+
+bool CGolfItemDoc::Release()
+{
+	if (m_pHandler)
+	{
+		delete m_pHandler;
+		m_pHandler = NULL;
+	}
+
+	return true;
+}
+
+void CGolfItemDoc::ResetUsableItemList()
+{
+	int size = m_usableItemList.size();
+
+	for (int i = 0; i < size; ++i)
+	{
+		m_usableItemList[i] = 0;
+	}
+}
+
+void CGolfItemDoc::ResetCalipersVariable()
+{
+	m_calipersCount = 0;
+	EnableCalipers(false);
+}
+
+void CGolfItemDoc::DeceaseCalipersCount()
+{
+	if (m_calipersCount <= 0)
+	{
+		m_calipersCount = 0;
+	}
+	else
+
+		m_calipersCount--;
+}
+
+CTradeDoc::CTradeDoc()
+	: m_pHandler(NULL), m_bPackageSale(false)
+{
+}
+
+CTradeDoc::~CTradeDoc()
+{
+}
+
+bool CTradeDoc::Initialize()
+{
+	m_pHandler = _util::NewCreator<CTradeHandler>::CreateObject();
+	if (m_pHandler)
+	{
+		m_pHandler->Initialize();
+	}
+
+	return true;
+}
+
+bool CTradeDoc::Release()
+{
+	if (m_pHandler)
+	{
+		delete m_pHandler;
+		m_pHandler = NULL;
+	}
+
+	return true;
+}
+
+bool CSpecialBoxDoc::Initialize()
+{
+	m_pHandler = _util::NewCreator<CSpecialBoxHandler>::CreateObject();
+	if (m_pHandler)
+	{
+		m_pHandler->Initialize();
+	}
+
+	_systemmsg::sMsgInfo msgInfo[] = {
+		{ (_systemmsg::eMsgIdentifier)200,
+         "\xbb\xf3\xc0\xda\xb8\xa6 \xbf\xad\xb1\xe2 \xc0\xa7\xc7\xd1 \xc0\xe7\xb7\xe1\xb0\xcb\xbb\xf6\xc0\xbb \xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9."                          },
+		{ (_systemmsg::eMsgIdentifier)201,
+         "\xbb\xf3\xc0\xda\xb8\xa6 \xbf\xad\xb1\xe2 \xc0\xa7\xc7\xd8 \xc7\xca\xbf\xe4\xc7\xd1 \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xbb \xc3\xa3\xc0\xbb \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9." },
+		{ (_systemmsg::eMsgIdentifier)202,
+         "\xbb\xf3\xc0\xda\xb8\xa6 \xbf\xad\xb1\xe2 \xc0\xa7\xc7\xd8 \xc7\xca\xbf\xe4\xc7\xd1 \xbe\xc6\xc0\xcc\xc5\xdb \xb0\xb3\xbc\xf6\xb0\xa1 \xba\xce\xc1\xb7\xc7\xd5\xb4\xcf\xb4\xd9."  },
+		{ (_systemmsg::eMsgIdentifier)203,
+         "%s \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xb8\xb7\xce \xbb\xf3\xc0\xda\xb8\xa6 \xbf\xad\xb0\xed \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9."                                                          },
+	};
+
+	_systemmsg::CMessageManager::Instance()->InsertMessageGroup(msgInfo,
+		sizeof(msgInfo) / sizeof(msgInfo[0]) - 1);
+
+	return true;
+}
+
+bool CSpecialBoxDoc::Release()
+{
+	if (m_pHandler)
+	{
+		delete m_pHandler;
+		m_pHandler = NULL;
+	}
+
+	return true;
+}
+
+inline CGatewayControlDoc::CGatewayControlDoc()
+{
+}
+
+inline CGatewayControlDoc::~CGatewayControlDoc()
+{
+}

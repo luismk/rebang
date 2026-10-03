@@ -14,6 +14,7 @@ private:
 	void deleteTransition(unsigned long input);
 	unsigned long outputState(unsigned long input);
 	unsigned long getCount();
+
 	unsigned long getStateID() { return m_stateID; }
 
 	unsigned long m_stateID;

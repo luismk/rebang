@@ -45,7 +45,6 @@ void CAniOverlay::Render(float x, float y, int frame, int mode, int color,
 		0);
 }
 
-static const float IMPACT_X = 140.0f;
 CEffectOverlay::CEffectOverlay()
 	: m_pAniOverlay(NULL), m_bActive(false)
 {
@@ -94,6 +93,6 @@ void CEffectOverlay::Display()
 {
 	if (!m_bActive)
 		return;
-	m_pAniOverlay->Render(IMPACT_X, COption::Instance()->gGetBar_Y() - 8.0f,
+	m_pAniOverlay->Render(BAR_START, COption::Instance()->gGetBar_Y() - 8.0f,
 		m_frame, 0x800000, 0xffffffff, 1.0f);
 }

@@ -41,3 +41,50 @@ public:
 	void Load();
 	void UpdateFog(const char* mapName);
 };
+
+class CWavelet
+{
+public:
+	struct sWavelet
+	{
+		WVector pos[2];
+		WVector dir;
+		float u[2];
+	};
+
+	struct sLayer
+	{
+		float pos;
+		float delay;
+		float alpha;
+		float time;
+		float speed;
+		int state;
+	};
+
+	CWavelet();
+	virtual ~CWavelet();
+
+	virtual void Process(float dt);
+	virtual void Render();
+
+	void SetWavelet(const std::vector<WVector>& points, const char* name,
+		int layerNum);
+
+protected:
+	virtual void ReadAttribute(const char* name);
+	virtual void SetLayer(int num);
+
+	std::vector<sWavelet> m_wavelet;
+	int m_texHandle;
+	float m_width;
+	float m_frequency;
+	float m_deceleration;
+	float m_fadeInTime;
+	float m_fadeOutTime;
+	float m_delay;
+	std::vector<sLayer> m_layer;
+
+	static WTVertex vtr[4];
+	static WTVertex* vtx[5];
+};

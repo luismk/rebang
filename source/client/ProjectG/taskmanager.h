@@ -102,6 +102,7 @@ public:
 	int PostMsg(const IActor* sender, const char* target, int message,
 		int param1, int param2, int param3, unsigned long time);
 
+	void ChangeTask(const char* taskName, const char* docName, bool bPreserve);
 	CTask* GetCurrentTask() const;
 	CTask* GetPreservedTask() const { return m_pPreservedTask; }
 

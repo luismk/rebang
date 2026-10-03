@@ -119,6 +119,7 @@ void ISendMsg::EncodeStr(const char* data)
 
 void ISendMsg::FixData(int OffSet, char* Buffer, int Len)
 {
+	LockBuffer(OffSet);
 	memcpy(&m_pBuffer[OffSet + 4], Buffer, Len);
 }
 

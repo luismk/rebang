@@ -24,8 +24,9 @@
 			int v; \
 			ILFILLFN10(1) ILFILLFN10(2) ILFILLFN10(3) ILFILLFN10(4) \
 			ILFILLFN10(5) ILFILLFN10(6) ILFILLFN10(7) ILFILLFN10(8) \
-			ILFILLFN10(9) ILFILLFN10(10) \
-			void g() { ILFILL64 ILFILL64 ILFILL16 ILFILL4 v += 1; } \
+			ILFILLFN10(9) ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) \
+			ILFILLFN(3) \
+			void g() { ILFILL64 ILFILL4 ILFILL4 ILFILL4 v += 1; v += 1; } \
 		}; \
 	}
 
@@ -37,7 +38,7 @@
 			int v; \
 			ILFILLFN10(1) ILFILLFN10(2) ILFILLFN(0) ILFILLFN(1) \
 			ILFILLFN(2) \
-			void g() { ILFILL16 } \
+			void g() { ILFILL64 } \
 		}; \
 	}
 
@@ -49,7 +50,7 @@
 			int v; \
 			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
 			ILFILLFN(4) ILFILLFN(5) \
-			void g() { } \
+			void g() { ILFILL16 ILFILL16 } \
 		}; \
 	}
 // clang-format on
