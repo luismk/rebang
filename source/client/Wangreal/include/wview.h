@@ -215,3 +215,12 @@ class WViewOrth : public WView
 public:
 	virtual ~WViewOrth() { }
 };
+
+inline unsigned long ULblend(unsigned long c1, unsigned long c2,
+	unsigned char t)
+{
+	return ((((c1 & 0xff00ff) * (255 - t) + (c2 & 0xff00ff) * t) >> 8) &
+			   0xff00ff) |
+		((((c1 >> 8) & 0xff00ff) * (255 - t) + ((c2 >> 8) & 0xff00ff) * t) &
+			0xff00ff00);
+}

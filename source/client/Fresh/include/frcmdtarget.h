@@ -113,3 +113,9 @@ protected: \
 
 #define ON_FRESH_VI(name, cmd, memberFxn) \
 	{ name, cmd, FrFuncVI, (FRESH_PFN)(FRESH_PFN_VI) & memberFxn },
+
+#define ON_FRESH_BV(name, cmd, memberFxn) \
+	{ name, cmd, FrFuncBV, (FRESH_PFN)(FRESH_PFN_BV) & memberFxn },
+
+#define ON_FRESH_BI(name, cmd, memberFxn) \
+	{ name, cmd, FrFuncBI, (FRESH_PFN)(FRESH_PFN_BI) & memberFxn },

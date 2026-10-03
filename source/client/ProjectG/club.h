@@ -5,8 +5,22 @@
 class CClub
 {
 public:
-	struct sClub;
+	struct sClub
+	{
+		WCrypticValue<float> range;
+		WCrypticValue<float> lie;
+		unsigned char id;
+		unsigned char index;
+		unsigned char type;
+		WCrypticValue<float> power;
+		WCrypticValue<float> curve;
+		WCrypticValue<float> spin;
+		char name[4];
+		float pointFactor;
+		WCrypticValue<float> barSpeed;
+	};
 
+	unsigned char GetType() { return m_pClub->type; }
 	int PowerShotType() { return m_powerShot; }
 
 private:

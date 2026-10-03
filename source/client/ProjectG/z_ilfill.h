@@ -24,8 +24,8 @@
 			int v; \
 			ILFILLFN10(1) ILFILLFN10(2) ILFILLFN10(3) ILFILLFN10(4) \
 			ILFILLFN10(5) ILFILLFN10(6) ILFILLFN10(7) ILFILLFN10(8) \
-			ILFILLFN10(9) ILFILLFN10(10) ILFILLFN(0) ILFILLFN(1) \
-			void g() { ILFILL16 ILFILL16 ILFILL16 v += 1; } \
+			ILFILLFN10(9) ILFILLFN10(10) \
+			void g() { ILFILL64 ILFILL64 ILFILL16 ILFILL4 v += 1; } \
 		}; \
 	}
 
@@ -35,8 +35,9 @@
 		struct Pad \
 		{ \
 			int v; \
-			ILFILLFN10(1) ILFILLFN10(2) ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) \
-			void g() { ILFILL4 ILFILL4 ILFILL4 v += 1; v += 1; } \
+			ILFILLFN10(1) ILFILLFN10(2) ILFILLFN(0) ILFILLFN(1) \
+			ILFILLFN(2) \
+			void g() { ILFILL16 } \
 		}; \
 	}
 
@@ -46,8 +47,9 @@
 		struct Pad \
 		{ \
 			int v; \
-			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) ILFILLFN(4) ILFILLFN(5) \
-			void g() { ILFILL4 v += 1; v += 1; } \
+			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
+			ILFILLFN(4) ILFILLFN(5) \
+			void g() { } \
 		}; \
 	}
 // clang-format on

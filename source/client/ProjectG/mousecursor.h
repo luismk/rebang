@@ -17,6 +17,7 @@ public:
 	};
 
 	void Reset(bool active);
+	void SetActive(bool active);
 	void SetCursor(int cursor);
 	int GetCursor();
 	void ForceMove(float x, float y, float z);

@@ -2,6 +2,7 @@
 
 #include "packet.h"
 #include "socket.h"
+#include "criticalsection.h"
 
 class WClientSocket : public WSocket
 {
@@ -32,5 +33,5 @@ protected:
 	int m_sendSeq;
 	int m_parseKey;
 	unsigned int m_eventMsg;
-	CRITICAL_SECTION m_cs;
+	CCriticalSection m_cs;
 };

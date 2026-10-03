@@ -35,3 +35,8 @@ inline unsigned long MyGuid(bool bGallery)
 		return Doc()->m_myInfo.info.dwGalleryGuid;
 	return Doc()->m_myInfo.info.dwGuid;
 }
+
+inline unsigned long GetShotTimeLimit()
+{
+	return Doc()->m_golfGame.shotTimeLimit;
+}

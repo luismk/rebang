@@ -6,12 +6,6 @@
 #include "frframe.h"
 #include "../../Wangreal/include/wtypes.h"
 
-class FrEdit;
-class FrFrame;
-class FrGuiItem;
-class FrStatic;
-class FrWndManager;
-
 enum eFormRet
 {
 	FrNONE,
@@ -20,6 +14,27 @@ enum eFormRet
 	FrYES,
 	FrNO
 };
+
+class FrWndManager;
+
+template <class T>
+T* CreateForm(FrWndManager* pManager, FrCmdTarget* pCmdDest,
+	const char* lpszTemplateID, FrWnd* pParent = NULL)
+{
+	T* pForm = new T;
+
+	FrForm* pRet = pForm->_Init(pManager, pCmdDest, lpszTemplateID, pParent);
+	if (pRet)
+		return DYNAMIC_CAST(T, pRet);
+
+	delete pForm;
+	return NULL;
+}
+
+class FrEdit;
+class FrFrame;
+class FrGuiItem;
+class FrStatic;
 
 enum eFormFlags
 {

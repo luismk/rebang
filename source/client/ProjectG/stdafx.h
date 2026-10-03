@@ -34,6 +34,7 @@
 #include "objectfactory.h"
 #include "background.h"
 #include "wview.h"
+#include "w3danispr.h"
 #include "woverlay.h"
 #include "singleton.h"
 
@@ -55,8 +56,14 @@
 #include "networksystem.h"
 #include "taskmanager.h"
 #include "frbutton.h"
+#include "frviewer.h"
+#include "frstatic.h"
+#include "ucclibrary.h"
 #include "z_ilfill.h"
 ILFILL1
+#include "actor.h"
+#include "polysoup.h"
+#include "golfrule.h"
 
 #include "autotarget.h"
 #include "shareddoc.h"

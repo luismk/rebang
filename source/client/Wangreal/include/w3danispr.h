@@ -41,7 +41,7 @@ public:
 	int LoadSpritesInOneTexture(const char* filename, int type, float fSprSizeX,
 		float fSprSizeY);
 	int LoadTexture(int handle, float fSprSizeX, float fSprSizeY);
-	int GetSpriteNum() const;
+	int GetSpriteNum() const { return m_nTotalSprite; }
 
 private:
 	void Rotate(float w, float h, float& rw, float& rh, float angle);

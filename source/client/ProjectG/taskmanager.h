@@ -103,12 +103,15 @@ public:
 		int param1, int param2, int param3, unsigned long time);
 
 	CTask* GetCurrentTask() const;
+	CTask* GetPreservedTask() const { return m_pPreservedTask; }
 
 	void SetWork(CWork* pWork) { m_pWork.reset(pWork); }
 	void ReleaseWork() { delete m_pWork.release(); }
 
 protected:
-	unsigned char m_unused28[0x44];
+	unsigned char m_unused28[0x10];
+	CTask* m_pPreservedTask;
+	unsigned char m_unused3c[0x30];
 	std::auto_ptr<CWork> m_pWork;
 	// TODO: this class definition is incomplete
 };
@@ -118,4 +121,11 @@ inline CTask* AfxGetTask()
 	if (CTaskManager::Instance() == NULL)
 		return NULL;
 	return CTaskManager::Instance()->GetCurrentTask();
+}
+
+inline CTask* AfxGetPreservedTask()
+{
+	if (CTaskManager::Instance() == NULL)
+		return NULL;
+	return CTaskManager::Instance()->GetPreservedTask();
 }

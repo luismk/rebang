@@ -136,3 +136,11 @@ struct IPoint
 	int x;
 	int y;
 };
+
+void RGBToHLS(unsigned char r, unsigned char g, unsigned char b,
+	unsigned char& h, unsigned char& l, unsigned char& s);
+void HLSToRGB(unsigned char h, unsigned char l, unsigned char s,
+	unsigned char& r, unsigned char& g, unsigned char& b);
+void ClearTexCache(Bitmap* bitmap);
+void RefreshTexCache(Bitmap* bitmap);
+void RefreshTexCache(Bitmap& bitmap);

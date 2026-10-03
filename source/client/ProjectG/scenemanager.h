@@ -38,4 +38,6 @@ public:
 		const char* name, unsigned long flag, Waabb* aabb);
 	void DeleteElement(const char* name);
 	void SetVisible(const char* name, bool bVisible);
+	void Load();
+	void UpdateFog(const char* mapName);
 };

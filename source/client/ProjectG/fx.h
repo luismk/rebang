@@ -20,4 +20,5 @@ public:
 	virtual void Display();
 
 	CFxSequence* OpenSequence(const char* filename, bool bDelete);
+	void SetActive(bool bActive);
 };

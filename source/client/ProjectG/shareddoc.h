@@ -6,6 +6,7 @@
 #include "../../shared/classdefine.h"
 ILFILL2
 #include "../../shared/itemmanager.h"
+#include "hatmanager.h"
 
 struct sGameTypeInfo
 {
@@ -81,6 +82,15 @@ struct sRivalData
 	unsigned char pangNitro;
 };
 
+struct sRecordedItemInfo
+{
+	sItemInfo itemInfo;
+	unsigned long course;
+	SYSTEMTIME date;
+	char fileName[32];
+	unsigned char bValid;
+};
+
 class CGolfDoc;
 
 class CSharedDoc : public WSingleton<CSharedDoc>
@@ -94,8 +104,11 @@ public:
 	std::map<unsigned char, sMapStatistics>& GetMyPastMapStat(
 		unsigned char season);
 	std::string GetLoginAuthKey();
+	int IsControlServerService(int service);
 	void ClearUserInfoTimeMap(unsigned long uid);
 	void SetIndex(unsigned long uid);
+	float GetWtPepPangyaComboGauge(unsigned char player);
+	int CollapseItemSlot(unsigned char slot);
 
 	char* GetFileName() { return m_fileName; }
 	eReplayModeType GetPlayingMode() { return m_playingMode; }
@@ -129,23 +142,44 @@ public:
 	std::list<unsigned short> m_refreshCountList;
 	CItemManager m_itemManager;
 	sMyInfo m_myInfo;
-	unsigned char m_unusedd4c[0x584];
+	unsigned char m_unusedd4c[0x454];
+	std::list<sItemInfo> m_myItemList;
+	std::list<sRecordedItemInfo> m_recordedItemList;
+	unsigned char m_unused11b8[0x118];
 	sUserInfo m_userInfo[4];
 	unsigned char m_unused4118[0x3ec];
 	std::vector<sRivalData> m_rivalList;
-	unsigned char m_unused4514[0x50];
+	unsigned char m_unused4514[0x4c];
+	int m_gameMode;
 	unsigned char m_holeType;
 	unsigned char m_unused4565[0x8d];
 	unsigned char m_holeOrder[19];
-	unsigned char m_unused4605[0x5b];
+	unsigned char m_unused4605[3];
+	unsigned long m_holeRandom[18];
+	unsigned long m_approachStartTime;
+	unsigned char m_unused4654[0xc];
 	sGolfGame m_golfGame;
 	unsigned char m_unused4778[0x2f8];
 	std::list<sSlotInfo> m_slotList;
-	unsigned char m_unused4a7c[0x5c4];
+	unsigned char m_unused4a7c[0x3c];
+	sChannelInfo m_curChannel;
+	unsigned char m_unused4b05[0x79];
+	bool m_bBackgroundVideo;
+	unsigned char m_unused4b7f[0xed];
+	ChatManager m_chatManager;
+	unsigned char m_unused4ca4[0xe8];
+	unsigned long m_tutorialComplete[3];
+	unsigned char m_unused4d98[0x2a8];
 	CGolfDoc* m_pGolfDoc;
-	unsigned char m_unused5044[0xb58];
+	unsigned char m_unused5044[0xb50];
+	int m_replayState;
+	int m_replayPlayType;
 	eReplayModeType m_playingMode;
 	char m_fileName[32];
+	unsigned long m_replayPosition;
+	unsigned long m_replayDuration;
+	unsigned long m_replayTick;
+	int m_replayShotIndex;
 	// TODO: this struct definition is incomplete
 };
 
