@@ -54,6 +54,7 @@
 #include "titles_client.h"
 #include "networksystem.h"
 #include "taskmanager.h"
+#include "frbutton.h"
 #include "z_ilfill.h"
 ILFILL1
 

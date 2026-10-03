@@ -74,7 +74,11 @@
     "source/client/ProjectG/golfruletimeattack.obj",
     "source/client/ProjectG/golfruletutorial.obj",
     "source/client/ProjectG/club.obj",
-    "source/client/ProjectG/golfball.obj",
+    {
+      "path": "source/client/ProjectG/golfball.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/wind.obj",
     "source/client/ProjectG/3dfont.obj",
     {
@@ -323,7 +327,11 @@
     "source/client/ProjectG/approachdesc.obj",
     "source/client/ProjectG/intrusion.obj",
     "source/client/ProjectG/voiceitem.obj",
-    "source/client/ProjectG/shufflebonus.obj",
+    {
+      "path": "source/client/ProjectG/shufflebonus.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/caddiebonus.obj",
     "source/client/ProjectG/powergauge.obj",
     {
@@ -497,7 +505,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/networkmonitor.obj",
+    {
+      "path": "source/client/ProjectG/networkmonitor.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/ppl.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -835,7 +847,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/webicons.obj",
+    {
+      "path": "source/client/ProjectG/webicons.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/familymain.obj",
     "source/client/ProjectG/familytask.obj",
     "source/client/ProjectG/g_starmode.obj",
