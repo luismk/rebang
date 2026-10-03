@@ -15,6 +15,72 @@ struct sGameTypeInfo
 	unsigned char holes;
 };
 
+struct sGolfGame
+{
+	unsigned char map;
+	IFF_STRUCT::sCourse* pCourse;
+	unsigned char gameType;
+	char gameTypeName[260];
+	unsigned char holes;
+	unsigned char weather;
+	unsigned long shotTimeLimit;
+	unsigned long gameTimeLimit;
+
+	sGolfGame()
+		: map(0),
+		  pCourse(NULL),
+		  gameType(0),
+		  weather(0),
+		  shotTimeLimit(0),
+		  gameTimeLimit(0)
+	{
+		holes = 18;
+		memset(gameTypeName, 0, sizeof(gameTypeName));
+	}
+};
+
+enum eReplayModeType
+{
+};
+
+struct sRivalData
+{
+	unsigned long uid;
+	unsigned long oid;
+	char nickname[22];
+	char guildName[21];
+	unsigned char team;
+	unsigned short level;
+	unsigned char state;
+	int holeScore[18];
+	unsigned char holeStroke[18];
+	__int64 holePang[18];
+	__int64 totalPang;
+	__int64 totalBonusPang;
+	int totalScore;
+	unsigned char totalStroke;
+	unsigned char hole;
+	unsigned char rank;
+	unsigned char order;
+	unsigned char quitOrder;
+	unsigned char finishOrder;
+	WVector ballPos;
+	unsigned long observerState;
+	unsigned char observerRank;
+	unsigned long titleTypeId;
+	unsigned char flag;
+	unsigned long guildUID;
+	char guildMark[12];
+	unsigned long guildPoint;
+	unsigned long approachDistance;
+	unsigned long approachResultDistance;
+	int approachTime;
+	unsigned long capability;
+	unsigned long mascotTypeId;
+	unsigned char pangMastery;
+	unsigned char pangNitro;
+};
+
 class CGolfDoc;
 
 class CSharedDoc : public WSingleton<CSharedDoc>
@@ -28,6 +94,11 @@ public:
 	std::map<unsigned char, sMapStatistics>& GetMyPastMapStat(
 		unsigned char season);
 	std::string GetLoginAuthKey();
+	void ClearUserInfoTimeMap(unsigned long uid);
+	void SetIndex(unsigned long uid);
+
+	char* GetFileName() { return m_fileName; }
+	eReplayModeType GetPlayingMode() { return m_playingMode; }
 
 	std::string m_password;
 	std::string m_gameServerAddr;
@@ -60,8 +131,21 @@ public:
 	sMyInfo m_myInfo;
 	unsigned char m_unusedd4c[0x584];
 	sUserInfo m_userInfo[4];
-	unsigned char m_unused4118[0xf28];
+	unsigned char m_unused4118[0x3ec];
+	std::vector<sRivalData> m_rivalList;
+	unsigned char m_unused4514[0x50];
+	unsigned char m_holeType;
+	unsigned char m_unused4565[0x8d];
+	unsigned char m_holeOrder[19];
+	unsigned char m_unused4605[0x5b];
+	sGolfGame m_golfGame;
+	unsigned char m_unused4778[0x2f8];
+	std::list<sSlotInfo> m_slotList;
+	unsigned char m_unused4a7c[0x5c4];
 	CGolfDoc* m_pGolfDoc;
+	unsigned char m_unused5044[0xb58];
+	eReplayModeType m_playingMode;
+	char m_fileName[32];
 	// TODO: this struct definition is incomplete
 };
 

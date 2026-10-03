@@ -58,6 +58,23 @@ private:
 
 CActorFactory& ActorFactory();
 
+#define IMPLEMENT_ACTOR(className, baseClass) \
+	IObject* className##MakeInstance() \
+	{ \
+		return new className; \
+	} \
+	struct __imp##className \
+	{ \
+		__imp##className() \
+		{ \
+			ObjectFactory().AddObjectFunctor(className##MakeInstance, \
+				#className); \
+			ActorFactory().AddActorClass(#className); \
+		} \
+	}; \
+	const WRTTI className::m_RTTI(#className, &baseClass::m_RTTI); \
+	static __imp##className __impl##className;
+
 class IActor : public IObject
 {
 	friend class CTask;

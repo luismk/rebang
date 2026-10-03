@@ -24,5 +24,6 @@ public:
 		}
 	};
 
+	bool LoadMapCheckData(unsigned char hole);
 	const std::vector<sTriangle*>* GetTriArray(int texHandle) const;
 };

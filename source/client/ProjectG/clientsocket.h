@@ -6,7 +6,8 @@
 class WClientSocket : public WSocket
 {
 public:
-	WClientSocket(unsigned int sock, sockaddr_in addr);
+	WClientSocket(unsigned int sock = INVALID_SOCKET,
+		sockaddr_in addr = ms_addrEmpty);
 	virtual ~WClientSocket();
 
 	virtual void Close();

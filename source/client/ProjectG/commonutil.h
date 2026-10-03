@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "singleton.h"
 
 class cFile;
 class WResourceManager;
@@ -39,4 +40,14 @@ protected:
 	cFile* m_pFile;
 
 	static WResourceManager* m_pResMng;
+};
+
+template <class T>
+class CStackableSingleton : public WSingleton<T>
+{
+public:
+	virtual ~CStackableSingleton() { }
+
+protected:
+	CStackableSingleton() { }
 };

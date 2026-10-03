@@ -23,6 +23,7 @@ public:
 	const Bitmap* GetBitmap(const char*);
 	bool OpenLayout(const char*, FrCmdTarget*, bool);
 	bool IsDesktopFocused() const;
+	FrWndManager* GetManager() const { return manager; }
 
 private:
 	FrElementDoc document;

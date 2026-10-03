@@ -27,3 +27,11 @@ inline unsigned long MyUID()
 {
 	return Doc()->m_myInfo.info.dwUID;
 }
+
+inline unsigned long MyGuid(bool bGallery)
+{
+	bool bGM = (Doc()->m_myInfo.info.dwIdentity >> 1) & 1;
+	if (bGM && bGallery)
+		return Doc()->m_myInfo.info.dwGalleryGuid;
+	return Doc()->m_myInfo.info.dwGuid;
+}

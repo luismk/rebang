@@ -34,6 +34,7 @@
 #include "objectfactory.h"
 #include "background.h"
 #include "wview.h"
+#include "woverlay.h"
 #include "singleton.h"
 
 #include <string>
@@ -59,3 +60,4 @@ ILFILL1
 #include "autotarget.h"
 #include "shareddoc.h"
 #include "frtext.h"
+#include "mainframe.h"

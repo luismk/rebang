@@ -1,0 +1,138 @@
+#pragma once
+
+#include <string.h>
+#include <string>
+
+class WReceivedPacket;
+struct sItemInfo;
+struct sUserInfoTime;
+struct sUserInfo;
+struct sRoomSlot;
+struct sCharacterInfo;
+struct sMailIncludeItem;
+namespace IFF_STRUCT
+{
+	struct sPart;
+}
+namespace ranktype
+{
+	struct sRankUserInfo;
+}
+
+struct sUccHeader
+{
+	unsigned long flags;
+	unsigned long unknown4;
+	unsigned long unknown8;
+	unsigned char reserved[256];
+
+	void Initialize()
+	{
+		flags = 0;
+		unknown4 = 0;
+		unknown8 = 0;
+		memset(reserved, 0, sizeof(reserved));
+	}
+};
+
+template <class T>
+inline T Max(T a, T b, T c)
+{
+	return Max(a, Max(b, c));
+}
+
+template <class T>
+inline T Min(T a, T b, T c)
+{
+	return Min(a, Min(b, c));
+}
+
+struct sHSV;
+
+struct sRGB
+{
+	sRGB() { r = g = b = 0; }
+
+	sHSV toHSV();
+
+	unsigned char r;
+	unsigned char g;
+	unsigned char b;
+};
+
+struct sHSV
+{
+	sHSV() { h = s = v = 0; }
+
+	sRGB toRGB();
+
+	unsigned char h;
+	unsigned char s;
+	unsigned char v;
+};
+
+struct sRGBA : public sRGB
+{
+	sRGBA() { a = 0; }
+
+	sRGBA(unsigned char _r, unsigned char _g, unsigned char _b)
+	{
+		r = _r;
+		g = _g;
+		b = _b;
+		a = 0xff;
+	}
+
+	sRGBA(unsigned char _r, unsigned char _g, unsigned char _b,
+		unsigned char _a)
+	{
+		r = _r;
+		g = _g;
+		b = _b;
+		a = _a;
+	}
+
+	sRGBA& operator=(const sRGBA& c)
+	{
+		r = c.r;
+		g = c.g;
+		b = c.b;
+		a = c.a;
+		return *this;
+	}
+
+	bool operator==(const sRGBA& c)
+	{
+		return r == c.r && g == c.g && b == c.b && a == c.a;
+	}
+
+	void RemoveAlpha();
+
+	unsigned char a;
+};
+
+struct IPoint
+{
+	IPoint()
+	{
+		x = 0;
+		y = 0;
+	}
+
+	IPoint(int _x, int _y)
+	{
+		x = _x;
+		y = _y;
+	}
+
+	IPoint(float _x, float _y)
+	{
+		x = (int)_x;
+		y = (int)_y;
+	}
+
+	bool operator==(const IPoint& p) const { return x == p.x && y == p.y; }
+
+	int x;
+	int y;
+};

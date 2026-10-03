@@ -33,3 +33,28 @@ public:
 };
 
 CObjectFactory& ObjectFactory();
+
+#define DECLARE_OBJECT(className) \
+public: \
+	static const WRTTI m_RTTI; \
+	virtual const WRTTI* GetRTTI() const \
+	{ \
+		return &m_RTTI; \
+	} \
+	friend IObject* className##MakeInstance();
+
+#define IMPLEMENT_OBJECT(className, baseClass) \
+	IObject* className##MakeInstance() \
+	{ \
+		return new className; \
+	} \
+	struct __s##className \
+	{ \
+		__s##className() \
+		{ \
+			ObjectFactory().AddObjectFunctor(className##MakeInstance, \
+				#className); \
+		} \
+	}; \
+	const WRTTI className::m_RTTI(#className, &baseClass::m_RTTI); \
+	static __s##className __impl##className;

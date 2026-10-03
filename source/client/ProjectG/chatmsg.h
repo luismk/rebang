@@ -10,6 +10,8 @@ class CChatMsg : public WSingleton<CChatMsg>
 {
 public:
 	void Reset();
+	void AddChatMsg(const std::string& msg, unsigned long color, bool b1,
+		bool b2);
 	void SetActive(bool active, bool b2, bool b3);
 	void SetChatText(const char* text, bool b);
 	void Process(float deltaTime);
