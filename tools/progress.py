@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "build.json"
+CONFIG = ROOT / "build-projectg.json"
 SIZES_CSV = ROOT / "docs/module-sizes.csv"
 HISTORY_CSV = ROOT / "docs/progress-history.csv"
 CHECKLIST_MD = ROOT / "docs/progress.md"
@@ -155,7 +155,7 @@ def config_at(rev: str | None) -> dict:
     if rev is None:
         return json.loads(CONFIG.read_text())
     text = subprocess.run(
-        ["git", "-C", str(ROOT), "show", f"{rev}:build.json"],
+        ["git", "-C", str(ROOT), "show", f"{rev}:build-projectg.json"],
         check=True,
         capture_output=True,
         text=True,

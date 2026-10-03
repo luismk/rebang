@@ -13,10 +13,10 @@ Usage:
     python tools/coffsym.py list ./source/client/ProjectG/addfrienddlg.obj --filter FrAddFriendDlg --comdat
 
     # Perform simple diff of symbols
-    python tools/coffsym.py diff ./source/client/Wangreal/source/wtextureview.obj ./build/source/client/Wangreal/source/wtextureview.obj
+    python tools/coffsym.py diff ./source/client/Wangreal/source/wtextureview.obj ./build/projectg/source/client/Wangreal/source/wtextureview.obj
 
     # Diff with disassembly
-    python tools/coffsym.py diff -d ./source/client/Wangreal/source/woverlay.obj ./build/source/client/Wangreal/source/woverlay.obj
+    python tools/coffsym.py diff -d ./source/client/Wangreal/source/woverlay.obj ./build/projectg/source/client/Wangreal/source/woverlay.obj
 
     # Patch the COMDAT selection flag for a specific symbol
     python tools/coffsym.py set-selection ./source/client/Wangreal/source/wview.obj '??1WView@@UAE@XZ' any
@@ -29,11 +29,12 @@ from __future__ import annotations
 
 import argparse
 import difflib
-import json
 import shutil
 import struct
 import sys
 from pathlib import Path
+
+import common
 
 IMAGE_FILE_MACHINE_I386 = 0x014C
 IMAGE_SCN_CNT_CODE = 0x0020
@@ -62,7 +63,6 @@ SELECTIONS = {
 }
 BY_NAME = {v: k for k, v in SELECTIONS.items()}
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT / "build.json"
 
 
 class Section:
@@ -248,7 +248,7 @@ def load_many(paths):
 
 
 def delinked_objects():
-    root = str(CONFIG.resolve().parent / "build")
+    root = str(ROOT / common.target().build)
     return [
         p
         for p in build_json_inputs()
@@ -257,8 +257,7 @@ def delinked_objects():
 
 
 def build_json_inputs():
-    root = CONFIG.resolve().parent
-    cfg = json.loads(CONFIG.read_text())
+    cfg, _ = common.target().settings()
     out = []
 
     def walk(entries):
@@ -269,9 +268,9 @@ def build_json_inputs():
             p = e if isinstance(e, str) else e.get("path", "")
             suffix = Path(p).suffix.lower()
             if suffix in (".obj", ".lib"):
-                out.append(str(root / p))
+                out.append(str(ROOT / p))
             elif suffix in (".c", ".cpp", ".cxx", ".h"):
-                product = root / "build" / Path(p).with_suffix(".obj")
+                product = ROOT / common.target().product(e)
                 if product.exists():
                     out.append(str(product))
                 else:

@@ -77,7 +77,9 @@ public:
 	}
 
 #ifdef REBANG_LEGACY_CPP
+#ifndef WANGREAL_DEVICE
 	WVector& operator=(const WVector& other);
+#endif
 #else
 	WVector& operator=(const WVector& other) = default;
 #endif
@@ -180,7 +182,11 @@ public:
 class Wobb
 {
 public:
+#ifdef WANGREAL_DEVICE
+	Wobb();
+#else
 	Wobb() { }
+#endif
 
 	WVector center;
 	WVector extend[3];
@@ -230,11 +236,15 @@ public:
 	WMatrix& operator=(const WMatrix& other);
 	void operator=(const WQuat& quat);
 	void Normalize();
+#ifdef WANGREAL_DEVICE
+	void Reset();
+#else
 	void Reset()
 	{
 		xx = yy = zz = 1.0f;
 		yx = zx = xy = zy = xz = yz = xm = ym = zm = 0.0f;
 	}
+#endif
 	void GetRotMatrix(WMatrix* result) const;
 	WMatrix operator~() const;
 	void operator*=(float right);
@@ -288,6 +298,12 @@ public:
 	static const WMatrix4 IDENTITY;
 	static const WMatrix4 ZERO;
 };
+
+#ifdef WANGREAL_DEVICE
+inline Wobb::Wobb()
+{
+}
+#endif
 
 class WPlane
 {

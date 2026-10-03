@@ -2,13 +2,14 @@
 .DELETE_ON_ERROR:
 
 .PHONY: all clean verify sources check format format-check
-all: build/ProjectG_ReleaseQA.exe
+all:
 
 ifneq ($(filter-out clean check format format-check,$(or $(MAKECMDGOALS),all)),)
 include build/rules.mk
 endif
 
-build/rules.mk compile_commands.json &: build.json tools/build.py Makefile
+build/rules.mk compile_commands.json &: tools/targets.json $(wildcard build-*.json) \
+		tools/build.py tools/common.py Makefile
 	@mkdir -p build
 	@python3 tools/build.py rules
 

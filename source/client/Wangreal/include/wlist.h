@@ -1,6 +1,9 @@
 #pragma once
 #include "wmemblock.h"
 #include <string.h>
+#ifdef WANGREAL_DEVICE
+#include <stdlib.h>
+#endif
 
 template <class T>
 class WList
@@ -28,7 +31,11 @@ public:
 		if (hashNum > 0)
 		{
 			int size = m_hashNum * sizeof(listinfo*);
+#ifdef WANGREAL_DEVICE
+			m_hash_list = (listinfo**)malloc(size);
+#else
 			m_hash_list = (listinfo**)g_mem.Alloc(size);
+#endif
 			m_hash_mask = m_hashNum - 1;
 			for (int i = 0; i < m_hashNum; ++i)
 				m_hash_list[i] = 0;
@@ -44,11 +51,19 @@ public:
 		{
 			listinfo* allocation = m_pre_alloc;
 			m_pre_alloc = Unlink(m_pre_alloc, allocation);
+#ifdef WANGREAL_DEVICE
+			free(allocation);
+#else
 			g_mem.Free(allocation);
+#endif
 		}
 		if (m_hash_list)
 		{
+#ifdef WANGREAL_DEVICE
+			free(m_hash_list);
+#else
 			g_mem.Free(m_hash_list);
+#endif
 			m_hash_list = 0;
 		}
 	}
@@ -112,7 +127,11 @@ public:
 		info->alloc = alloc;
 		if (alloc)
 		{
+#ifdef WANGREAL_DEVICE
+			info->keycode = (char*)malloc((int)strlen(keycode) + 1);
+#else
 			info->keycode = (char*)g_mem.Alloc((int)strlen(keycode) + 1);
+#endif
 			strcpy(info->keycode, keycode);
 		}
 		else
@@ -142,7 +161,11 @@ protected:
 					{
 						DelHash(found);
 						if (found->alloc)
+#ifdef WANGREAL_DEVICE
+							free(found->keycode);
+#else
 							g_mem.Free(found->keycode);
+#endif
 					}
 					m_list = Unlink(m_list, found);
 					m_idle = Link(m_idle, found);
@@ -164,7 +187,11 @@ protected:
 		}
 		item->next = head;
 		item->prev = head->prev;
+#ifdef WANGREAL_DEVICE
+		item->next->prev = item;
+#else
 		head->prev = item;
+#endif
 		item->prev->next = item;
 		return head;
 	}
@@ -192,7 +219,11 @@ private:
 		if (!m_idle)
 		{
 			listinfo* block =
+#ifdef WANGREAL_DEVICE
+				(listinfo*)malloc(m_blk_len * sizeof(listinfo));
+#else
 				(listinfo*)g_mem.Alloc(m_blk_len * sizeof(listinfo));
+#endif
 			m_pre_alloc = Link(m_pre_alloc, block);
 			for (int i = 1; i < m_blk_len; ++i)
 				m_idle = Link(m_idle, block + i);

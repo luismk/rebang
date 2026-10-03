@@ -134,8 +134,8 @@ def find_module(key: str) -> Module:
     if len(path.parts) > 1:
         if path.is_absolute() and path.is_relative_to(common.ROOT):
             path = path.relative_to(common.ROOT)
-        if path.parts[0] == "build":
-            path = Path(*path.parts[1:])
+        if path.is_relative_to(common.target().build):
+            path = path.relative_to(common.target().build)
         wanted = str(path.with_suffix("")).lower()
         for m in table.values():
             if m.path and str(Path(m.path).with_suffix("")).lower() == wanted:
@@ -179,12 +179,12 @@ class Unit:
     @property
     def product(self) -> Path:
         if self.converted:
-            return common.ROOT / "build" / Path(self.source).with_suffix(".obj")
+            return common.ROOT / common.target().product(self.source)
         return common.ROOT / self.source
 
 
 def _entries() -> tuple[dict[str, dict], set[str]]:
-    config, entries = common.build_settings()
+    config, entries = common.target().settings()
     pch = {common.entry_path(e) for e in config.get("precompiled_headers", [])}
     options: dict[str, dict] = {
         k: dict(v) if isinstance(v, dict) else {"path": v} for k, v in entries.items()
@@ -230,7 +230,7 @@ def find_unit(key: str) -> Unit:
     for unit in units():
         if unit.module.number == module.number:
             return unit
-    raise SystemExit(f"{module} not found in build.json")
+    raise SystemExit(f"{module} not found in {common.target().config}")
 
 
 class Image:
@@ -265,4 +265,4 @@ class Image:
 
 @functools.cache
 def image() -> Image:
-    return Image(common.ORIGINAL_EXE)
+    return Image(common.target().original)

@@ -1,0 +1,69 @@
+{
+  "cflags": [
+    "/MD",
+    "/W3",
+    "/GX",
+    "/Zi",
+    "/O2",
+    "/G7",
+    "/Gr",
+    "/GS",
+    "/Oy-",
+    "/DNDEBUG",
+    "/DWIN32",
+    "/D_WINDOWS",
+    "/D_MBCS",
+    "/DWANGREAL_DEVICE"
+  ],
+  "includes": [
+    "source/rebang",
+    "tools/VC7.1/include",
+    "tools/VC7.1/atlmfc/include",
+    "tools/PlatformSDK-Aug2002/include",
+    "tools/DirectX9/include",
+    "source/client/Wangreal/include",
+    "source/client/device"
+  ],
+  "link_flags": [
+    "/NOLOGO",
+    "/DLL",
+    "/SUBSYSTEM:WINDOWS,4.0",
+    "/MACHINE:X86",
+    "/BASE:0x10000000",
+    "/FIXED:NO",
+    "/DEBUG",
+    "/INCREMENTAL:NO",
+    "/OPT:WIN98",
+    "/NODEFAULTLIB",
+    "/DEF:source/client/device/device.def"
+  ],
+  "inputs": [
+    "source/client/device/device.rc",
+    "source/client/device/wd3d.cpp",
+    "source/client/device/wd3d8.cpp",
+    "source/client/device/wdinput/directinput.cpp",
+    "source/client/device/wdinput/dikeyboard.cpp",
+    "source/client/device/wdinput/dimouse.cpp",
+    "source/client/device/wime/wime.cpp",
+    "source/client/device/device.cpp",
+    "tools/DirectX9/lib/d3dx9.lib",
+    "tools/DirectX9/lib/d3d9.lib",
+    "tools/DirectX9/lib/dxguid.lib",
+    "tools/PlatformSDK-Aug2002/lib/imm32.lib",
+    "tools/DirectX9/lib/dinput8.lib",
+    "tools/PlatformSDK-Aug2002/lib/winmm.lib",
+    "tools/PlatformSDK-Aug2002/lib/kernel32.lib",
+    "tools/PlatformSDK-Aug2002/lib/user32.lib",
+    "tools/PlatformSDK-Aug2002/lib/gdi32.lib",
+    {
+      "library": "source/client/Wangreal/wangreal.lib",
+      "members": [
+        "source/client/Wangreal/source/bitmap.cpp",
+        "source/client/Wangreal/source/wdxtc.cpp"
+      ]
+    },
+    "tools/VC7.1/lib/msvcprt.lib",
+    "tools/VC7.1/lib/msvcrt.lib",
+    "tools/VC7.1/lib/oldnames.lib"
+  ]
+}

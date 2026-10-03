@@ -20,10 +20,10 @@ Usage:
     python tools/pdbinfo.py public '?Load@FrElementDoc@@QAE_NPBD@Z' 0x8e8170 0001:004e7170
 
     # Compare line tables of a built function to an original
-    python tools/pdbinfo.py linecmp build/source/client/Fresh/source/frelement.obj LoadXml
+    python tools/pdbinfo.py linecmp build/projectg/source/client/Fresh/source/frelement.obj LoadXml
 
     # Compare locals of a built object to an original
-    python tools/pdbinfo.py localcmp build/source/client/Fresh/source/frelement.obj
+    python tools/pdbinfo.py localcmp build/projectg/source/client/Fresh/source/frelement.obj
 """
 
 from __future__ import annotations
@@ -73,8 +73,8 @@ def cvdump(*args: str) -> str:
 
 
 def cached(name: str, *args: str) -> str:
-    pdb = common.ORIGINAL_PDB
-    path = CACHE / f"{name}.txt"
+    pdb = common.target().original_pdb
+    path = CACHE / common.target().name / f"{name}.txt"
     if not path.exists() or path.stat().st_mtime < pdb.stat().st_mtime:
         text = cvdump(*args, common.windows(pdb))
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -598,7 +598,7 @@ def cmd_unit(args: argparse.Namespace) -> None:
         options = {k: v for k, v in unit.options.items() if k != "path"}
         state = "converted" if unit.converted else "delinked"
         print(
-            f"build.json: {unit.source} ({state}){' ' + str(options) if options else ''}"
+            f"{common.target().config}: {unit.source} ({state}){' ' + str(options) if options else ''}"
         )
     c = symbols.compile
     target = c.get("Target processor", "?")

@@ -8,6 +8,7 @@ import fcntl
 import functools
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -22,19 +23,17 @@ import common
 import imgcmp
 
 
-def product(entry: common.Entry) -> str:
-    if isinstance(entry, dict) and "library" in entry:
-        return "build/" + entry["library"]
-    source = common.entry_path(entry)
-    if isinstance(entry, dict) and "member" in entry:
-        return str(Path("build", source).with_suffix("") / entry["member"])
-    suffix = Path(source).suffix.lower()
-    if suffix == ".rc":
-        return str(Path("build", source).with_suffix(".res"))
-    elif suffix in (".c", ".cpp", ".cxx", ".h"):
-        return str(Path("build", source).with_suffix(".obj"))
-    else:
-        return source
+def source_archives() -> dict[str, tuple[common.Target, common.Entry]]:
+    archives: dict[str, tuple[common.Target, common.Entry]] = {}
+    for target in common.targets().values():
+        config, _ = target.settings()
+        for directory, entry in config.get("source_archives", {}).items():
+            owner, previous = archives.setdefault(directory, (target, entry))
+            if previous != entry:
+                raise ValueError(
+                    f"{directory}: source archive differs between {owner.name} and {target.name}"
+                )
+    return archives
 
 
 def unpack_stamp(directory: str) -> str:
@@ -62,9 +61,7 @@ def source_files(archive: common.PathArgument) -> Iterator[tuple[Path, bytes]]:
 
 
 def unpack(directory: str) -> None:
-    entry: common.Entry = json.loads(common.CONFIG.read_text())["source_archives"][
-        directory
-    ]
+    _, entry = source_archives()[directory]
     dest = common.ROOT / directory
     dest.parent.mkdir(parents=True, exist_ok=True)
     print("UNPACK", common.entry_path(entry), flush=True)
@@ -97,7 +94,7 @@ def unpack(directory: str) -> None:
 
 
 def clean() -> None:
-    for directory in json.loads(common.CONFIG.read_text()).get("source_archives", {}):
+    for directory in source_archives():
         dest = common.ROOT / directory
         if dest.exists():
             shutil.rmtree(dest)
@@ -169,40 +166,46 @@ def clang_arguments(
 
 
 def compile_commands() -> None:
-    config, entries = common.build_settings()
-    pch_sources = {common.entry_path(e) for e in config.get("precompiled_headers", [])}
     database: list[dict[str, object]] = []
-    for source, entry in entries.items():
-        if Path(source).suffix.lower() not in (".c", ".cpp", ".cxx", ".h"):
-            continue
-        options: common.EntryOptions = entry if isinstance(entry, dict) else {}
-        if "member" in options:
-            continue
-        output = common.pch_product(source) if source in pch_sources else product(entry)
-        database.append(
-            {
-                "directory": str(common.ROOT),
-                "file": str(common.ROOT / source),
-                "output": str(common.ROOT / output),
-                "arguments": clang_arguments(source, options, config, output),
-            }
-        )
+    for target in common.targets().values():
+        config, entries = target.settings()
+        pch_sources = {
+            common.entry_path(e) for e in config.get("precompiled_headers", [])
+        }
+        for source, entry in entries.items():
+            if Path(source).suffix.lower() not in (".c", ".cpp", ".cxx", ".h"):
+                continue
+            options: common.EntryOptions = entry if isinstance(entry, dict) else {}
+            if "member" in options:
+                continue
+            output = (
+                target.pch_product(source)
+                if source in pch_sources
+                else target.product(entry)
+            )
+            database.append(
+                {
+                    "directory": str(common.ROOT),
+                    "file": str(common.ROOT / source),
+                    "output": str(common.ROOT / output),
+                    "arguments": clang_arguments(source, options, config, output),
+                }
+            )
     (common.ROOT / "compile_commands.json").write_text(
         json.dumps(database, indent=2) + "\n"
     )
 
 
 def rules() -> None:
-    config, entries = common.build_settings()
-    lines = ["# Generated from build.json.", ""]
+    lines = ["# Generated from tools/targets.json.", ""]
     source_targets: list[str] = []
-    for directory, entry in config.get("source_archives", {}).items():
+    for directory, (target, entry) in source_archives().items():
         stamp = unpack_stamp(directory)
         files = {
             str(Path(directory) / name)
             for name, _ in source_files(common.ROOT / common.entry_path(entry))
         }
-        dependencies = [common.entry_path(entry), "build.json", "tools/build.py"]
+        dependencies = [common.entry_path(entry), str(target.config), "tools/build.py"]
         if isinstance(entry, dict) and "patch" in entry:
             dependencies.append(entry["patch"])
             patch = (common.ROOT / entry["patch"]).read_text()
@@ -233,90 +236,101 @@ def rules() -> None:
         for p in sorted(common.BIN.iterdir())
         if p.is_file()
     )
-    common_deps = "build.json tools/build.py " + tool_deps
     outputs: set[str] = set()
     depfiles: list[str] = []
-    pch_sources = {common.entry_path(e) for e in config.get("precompiled_headers", [])}
-    for source, entry in entries.items():
-        precompile = source in pch_sources
-        dest = common.pch_product(source) if precompile else product(entry)
-        if dest == source:
-            continue
-        if dest in outputs:
-            raise ValueError(f"conflicting sources for {dest}")
-        outputs.add(dest)
-        options: common.EntryOptions = entry if isinstance(entry, dict) else {}
-        dependencies = list(options.get("dependencies", []))
-        if "pch" in options:
-            dependencies.append(common.pch_product(options["pch"]))
-        resource = Path(source).suffix.lower() == ".rc"
-        extract = "member" in options
-        if resource:
-            dependencies += [
-                str(p)
-                for p in Path(source).parent.iterdir()
-                if p.suffix.lower() in (".ico", ".bmp", ".manifest", ".h", ".rc2")
+    for target in common.targets().values():
+        config, entries = target.settings()
+        run = f"\t@python3 tools/build.py -t {target.name}"
+        common_deps = f"{target.config} tools/build.py {tool_deps}"
+        pch_sources = {
+            common.entry_path(e) for e in config.get("precompiled_headers", [])
+        }
+        for source, entry in entries.items():
+            precompile = source in pch_sources
+            dest = target.pch_product(source) if precompile else target.product(entry)
+            if dest == source:
+                continue
+            if dest in outputs:
+                raise ValueError(f"conflicting sources for {dest}")
+            outputs.add(dest)
+            options: common.EntryOptions = entry if isinstance(entry, dict) else {}
+            dependencies = list(options.get("dependencies", []))
+            if "pch" in options:
+                dependencies.append(target.pch_product(options["pch"]))
+            resource = Path(source).suffix.lower() == ".rc"
+            extract = "member" in options
+            if resource:
+                dependencies += [
+                    str(p)
+                    for p in Path(source).parent.iterdir()
+                    if p.suffix.lower() in (".ico", ".bmp", ".manifest", ".h", ".rc2")
+                ]
+            if extract:
+                action = "extract"
+            elif precompile:
+                action = "pch"
+            elif resource:
+                action = "resource"
+            else:
+                action = "compile"
+            lines += [
+                f"{dest}: {source} "
+                + " ".join(map(make_escape, dependencies))
+                + " "
+                + common_deps
+                + " | sources",
+                f"{run} {action} {source}",
+                "",
             ]
-        if extract:
-            action = "extract"
-        elif precompile:
-            action = "pch"
-        elif resource:
-            action = "resource"
-        else:
-            action = "compile"
+            if not resource and not extract:
+                depfiles.append(dest + ".d")
+        for entry in config["inputs"]:
+            if not isinstance(entry, dict) or "library" not in entry:
+                continue
+            dest = target.product(entry)
+            members = [target.product(m) for m in entry["members"]]
+            lines += [
+                f"{dest}: " + " ".join(members) + " " + common_deps,
+                f"{run} library {entry['library']}",
+                "",
+            ]
         lines += [
-            f"{dest}: {source} "
-            + " ".join(map(make_escape, dependencies))
-            + " "
-            + common_deps
-            + " | sources",
-            f"\t@python3 tools/build.py {action} {source}",
+            f"{target.linked}: "
+            + " ".join(target.product(e) for e in config["inputs"])
+            + f" {common_deps} {common.TARGETS.relative_to(common.ROOT)}",
+            f"{run} link",
+            "",
+            f"{target.image}: {target.linked} tools/build.py "
+            + str(common.TARGETS.relative_to(common.ROOT)),
+            f"{run} normalize",
+            "",
+            f".PHONY: {target.name}",
+            f"{target.name}: {target.image}",
+            f"all: {target.image}",
             "",
         ]
-        if not resource and not extract:
-            depfiles.append(dest + ".d")
-    for entry in config["inputs"]:
-        if not isinstance(entry, dict) or "library" not in entry:
-            continue
-        dest = product(entry)
-        members = [product(m) for m in entry["members"]]
-        lines += [
-            f"{dest}: " + " ".join(members) + " " + common_deps,
-            f"\t@python3 tools/build.py library {entry['library']}",
-            "",
-        ]
-    lines += [
-        f"{common.LINKED}: "
-        + " ".join(product(e) for e in config["inputs"])
-        + " "
-        + common_deps,
-        "\t@python3 tools/build.py link",
-        "",
-        f"{common.IMAGE}: {common.LINKED} tools/build.py",
-        "\t@python3 tools/build.py normalize",
-        "",
-    ]
     if depfiles:
         lines.append("-include " + " ".join(depfiles))
     Path("build/rules.mk").write_text("\n".join(lines) + "\n")
     compile_commands()
 
 
-def compile_source(source: str, precompile: bool = False) -> None:
-    _, entries = common.build_settings()
+def compile_source(
+    target: common.Target, source: str, precompile: bool = False
+) -> None:
+    _, entries = target.settings()
     entry = entries[source]
     options: common.EntryOptions = entry if isinstance(entry, dict) else {}
-    output = common.pch_product(source) if precompile else product(entry)
-    flags, includes, _ = common.compile_settings(source)
+    output = target.pch_product(source) if precompile else target.product(entry)
+    flags, includes, _ = target.compile_settings(source)
     pdb = Path(output).with_suffix(".pdb")
     if precompile or "pch" in options:
         pch_source = source if precompile else options["pch"]
         flags += [
             ("/Yc" if precompile else "/Yu") + Path(pch_source).with_suffix(".h").name,
-            "/Fp" + common.windows(common.pch_product(pch_source)),
+            "/Fp" + common.windows(target.pch_product(pch_source)),
         ]
-        pdb = Path(common.pch_product(pch_source)).with_suffix(".pdb")
+        pdb = Path(target.pch_product(pch_source)).with_suffix(".pdb")
     obj = output + ".obj" if precompile else output
     args = [
         "/nologo",
@@ -362,9 +376,9 @@ def compile_source(source: str, precompile: bool = False) -> None:
     )
 
 
-def resource(source: str) -> None:
-    _, entries = common.build_settings()
-    output = product(entries[source])
+def resource(target: common.Target, source: str) -> None:
+    _, entries = target.settings()
+    output = target.product(entries[source])
     print("RC", source, flush=True)
     common.invoke(
         "rc.exe",
@@ -424,8 +438,8 @@ def member_names(data: bytearray, overrides: Mapping[str, str]) -> None:
         raise ValueError("archive import name did not match an input")
 
 
-def extract_member(source: str) -> None:
-    _, entries = common.build_settings()
+def extract_member(target: common.Target, source: str) -> None:
+    _, entries = target.settings()
     entry = cast(common.EntryOptions, entries[source])
     matches = [
         body
@@ -434,23 +448,23 @@ def extract_member(source: str) -> None:
     ]
     if len(matches) != 1:
         raise ValueError(f"expected one {entry['member']} in {source}")
-    output = Path(product(entry))
+    output = Path(target.product(entry))
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_bytes(matches[0])
     print("EXTRACT", source, entry["member"], flush=True)
 
 
-def library(name: str) -> None:
-    config, _ = common.build_settings()
+def library(target: common.Target, name: str) -> None:
+    config, _ = target.settings()
     entry = next(
         e for e in config["inputs"] if isinstance(e, dict) and e.get("library") == name
     )
-    output = product(entry)
+    output = target.product(entry)
     print("LIB", name, flush=True)
     members: list[str] = []
     overrides: dict[str, str] = {}
     for member in entry["members"]:
-        source = product(member)
+        source = target.product(member)
         if Path(source).suffix.lower() == ".lib":
             directory = Path(output + ".members") / Path(source).stem
             directory.mkdir(parents=True, exist_ok=True)
@@ -480,56 +494,64 @@ def library(name: str) -> None:
         Path(output).write_bytes(data)
 
 
-def link() -> None:
-    config, _ = common.build_settings()
+def link(target: common.Target) -> None:
+    config, _ = target.settings()
     common.prepare_wine()
-    pdb = common.ROOT / "build/pdb-drive/Build/Custom/temp/bin/ProjectG_ReleaseQA.pdb"
+    pdb = common.ROOT / target.pdb
     pdb.unlink(missing_ok=True)
     args = [
         *config["link_flags"],
-        "/OUT:" + common.windows(common.LINKED),
-        "/MAP:" + common.windows("build/ProjectG_ReleaseQA.map"),
-        "/PDB:d:\\Build\\Custom\\temp\\bin\\ProjectG_ReleaseQA.pdb",
-        *[common.windows(product(e)) for e in config["inputs"]],
+        "/OUT:" + common.windows(target.linked),
+        "/MAP:" + common.windows(target.image.with_suffix(".map")),
+        "/PDB:" + target.pdb_path,
+        *[common.windows(target.product(e)) for e in config["inputs"]],
     ]
-    print("LINK", common.LINKED, flush=True)
-    common.invoke("link.exe", common.LINKED, args)
-    shutil.copyfile(pdb, common.ROOT / "build/ProjectG_ReleaseQA.pdb")
+    print("LINK", target.linked, flush=True)
+    common.invoke("link.exe", target.linked, args)
+    shutil.copyfile(pdb, common.ROOT / target.image.with_suffix(".pdb"))
 
 
-def show_diff() -> None:
-    imgcmp.explain(common.LINKED, limit=20)
+def show_diff(target: common.Target) -> None:
+    if target.name == common.DEFAULT_TARGET:
+        imgcmp.explain(target.linked, limit=20)
 
 
-def normalize() -> None:
-    data = bytearray(common.LINKED.read_bytes())
-    if len(data) != common.IMAGE_SIZE:
-        show_diff()
+def normalize(target: common.Target) -> None:
+    data = bytearray(target.linked.read_bytes())
+    if len(data) != target.size:
+        show_diff(target)
         raise ValueError(
-            f"unexpected image size: {len(data)}, expected {common.IMAGE_SIZE} (diff: {len(data) - common.IMAGE_SIZE})"
+            f"unexpected image size: {len(data)}, expected {target.size} (diff: {len(data) - target.size})"
         )
-    for offset, value in common.IDENTITY:
+    for offset, value in target.identity:
         replacement = bytes.fromhex(value)
         data[offset : offset + len(replacement)] = replacement
     actual = hashlib.sha256(data).hexdigest()
-    if actual != common.EXPECTED:
-        show_diff()
+    if actual != target.sha256:
+        show_diff(target)
         raise ValueError(f"image hash mismatch: {actual}")
-    temporary = common.IMAGE.with_suffix(".tmp")
+    temporary = target.image.with_suffix(".tmp")
     temporary.write_bytes(data)
-    temporary.replace(common.IMAGE)
-    print(actual, common.IMAGE)
+    temporary.replace(target.image)
+    print(actual, target.image)
 
 
 def verify() -> None:
-    actual = hashlib.sha256(common.IMAGE.read_bytes()).hexdigest()
-    if actual != common.EXPECTED:
-        raise ValueError(f"image hash mismatch: {actual}")
-    print(actual, common.IMAGE)
+    for target in common.targets().values():
+        actual = hashlib.sha256(target.image.read_bytes()).hexdigest()
+        if actual != target.sha256:
+            raise ValueError(f"{target.image}: image hash mismatch: {actual}")
+        print(actual, target.image)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "-t",
+        "--target",
+        choices=sorted(common.targets()),
+        help=f"target to act on (default: $REBANG_TARGET or {common.DEFAULT_TARGET})",
+    )
     parser.add_argument(
         "action",
         choices=[
@@ -554,24 +576,27 @@ if __name__ == "__main__":
     ):
         parser.error("this action requires a source path")
 
+    if args.target:
+        os.environ["REBANG_TARGET"] = args.target
+    target = common.target()
     if args.action == "rules":
         rules()
     elif args.action == "compile":
-        compile_source(args.source)
+        compile_source(target, args.source)
     elif args.action == "pch":
-        compile_source(args.source, True)
+        compile_source(target, args.source, True)
     elif args.action == "unpack":
         unpack(args.source)
     elif args.action == "extract":
-        extract_member(args.source)
+        extract_member(target, args.source)
     elif args.action == "resource":
-        resource(args.source)
+        resource(target, args.source)
     elif args.action == "library":
-        library(args.source)
+        library(target, args.source)
     elif args.action == "link":
-        link()
+        link(target)
     elif args.action == "normalize":
-        normalize()
+        normalize(target)
     elif args.action == "verify":
         verify()
     elif args.action == "clean":

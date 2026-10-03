@@ -51,7 +51,7 @@ inline float WVectorLen(const WVector& vector)
 		vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
 }
 
-#ifdef REBANG_LEGACY_CPP
+#if defined(REBANG_LEGACY_CPP) && !defined(WANGREAL_DEVICE)
 inline WVector& WVector::operator=(const WVector& other)
 {
 	memcpy(this, &other, sizeof(WVector));
@@ -242,6 +242,14 @@ inline WMatrix4::WMatrix4(float p0, float p1, float p2, float p3, float p4,
 	p[14] = p14;
 	p[15] = p15;
 }
+
+#ifdef WANGREAL_DEVICE
+inline void WMatrix::Reset()
+{
+	xx = yy = zz = 1.0f;
+	yx = zx = xy = zy = xz = yz = xm = ym = zm = 0.0f;
+}
+#endif
 
 inline WMatrix4& WMatrix4::operator=(const WMatrix4& other)
 {

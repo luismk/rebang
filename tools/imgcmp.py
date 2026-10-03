@@ -539,7 +539,7 @@ def moved_symbols(linked: Path) -> list[tuple[int, int, int, str]]:
 
 def explain(linked: Path, limit: int = 30, out=sys.stdout) -> None:
     ours = bytearray(linked.read_bytes())
-    for offset, value in common.IDENTITY:
+    for offset, value in common.target().identity:
         replacement = bytes.fromhex(value)
         ours[offset : offset + len(replacement)] = replacement
     image = original.image()
@@ -619,7 +619,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "linked",
         nargs="?",
-        default=str(common.ROOT / "build/ProjectG_ReleaseQA.link.exe"),
+        default=str(common.ROOT / common.target().linked),
     )
     p.add_argument("--limit", type=int, default=30)
     p.set_defaults(func=cmd_diff)

@@ -1,0 +1,50 @@
+{
+  "projectg": {
+    "config": "build-projectg.json",
+    "image": "ProjectG_ReleaseQA.exe",
+    "size": 7618560,
+    "base": "0x400000",
+    "sha256": "761252876446178ad5190e78656aa8790b9dbaf2e86a248f31bb4678347e44fc",
+    "pdb_path": "d:\\Build\\Custom\\temp\\bin\\ProjectG_ReleaseQA.pdb",
+    "identity": [
+      [
+        320,
+        "e1e6a04e"
+      ],
+      [
+        6184036,
+        "e1e6a04e"
+      ],
+      [
+        6594392,
+        "b0c094b607038c45a37f50dcaaff0630"
+      ]
+    ]
+  },
+  "wangreal": {
+    "config": "build-wangreal.json",
+    "image": "wangreal_ReleaseQA.dll",
+    "size": 294912,
+    "base": "0x10000000",
+    "sha256": "99a602fa843bc4a5bc3b30a855c5dc1f1db21f834f649b1dc7a936b85678a8cf",
+    "pdb_path": "d:\\Build\\Custom\\temp\\bin\\wangreal_ReleaseQA.pdb",
+    "identity": [
+      [
+        296,
+        "b9e5a04e"
+      ],
+      [
+        242340,
+        "b9e5a04e"
+      ],
+      [
+        272500,
+        "b9e5a04e"
+      ],
+      [
+        256564,
+        "e4768f3b920b704daa7744ca61c26335"
+      ]
+    ]
+  }
+}

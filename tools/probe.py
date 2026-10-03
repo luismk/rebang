@@ -61,9 +61,9 @@ class Report:
 
 def make_setup(args: argparse.Namespace) -> Setup:
     unit = original.find_unit(args.unit)
-    flags, includes, pch = common.compile_settings(unit.source)
+    flags, includes, pch = common.target().compile_settings(unit.source)
     pch = args.pch or pch
-    pch_flags = common.compile_settings(pch)[0] if pch else []
+    pch_flags = common.target().compile_settings(pch)[0] if pch else []
 
     def adjust(flags: list[str]) -> list[str]:
         flags = flags + (args.add_flags or "").split()
@@ -104,7 +104,7 @@ def mirror(root: Path, edits: dict[str, str]) -> None:
 
 
 def pch_is_current(pch_source: str) -> bool:
-    pch = common.ROOT / common.pch_product(pch_source)
+    pch = common.ROOT / common.target().pch_product(pch_source)
     depfile = Path(str(pch) + ".d")
     if not pch.exists() or not depfile.exists():
         return False
@@ -185,7 +185,7 @@ def compile_variant(s: Setup, name: str, edits: list[Edit]) -> tuple[Path | None
                 pch_source = (work / "mirror" / s.pch) if files else common.ROOT / s.pch
                 compile_pch(s, work, includes, pch_source)
             else:
-                product = common.ROOT / common.pch_product(s.pch)
+                product = common.ROOT / common.target().pch_product(s.pch)
                 shutil.copy(product, work / f"{stem}.pch")
                 if product.with_suffix(".pdb").exists():
                     shutil.copy(product.with_suffix(".pdb"), work / f"{stem}.pdb")
