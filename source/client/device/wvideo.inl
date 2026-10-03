@@ -1,5 +1,5 @@
 #pragma once
-#include <wdevice.inl>
+#include <wdevice.h>
 
 inline void WVideoDev::DrawIndexedTriangles(WTVertex* p, int pNum,
 	unsigned short* fList, int fNum, int iType, int iType2)

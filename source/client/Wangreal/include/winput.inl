@@ -1,6 +1,6 @@
 #pragma once
 #include "winput.h"
-#include "wdevice.inl"
+#include "wdevice.h"
 #include <mmsystem.h>
 inline WInputDev::WInputDev()
 {

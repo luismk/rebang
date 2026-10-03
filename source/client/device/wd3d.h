@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include <wdevice.inl>
+#include <wdevice.h>
 #include "wvideo.h"
 #include "wvideo.inl"
 #include <d3d9.h>
