@@ -91,6 +91,7 @@ class CTime
 {
 public:
 	static CTime WINAPI GetCurrentTime() throw();
+	static BOOL WINAPI IsValidFILETIME(const FILETIME& ft) throw();
 
 	CTime() throw();
 	CTime( __time64_t time ) throw();

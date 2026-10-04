@@ -448,7 +448,7 @@ inline HRESULT STDMETHODCALLTYPE CRegObject::ResourceRegisterSz(LPCOLESTR szFile
 	LPCTSTR lpszID = OLE2CT_EX(szID, _ATL_SAFE_ALLOCA_DEF_THRESHOLD);
 	LPCTSTR lpszType = OLE2CT_EX(szType, _ATL_SAFE_ALLOCA_DEF_THRESHOLD);
 #ifndef _UNICODE
-	if (lpszID == NULL || lpszType)
+	if (lpszID == NULL || lpszType == NULL)
 	{
 		return E_OUTOFMEMORY;
 	}

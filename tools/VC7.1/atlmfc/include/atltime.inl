@@ -139,6 +139,24 @@ ATLTIME_INLINE CTime WINAPI CTime::GetCurrentTime() throw()
 	return( CTime( ::_time64( NULL ) ) );
 }
 
+ATLTIME_INLINE BOOL WINAPI CTime::IsValidFILETIME(const FILETIME& fileTime) throw()
+{
+	FILETIME localTime;
+	if (!FileTimeToLocalFileTime(&fileTime, &localTime))
+	{
+		return FALSE;
+	}
+
+	// then convert that time to system time
+	SYSTEMTIME sysTime;
+	if (!FileTimeToSystemTime(&localTime, &sysTime))
+	{
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 ATLTIME_INLINE CTime::CTime() throw() :
 	m_time(0)
 {
