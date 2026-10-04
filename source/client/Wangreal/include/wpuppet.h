@@ -125,7 +125,9 @@ public:
 
 	void Transform(WView* view, float scale, int flags);
 	const char* GetPuppetName() const { return m_petName; }
+	int GetRenderMode() const;
 	WBone* GetRootBone() { return m_rootbone; }
+	int GetFaceNum();
 	int GetLightMode() { return m_lightmode; }
 	const WMatrixPtrList& xGetTransfMatPtrList() const
 	{
@@ -138,12 +140,16 @@ public:
 	{
 		return m_boundSphere;
 	}
+	void LockBoneSetPos(unsigned char);
+	unsigned char GetBoneSetPos() const;
 
 	void SetRenderMode(int mode);
 	void SetLightLine(float value);
+	void SetLightMode(unsigned long);
 	void UpdateLightSource(WScene* scene);
 	void RenderHierarchy(WView* view, bool transform, float value, float scale);
 	void RenderNormals(WView* view, bool transform, float value, float scale);
+	WVector InvTransform(const WVector&);
 	void ApplyBones(WBoneSet* set);
 	void ApplyBones(WBoneSet* set, const WMatrix& matrix);
 	void AddCollisionObject(const char* name, WBlockModel* model);
@@ -171,6 +177,7 @@ public:
 	void DisableFog();
 	void EnableAlphaBlend();
 	void OptimizeBone();
+	bool HaveCenterBoundBox();
 	bool CompareBasicMatrix(WPuppet* other) const;
 	void ChangeTexture(char* name, int handle);
 	bool ChangeTexturePart(int handle, char* name, Bitmap** bitmap,
@@ -179,6 +186,7 @@ public:
 	bool ChangeTexturePart(char* name, char* part, Bitmap** bitmap,
 		tagRECT* rect);
 	void ChangeTexturePart(char* name, Bitmap* bitmap, const tagRECT& rect);
+	void InstantTexChange(int, int);
 	void ChangeTextureByHandle(int from, int to, WPuppet* other);
 	bool ChangeMesh(char* name);
 	WBone* FindMeshBone(WBone* previous);
@@ -192,6 +200,9 @@ public:
 	char* GetNextMotionName(const char* name);
 	int GetMotionCountIncludeName(const char* include, const char* exclude);
 	w_motion_data* GetFirstMotionData() { return m_mdList->Start(); }
+	w_motion_data* GetNextMotionData();
+	w_motion_addition* GetFirstAddedMotionList();
+	w_motion_addition* GetNextAddedMotionList();
 	bool AddMotion(const char* name, char* alias);
 	void DelAddMotion(const char* name);
 	void ClearAddMotion();
@@ -201,17 +212,25 @@ public:
 	WVector GetDeltaVec(char* name, float time);
 	WVector GetDeltaVec(char* name, float from, float to);
 	bool CheckFrameData(int first, int last, int& from, int& to);
+	float GetAnimationLength();
+	unsigned int GetFrameCount();
+	char* GetFrameData(int);
+	float GetFrameDataTime(int);
+	bool GetFrameCheck(int);
+	WMatrix& GetMatrix();
 	float GetCamFOV(char* name, WBoneSet* set);
 	const WMatrix& GetCamMatrix(char* name);
 	void CalcBound(Waabb* box, bool flag);
 	void CalcBound(bool reset, WPuppet* puppet, bool mode, char* name,
 		Waabb* box);
+	const Waabb& GetBoundBox();
 	void UpdateBound(bool transform, bool flag);
 	void UpdateBSphere();
 	Waabb GetTransformedBoundBox() const;
 	bool GetBoundBoxPlane(char* name, WPlane* plane);
 	bool GetAlignBoundBoxPlane(char* name, WPlane* plane, Waabb* box);
 	bool DotContact(char* name, const WVector& dot);
+	w_bound_box* FindBoundBox(const char*);
 	void RenderBoundBox(const char* name, WView* view, unsigned long color,
 		float size);
 	void xBuildTransfMatPtrList();
@@ -231,6 +250,7 @@ protected:
 	WBoneSet* GetFreeBoneSetList(bool flag);
 
 private:
+	void FreeBone(WBone*);
 	void LoadPET(cFile* file, bool flag, char* directory, int type);
 	w_pet_texture_info* LoadPET_Texture(cFile* file, bool flag, char* directory,
 		int* count);

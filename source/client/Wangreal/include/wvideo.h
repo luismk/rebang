@@ -660,6 +660,8 @@ public:
 	virtual bool GetWindowDisplayMode(int& iWidth, int& iHeight,
 		int& iColor) = 0;
 	virtual int GetBufferingMeshNum() const = 0;
+	ulong GetRenderCount() { return m_renderCount; }
+	void SetRenderCount(ulong count) { m_renderCount = count; }
 	virtual void SetViewPort(unsigned int x, unsigned int y, unsigned int w,
 		unsigned int h) = 0;
 

@@ -18,6 +18,7 @@
     "source/rebang",
     "tools/VC7.1/include",
     "tools/VC7.1/atlmfc/include",
+    "tools/WTL75/include",
     "tools/PlatformSDK-Aug2002/include",
     "source/client/Wangreal/include",
     "source/client/Wangreal/lib/freetype-2.2.1/include",
@@ -553,7 +554,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/trainingoptiondlg.obj",
-    "source/client/ProjectG/browser.obj",
+    {
+      "path": "source/client/ProjectG/browser.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/codetinker.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -1778,7 +1783,9 @@
     "tools/VC7.1/lib/oldnames.lib",
     "tools/PlatformSDK-Aug2002/lib/wininet.lib",
     "tools/PlatformSDK-Aug2002/lib/dbghelp.lib",
-    "tools/PlatformSDK-Aug2002/lib/iphlpapi.lib"
+    "tools/PlatformSDK-Aug2002/lib/iphlpapi.lib",
+    "tools/PlatformSDK-Aug2002/lib/msimg32.lib",
+    "tools/PlatformSDK-Aug2002/lib/opengl32.lib"
   ],
   "precompiled_headers": [
     {

@@ -18,12 +18,14 @@ public:
 	virtual void BeginScene();
 	virtual void Clear(ulong flags, int color);
 	virtual void EndScene();
+	void Update(unsigned long, int);
 	virtual void Flush(ulong flags);
 	virtual void Render();
 	virtual void DrawPolygonFan(WTVertex** vertices, int count, int flags,
 		bool transform);
 	virtual void DrawIndexedTriangles(WTVertex* vertices, int vertexCount,
 		unsigned short* indices, int indexCount, int flags, int transform);
+	void DrawProjPolygonFan(WTVertex**, int, int);
 	virtual bool IsShadowView(void) { return false; }
 	virtual void DrawIndexedTrianglesDirect(WTVertex*, int, unsigned short*,
 		int, int, int);
@@ -60,9 +62,12 @@ public:
 		return true;
 	}
 	bool ProcessEffect() { return m_bProcessEffect; }
+	bool GetReflective() const;
+	void SetReflective(bool);
 	bool SetFogEnable(bool);
 	void SetFogState(float, float, unsigned long);
 	void SetViewport(float, float);
+	WVector2D GetScreenCenter() const;
 	void SetFOV(float);
 	void DrawLine2D(const _WPOINT&, const _WPOINT&, unsigned long, int);
 	void DrawLine2D(const _WPOINT&, const _WPOINT&, unsigned long,
@@ -79,6 +84,7 @@ public:
 	void DrawSphere(const WVector&, float, unsigned long, int, int);
 	void DrawSphere(const WSphere&, unsigned long, int, int);
 	void SetScreenCenter(float, float);
+	void ResetScreenCenter();
 	void UpdateCamera(void);
 	void GetScreen2World(float, float, WVector&, WVector&);
 	void xSetLight(unsigned long, const LightSet&);
@@ -87,10 +93,12 @@ public:
 	void SetScale(float);
 	float GetScale() const { return m_scale; }
 	float GetFOV_Unmodified() const { return FOV; }
+	PROJECTION_MODE GetProjectionMode() const;
 	void SetProjectionMode(PROJECTION_MODE);
 	WVector Projection(const WVector&);
 	void Projection2(WTVertex*, const WVector&);
 	void SetClippingArea(const WRect&);
+	void ResetClippingArea();
 	void xDrawIndexedTriangles(const WxBatchState&);
 
 protected:
@@ -141,6 +149,7 @@ public:
 	float GetRatio() const { return SCREEN_YS / SCREEN_XS; }
 	float GetClipNearValue() const { return clip_near; }
 	float GetClipFarValue() const { return clip_far; }
+	float GetFOV() const;
 	__forceinline WVideoDev* GetVideoDevice() const
 	{
 		return GetResrcManager()->video;
@@ -163,6 +172,7 @@ public:
 
 protected:
 	const WMatrix& GetLastCamera() { return lastcam; }
+	float CalcSZ(float);
 
 public:
 	WMatrix camera;

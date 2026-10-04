@@ -14,9 +14,12 @@ class WFont;
 class WOverlay;
 class WProc;
 class WPuppet;
+class WPuppetEd;
 class WResource;
 class WResourceManager;
+class WSkyBox;
 class WSoundFx;
+class WStreamSFX;
 class WTitleFont;
 class WView;
 class W3dSpr;
@@ -73,11 +76,15 @@ public:
 	WView* GetView(const char* type);
 	WPuppet* GetPuppet(const char* f, bool alphatest, bool bNeedTnLBuf,
 		bool bForceLegacy);
+	WPuppetEd* GetPuppetEd(const char*, int);
 	WxStaticPuppetGrp* xGetStaticPuppetGrp(int nSPets, const char* filename,
 		WPuppet** ppaSPets);
 	W3dSpr* Get3DSpr(const char* filename, int type);
 	W3dAniSpr* Get3DAniSpr(const char* filename, int type, float fSprSizeX,
 		float fSprSizeY);
+	WSkyBox* GetSkyBox(const char*);
+	WSoundFx* GetSoundFx(const char*, bool, bool, float);
+	WStreamSFX* GetStreamSFX(const char*);
 	void Release(WResource* resrc);
 	void Release(WPuppet* puppet, bool bForceDeleteOrigin);
 	void Release(int texhandle);
@@ -149,6 +156,13 @@ private:
 	void LoadMatchCacheList(const char* filename);
 	void ReleaseMatchList();
 	void AddOriginList(WResource* resrc);
+	WSoundFx* FindOriginSoundFx(WSoundFx*);
+	WSoundFx* FindIdleSoundFx(WSoundFx*);
+	WSoundFx* FindIdleSoundFx();
+	WSoundFx* DuplicateSoundFx(WSoundFx*);
+	WSoundFx* CreateSoundFx(const char*, bool, bool, float);
+	bool ReloadOriginSoundFx(WSoundFx*);
+	void RestoreSoundFx(WSoundFx*);
 
 	unsigned long m_nByteUsedTexture;
 	int m_blankTexture;

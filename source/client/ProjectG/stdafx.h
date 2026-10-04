@@ -1,5 +1,9 @@
 #pragma once
 
+#define WINVER 0x0400
+#define _WIN32_WINNT 0x0400
+#define _ATL_STATIC_REGISTRY
+
 #define WLIST_ALLOC(size) malloc(size)
 #define WLIST_FREE(ptr) free(ptr)
 
@@ -7,6 +11,15 @@
 #include <windows.h>
 #include "../Wangreal/include/wtypes.h"
 #include <atlbase.h>
+#include <atlapp.h>
+extern WTL::CAppModule _Module;
+#include <atlwin.h>
+#include <atlmisc.h>
+#include <atldlgs.h>
+#include <atlframe.h>
+#include <atlctrls.h>
+#include <atlctrlw.h>
+#include <atlctrlx.h>
 
 #include "wmath.h"
 #include "gamath.h"
