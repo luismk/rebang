@@ -1397,8 +1397,8 @@
       "path": "source/client/ProjectG/audioin.cpp",
       "extra_flags": ["/Zd"]
     },
-    "source/client/ProjectG/avirecorder.obj",
-    "source/client/ProjectG/aviwriter.obj",
+    "source/client/ProjectG/avirecorder.cpp",
+    "source/client/ProjectG/aviwriter.cpp",
     {
       "path": "source/client/ProjectG/vcomp.cpp",
       "extra_flags": ["/Zd"]
