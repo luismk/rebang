@@ -48,12 +48,12 @@
 			int v; \
 			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
 			ILFILLFN(4) \
-			void g() { ILFILL64 ILFILL64 ILFILL64 ILFILL4 ILFILL4 ILFILL4 v += 1; } \
+			void g() { ILFILL64 ILFILL16 ILFILL16 ILFILL16 ILFILL4 ILFILL4 ILFILL4 v += 1; } \
 		}; \
 	}
 
 #define ILFILLB1 \
-	template <int N> struct TuFill { int v; void g() { ILFILL256 ILFILL4 ILFILL4 v += 1; } }; \
+	template <int N> struct TuFill { int v; void g() { ILFILL256 ILFILL4 v += 1; v += 1; v += 1; } }; \
 	template <int N> struct TuMid { void g() { TuFill<N>().g(); } }; \
 	template <int N> struct TuPad \
 	{ \

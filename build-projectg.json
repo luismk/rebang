@@ -709,8 +709,16 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/secondarypassword.obj",
-    "source/client/ProjectG/secondarypassworddlg.obj",
+    {
+      "path": "source/client/ProjectG/secondarypassword.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/secondarypassworddlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/golfitemhandler.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",

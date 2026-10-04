@@ -109,3 +109,4 @@ ILFILL1
 #include "shareddoc.h"
 #include "frtext.h"
 #include "mainframe.h"
+#include "wtemplate.h"
