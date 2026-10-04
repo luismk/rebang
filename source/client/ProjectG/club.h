@@ -25,6 +25,7 @@ public:
 	unsigned char GetType() { return m_pClub->type; }
 	int PowerShotType() { return m_powerShot; }
 	unsigned char GetApproachMode() { return m_approachMode; }
+	bool BarIs(int state) { return m_bar == state; }
 
 private:
 	int m_reserved;
@@ -34,6 +35,8 @@ private:
 	unsigned char m_limitIndex;
 	WCrypticValue<int> m_powerShot;
 	unsigned char m_approachMode;
+	unsigned char m_unused3d[0x17];
+	int m_bar;
 	// TODO: incomplete
 };
 

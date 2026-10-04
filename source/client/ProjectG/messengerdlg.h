@@ -233,7 +233,11 @@ protected:
 	void ApplySavedFocus();
 
 	std::list<sChatSlot> m_chatSlotList;
+
+public:
 	WRect m_dlgRect;
+
+protected:
 	WRect m_alarmRect;
 	std::map<unsigned long, sUserInfoTime> m_userInfoTimeMap;
 	std::list<MSNServerInfo> m_serverList;

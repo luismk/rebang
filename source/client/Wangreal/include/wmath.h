@@ -9,6 +9,7 @@ const float g_PI = 3.14159265358979323846f;
 const float g_2_PI = 6.28318530717958647692f;
 const float g_PI_DIV_2 = 1.57079632679489661923f;
 const float g_DEGTORAD = 0.01745329251994329577f;
+const float g_RADTODEG = 57.2957795130823208768f;
 const float g_HUGE = 3.402823466e+38f;
 const float g_EPSILON = 0.00001f;
 const float g_CM_TO_WU = 0.32f;
@@ -47,6 +48,11 @@ public:
 	{
 	}
 	void operator+=(const WVector2D& v);
+	float SquareMagnitude() const;
+	float Magnitude() const;
+#ifdef REBANG_LEGACY_CPP
+	WVector2D& operator=(const WVector2D& other);
+#endif
 	float x;
 	float y;
 };

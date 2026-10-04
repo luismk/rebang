@@ -141,6 +141,7 @@ public:
 		return !(x == rect.x && y == rect.y && w == rect.w && h == rect.h);
 	}
 	bool IsInRect(const WPoint& point);
+	bool IsInRect(float x, float y);
 	WRect(const WPoint& pt, const WSize& size)
 	{
 		x = pt.x;

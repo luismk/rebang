@@ -15,6 +15,7 @@ public:
 	unsigned char GetGroundType(WVector pos, bool bCheckTee,
 		CGolfBall::eWater* water);
 	WVector GetGroundPoint(WVector pos, bool bObject, int* index, bool bWater);
+	WVector GetRayIntersection(WVector start, WVector ray);
 	void BallProcess(float dt);
 
 	const std::vector<WPolySoup::sTriangle*>* GetTriArray(int texHandle) const

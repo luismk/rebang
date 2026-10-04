@@ -5,10 +5,20 @@
 
 class CGroundPropt;
 class CTextToolTip;
+class FrWnd;
 
 class CMouseCursor : public WSingleton<CMouseCursor>
 {
 public:
+	CMouseCursor();
+	virtual ~CMouseCursor();
+	void Process(float dt);
+	void Display();
+	void Store();
+	void SetBoundArea(WRect* bound);
+	void SetCamMode(bool mode);
+	float RayTrace4Ground();
+
 	enum
 	{
 		UNSELECT,
@@ -17,7 +27,21 @@ public:
 		WRONG,
 		UP,
 		DOWN,
-		ZOOM
+		ZOOM,
+		BOTH,
+		RM_MOVE,
+		RM_MOVE_NO,
+		RM_ROTATE,
+		RM_ROTATE_NO,
+		MOUSE_MAX_NUM
+	};
+
+	enum eMode
+	{
+		SCREEN_LOBBY,
+		SCREEN_GAME,
+		SCREEN_CHAT,
+		SCREEN_TEST
 	};
 
 	enum
@@ -108,7 +132,7 @@ public:
 	void SetCursor(int cursor);
 	int GetCursor();
 	bool InArea(const WRect& rect);
-	void ForceMove(float x, float y, float z);
+	void ForceMove(float x, float y, float duration);
 
 	int GetArea() { return m_area; }
 	bool IsInButtonDownArea(eButton button)
@@ -119,6 +143,15 @@ public:
 	void SetMode(int mode) { m_mode = mode; }
 	void SetItemWindow(bool itemWindow) { m_itemWindow = itemWindow; }
 	void SetTerrainToolTip(bool tooltip) { m_bTerrainTooltip = tooltip; }
+
+private:
+	int CheckArea();
+	int GameCheck();
+	int ChatCheck();
+	int TestCheck();
+	static bool ChildWindowCallback(FrWnd* wnd, void* param);
+	bool IsInclude(float x, float y, float w, float h, bool relative = false);
+	bool SetArea(int area);
 
 protected:
 	WVector2D m_pointer;

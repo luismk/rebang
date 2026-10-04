@@ -45,7 +45,6 @@ extern WTL::CAppModule _Module;
 #include "wblockmodel.h"
 #include "wboneset.h"
 #include "wpetfile.h"
-#include "inputmanager.h"
 #include "soundmanager.h"
 #include "objectfactory.h"
 #include "background.h"
@@ -94,6 +93,7 @@ inline void WVector2D::operator+=(const WVector2D& v)
 #include "ucclibrary.h"
 #include "hackingmanager.h"
 #include "frwndmanager.h"
+#include "inputmanager.h"
 #include "z_ilfill.h"
 ILFILL1
 #include "tweaker.h"

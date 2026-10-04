@@ -576,7 +576,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/mousecursor.obj",
+    {
+      "path": "source/client/ProjectG/mousecursor.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/newsreader.obj",
     "source/client/ProjectG/noticeboard.obj",
     {
