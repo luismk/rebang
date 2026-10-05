@@ -821,7 +821,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/registry.obj",
+    {
+      "path": "source/client/ProjectG/registry.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/slicestr.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
