@@ -1172,6 +1172,18 @@ struct sMailIncludeItem
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+struct sMailInfoBrief
+{
+	unsigned long id;
+	char sender[22];
+	char reserved[0x6e];
+	bool bRead;
+	int itemCount;
+	sMailIncludeItem item;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct sGiftInfo
 {
 	unsigned long guid;

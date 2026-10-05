@@ -165,7 +165,11 @@ public:
 	std::list<sItemInfo> m_ballList;
 	std::list<sItemInfo> m_myItemList;
 	std::list<sRecordedItemInfo> m_recordedItemList;
-	unsigned char m_unused11b8[0x90];
+	unsigned char m_unused11b8[0x24];
+	std::list<sGiftInfo> m_sendGiftList;
+	std::list<sMailInfoBrief> m_mailList;
+	std::list<sItemInfo> m_cutinList;
+	unsigned char m_unused1200[0x48];
 	std::list<sSCardAvilityPeriodInfo> m_cardAbilityList[4];
 	unsigned char m_unused1278[0x10];
 	__int64 m_cookie;
@@ -191,7 +195,8 @@ public:
 	sGolfGame m_golfGame;
 	unsigned char m_unused4778[0x60];
 	sRealMyRoomAuthority m_rmrAuthority;
-	unsigned char m_unused4843[0x209];
+	unsigned char m_unused4843[0x155];
+	sRoomInfo m_roomInfo;
 	std::map<unsigned long, sBriefUserInfo> m_briefUserInfoMap;
 	unsigned char m_unused4a58[0x18];
 	std::list<sSlotInfo> m_slotList;
@@ -216,7 +221,9 @@ public:
 	unsigned long m_newMapEventMask;
 	unsigned char m_unused4d84[0x8];
 	unsigned long m_tutorialComplete[3];
-	unsigned char m_unused4d98[0x28];
+	unsigned char m_unused4d98[0x24];
+	bool m_bRefreshCamera;
+	unsigned char m_unused4dbd[3];
 	struct
 	{
 		unsigned long exp, totalExp;
@@ -238,6 +245,13 @@ public:
 	unsigned long m_replayDuration;
 	unsigned long m_replayTick;
 	int m_replayShotIndex;
+	unsigned char m_unused5bd0[0xd8];
+	void SetFriendGameSvrUID(unsigned long uid);
+	unsigned long GetFriendGameSvrUID();
+	void SetInviteMode(int mode);
+	int IsInviteMode();
+	unsigned long m_friendGameSvrUID;
+	int m_inviteMode;
 	// TODO: this struct definition is incomplete
 };
 

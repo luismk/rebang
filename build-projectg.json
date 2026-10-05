@@ -674,8 +674,16 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/giftalarmdlg.obj",
-    "source/client/ProjectG/iteminfodlg.obj",
+    {
+      "path": "source/client/ProjectG/giftalarmdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
+    {
+      "path": "source/client/ProjectG/iteminfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/kbdmanualdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -694,7 +702,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/schooldlg.obj",
+    {
+      "path": "source/client/ProjectG/schooldlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/scratchdlg.obj",
     {
       "path": "source/client/ProjectG/setitemdlg.cpp",
@@ -1387,9 +1399,17 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/userlistdlg.obj",
+    {
+      "path": "source/client/ProjectG/userlistdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/bingoeventdlg.obj",
-    "source/client/ProjectG/christamseventdlg.obj",
+    {
+      "path": "source/client/ProjectG/christamseventdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/christmassockeventdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",

@@ -50,6 +50,8 @@ public:
 	void operator+=(const WVector2D& v);
 	float SquareMagnitude() const;
 	float Magnitude() const;
+	WVector2D& Normalize();
+	void operator*=(float f);
 #ifdef REBANG_LEGACY_CPP
 	WVector2D& operator=(const WVector2D& other);
 #endif

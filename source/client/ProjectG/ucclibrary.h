@@ -148,3 +148,7 @@ void CreateItemThumbnail(const Bitmap* texture, const Bitmap* mask,
 FrGraphicInterface* GetGDI();
 void RefreshTexCache(Bitmap* bitmap);
 void RefreshTexCache(Bitmap& bitmap);
+
+bool IsUccClothes(unsigned long typeId);
+const Bitmap* GetUccItemIcon(unsigned long guid);
+const char* GetUccItemName(unsigned long guid);
