@@ -1326,7 +1326,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/noticedlg.obj",
+    {
+      "path": "source/client/ProjectG/noticedlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/parannickdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
