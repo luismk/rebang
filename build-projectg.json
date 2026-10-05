@@ -674,7 +674,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/optiondlg.obj",
-    "source/client/ProjectG/playerinfodlg.obj",
+    {
+      "path": "source/client/ProjectG/playerinfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/privatetradedlg.obj",
     "source/client/ProjectG/recycledlg.obj",
     {

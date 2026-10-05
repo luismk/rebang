@@ -113,6 +113,7 @@ public:
 	int IsControlServerService(int service);
 	void ClearUserInfoTimeMap(unsigned long uid);
 	void SetIndex(unsigned long uid);
+	unsigned char GetIndex(unsigned long guid);
 	float GetWtPepPangyaComboGauge(unsigned char player);
 	float GetComboGaugeLimit(unsigned char team);
 	SYSTEMTIME& GetServerTime();
