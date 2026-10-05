@@ -216,7 +216,7 @@ bool CGStarMode::SavePartsInfoCharacterMap(
 
 void CGStarMode::SkipServer()
 {
-    // HACK: preserve emission order by adding DCE'd dependencies
+	// HACK: preserve emission order by adding DCE'd dependencies
 	if (0)
 		SavePartsInfoCharacterMap(Doc()->m_charMap, NULL);
 	WNetworkSystem* network = NET();
