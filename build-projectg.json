@@ -410,7 +410,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/realmyroom_authoritydlg.obj",
+    {
+      "path": "source/client/ProjectG/realmyroom_authoritydlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/realmyroom_avatar.obj",
     "source/client/ProjectG/realmyroomdata.obj",
     "source/client/ProjectG/realmyroommain.obj",

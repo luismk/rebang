@@ -189,7 +189,9 @@ public:
 	unsigned long m_approachStartTime;
 	unsigned char m_unused4654[0xc];
 	sGolfGame m_golfGame;
-	unsigned char m_unused4778[0x2d4];
+	unsigned char m_unused4778[0x60];
+	sRealMyRoomAuthority m_rmrAuthority;
+	unsigned char m_unused4843[0x209];
 	std::map<unsigned long, sBriefUserInfo> m_briefUserInfoMap;
 	unsigned char m_unused4a58[0x18];
 	std::list<sSlotInfo> m_slotList;
@@ -225,7 +227,9 @@ public:
 	} m_bonusPangTable[3];
 	unsigned char m_unused5010[0x30];
 	CGolfDoc* m_pGolfDoc;
-	unsigned char m_unused5044[0xb50];
+	unsigned char m_unused5044[0xb1];
+	bool m_bItemStorageLock;
+	unsigned char m_unused50f6[0xa9e];
 	int m_replayState;
 	int m_replayPlayType;
 	eReplayModeType m_playingMode;

@@ -1599,3 +1599,13 @@ struct sSCardAvilityPeriodInfo
 	unsigned char valid;
 };
 #pragma pack(pop)
+
+#pragma pack(push, 1)
+struct sRealMyRoomAuthority
+{
+	unsigned long ownerUID;
+	unsigned short unknown4;
+	bool bPrivate;
+	char password[100];
+};
+#pragma pack(pop)
