@@ -8,7 +8,7 @@ struct sGD_BITMAP
 	sGD_BITMAP() { memset(fileName, 0, sizeof(fileName)); }
 
 	char fileName[64];
-	_WRECT rect;
+	WRect rect;
 };
 
 class CGDBitmapBox : public IGameData
