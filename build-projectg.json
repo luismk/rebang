@@ -399,7 +399,11 @@
     },
     "source/client/ProjectG/ucclibrary.obj",
     "source/client/ProjectG/uccmanager.obj",
-    "source/client/ProjectG/uccpickcolordlg.obj",
+    {
+      "path": "source/client/ProjectG/uccpickcolordlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/uccsetinfodlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -1161,7 +1165,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/mascotinfodlg.obj",
+    {
+      "path": "source/client/ProjectG/mascotinfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/panggiftdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -1179,7 +1187,11 @@
     },
     "source/client/ProjectG/shopmain.obj",
     "source/client/ProjectG/shoptask.obj",
-    "source/client/ProjectG/caddieinfodlg.obj",
+    {
+      "path": "source/client/ProjectG/caddieinfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/checkoutdlg.obj",
     {
       "path": "source/client/ProjectG/compounddlg.cpp",
@@ -1300,7 +1312,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/levelupitemdlg.obj",
+    {
+      "path": "source/client/ProjectG/levelupitemdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/logindlg.obj",
     {
       "path": "source/client/ProjectG/loginrsdlg.cpp",
@@ -1391,7 +1407,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/missioneventdlg.obj",
+    {
+      "path": "source/client/ProjectG/missioneventdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/newmapeventdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",

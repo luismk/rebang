@@ -84,3 +84,24 @@ public:
 	std::string m_carpetSeqName;
 	std::string m_crashSeqName[3];
 };
+
+class CMissionEvent : public IContentsDataContainer
+{
+public:
+	virtual bool Initialize();
+	virtual bool Release();
+	bool IsCompleteMission(int index);
+	bool IsCompleteAllDayMission();
+	bool IsCompleteAllTermMission();
+	bool IsCompleteCourse(int course);
+	bool GetDayGiftFlag() const { return m_bDayGiftFlag; }
+	bool GetTermGiftFlag() const { return m_bTermGiftFlag; }
+	int GetCondition(int index) { return m_missionInfo[index].condition; }
+	const int GetMapCount() const { return 15; }
+
+private:
+	unsigned int m_eventFlag;
+	bool m_bDayGiftFlag;
+	bool m_bTermGiftFlag;
+	std::vector<GlobalEnum::sMissionInfo> m_missionInfo;
+};

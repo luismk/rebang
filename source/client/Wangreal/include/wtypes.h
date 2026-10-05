@@ -134,6 +134,7 @@ public:
 		w = rect.w;
 		h = rect.h;
 	}
+	WRect operator+(WPoint& point) const;
 	float Right() const { return w + x; }
 	float Bottom() const { return h + y; }
 	int operator!=(WRect& rect) const

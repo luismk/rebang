@@ -594,6 +594,7 @@ struct Delete_SecondObject
 
 namespace GlobalEnum
 {
+#pragma pack(push, 1)
 	struct sMissionInfo
 	{
 		int condition;
@@ -604,6 +605,7 @@ namespace GlobalEnum
 		{
 		}
 	};
+#pragma pack(pop)
 }
 
 namespace GlobalEnum
