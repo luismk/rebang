@@ -125,6 +125,7 @@ public:
 	__int64 RemainOwnCash(unsigned long provider, __int64 cookie);
 
 	char* GetFileName() { return m_fileName; }
+	int GetNumAddItemSlotByMascot();
 	const std::list<sItemInfo>& GetConstMyItemList() { return m_myItemList; }
 	eReplayModeType GetPlayingMode() { return m_playingMode; }
 
@@ -175,7 +176,8 @@ public:
 	__int64 m_cookie;
 	__int64 m_cash;
 	__int64 m_bonusCash;
-	unsigned char m_unused12a0[0x30];
+	std::list<sItemInfo> m_uccItemList;
+	unsigned char m_unused12ac[0x24];
 	sUserInfo m_userInfo[4];
 	unsigned char m_unused4118[0x3ec];
 	std::vector<sRivalData> m_rivalList;

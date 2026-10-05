@@ -183,6 +183,7 @@ struct MSNServerInfo : public sGameServerInfo
 class CMessengerInfo : public WSingleton<CMessengerInfo>, public FrCmdTarget
 {
 	friend class MSNUnit;
+	friend class FrMessengerChatDlg;
 
 public:
 	CMessengerInfo();

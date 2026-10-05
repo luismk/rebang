@@ -152,3 +152,9 @@ void RefreshTexCache(Bitmap& bitmap);
 bool IsUccClothes(unsigned long typeId);
 const Bitmap* GetUccItemIcon(unsigned long guid);
 const char* GetUccItemName(unsigned long guid);
+
+const Bitmap* GetUccItemIcon(sItemInfo* item);
+const char* GetUccItemName(sItemInfo* item);
+sItemInfo* GetMyItemInfo(unsigned long typeId, const char* uccIndex,
+	unsigned short seq);
+bool IsSameClothes(IFF_STRUCT::sPart* first, IFF_STRUCT::sPart* second);

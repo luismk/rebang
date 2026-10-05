@@ -390,7 +390,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/ucccopydlg.obj",
+    {
+      "path": "source/client/ProjectG/ucccopydlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/uccdrawdlg.obj",
     {
       "path": "source/client/ProjectG/ucceditbrushdlg.cpp",
@@ -724,7 +728,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/messengerchatdlg.obj",
+    {
+      "path": "source/client/ProjectG/messengerchatdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/messengerdlg.obj",
     {
       "path": "source/client/ProjectG/messengeroptdlg.cpp",
@@ -1210,7 +1218,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/downgradedlg.obj",
+    {
+      "path": "source/client/ProjectG/downgradedlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/enchantdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -1283,7 +1295,11 @@
     },
     "source/client/ProjectG/detailedroominfodlg.obj",
     "source/client/ProjectG/dlgquickstartsetting.obj",
-    "source/client/ProjectG/equipdlg.obj",
+    {
+      "path": "source/client/ProjectG/equipdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/eventprizedlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -1420,7 +1436,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/frhalloweendlg.obj",
+    {
+      "path": "source/client/ProjectG/frhalloweendlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/frticketexchangedlg.obj",
     {
       "path": "source/client/ProjectG/ladderevent.cpp",

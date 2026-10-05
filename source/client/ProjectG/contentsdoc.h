@@ -105,3 +105,9 @@ private:
 	bool m_bTermGiftFlag;
 	std::vector<GlobalEnum::sMissionInfo> m_missionInfo;
 };
+
+class CHalloweenEvent : public IContentsDataContainer
+{
+public:
+	unsigned long GetGiftCnt() const;
+};
