@@ -1391,7 +1391,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/g_starmode.obj",
+    {
+      "path": "source/client/ProjectG/g_starmode.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/playerdlg.obj",
     "source/client/ProjectG/rankingdlg.obj",
     {
