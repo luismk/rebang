@@ -821,7 +821,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/tweaker.obj",
-    "source/client/ProjectG/wtimer.obj",
+    {
+      "path": "source/client/ProjectG/wtimer.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/buddymanager.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
