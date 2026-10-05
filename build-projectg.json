@@ -1167,7 +1167,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/downgradedlg.obj",
-    "source/client/ProjectG/enchantdlg.obj",
+    {
+      "path": "source/client/ProjectG/enchantdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/fortunedlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",

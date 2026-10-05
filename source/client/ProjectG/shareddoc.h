@@ -159,7 +159,8 @@ public:
 	unsigned char m_unusedd4c[0x40c];
 	std::map<unsigned int, sCharacterInfo> m_charMap;
 	std::map<unsigned int, sCaddieInfo> m_caddieMap;
-	unsigned char m_unused1170[0x24];
+	unsigned char m_unused1170[0x18];
+	std::map<unsigned int, sItemInfo> m_clubSetMap;
 	std::list<sItemInfo> m_ballList;
 	std::list<sItemInfo> m_myItemList;
 	std::list<sRecordedItemInfo> m_recordedItemList;
