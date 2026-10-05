@@ -98,6 +98,8 @@ inline void WVector2D::operator+=(const WVector2D& v)
 #include "z_ilfill.h"
 ILFILL1
 #include "tweaker.h"
+#include "gdtextbox.h"
+#include "gdbitmapbox.h"
 #include "gdvoiceitem.h"
 #include "actor.h"
 #include "polysoup.h"

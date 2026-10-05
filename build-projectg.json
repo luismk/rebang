@@ -874,7 +874,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/gamedatadb.obj",
+    {
+      "path": "source/client/ProjectG/gamedatadb.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/gdbitmapbox.obj",
     {
       "path": "source/client/ProjectG/gdeventnotice.cpp",
