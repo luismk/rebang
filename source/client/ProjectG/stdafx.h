@@ -105,7 +105,8 @@ ILFILL1
 #include "scenemanager.h"
 #include "courseorder.h"
 
-#include "autotarget.h"
+// HACK: workaround for unsolved symbol ordering problems
+template void std::vector<WVector>::reserve(unsigned int);
 #include "golfdoc.h"
 #include "shareddoc.h"
 #include "frtext.h"

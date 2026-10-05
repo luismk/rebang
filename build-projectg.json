@@ -144,7 +144,11 @@
     "source/client/ProjectG/ground_info.obj",
     "source/client/ProjectG/headicon.obj",
     "source/client/ProjectG/helpmsg.obj",
-    "source/client/ProjectG/obmarker.obj",
+    {
+      "path": "source/client/ProjectG/obmarker.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/particleparty.obj",
     "source/client/ProjectG/quitwindow.obj",
     {

@@ -25,7 +25,7 @@
 			ILFILLFN10(1) ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) \
 			ILFILLFN(3) ILFILLFN(4) ILFILLFN(5) ILFILLFN(6) \
 			ILFILLFN(7) ILFILLFN(8) \
-			void g() { ILFILL64 ILFILL64 v += 1; v += 1; v += 1; } \
+			void g() { ILFILL64 ILFILL64 ILFILL16 ILFILL16 ILFILL16 v += 1; v += 1; } \
 		}; \
 	}
 
@@ -48,7 +48,7 @@
 			int v; \
 			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
 			ILFILLFN(4) \
-			void g() { ILFILL64 ILFILL16 ILFILL16 ILFILL16 ILFILL4 ILFILL4 ILFILL4 v += 1; } \
+			void g() { ILFILL64 ILFILL16 ILFILL16 v += 1; v += 1; v += 1; } \
 		}; \
 	}
 
