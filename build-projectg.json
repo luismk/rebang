@@ -1119,7 +1119,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/threadpool.obj",
+    {
+      "path": "source/client/ProjectG/threadpool.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/gmtoolkit.obj",
     {
       "path": "source/shared/localize.cpp",
