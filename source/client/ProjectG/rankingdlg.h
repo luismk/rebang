@@ -26,3 +26,8 @@ inline CRankingInfo* RANKING()
 {
 	return CRankingInfo::Instance();
 }
+
+inline FrRankingDlg* RANKINGDLG()
+{
+	return RANKING()->GetDlg();
+}

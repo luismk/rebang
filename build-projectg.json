@@ -1269,7 +1269,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/lobbymain.obj",
+    {
+      "path": "source/client/ProjectG/lobbymain.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/lobbytask.obj",
     {
       "path": "source/client/ProjectG/addfrienddlg.cpp",

@@ -84,7 +84,7 @@ public:
 	void SetFlag(unsigned long flag) { m_flag = flag; }
 	void EnableFlag(unsigned long flag) { m_flag |= flag; }
 	void DisableFlag(unsigned long flag) { m_flag &= ~flag; }
-	void SetCloseResult(eFormRet ret) { m_retCode = ret; }
+	void SetCloseResult(eFormRet ret) { m_defaultRetCode = ret; }
 	void Adjust(WRect& rtRect);
 	void SetFrameCaptionFocus(bool bEnable);
 	void SetCaptionOffset(bool offset) { m_pBaseFrm->SetCaptionOffset(offset); }

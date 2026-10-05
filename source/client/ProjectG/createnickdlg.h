@@ -48,12 +48,3 @@ protected:
 
 	DECLARE_FRESH_MSGMAP()
 };
-
-void FrCreateNickDlg::SetCheckFlag(bool bCheck)
-{
-	m_bCheck = bCheck;
-}
-bool FrCreateNickDlg::GetCheckFlag() const
-{
-	return m_bCheck;
-}

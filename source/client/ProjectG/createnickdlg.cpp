@@ -1,5 +1,15 @@
 #include "minatl.h"
 #include "createnickdlg.h"
+
+void FrCreateNickDlg::SetCheckFlag(bool bCheck)
+{
+	m_bCheck = bCheck;
+}
+bool FrCreateNickDlg::GetCheckFlag() const
+{
+	return m_bCheck;
+}
+
 #include "emoticondlg.h"
 #include "logoutdlg.h"
 #include "frwndinl.h"

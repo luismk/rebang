@@ -154,4 +154,24 @@ struct sStoredItemInfo
 	}
 };
 
+struct sSaleItem
+{
+	unsigned long ownerUID;
+	char nickname[22];
+	unsigned long typeId;
+	__int64 price;
+	unsigned short count;
+	unsigned char bOpen;
+	unsigned char reserved[0x35];
+};
+
+struct sCardStack
+{
+	unsigned long uid;
+	unsigned long typeId;
+	int count;
+	unsigned char bValid;
+	unsigned char unknownD;
+};
+
 #pragma pack(pop)

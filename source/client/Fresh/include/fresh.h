@@ -5,6 +5,7 @@ class Bitmap;
 class FrElement;
 class FrCmdTarget;
 class FrWndManager;
+class FrDesktop;
 
 class Fresh
 {
@@ -23,6 +24,7 @@ public:
 	const Bitmap* GetBitmap(const char*);
 	bool OpenLayout(const char*, FrCmdTarget*, bool);
 	bool IsDesktopFocused() const;
+	FrDesktop* GetDesktop() const;
 	FrWndManager* GetManager() const { return manager; }
 
 private:

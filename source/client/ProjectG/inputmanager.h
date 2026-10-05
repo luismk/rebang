@@ -108,3 +108,4 @@ extern CInputManager* g_input;
 
 class WInputDev;
 extern WInputDev* g_ime;
+extern WInputDev* g_mouse;

@@ -46,6 +46,8 @@ extern WTL::CAppModule _Module;
 #include "wboneset.h"
 #include "wpetfile.h"
 #include "soundmanager.h"
+#include "z_ilfill.h"
+ILFILL0
 #include "objectfactory.h"
 #include "background.h"
 #include "wview.h"
@@ -75,16 +77,12 @@ inline void WVector2D::operator+=(const WVector2D& v)
 #include "lock.hpp"
 #include "packet.h"
 #include "titles_client.h"
-#include "networksystem.h"
 #include "taskmanager.h"
 #include "frbutton.h"
 #include "frwndinl.h"
 #include "frgaugebar.h"
 #include "frlistbox.h"
-#include "frviewer.h"
 #include "frstatic.h"
-#include "frframe.h"
-#include "fremoticon.h"
 #include "frgraphicinterface.h"
 #include "fredit.h"
 #include "frarea.h"
@@ -93,15 +91,26 @@ inline void WVector2D::operator+=(const WVector2D& v)
 #include "ucclibrary.h"
 #include "hackingmanager.h"
 #include "frwndmanager.h"
+// HACK: should be inline with class definition, but symbol ordering is tricky
+inline FrDesktop* Fresh::GetDesktop() const
+{
+	return manager->GetDesktop();
+}
 #include "inputmanager.h"
 #include "ccrc32.h"
+#include "tooltip.h"
 #include "z_ilfill.h"
 ILFILL1
+#include "frframe.h"
+#include "fremoticon.h"
+#include "frviewer.h"
+#include "networksystem.h"
 #include "tweaker.h"
 #include "gdtextbox.h"
 #include "gdbitmapbox.h"
 #include "gdvoiceitem.h"
 #include "actor.h"
+#include "taskmain.h"
 #include "polysoup.h"
 #include "golfrule.h"
 #include "scenemanager.h"
@@ -109,6 +118,7 @@ ILFILL1
 
 // HACK: workaround for unsolved symbol ordering problems
 template void std::vector<WVector>::reserve(unsigned int);
+#include "golftask.h"
 #include "golfdoc.h"
 #include "shareddoc.h"
 #include "frtext.h"

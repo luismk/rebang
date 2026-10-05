@@ -25,6 +25,15 @@ public:
 		}
 	};
 
+	struct sCamera
+	{
+		char name[32];
+		WMatrix mat;
+		float fov;
+		int reserved;
+	};
+
+	sCamera* FindCamera(const char* name);
 	bool LoadMapCheckData(unsigned char hole);
 	const std::vector<sTriangle*>* GetTriArray(int texHandle) const;
 

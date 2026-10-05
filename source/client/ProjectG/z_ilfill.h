@@ -22,10 +22,21 @@
 		struct Pad \
 		{ \
 			int v; \
-			ILFILLFN10(1) ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) \
-			ILFILLFN(3) ILFILLFN(4) ILFILLFN(5) ILFILLFN(6) \
-			ILFILLFN(7) ILFILLFN(8) \
-			void g() { ILFILL64 ILFILL16 ILFILL16 ILFILL16 v += 1; } \
+			ILFILLFN(10) ILFILLFN(11) ILFILLFN(12) ILFILLFN(13) \
+			ILFILLFN(14) ILFILLFN(15) ILFILLFN(16) \
+			void g() { ILFILL16 v += 1; v += 1; v += 1; } \
+		}; \
+	}
+
+#define ILFILL0 \
+	namespace ILFILL0 \
+	{ \
+		struct Pad \
+		{ \
+			int v; \
+			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
+			ILFILLFN(4) ILFILLFN(5) ILFILLFN(6) ILFILLFN(7) \
+			ILFILLFN(8) \
 		}; \
 	}
 
@@ -40,6 +51,16 @@
 		}; \
 	}
 
+#define ILFILL2A \
+	namespace ILFILL2A \
+	{ \
+		struct Pad \
+		{ \
+			int v; \
+			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) \
+		}; \
+	}
+
 #define ILFILL3 \
 	namespace ILFILL3 \
 	{ \
@@ -47,8 +68,7 @@
 		{ \
 			int v; \
 			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
-			ILFILLFN(4) \
-			void g() { ILFILL64 ILFILL16 ILFILL16 v += 1; v += 1; v += 1; } \
+			void g() { ILFILL64 ILFILL16 v += 1; v += 1; } \
 		}; \
 	}
 

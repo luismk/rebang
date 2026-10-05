@@ -1,5 +1,25 @@
 #pragma once
 
+enum eGameType
+{
+	GAME_TYPE_STROKE,
+	GAME_TYPE_TEAM,
+	GAME_TYPE_AVATARCHAT,
+	GAME_TYPE_MATCH,
+	GAME_TYPE_30S,
+	GAME_TYPE_30S_TEAM,
+	GAME_TYPE_GUILD_MATCH,
+	GAME_TYPE_SKINS,
+	GAME_TYPE_REALMYROOM,
+	GAME_TYPE_APPROACH,
+	GAME_TYPE_NEW_APPROACH,
+	GAME_TYPE_TUTORIAL_BASIC,
+	GAME_TYPE_TUTORIAL_ADV,
+	GAME_TYPE_OFFLINE_GHOST,
+	GAME_TYPE_USEMAX,
+	GAME_TYPE_MAX
+};
+
 enum eGameStyle
 {
 	GAME_STYLE_NORMAL,
@@ -831,8 +851,9 @@ struct sBriefUserInfo
 	unsigned char Reserve : 2;
 	unsigned long m_GuildId;
 	char szEmblemName[12];
-	unsigned long state;
-	unsigned char reserved[0x82];
+	unsigned short state;
+	int nChannelingFlag;
+	unsigned char reserved[0x80];
 
 	bool IsIdentity(unsigned long identity)
 	{
@@ -934,8 +955,7 @@ struct sSlotInfo
 	unsigned long tidSkin[6];
 	unsigned char bTeam : 2;
 	unsigned char bSleep : 1;
-	unsigned char bMaster : 1;
-	unsigned char bMaster2 : 1;
+	unsigned char bMaster : 2;
 	unsigned char gender : 3;
 	unsigned char manner : 1;
 	unsigned char bReady : 1;
@@ -974,7 +994,6 @@ struct sSlotInfo
 		bTeam = 0;
 		bSleep = 0;
 		bMaster = 0;
-		bMaster2 = 0;
 		gender = 0;
 		dwIdentity = 0;
 
@@ -1615,6 +1634,111 @@ struct sSCardAvilityPeriodInfo
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+struct sCards
+{
+	unsigned long uid;
+	unsigned long typeId;
+	unsigned char reserved08[12];
+	int count;
+	unsigned char reserved18[32];
+	unsigned char type;
+	unsigned char reserved39;
+};
+
+namespace IFF_STRUCT
+{
+	struct sQuest;
+}
+
+struct sQuest
+{
+	unsigned long typeId;
+	unsigned long count;
+	IFF_STRUCT::sQuest* pQuest;
+	unsigned char flag;
+};
+
+struct sItemAttachCard
+{
+	unsigned long typeId;
+	unsigned long id;
+};
+
+struct sCaddieReportData
+{
+	unsigned long uid;
+	__int64 pang;
+	__int64 bonusPang;
+	unsigned long roomType;
+	unsigned long exp;
+	unsigned long mascotTypeId;
+	unsigned char premium;
+	char pangItem;
+	unsigned short level;
+	unsigned char reserved24[2];
+	char score;
+	unsigned char awardFlag;
+	unsigned char eventType;
+	unsigned char reserved29[22];
+	char nickname[22];
+	unsigned char reserved55[4];
+	unsigned long guildUID;
+	char guildMark[12];
+	unsigned char gameType;
+	unsigned char reserved6a[3];
+	unsigned char team;
+	unsigned char eventFlag;
+	unsigned char reserved6f[16];
+};
+
+struct sRoomUserInfo
+{
+	unsigned long uid;
+	unsigned char level;
+	unsigned char hole;
+	unsigned long capability;
+	unsigned char reserved0a[4];
+	unsigned long ladderPoint;
+};
+
+struct sGuildMatchFlagInfo
+{
+	unsigned char reserved[0x2e];
+};
+
+struct sMapEventInfo
+{
+	unsigned char reserved[0x28];
+};
+
+struct sBurnningSpCard
+{
+	unsigned char reserved[0x14];
+};
+
+struct GuildMemberInfo_t
+{
+	unsigned char reserved[0x40];
+};
+
+struct sFurniture_List
+{
+	unsigned long id;
+	unsigned long typeId;
+	unsigned short reserved;
+	float x;
+	float y;
+	float z;
+	float r;
+	unsigned char bArrange : 1;
+};
+
+struct sAwardItem
+{
+	unsigned long uid;
+	int pang;
+};
+
 struct sRealMyRoomAuthority
 {
 	unsigned long ownerUID;

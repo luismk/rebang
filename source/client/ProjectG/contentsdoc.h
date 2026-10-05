@@ -47,6 +47,73 @@ protected:
 	int m_bInitialized;
 };
 
+class CWorldTourEvent : public IContentsDataContainer
+{
+public:
+	void SetMapFlag(unsigned long flag);
+	void SetGotGift(bool bGot);
+	void SetCanGift(bool bCan);
+	unsigned long GetMapFlag() const;
+	bool GetGotGift() const;
+	bool GetCanGift() const;
+
+	virtual bool Initialize();
+	virtual bool Release();
+
+protected:
+	unsigned long m_mapFlag;
+	bool m_bGotGift;
+	bool m_bCanGift;
+};
+
+class CChristmasEvent : public IContentsDataContainer
+{
+public:
+	void SetFlag(bool bFlag);
+	bool GetFlag() const;
+
+	virtual bool Initialize();
+	virtual bool Release();
+
+protected:
+	bool m_bFlag;
+};
+
+class CTicketExchange : public IContentsDataContainer
+{
+public:
+	void SetFlag(bool bFlag);
+	bool GetFlag() const;
+
+	virtual bool Initialize();
+	virtual bool Release();
+
+protected:
+	bool m_bFlag;
+};
+
+class CHalloweenEvent : public IContentsDataContainer
+{
+public:
+	void SetMapFlag(unsigned long flag);
+	void SetGiftCnt(unsigned long cnt);
+	void SetShowGiftDlg(bool bShow);
+	void SetEventState(bool bState);
+	unsigned long GetMapFlag() const;
+	unsigned long GetGiftCnt() const;
+	bool GetShowGiftDlg() const;
+	bool GetEventState() const;
+
+	virtual bool Initialize();
+	virtual bool Release();
+
+protected:
+	unsigned long m_mapFlag;
+	unsigned long m_giftCnt;
+	bool m_bShowGiftDlg;
+	bool m_bEventState;
+};
+
 class CGimmickContainer : public IContentsDataContainer
 {
 public:
@@ -104,10 +171,4 @@ private:
 	bool m_bDayGiftFlag;
 	bool m_bTermGiftFlag;
 	std::vector<GlobalEnum::sMissionInfo> m_missionInfo;
-};
-
-class CHalloweenEvent : public IContentsDataContainer
-{
-public:
-	unsigned long GetGiftCnt() const;
 };

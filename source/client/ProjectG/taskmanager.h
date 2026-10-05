@@ -117,6 +117,13 @@ protected:
 	// TODO: this class definition is incomplete
 };
 
+inline int AfxPostMsg(const IActor* sender, const char* target, int message,
+	int param1, int param2, int param3, unsigned long time)
+{
+	return CTaskManager::Instance()->PostMsg(sender, target, message, param1,
+		param2, param3, time);
+}
+
 inline CTask* AfxGetTask()
 {
 	if (CTaskManager::Instance() == NULL)
