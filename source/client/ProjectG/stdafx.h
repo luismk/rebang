@@ -94,6 +94,7 @@ inline void WVector2D::operator+=(const WVector2D& v)
 #include "hackingmanager.h"
 #include "frwndmanager.h"
 #include "inputmanager.h"
+#include "ccrc32.h"
 #include "z_ilfill.h"
 ILFILL1
 #include "tweaker.h"

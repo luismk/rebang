@@ -1021,7 +1021,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/ccrc32.obj",
+    {
+      "path": "source/client/ProjectG/ccrc32.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/crcdef.obj",
     {
       "path": "source/client/ProjectG/md5.cpp",
