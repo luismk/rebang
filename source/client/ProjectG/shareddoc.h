@@ -121,6 +121,7 @@ public:
 	unsigned long GetMapEventPangRate(int course);
 	bool CanCompound(unsigned long uid);
 	bool CanUseRookieChannelMap(unsigned int course);
+	__int64 RemainOwnCash(unsigned long provider, __int64 cookie);
 
 	char* GetFileName() { return m_fileName; }
 	const std::list<sItemInfo>& GetConstMyItemList() { return m_myItemList; }
@@ -166,7 +167,9 @@ public:
 	std::list<sSCardAvilityPeriodInfo> m_cardAbilityList[4];
 	unsigned char m_unused1278[0x10];
 	__int64 m_cookie;
-	unsigned char m_unused1290[0x40];
+	__int64 m_cash;
+	__int64 m_bonusCash;
+	unsigned char m_unused12a0[0x30];
 	sUserInfo m_userInfo[4];
 	unsigned char m_unused4118[0x3ec];
 	std::vector<sRivalData> m_rivalList;

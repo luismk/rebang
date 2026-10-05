@@ -593,7 +593,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/onelinereqdlg.obj",
+    {
+      "path": "source/client/ProjectG/onelinereqdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/pangfbi.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
