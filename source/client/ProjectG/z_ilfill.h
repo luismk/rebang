@@ -78,4 +78,13 @@
 			void g() { TuPad<2>().g(); } \
 		}; \
 	}
+#define ILFILLW1 \
+	namespace TUPADW1 \
+	{ \
+		struct Pad \
+		{ \
+			int v; \
+			void g() { ILFILL64 ILFILL64 ILFILL64 ILFILL16 ILFILL16 ILFILL16 ILFILL4 ILFILL4 v += 1; v += 1; } \
+		}; \
+	}
 // clang-format on

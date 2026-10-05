@@ -1096,7 +1096,11 @@
     },
     "source/client/ProjectG/projectg.obj",
     "source/client/ProjectG/stdafx.obj",
-    "source/client/ProjectG/winmain.obj",
+    {
+      "path": "source/client/ProjectG/winmain.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/parallelwork.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
