@@ -2291,8 +2291,10 @@ BOOL GetLastWriteTime(HANDLE hFile, char* lpszString)
 
 	FileTimeToSystemTime(&ftLocal, &stCreate);
 
-	wsprintf(lpszString, "%d\263\342%02d\277\371%02d\300\317 %02d\275\303%02d\272\320", stCreate.wYear,
-		stCreate.wMonth, stCreate.wDay, stCreate.wHour, stCreate.wMinute);
+	wsprintf(lpszString,
+		"%d\263\342%02d\277\371%02d\300\317 %02d\275\303%02d\272\320",
+		stCreate.wYear, stCreate.wMonth, stCreate.wDay, stCreate.wHour,
+		stCreate.wMinute);
 
 	return TRUE;
 }
