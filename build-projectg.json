@@ -585,7 +585,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/newsreader.obj",
+    {
+      "path": "source/client/ProjectG/newsreader.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/noticeboard.obj",
     {
       "path": "source/client/ProjectG/noticeimage.cpp",
