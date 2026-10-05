@@ -871,7 +871,11 @@
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
     "source/client/ProjectG/scenemanager.obj",
-    "source/client/ProjectG/soundmanager.obj",
+    {
+      "path": "source/client/ProjectG/soundmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/taskmanager.obj",
     {
       "path": "source/shared/itemmanager.cpp",
