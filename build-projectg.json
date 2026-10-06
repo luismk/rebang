@@ -937,7 +937,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/gdtextbox.obj",
+    {
+      "path": "source/client/ProjectG/gdtextbox.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/gdvoiceitem.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
