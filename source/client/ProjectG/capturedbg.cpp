@@ -33,7 +33,7 @@ void CCapturedBg::SetCapturedBgMode(bool mode)
 			1)
 			m_CaptureMode = true;
 
-		CProjectG::Instance()->m_mainFlags |= 2;
+		CProjectG::Instance()->m_mainFlags.Enable(2);
 		CProjectG::Instance()->SetFPS(
 			g_resrcmng->VideoReference()->GetMonitorSupportFps());
 	}
@@ -43,6 +43,6 @@ void CCapturedBg::SetCapturedBgMode(bool mode)
 
 		m_CaptureMode = false;
 
-		CProjectG::Instance()->m_mainFlags &= ~2;
+		CProjectG::Instance()->m_mainFlags.Disable(2);
 	}
 }

@@ -9,6 +9,8 @@ class WOverlay;
 class CChatMsg : public WSingleton<CChatMsg>
 {
 public:
+	CChatMsg();
+	virtual ~CChatMsg();
 	void Reset();
 	unsigned long ConvertToUIColor(unsigned long color);
 	void AddChatMsg(const std::string& msg, unsigned long color, bool b1,
@@ -65,4 +67,25 @@ protected:
 	int m_iCurByte;
 	int m_iNumChars;
 	int m_iCurChar;
+	int m_iSelByteS;
+	int m_iSelByteE;
+	int m_iNumSelBytes;
+	int m_iSelCharS;
+	int m_iSelCharE;
+	int m_iNumSelChars;
+	char m_szCopied[1024];
+	char m_szCopiedExt[1024];
+	bool m_abCopied[1024];
+	int m_iNumCopyBytes;
+	int m_iNumCopyChars;
+	unsigned long m_lastMsgTime;
+	unsigned char m_bBackupUiAlpha;
+	bool m_bOpen;
+	bool m_bToggle;
+	std::string m_chatFacialUser;
+	unsigned char m_bCompAttr[1024];
+	unsigned long m_dwCompCls[256];
+	unsigned long m_dwCompStrLen;
+	unsigned long m_dwCompAttrLen;
+	unsigned long m_dwCompClsLen;
 };

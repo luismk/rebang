@@ -553,6 +553,8 @@ public:
 	__int64 m_tradeIncome;
 	bool m_bHaveHalloweenItem;
 	bool m_bWearHalloweenItem;
+	void SetReplayState(int state) { m_replayState = state; }
+	int GetReplayState() { return m_replayState; }
 	int m_replayState;
 	int m_replayPlayType;
 	eReplayModeType m_playingMode;

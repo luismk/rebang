@@ -1039,7 +1039,7 @@ struct sChannelInfo
 struct sGameServerInfo
 {
 	char name[40];
-	unsigned long guid;
+	unsigned long id;
 	int maxUser;
 	int curUser;
 	char addr[18];

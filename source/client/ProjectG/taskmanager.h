@@ -102,6 +102,11 @@ public:
 	int PostMsg(const IActor* sender, const char* target, int message,
 		int param1, int param2, int param3, unsigned long time);
 
+	void CreateTask(const char* task, const char* doc, bool preserve);
+	void PreProcess();
+	void ProcessTask(float delta);
+	void DisplayTask() const;
+	bool IsTaskChanging() { return m_bChangeTask; }
 	void ChangeTask(const char* taskName, const char* docName, bool bPreserve);
 	CTask* GetCurrentTask() const;
 	CTask* GetPreservedTask() const { return m_pPreservedTask; }
@@ -110,7 +115,11 @@ public:
 	void ReleaseWork() { delete m_pWork.release(); }
 
 protected:
-	unsigned char m_unused28[0x10];
+	bool m_bChangeTask;
+	bool m_bPreserveTask;
+	const char* m_nextTaskName;
+	const char* m_nextDocName;
+	CTask* m_pCurrentTask;
 	CTask* m_pPreservedTask;
 	unsigned char m_unused3c[0x30];
 	std::auto_ptr<CWork> m_pWork;

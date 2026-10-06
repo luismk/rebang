@@ -33,4 +33,11 @@ public:
 	void* Attach(const Attacher& attacher, const char* filename, bool bMark,
 		defines_t* defines);
 	void SetActive(bool bActive);
+	void ClearAll(bool bMarkedOnly);
+	bool GetOutput(WVector& out, unsigned char& value);
+
+protected:
+	unsigned char m_pvsFxBox[0x364]; // TODO: CPvsFxBox
+	std::map<int, void*> m_control;
+	bool m_bActive;
 };

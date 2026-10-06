@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <deque>
+#include <queue>
 #include "frcmdtarget.h"
 #include "mainframe.h"
 #include "ccrc32.h"
@@ -22,7 +22,7 @@ public:
 	CTmpLogo();
 	~CTmpLogo();
 
-	WOverlay* m_pLogo;
+	Bitmap* m_pLogo;
 };
 
 class CProjectG : public CMainFrame,
@@ -85,7 +85,7 @@ protected:
 	__int64 CalcHddFreeSpace();
 
 public:
-	int m_mainFlags;
+	WFlags m_mainFlags;
 	bool m_bMsnOffline;
 	bool m_bMoveLoginServer;
 	std::string m_unusedString;
@@ -96,16 +96,7 @@ public:
 protected:
 	WList<WInputDev*> m_inputList;
 	unsigned long m_threadId;
-	union
-	{
-		struct
-		{
-			unsigned int m_bUnused : 1;
-			unsigned int m_bAviCapture : 1;
-			unsigned int m_bWindowed : 1;
-		};
-		unsigned int m_flag;
-	};
+	WFlags m_flag;
 	bool m_bLostFocus;
 	unsigned long m_baseTime;
 	float m_refreshRate;
@@ -113,7 +104,7 @@ protected:
 	WDeviceManager* m_pDeviceManager;
 	WProcManager* m_pProcManager;
 	WAVIEncoder m_avi;
-	std::deque<WReceivedPacket*> m_recvPacketQueue;
+	std::queue<WReceivedPacket*> m_recvPacketQueue;
 	unsigned int m_fpuControl;
 	bool m_bHidePrivacy;
 	bool m_bHideGUI;

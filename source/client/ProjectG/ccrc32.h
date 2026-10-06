@@ -38,7 +38,7 @@ public:
 	int AddWork(const char* filename, unsigned long crc);
 	void GetWork(std::vector<sCRC_CHKTASK*>& work);
 	int IsTerminate() { return m_bTerminate; }
-	int IsWorking() { return m_work.size() != 0; }
+	int IsWorking() { return !m_work.empty(); }
 	HWND GetParentWnd() { return m_hParentWnd; }
 	void SetSleepTime(unsigned long time) { m_dwSleepTime = time; }
 	unsigned long GetSleepTime() { return m_dwSleepTime; }
