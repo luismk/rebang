@@ -10,7 +10,9 @@ inline int cToken::GetLen() const
 	return m_Len;
 }
 
-inline bool cToken::GetToken(char** ppOut, const char* pcSep, int nSep)
+// HACK: out-of-line noticeboard usage
+__declspec(noinline) inline bool cToken::GetToken(char** ppOut,
+	const char* pcSep, int nSep)
 {
 	if (!GetResultBuf())
 	{

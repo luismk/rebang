@@ -614,7 +614,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/noticeboard.obj",
+    {
+      "path": "source/client/ProjectG/noticeboard.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/noticeimage.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
