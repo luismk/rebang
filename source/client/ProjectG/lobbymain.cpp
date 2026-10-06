@@ -8525,109 +8525,6 @@ bool RoomStateCompare(const void* a, const void* b)
 	return false;
 }
 
-#ifndef REBANG_SEMANTIC_ONLY
-__declspec(naked) bool RoomStateRevCompare(const void* a, const void* b)
-{
-	__asm {
-		push esi
-		mov esi, ecx
-		test esi, esi
-		je ret_false
-		test edx, edx
-		je ret_true
-		mov al, byte ptr [esi+33h]
-		mov cl, 64h
-		cmp al, cl
-		je l_1d
-		cmp byte ptr [edx+33h], cl
-		je ret_false
-		cmp al, cl
-		jne l_22
-	l_1d:
-		cmp byte ptr [edx+33h], cl
-		jne ret_true
-	l_22:
-		mov cl, byte ptr [edx+30h]
-		test cl, cl
-		jne l_2f
-		cmp byte ptr [esi+30h], 1
-		je ret_false
-	l_2f:
-		cmp cl, 1
-		jne l_3a
-		cmp byte ptr [esi+30h], 0
-		je ret_true
-	l_3a:
-		mov cl, byte ptr [edx+31h]
-		test cl, cl
-		jne l_4b
-		cmp byte ptr [esi+31h], 1
-		jne l_4b
-	ret_false:
-		xor al, al
-		pop esi
-		ret
-	l_4b:
-		cmp cl, 1
-		jne l_5a
-		cmp byte ptr [esi+31h], 0
-		jne l_5a
-	ret_true:
-		mov al, 1
-		pop esi
-		ret
-	l_5a:
-		cmp cl, 1
-		push ebx
-		jne l_b2
-		cmp byte ptr [esi+31h], cl
-		jne l_b2
-		mov cl, byte ptr [edx+34h]
-		mov bl, byte ptr [edx+33h]
-		cmp cl, bl
-		jne l_76
-		cmp byte ptr [esi+34h], al
-		jb l_b2
-		cmp cl, bl
-	l_76:
-		jae l_82
-		cmp byte ptr [esi+34h], al
-		jne l_82
-	l_7d:
-		pop ebx
-		mov al, 1
-		pop esi
-		ret
-	l_82:
-		mov cl, byte ptr [edx+59h]
-		cmp cl, 1
-		jne l_90
-		cmp byte ptr [esi+59h], 0
-		je l_b2
-	l_90:
-		test cl, cl
-		jne l_9a
-		cmp byte ptr [esi+59h], 1
-		je l_7d
-	l_9a:
-		mov dl, byte ptr [edx+32h]
-		test dl, dl
-		jne l_a7
-		cmp byte ptr [esi+32h], 1
-		je l_b2
-	l_a7:
-		cmp dl, 1
-		jne l_b2
-		cmp byte ptr [esi+32h], 0
-		je l_7d
-	l_b2:
-		pop ebx
-		xor al, al
-		pop esi
-		ret
-	}
-}
-#else
 bool RoomStateRevCompare(const void* a, const void* b)
 {
 	if (a == NULL)
@@ -8643,7 +8540,12 @@ bool RoomStateRevCompare(const void* a, const void* b)
 		return false;
 
 	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	{
+		if (pRoom2->bPublic == false && pRoom1->bPublic == true)
+			return true;
+
 		return true;
+	}
 
 	if (pRoom2->bPublic == false && pRoom1->bPublic == true)
 		return false;
@@ -8682,7 +8584,6 @@ bool RoomStateRevCompare(const void* a, const void* b)
 
 	return false;
 }
-#endif
 
 bool RoomNoCompare(const void* a, const void* b)
 {
