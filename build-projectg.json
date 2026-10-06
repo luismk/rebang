@@ -127,7 +127,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/autotarget.obj",
+    {
+      "path": "source/client/ProjectG/autotarget.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/camerawork.obj",
     {
       "path": "source/client/ProjectG/capturedbg.cpp",

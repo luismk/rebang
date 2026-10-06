@@ -15,18 +15,7 @@ public:
 	WVector GetPoint(const char* club);
 	WVector GetDropPos() { return m_dropPos; }
 
-	void SetList(const std::vector<WVector>& list, const WVector& pos)
-	{
-		int num = list.size();
-
-		m_pointList.reserve(num + 1);
-
-		m_pointList.assign(list.begin(), list.end());
-		m_pointList.push_back(pos);
-
-		for (unsigned int i = 0; i < m_pointList.size(); i++)
-			m_pointList[i].y = 0.0f;
-	}
+	void SetList(const std::vector<WVector>& list, const WVector& pos);
 
 	const std::vector<WVector>& GetPointList() { return m_pointList; }
 
