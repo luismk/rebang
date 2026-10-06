@@ -376,7 +376,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/tabmanager.obj",
+    {
+      "path": "source/client/ProjectG/tabmanager.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/tooltipmanager.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
