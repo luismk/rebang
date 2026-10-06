@@ -170,23 +170,3 @@ public:
 	ntMightyMACEventDlg();
 	virtual ~ntMightyMACEventDlg();
 };
-
-class NtNotifyImgDlg : public FrForm
-{
-	DECLARE_OBJECT(NtNotifyImgDlg)
-
-	NtNotifyImgDlg();
-	virtual ~NtNotifyImgDlg();
-
-	void SetBgImg(const char* name);
-
-	FrArea* m_pImg;
-
-protected:
-	void OnCloseBtnInit(int param);
-	void OnCloseBtnUp();
-	void OnCaptionInit(int param);
-	void OnImgInit(int param);
-
-	DECLARE_FRESH_MSGMAP()
-};

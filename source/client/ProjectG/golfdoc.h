@@ -6,6 +6,7 @@
 #include <map>
 
 class WPolySoup;
+struct sApproachResultData;
 class CSky;
 
 #pragma pack(push, 1)
@@ -223,6 +224,8 @@ public:
 		unsigned char hairColor, unsigned char shirtColor,
 		unsigned long* partTid, unsigned long* partId);
 	void ApproachDataAllClear();
+	std::list<sApproachResultData*>& GetApproachCurHoleResult();
+	std::list<sApproachResultData*>& GetApproachGameResult();
 
 	unsigned char GetCurrentPlayer() { return m_currentPlayer; }
 	sHoleData& GetHoleData() { return m_pHoleData[m_currentHole - 1]; }
