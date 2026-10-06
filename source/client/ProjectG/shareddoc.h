@@ -601,6 +601,7 @@ public:
 
 int OnlinePlay();
 bool SetCurMap(unsigned char map);
+unsigned char GetCurMap();
 
 ILFILL3
 

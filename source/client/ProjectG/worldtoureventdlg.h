@@ -3,11 +3,14 @@
 #include "frform.h"
 #include "../../shared/globalgamedefine.h"
 
+class FrWorldTourEventDlg;
 class FrWorldTourEventGiftDlg;
 class FrWorldTourEventDescDlg;
 
 class FrWorldTourEventDlg : public FrForm
 {
+	friend class FrWorldTourEventGiftDlg;
+
 	DECLARE_OBJECT(FrWorldTourEventDlg)
 
 	FrWorldTourEventDlg();

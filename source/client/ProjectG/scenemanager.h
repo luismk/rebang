@@ -30,6 +30,23 @@ protected:
 	virtual void DebugDisplay() { }
 };
 
+struct TransparentElement
+{
+	TransparentElement(WPuppet* _puppet, Waabb* _aabb, int _texHandle,
+		int _polyNum)
+	{
+		puppet = _puppet;
+		aabb = _aabb;
+		texHandle = _texHandle;
+		polyNum = _polyNum;
+	}
+
+	WPuppet* puppet;
+	Waabb* aabb;
+	int texHandle;
+	int polyNum;
+};
+
 // TODO: incomplete
 class CSceneManager : public WSingleton<CSceneManager>
 {
@@ -39,6 +56,8 @@ public:
 	void DeleteElement(const char* name);
 	void SetVisible(const char* name, bool bVisible);
 	void Load();
+	void SetWeather(unsigned char weather, bool force);
+	void SetLobbyWeather(bool enable);
 	void UpdateFog(const char* mapName);
 };
 

@@ -1695,7 +1695,8 @@ struct sRoomUserInfo
 {
 	unsigned long uid;
 	unsigned char level;
-	unsigned char hole;
+	unsigned char hole : 5;
+	unsigned char reserved05 : 3;
 	unsigned long capability;
 	unsigned char reserved0a[4];
 	unsigned long ladderPoint;

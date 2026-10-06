@@ -334,7 +334,11 @@
     },
     "source/client/ProjectG/ts_parser.obj",
     "source/client/ProjectG/tutorial.obj",
-    "source/client/ProjectG/questinfodlg.obj",
+    {
+      "path": "source/client/ProjectG/questinfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/quizdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -569,7 +573,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/trainingoptiondlg.obj",
+    {
+      "path": "source/client/ProjectG/trainingoptiondlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/browser.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -1280,7 +1288,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/awarddlg.obj",
+    {
+      "path": "source/client/ProjectG/awarddlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     {
       "path": "source/client/ProjectG/caddiewarningdlg.cpp",
       "pch": "source/client/ProjectG/stdafx.cpp",
@@ -1297,7 +1309,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/detailedroominfodlg.obj",
+    {
+      "path": "source/client/ProjectG/detailedroominfodlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/dlgquickstartsetting.obj",
     {
       "path": "source/client/ProjectG/equipdlg.cpp",
@@ -1463,7 +1479,11 @@
     },
     "source/client/ProjectG/pointeventdlg.obj",
     "source/client/ProjectG/valentineeventdlg.obj",
-    "source/client/ProjectG/worldtoureventdlg.obj",
+    {
+      "path": "source/client/ProjectG/worldtoureventdlg.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/birthdayeventdlg.obj",
     {
       "path": "source/client/ProjectG/luciabirthdayevent.cpp",
