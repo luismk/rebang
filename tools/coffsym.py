@@ -23,6 +23,9 @@ Usage:
 
     # Globally rename a symbol that has a placeholder name
     python tools/coffsym.py rename __pg_c_000b68 '?WCrossProduct@@YI?AVWVector@@ABV1@0@Z'
+
+    # Recover symbols missing from the delinked objects
+    python tools/coffsym.py fixup --dry-run
 """
 
 from __future__ import annotations
@@ -35,6 +38,8 @@ import sys
 from pathlib import Path
 
 import common
+import original
+import pdbinfo
 
 IMAGE_FILE_MACHINE_I386 = 0x014C
 IMAGE_SCN_CNT_CODE = 0x0020
@@ -493,10 +498,6 @@ def patch_name(data, sym, strings, new):
     if len(raw) <= 8:
         data[sym.offset : sym.offset + 8] = raw.ljust(8, b"\0")
         return
-    if len(raw) <= len(sym.name):
-        at = strings + struct.unpack_from("<I", data, sym.offset + 4)[0]
-        data[at : at + len(raw) + 1] = raw + b"\0"
-        return
     size = struct.unpack_from("<I", data, strings)[0]
     if strings + size != len(data):
         raise ValueError("string table is not at the end of the file")
@@ -549,6 +550,82 @@ def cmd_rename(args):
     )
 
 
+def cmd_fixup(args):
+    paths = list(
+        dict.fromkeys(Path(p).resolve() for p in (args.paths or delinked_objects()))
+    )
+    modules = []
+    for path in paths:
+        data = path.read_bytes()
+        if data.startswith(b"!<arch>\n"):
+            sys.exit(f"{path}: cannot rename inside an archive")
+        modules.append((path, Module(str(path), data)))
+
+    names = {
+        sym.name
+        for _, mod in modules
+        for sym in mod.symbols
+        if original.PLACEHOLDER.fullmatch(sym.name)
+    }
+    contributions = {c.placeholder: c for c in original.contributions()}
+    publics = pdbinfo.publics()
+    renames, skipped = {}, {}
+    for name in sorted(names):
+        c = contributions.get(name)
+        if c is None:
+            skipped[name] = "unknown contribution"
+            continue
+        candidates = sorted(set(publics.names_at(c.section, c.offset)))
+        if not candidates:
+            skipped[name] = "no public name at addr"
+        elif len(candidates) != 1:
+            skipped[name] = "ambiguous publics: " + ", ".join(candidates)
+        elif candidates[0] != name:
+            renames[name] = candidates[0]
+
+    destinations = {}
+    for old, new in renames.items():
+        destinations.setdefault(new, []).append(old)
+    for new, olds in destinations.items():
+        if len(olds) > 1:
+            for old in olds:
+                skipped[old] = f"multiple placeholders map to {new}"
+    for path, mod in modules:
+        present = {sym.name for sym in mod.symbols}
+        for old in present & renames.keys():
+            new = renames[old]
+            if new in present:
+                skipped[old] = f"{new} already present in {path}"
+    renames = {old: new for old, new in renames.items() if old not in skipped}
+
+    plan = []
+    records = 0
+    for path, mod in modules:
+        hits = [sym for sym in mod.symbols if sym.name in renames]
+        if not hits:
+            continue
+        data = bytearray(mod.data)
+        for sym in hits:
+            patch_name(data, sym, mod.strings, renames[sym.name])
+        plan.append((path, data))
+        records += len(hits)
+    for old, new in renames.items():
+        print(f"{old} -> {new}")
+    if args.verbose:
+        for name, reason in sorted(skipped.items()):
+            print(f"skip {name}: {reason}", file=sys.stderr)
+    if not args.dry_run:
+        for path, data in plan:
+            path.write_bytes(data)
+    action = "Would rename" if args.dry_run else "Renamed"
+    print(
+        f"{action} {len(renames)} symbol(s), {records} record(s) in "
+        f"{len(plan)} object(s); skipped {len(skipped)} placeholder(s) "
+        "(use --verbose for reasons)",
+        file=sys.stderr,
+    )
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Debug tool for COFF symbols and COMDAT flags"
@@ -589,6 +666,14 @@ def main(argv=None):
     )
     p.add_argument("-n", "--dry-run", action="store_true")
     p.set_defaults(func=cmd_rename)
+
+    p = sub.add_parser("fixup", help="recover placeholder names from PDB publics")
+    p.add_argument(
+        "paths", nargs="*", help="objects to patch (default: every delinked object)"
+    )
+    p.add_argument("-n", "--dry-run", action="store_true")
+    p.add_argument("-v", "--verbose", action="store_true", help="explain skipped names")
+    p.set_defaults(func=cmd_fixup)
 
     p = sub.add_parser("set-selection", help="patch a COMDAT section's selection flags")
     p.add_argument("path")
