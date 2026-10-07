@@ -11,8 +11,6 @@
 #include "packet.h"
 #include "../../shared/localize.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 inline void CSharedDoc::SetFriendGameSvrUID(unsigned long uid)
 {
 	m_friendGameSvrUID = uid;

@@ -11,8 +11,6 @@
 #include "../../Wangreal/include/wfont.h"
 #include "../../Wangreal/include/wresrcmng.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrCompoundDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrCompoundDlg, FrForm)

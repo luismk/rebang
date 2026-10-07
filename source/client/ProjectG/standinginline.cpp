@@ -8,8 +8,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(CStandingInLine, FrForm)
 BEGIN_FRESH_MSGMAP(CStandingInLine, FrForm)
 

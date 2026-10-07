@@ -14,8 +14,6 @@
 extern Fresh* g_pFresh;
 extern WResourceManager* g_resrcmng;
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(CFurniture_AbilityDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(CFurniture_AbilityDlg, FrForm)

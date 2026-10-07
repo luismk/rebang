@@ -7,8 +7,6 @@
 #include "frelement.h"
 #include "frgraphicinterface.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrAreaMakeInstance()
 {
 	return new FrArea;

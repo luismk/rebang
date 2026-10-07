@@ -11,8 +11,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrTrainingDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrTrainingDlg, FrForm)

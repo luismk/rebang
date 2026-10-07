@@ -7,8 +7,6 @@
 #include "background.h"
 #include "wresrcmng.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrDesktopMakeInstance()
 {
 	return new FrDesktop;

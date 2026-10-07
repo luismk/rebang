@@ -1,7 +1,8 @@
 #include <list>
 #include <string>
 
-static __declspec(thread) int __rtti_obj;
+// HACK: stands in for an unknown erased inline use of __rtti_obj
+static __declspec(thread) int __rtti_tls_pad;
 
 class FrCmdTarget;
 class FrWnd;

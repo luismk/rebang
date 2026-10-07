@@ -8,7 +8,6 @@
 #include "golfdoc.h"
 extern Fresh* g_pFresh;
 IMPLEMENT_OBJECT(FrAvatarChatLogDlg, FrForm)
-static __declspec(thread) void* __rtti_obj;
 BEGIN_FRESH_MSGMAP(FrAvatarChatLogDlg, FrForm)
 
 ON_FRESH_VI("chatview", FRCMD_INIT, FrAvatarChatLogDlg::OnChatViewInit)

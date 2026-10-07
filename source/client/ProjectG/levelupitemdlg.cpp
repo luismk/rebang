@@ -5,8 +5,6 @@
 #include "wresrcmng.h"
 #include "../../shared/sharedtables.h"
 
-static __declspec(thread) int __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 struct LevelUpGift

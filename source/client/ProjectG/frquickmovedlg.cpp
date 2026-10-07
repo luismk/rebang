@@ -4,8 +4,6 @@
 #include "frbutton.h"
 #include "mathconsts.h"
 
-static __declspec(thread) int __rtti_obj;
-
 static char s_descImage[5][64] = { "DUMMY", "user_notice_1.jpg",
 	"user_notice_2.jpg", "user_notice_3.jpg", "user_notice_4.jpg" };
 

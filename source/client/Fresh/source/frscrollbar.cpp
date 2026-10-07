@@ -4,8 +4,6 @@
 #include "frgraphicinterface.h"
 #include "wutil.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrScrollBarMakeInstance()
 {
 	return new FrScrollBar;

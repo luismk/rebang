@@ -8,8 +8,6 @@
 #include "frarea.h"
 
 extern Fresh* g_pFresh;
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrFormBar, FrForm)
 BEGIN_FRESH_MSGMAP(FrFormBar, FrForm)
 

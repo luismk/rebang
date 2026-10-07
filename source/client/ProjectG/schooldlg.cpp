@@ -4,8 +4,6 @@
 #include "wresrcmng.h"
 #include "../../shared/token.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 std::string szJpSchoolType[] = { "\301\337\307\320", "\260\355\261\263",

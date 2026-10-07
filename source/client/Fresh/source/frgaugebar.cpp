@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include "wutil.h"
 
-static __declspec(thread) void* __rtti_obj;
 typedef std::map<std::string, std::string> FrParamMap;
 
 IObject* FrGaugeBarMakeInstance()

@@ -3,8 +3,6 @@
 #include "ggc_helper.h"
 #include "fredit.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(GGC_Dlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(GGC_Dlg, FrForm)

@@ -3,8 +3,6 @@
 #include "fredit.h"
 #include "frbutton.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrFriendInfoDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrFriendInfoDlg, FrForm)

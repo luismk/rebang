@@ -7,8 +7,6 @@
 
 int float2int(float f);
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 static bool CompareIdDesc(const void* left, const void* right)

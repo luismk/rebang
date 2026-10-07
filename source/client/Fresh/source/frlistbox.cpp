@@ -39,8 +39,6 @@ private:
 	bool (*m_compare)(const void*, const void*);
 };
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrListBoxMakeInstance()
 {
 	return new FrListBox;

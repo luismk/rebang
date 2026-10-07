@@ -16,8 +16,6 @@
 extern Fresh* g_pFresh;
 extern WView* g_view;
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrReportDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrReportDlg, FrForm)

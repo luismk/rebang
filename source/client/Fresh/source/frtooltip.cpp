@@ -15,8 +15,6 @@ const float FRMIMG_SIZE = 8.0f;
 const float MAX_TOOLTIP_ALPHA = 220.0f;
 const float TOOLTIP_FRM_PIVOT = 1.0f;
 
-static __declspec(thread) void* __rtti_obj;
-
 namespace
 {
 	int FixRectInView(WRect& rc)

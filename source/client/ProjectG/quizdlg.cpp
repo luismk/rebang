@@ -17,8 +17,6 @@ static sQuiz s_quizList[] = {
 			{ false, "Fairway" }, { false, "Rough" } }       },
 };
 
-static __declspec(thread) int __rtti_obj;
-
 inline bool AnswerCard::WriteAnswer(eCheckNum num)
 {
 	if (m_bMultiCheck == true)

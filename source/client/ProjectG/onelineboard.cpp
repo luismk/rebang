@@ -8,8 +8,6 @@
 #include "capturedbg.h"
 
 extern Fresh* g_pFresh;
-static __declspec(thread) void* __rtti_obj;
-
 enum
 {
 	FADE_NONE,

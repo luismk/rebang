@@ -5,7 +5,6 @@
 #include "s5/utilities.h"
 #include <mbstring.h>
 
-static __declspec(thread) void* __rtti_obj;
 extern Fresh* g_pFresh;
 
 namespace S5

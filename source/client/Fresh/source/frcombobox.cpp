@@ -12,8 +12,6 @@
 #include "chatmsg.h"
 #include "commonutil.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrComboBoxMakeInstance()
 {
 	return new FrComboBox;

@@ -9,8 +9,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) int __rtti_obj;
-
 struct sRSSItem
 {
 	char* title;

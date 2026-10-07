@@ -6,8 +6,6 @@
 #include "frscrollbar.h"
 #include "uwin.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrGuildNoticeDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrGuildNoticeDlg, FrForm)

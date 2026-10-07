@@ -10,8 +10,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) int __rtti_obj;
-
 const char* ListName[] = { K2L_Compatibility("\xb0\xf8  \xb0\xb3"),
 	K2L_Compatibility("\xba\xf1\xb0\xf8\xb0\xb3") };
 

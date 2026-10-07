@@ -10,8 +10,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrMailBoxDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrMailBoxDlg, FrForm)

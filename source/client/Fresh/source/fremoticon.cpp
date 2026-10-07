@@ -6,7 +6,8 @@
 #include "../../../shared/token.h"
 #include <mmsystem.h>
 
-static __declspec(thread) void* __rtti_obj;
+// HACK: stands in for an unknown erased inline use of __rtti_obj
+static __declspec(thread) int __rtti_tls_pad;
 
 extern "C" __declspec(dllimport) int __cdecl strcmpi(const char*, const char*);
 

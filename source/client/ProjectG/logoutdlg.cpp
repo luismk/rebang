@@ -10,8 +10,6 @@
 extern Fresh* g_pFresh;
 extern bool g_bQuit;
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrLogoutDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrLogoutDlg, FrForm)

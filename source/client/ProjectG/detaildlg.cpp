@@ -4,8 +4,6 @@
 #include "frbutton.h"
 #include "frarea.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(NtDetailDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(NtDetailDlg, FrForm)

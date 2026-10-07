@@ -3,8 +3,6 @@
 #include "frgroupbox.h"
 #include "frarea.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 class CSkinnedThemeBase : public _ISkinnedTheme
 {
 public:

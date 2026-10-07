@@ -11,8 +11,6 @@
 
 extern WView* g_view;
 
-static __declspec(thread) void* __rtti_obj;
-
 bool FrForm::ms_bHasTail = true;
 bool FrForm::ms_bExclusive = false;
 WPoint FrForm::ms_oldPos;

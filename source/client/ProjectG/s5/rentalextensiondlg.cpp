@@ -6,8 +6,6 @@
 #include "fredit.h"
 #include "frbutton.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 namespace S5

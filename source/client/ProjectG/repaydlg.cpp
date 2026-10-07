@@ -7,8 +7,6 @@
 #include "fresh.h"
 #include "binstr.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrRepayDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrRepayDlg, FrForm)

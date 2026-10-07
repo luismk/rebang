@@ -16,8 +16,6 @@
 extern Fresh* g_pFresh;
 extern WView* g_view;
 
-static __declspec(thread) void* __rtti_obj;
-
 inline __int64 MyBonusCash()
 {
 	return Doc()->m_bonusCash;

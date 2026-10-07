@@ -3,8 +3,6 @@
 #include "frbutton.h"
 #include "actor.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrReplayModeDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrReplayModeDlg, FrForm)

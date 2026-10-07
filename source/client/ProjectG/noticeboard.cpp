@@ -5,8 +5,6 @@
 #include "onelineboard.h"
 #include "binstr.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 CNoticeBoard::CNoticeBoard()
 {
 	m_pBoardLeft = g_resrcmng->GetOverlay("notice_l.tga", 0);

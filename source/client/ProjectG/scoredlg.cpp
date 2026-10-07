@@ -4,8 +4,6 @@
 #include "golfdoc.h"
 #include "netresourcemanager.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 void ResizeScoreBar23(FrArea* bar2, FrArea* bar3, float x, float w)

@@ -7,7 +7,6 @@
 #include "frgraphicinterface.h"
 #include "fresh.h"
 #include "messagemanager.h"
-static __declspec(thread) void* __rtti_obj;
 extern Fresh* g_pFresh;
 namespace _gateway
 {

@@ -3,7 +3,6 @@
 #include "fredit.h"
 #include "actor.h"
 IMPLEMENT_OBJECT(FrUpgradeCaddieDlg, FrForm)
-static __declspec(thread) int __rtti_obj;
 BEGIN_FRESH_MSGMAP(FrUpgradeCaddieDlg, FrForm)
 
 ON_FRESH_VI("message", FRCMD_INIT, FrUpgradeCaddieDlg::OnMessageInit)

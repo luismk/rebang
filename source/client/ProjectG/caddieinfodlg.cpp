@@ -3,8 +3,6 @@
 #include "actor.h"
 #include "projectg.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrCaddieInfoDlg, FrForm)

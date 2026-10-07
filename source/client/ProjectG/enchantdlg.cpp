@@ -10,8 +10,6 @@
 #include "projectg.h"
 #include "../../shared/localize.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrEnchantDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrEnchantDlg, FrForm)

@@ -5,8 +5,6 @@
 #include "frgraphicinterface.h"
 #include "commonutil.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrStaticMakeInstance()
 {
 	return new FrStatic;

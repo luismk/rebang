@@ -2,8 +2,6 @@
 #include "christmassockeventdlg.h"
 #include "frviewer.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrChristmasSockEventDescDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrChristmasSockEventDescDlg, FrForm)

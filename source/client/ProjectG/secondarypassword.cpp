@@ -8,7 +8,6 @@
 #include "messagemanager.h"
 #include "../../shared/s5/sharedutilities.h"
 
-static __declspec(thread) void* __rtti_obj;
 extern Fresh* g_pFresh;
 
 using namespace _gateway;

@@ -22,8 +22,6 @@ bool FrCreateNickDlg::GetCheckFlag() const
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrCreateNickDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrCreateNickDlg, FrForm)

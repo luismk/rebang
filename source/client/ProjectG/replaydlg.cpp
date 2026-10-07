@@ -3,8 +3,6 @@
 #include "mousecursor.h"
 #include "projectg.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrReplayControlDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrReplayControlDlg, FrForm)

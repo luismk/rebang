@@ -12,8 +12,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(FrAddFriendDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrAddFriendDlg, FrForm)

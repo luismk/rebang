@@ -5,8 +5,6 @@
 #include "actor.h"
 #include "../../shared/token.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrParanNickDlg, FrForm)

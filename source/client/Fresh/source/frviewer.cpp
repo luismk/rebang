@@ -8,8 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrViewerMakeInstance()
 {
 	return new FrViewer;

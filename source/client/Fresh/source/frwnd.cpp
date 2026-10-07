@@ -10,8 +10,6 @@
 
 extern WView* g_view;
 
-static __declspec(thread) void* __rtti_obj;
-
 typedef std::list<FrWnd*> FRWNDLIST;
 
 inline int WisZero(const float& v, float e)

@@ -124,8 +124,6 @@ static UIFileChecksum uiChecks[] = {
 static int captureCountdown = -1;
 LightSet g_lightset;
 
-static __declspec(thread) IObject* __rtti_obj;
-
 extern char PY_PUBLIC_VERSION[];
 
 void SaveJPG(const char* filename, const Bitmap* bitmap, int quality);

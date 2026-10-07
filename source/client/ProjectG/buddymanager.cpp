@@ -5,8 +5,6 @@
 #include "chatmsg.h"
 #include "lobbytask.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 BuddyManager* BuddyMGR = NULL;
 
 void ProcMsg(sockaddr_in& addr, const char* packet, int size)

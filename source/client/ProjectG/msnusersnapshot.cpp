@@ -2,8 +2,6 @@
 #include "msnusersnapshot.h"
 #include "frstatic.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IMPLEMENT_OBJECT(ntMsnUserSnapshotDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(ntMsnUserSnapshotDlg, FrForm)

@@ -5,8 +5,6 @@
 
 extern WView* g_view;
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrImageNoticeDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrImageNoticeDlg, FrForm)

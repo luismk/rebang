@@ -6,7 +6,6 @@
 #include "chatmsg.h"
 #include "fresh.h"
 #include "gatewayactor.h"
-static __declspec(thread) void* __rtti_obj;
 static const float WARNING_RATE = 80.0f;
 
 extern Fresh* g_pFresh;

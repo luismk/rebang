@@ -25,8 +25,6 @@
 #include "inputmanager.h"
 #include "chatmsg.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 typedef std::list<FrWnd*> FRWNDLIST;
 
 bool FocusWndCompare(const void* d1, const void* d2)

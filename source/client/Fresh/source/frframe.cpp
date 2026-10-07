@@ -6,8 +6,6 @@
 #include "frgraphicinterface.h"
 #include "fremoticon.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrFrameMakeInstance()
 {
 	return new FrFrame;

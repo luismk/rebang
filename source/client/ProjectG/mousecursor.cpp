@@ -11,8 +11,6 @@
 #include "wresrcmng.h"
 #include "../../shared/localize.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern WMatrix g_camera;
 extern Fresh* g_pFresh;
 bool IsMyTurn(bool check);

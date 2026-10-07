@@ -7,8 +7,6 @@
 
 extern CSoundManager* g_audio;
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrJukeBoxDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrJukeBoxDlg, FrForm)

@@ -8,8 +8,6 @@
 #include "frcursor.h"
 #include "capturedbg.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrButtonMakeInstance()
 {
 	return new FrButton;

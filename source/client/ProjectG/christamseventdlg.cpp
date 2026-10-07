@@ -16,8 +16,6 @@ inline WVector2D& WVector2D::Normalize()
 	return *this;
 }
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrChristmasEventDlg, FrForm)

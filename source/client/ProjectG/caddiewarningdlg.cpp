@@ -5,8 +5,6 @@
 #include "frbutton.h"
 #include "frstatic.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrCaddieWarningDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrCaddieWarningDlg, FrForm)

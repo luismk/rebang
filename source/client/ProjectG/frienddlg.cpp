@@ -15,8 +15,6 @@ extern Fresh* g_pFresh;
 
 int __cdecl mbscut(char* dest, const char* src, unsigned int len);
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrFriendDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrFriendDlg, FrForm)

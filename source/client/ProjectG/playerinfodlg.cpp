@@ -5,8 +5,6 @@
 #include "shareddoc.h"
 #include "../../shared/sharedtables.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrPlayerInfoDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrPlayerInfoDlg, FrForm)

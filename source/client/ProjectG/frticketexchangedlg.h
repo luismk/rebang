@@ -5,7 +5,6 @@
 
 class FrTicketExchangeDescDlg;
 // HACK
-static __declspec(thread) void* __rtti_obj;
 #define FR_DYNAMIC_CAST(T, p) \
 	((__rtti_obj = (void*)(p)) \
 			? (T*)((IObject*)__rtti_obj)->DynamicCast(&T::m_RTTI) \

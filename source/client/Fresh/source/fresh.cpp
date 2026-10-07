@@ -2,8 +2,6 @@
 #include "frwndmanager.h"
 #include "frdesktop.h"
 
-static __declspec(thread) int __rtti_obj;
-
 Fresh::Fresh()
 	: manager(0), show(true)
 {

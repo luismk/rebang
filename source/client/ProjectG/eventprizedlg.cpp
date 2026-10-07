@@ -3,8 +3,6 @@
 #include "frbutton.h"
 #include "frviewer.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrEventPrizeDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrEventPrizeDlg, FrForm)

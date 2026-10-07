@@ -1,8 +1,6 @@
 #include "minatl.h"
 #include "ingameguildmyroomdlg.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 #include "actor.h"

@@ -7,8 +7,6 @@
 #include "../../shared/token.h"
 #include "../../shared/localize.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrMascotInfoDlg, FrForm)

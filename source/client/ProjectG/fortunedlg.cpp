@@ -3,8 +3,6 @@
 #include "frarea.h"
 #include "frstatic.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrFortuneDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrFortuneDlg, FrForm)

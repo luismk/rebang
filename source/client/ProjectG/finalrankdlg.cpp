@@ -7,7 +7,6 @@
 #include "projectg.h"
 #include "netresourcemanager.h"
 extern Fresh* g_pFresh;
-static __declspec(thread) void* __rtti_obj;
 bool FinalRankCompare(const void* a, const void* b);
 
 IMPLEMENT_OBJECT(FrFinalRankDlg, FrForm)

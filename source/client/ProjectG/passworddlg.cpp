@@ -2,8 +2,6 @@
 #include "passworddlg.h"
 #include "fredit.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrPasswordDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrPasswordDlg, FrForm)

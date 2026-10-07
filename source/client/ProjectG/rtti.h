@@ -12,16 +12,18 @@ protected:
 	const WRTTI* m_pBaseRTTI;
 };
 
+static __declspec(thread) void* __rtti_obj;
+
 #define DYNAMIC_CAST(type, obj) \
-	((__rtti_obj = (obj)) \
+	((__rtti_obj = (void*)(obj)) \
 			? (type*)((IObject*)__rtti_obj)->DynamicCast(&type::m_RTTI) \
 			: NULL)
 
 #define IS_KINDOF(type, obj) \
-	((__rtti_obj = (obj)) ? ((IObject*)__rtti_obj)->IsKindOf(&type::m_RTTI) \
+	((__rtti_obj = (void*)(obj)) ? ((IObject*)__rtti_obj)->IsKindOf(&type::m_RTTI) \
 						  : false)
 
 #define IS_EXACTKINDOF(type, obj) \
-	((__rtti_obj = (obj)) \
+	((__rtti_obj = (void*)(obj)) \
 			? ((IObject*)__rtti_obj)->IsExactKindOf(&type::m_RTTI) \
 			: false)

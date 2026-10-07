@@ -5,8 +5,6 @@
 #include "user_info.h"
 #include "mathconsts.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrLoginRsDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrLoginRsDlg, FrForm)

@@ -2,8 +2,6 @@
 #include "avatartipdlg.h"
 #include "frviewer.h"
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrAvatarTipDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrAvatarTipDlg, FrForm)

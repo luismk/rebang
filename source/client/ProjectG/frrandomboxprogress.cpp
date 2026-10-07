@@ -3,7 +3,6 @@
 #include "frgaugebar.h"
 #include "frstatic.h"
 #include "actor.h"
-static __declspec(thread) int __rtti_obj;
 IMPLEMENT_OBJECT(FrRandomBoxProgress, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrRandomBoxProgress, FrForm)

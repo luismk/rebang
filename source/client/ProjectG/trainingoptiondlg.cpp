@@ -3,8 +3,6 @@
 #include "wind.h"
 #include <math.h>
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrTrainingOptionDlg, FrForm)

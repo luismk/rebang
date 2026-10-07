@@ -11,8 +11,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrEmoticonDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrEmoticonDlg, FrForm)

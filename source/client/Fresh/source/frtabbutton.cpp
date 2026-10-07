@@ -26,8 +26,6 @@
 #include "commonutil.h"
 #include "../../../shared/token.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 IObject* FrTabButtonMakeInstance()
 {
 	return new FrTabButton;

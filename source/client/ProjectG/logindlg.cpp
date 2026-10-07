@@ -10,8 +10,6 @@
 #include "binstr.h"
 #include <process.h>
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 extern bool g_bQuit;

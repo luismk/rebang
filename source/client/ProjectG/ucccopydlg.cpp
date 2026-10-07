@@ -3,8 +3,6 @@
 #include "uccmanager.h"
 #include "projectg.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrUccCopyDlg, FrForm)

@@ -9,8 +9,6 @@
 
 extern Fresh* g_pFresh;
 
-static __declspec(thread) int __rtti_obj;
-
 IMPLEMENT_OBJECT(FrSetItemDlg, FrForm)
 
 BEGIN_FRESH_MSGMAP(FrSetItemDlg, FrForm)

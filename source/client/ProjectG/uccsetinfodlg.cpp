@@ -9,8 +9,6 @@
 #include "frarea.h"
 #include "actor.h"
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrUccSetInfoDlg, FrForm)

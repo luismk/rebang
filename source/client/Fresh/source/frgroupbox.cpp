@@ -1,7 +1,5 @@
 #include "frgroupbox.h"
 
-static __declspec(thread) int __rtti_obj;
-
 struct __sFrGroupBox
 {
 	__sFrGroupBox();

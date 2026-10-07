@@ -7,8 +7,6 @@
 bool IsAngelWing(unsigned long typeId);
 bool IsMannerPlayer();
 
-static __declspec(thread) void* __rtti_obj;
-
 extern Fresh* g_pFresh;
 
 IMPLEMENT_OBJECT(FrItemInfoDlg, FrForm)
