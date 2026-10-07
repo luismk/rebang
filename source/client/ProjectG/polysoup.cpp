@@ -2023,7 +2023,7 @@ struct sDDSHeader
 	unsigned long dwLinearSize;
 	unsigned long dwDepth;
 	unsigned long dwMipMapCount;
-	unsigned long dwREserved1[11];
+	unsigned long dwReserved1[11];
 	unsigned long dwPfSize;
 	unsigned long dwPfFlags;
 	unsigned long dwFourCC;
