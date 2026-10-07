@@ -17,6 +17,12 @@ public:
 	WVector GetGroundPoint(WVector pos, bool bObject, int* index, bool bWater);
 	WVector GetRayIntersection(WVector start, WVector ray);
 	void BallProcess(float dt);
+	void Reserve(short num);
+	bool IsOBArea(const WVector& pos);
+	void MakeBaseStructure(WPolySoup::sModel* model, bool bRebuild);
+	void MakeObjStructure(short index, int modelIndex, bool bRebuild);
+
+	void SetPolySoup(WPolySoup* pPolySoup) { m_pPolySoup = pPolySoup; }
 
 	const std::vector<WPolySoup::sTriangle*>* GetTriArray(int texHandle) const
 	{

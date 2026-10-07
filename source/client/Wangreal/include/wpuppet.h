@@ -127,7 +127,7 @@ public:
 	const char* GetPuppetName() const { return m_petName; }
 	int GetRenderMode() const;
 	WBone* GetRootBone() { return m_rootbone; }
-	int GetFaceNum();
+	int GetFaceNum() { return m_faceNum; }
 	int GetLightMode() { return m_lightmode; }
 	const WMatrixPtrList& xGetTransfMatPtrList() const
 	{
@@ -230,7 +230,7 @@ public:
 	bool GetBoundBoxPlane(char* name, WPlane* plane);
 	bool GetAlignBoundBoxPlane(char* name, WPlane* plane, Waabb* box);
 	bool DotContact(char* name, const WVector& dot);
-	w_bound_box* FindBoundBox(const char*);
+	w_bound_box* FindBoundBox(const char* name) { return m_bbList.Find(name); }
 	void RenderBoundBox(const char* name, WView* view, unsigned long color,
 		float size);
 	void xBuildTransfMatPtrList();

@@ -98,6 +98,14 @@ inline unsigned char LastMap(bool bAll)
 	return s_courseOrder[i];
 }
 
+inline const char* GetCurMapName()
+{
+	if (Doc()->m_golfGame.pCourse)
+		return Doc()->m_golfGame.pCourse->Data;
+
+	return NULL;
+}
+
 inline CItemManager* ItemManager()
 {
 	return &Doc()->m_itemManager;

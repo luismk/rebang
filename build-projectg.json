@@ -825,7 +825,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/polysoup.obj",
+    {
+      "path": "source/client/ProjectG/polysoup.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/quadtree.obj",
     "source/client/ProjectG/shadow.obj",
     "source/client/ProjectG/fxbox.obj",

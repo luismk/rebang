@@ -58,12 +58,6 @@ ILFILL0
 #include "woverlay.h"
 #include "singleton.h"
 
-inline void WVector2D::operator+=(const WVector2D& v)
-{
-	x += v.x;
-	y += v.y;
-}
-
 #include <string>
 #include <list>
 #include <map>
@@ -72,6 +66,7 @@ inline void WVector2D::operator+=(const WVector2D& v)
 
 #include "basicdebug.h"
 #include "commonutil.h"
+#include "slicestr.h"
 
 #include "tinyxml.h"
 
@@ -119,7 +114,7 @@ ILFILL1
 #include "voiceitem.h"
 #include "actor.h"
 #include "taskmain.h"
-#include "polysoup.h"
+#include "nodecontainer.h"
 #include "golfrule.h"
 #include "scenemanager.h"
 #include "courseorder.h"
@@ -127,7 +122,6 @@ ILFILL1
 // HACK: workaround for unsolved symbol ordering problems
 template void std::vector<WVector>::reserve(unsigned int);
 #include "golftask.h"
-#include "golfdoc.h"
 #include "shareddoc.h"
 #include "frtext.h"
 #include "mainframe.h"

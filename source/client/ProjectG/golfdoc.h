@@ -226,19 +226,24 @@ public:
 	void ApproachDataAllClear();
 	std::list<sApproachResultData*>& GetApproachCurHoleResult();
 	std::list<sApproachResultData*>& GetApproachGameResult();
+	void LoadXml(const char* filename, unsigned char hole, bool bReload);
 
 	unsigned char GetCurrentPlayer() { return m_currentPlayer; }
 	sHoleData& GetHoleData() { return m_pHoleData[m_currentHole - 1]; }
 	sHoleData& GetHoleData(unsigned char hole) { return m_pHoleData[hole - 1]; }
 
+	void SetDay(bool bDay) { m_bDay = bDay; }
+
 	// TODO: incomplete
 	unsigned char m_unused4[4];
 	WPolySoup* m_pPolySoup;
 	CSky* m_pSky;
-	unsigned char m_unused10[0x30];
+	unsigned char m_unused10[4];
+	CPropertyInfo m_propertyInfo;
+	unsigned char m_unused34[0xc];
 	CWaveInfo m_waveInfo;
 	CRiverInfo m_riverInfo;
-	unsigned char m_unused58[0x20];
+	WList<char*> m_modelNameList;
 	int m_tutorialMode;
 	unsigned char m_unused7c[0x49];
 	unsigned char m_playerNum;
@@ -249,7 +254,8 @@ public:
 	unsigned long m_gameMode;
 	unsigned char m_unused14c[1];
 	bool m_bPause;
-	unsigned char m_unused14e[3];
+	unsigned char m_unused14e[2];
+	bool m_bDay;
 	bool m_bShowChat;
 	unsigned char m_unused152[2];
 	int m_saveChatNum;
@@ -260,7 +266,10 @@ public:
 	unsigned long m_shotTime;
 	unsigned char m_shotPhase;
 	unsigned char m_currentPlayer;
-	unsigned char m_unused176[8];
+	unsigned char m_unused176[2];
+	float m_bright;
+	bool m_bDropRequest;
+	bool m_bStopRequest;
 	unsigned char m_maxGrade;
 	bool m_bStopDlg;
 	bool m_bNoStat;

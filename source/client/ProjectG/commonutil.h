@@ -7,6 +7,7 @@ class cFile;
 class WResourceManager;
 
 char* __cdecl MakeStr(const char* format, ...);
+unsigned long ModifyColor(unsigned long color, float bright);
 float Random(float min, float max, int seed = -1);
 unsigned long htoi(const char* str);
 bool str_Replace(std::string& str, const std::string& from,

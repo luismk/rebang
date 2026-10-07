@@ -226,6 +226,8 @@ public:
 	virtual ~WViewOrth() { }
 };
 
+WMatrix __cdecl MakeCameraMatrix(const WVector& eye, const WVector& at);
+
 inline unsigned long ULblend(unsigned long c1, unsigned long c2,
 	unsigned char t)
 {

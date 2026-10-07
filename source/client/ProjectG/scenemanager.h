@@ -59,6 +59,8 @@ public:
 	void SetWeather(unsigned char weather, bool force);
 	void SetLobbyWeather(bool enable);
 	void UpdateFog(const char* mapName);
+	void SetPuppet(const char* name, WPuppet* puppet);
+	void ReleaseElement();
 };
 
 class CWavelet

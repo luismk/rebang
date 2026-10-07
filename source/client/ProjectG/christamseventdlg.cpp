@@ -7,11 +7,6 @@ inline int WisZero(const float& f, float epsilon = g_EPSILON)
 {
 	return Wabs(f) < epsilon;
 }
-inline void WVector2D::operator*=(float f)
-{
-	x *= f;
-	y *= f;
-}
 inline WVector2D& WVector2D::Normalize()
 {
 	if (WisZero(x) && WisZero(y))
@@ -19,19 +14,6 @@ inline WVector2D& WVector2D::Normalize()
 	else
 		*this *= 1.0f / Magnitude();
 	return *this;
-}
-
-inline float WVector2D::SquareMagnitude() const
-{
-	return x * x + y * y;
-}
-inline float WVector2D::Magnitude() const
-{
-	return sqrtf(SquareMagnitude());
-}
-inline WVector2D operator*(const WVector2D& v, float f)
-{
-	return WVector2D(v.x * f, v.y * f);
 }
 
 static __declspec(thread) void* __rtti_obj;

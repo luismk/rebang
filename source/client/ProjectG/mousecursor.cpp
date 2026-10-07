@@ -27,31 +27,6 @@ inline bool WRect::IsInRect(float x, float y)
 	return false;
 }
 
-inline float WVector2D::SquareMagnitude() const
-{
-	return x * x + y * y;
-}
-
-inline float WVector2D::Magnitude() const
-{
-	return sqrtf(SquareMagnitude());
-}
-
-inline WVector2D operator-(const WVector2D& a, const WVector2D& b)
-{
-	return WVector2D(a.x - b.x, a.y - b.y);
-}
-
-inline WVector2D operator+(const WVector2D& a, const WVector2D& b)
-{
-	return WVector2D(a.x + b.x, a.y + b.y);
-}
-
-inline WVector2D operator*(float scale, const WVector2D& v)
-{
-	return WVector2D(scale * v.x, scale * v.y);
-}
-
 class CRealMyRoomTask
 {
 public:
@@ -987,15 +962,6 @@ int CMouseCursor::GameCheck()
 	m_area = AREA_NORMAL;
 	return UNSELECT;
 }
-
-#ifdef REBANG_LEGACY_CPP
-inline WVector2D& WVector2D::operator=(const WVector2D& other)
-{
-	x = other.x;
-	y = other.y;
-	return *this;
-}
-#endif
 
 inline bool IsMyTurn(bool check)
 {

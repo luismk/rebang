@@ -127,6 +127,8 @@ public:
 
 	bool IsHidden() { return m_flag.GetFlag(HIDEBONE); }
 
+	bool IsInvisible() { return m_flag.GetFlag(INVISIBLE); }
+
 	WQuat& GetBasicRot() { return m_basicQuat; }
 
 private:
@@ -289,6 +291,7 @@ public:
 		m_next = 0;
 	}
 
+	w_mesh* GetMesh() { return m_mesh; }
 	WVector Transform(const WVector& vector) { return vector * m_matrix; }
 	WSphere GetBoundSphere() { return m_bound_sphere; }
 	bool HasAnimation()
@@ -312,6 +315,8 @@ public:
 			m_flag.Disable(SELFILLUM);
 	}
 
+	WBone* GetChild() const { return m_child; }
+	WBone* GetNext() const { return m_next; }
 	WBone* GetParent() const { return m_parent; }
 
 protected:

@@ -14,6 +14,7 @@ class WProcManager;
 extern unsigned long g_CurrentTime;
 extern char g_executeDirectory[];
 extern WView* g_view;
+extern WMatrix g_camera;
 extern LightSet g_lightset;
 
 class CTmpLogo

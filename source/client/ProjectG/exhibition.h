@@ -5,11 +5,6 @@
 
 #include "fx.h"
 
-// TODO: this should be in fxbox (and also finished)
-class CPvsFxBox
-{
-	char m_data[0x364];
-};
 #include "parttidlist.h"
 
 class CPetFrame;

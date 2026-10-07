@@ -47,11 +47,13 @@ public:
 		: x(x_), y(y_)
 	{
 	}
+	void Reset();
 	void operator+=(const WVector2D& v);
 	float SquareMagnitude() const;
 	float Magnitude() const;
 	WVector2D& Normalize();
 	void operator*=(float f);
+	void operator/=(float f);
 #ifdef REBANG_LEGACY_CPP
 	WVector2D& operator=(const WVector2D& other);
 #endif
@@ -83,6 +85,13 @@ public:
 		x = x_;
 		y = y_;
 		z = z_;
+	}
+
+	WVector(const float* v)
+	{
+		x = v[0];
+		y = v[1];
+		z = v[2];
 	}
 
 #ifdef REBANG_LEGACY_CPP
@@ -163,7 +172,13 @@ public:
 	}
 	void Default();
 	bool IsInclude(const Waabb& box) const;
-	bool IsInclude(const WVector& vector) const;
+	bool IsInclude(const WVector& vector) const
+	{
+		if (min.x <= vector.x && vector.x <= max.x && min.y <= vector.y &&
+			vector.y <= max.y && min.z <= vector.z && vector.z <= max.z)
+			return true;
+		return false;
+	}
 	bool IsInclude(WVector& vector) const;
 	void Clear()
 	{
@@ -196,10 +211,17 @@ public:
 #else
 	Wobb() { }
 #endif
+#ifndef WANGREAL_DEVICE
+	Wobb(const Wobb& obb) { *this = obb; }
+#endif
 
 	WVector center;
 	WVector extend[3];
 
+	void operator*=(const WVector& scale);
+	Wobb& operator=(const WMatrix& mat);
+	Wobb& operator=(const Wobb& obb);
+	Wobb& operator=(const Waabb& box);
 	bool IsInclude(const WVector& point) const;
 };
 

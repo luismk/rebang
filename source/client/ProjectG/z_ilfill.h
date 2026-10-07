@@ -24,7 +24,7 @@
 			int v; \
 			ILFILLFN(10) ILFILLFN(11) ILFILLFN(12) ILFILLFN(13) \
 			ILFILLFN(14) ILFILLFN(15) \
-			void g() { ILFILL64 } \
+			void g() { ILFILL16 ILFILL16 ILFILL16 ILFILL4 v += 1; } \
 		}; \
 	}
 
@@ -36,7 +36,8 @@
 			int v; \
 			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
 			ILFILLFN(4) ILFILLFN(5) ILFILLFN(6) ILFILLFN(7) \
-			ILFILLFN(8) \
+			\
+			void g() { ILFILL16 ILFILL4 ILFILL4 v += 1; } \
 		}; \
 	}
 
@@ -57,7 +58,8 @@
 		struct Pad \
 		{ \
 			int v; \
-			ILFILLFN(0) ILFILLFN(1) void f2() { ILFILL256 ILFILL64 ILFILL16 ILFILL16 ILFILL4 ILFILL4 v += 1; v += 1; } \
+			ILFILLFN(0) ILFILLFN(1) \
+			void g() { ILFILL64 ILFILL64 ILFILL64 ILFILL4 } \
 		}; \
 	}
 
@@ -68,7 +70,7 @@
 		{ \
 			int v; \
 			ILFILLFN(0) ILFILLFN(1) ILFILLFN(2) ILFILLFN(3) \
-			void g() { ILFILL64 ILFILL16 ILFILL16 ILFILL4 ILFILL4 v += 1; v += 1; } \
+			void g() { ILFILL64 ILFILL16 ILFILL16 } \
 		}; \
 	}
 
@@ -107,4 +109,16 @@
 			void g() { ILFILL64 ILFILL64 ILFILL16 ILFILL16 ILFILL16 v += 1; ILFILL64 ILFILL64 ILFILL64 ILFILL16 ILFILL16 ILFILL16 ILFILL4 ILFILL4 v += 1; v += 1; } \
 		}; \
 	}
+
+// HACK! The number of inline functions in a PCH impacts scheduling ties in c2. This is knbown to impact:
+// - projectg SaveScreenShot
+// - WPolySoup::MakeStatistics
+// These can be removed as we fill in unknown inlines in our headers...
+inline void ILCOUNT0(){}
+inline void ILCOUNT1(){}
+inline void ILCOUNT2(){}
+inline void ILCOUNT3(){}
+inline void ILCOUNT4(){}
+inline void ILCOUNT5(){}
+inline void ILCOUNT6(){}
 // clang-format on

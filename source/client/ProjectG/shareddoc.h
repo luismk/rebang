@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 #include "../../shared/globalgamedefine.h"
+#include "polysoup.h"
+#include "golfdoc.h"
 #include "z_ilfill.h"
 ILFILL2A
 #include "../../shared/classdefine.h"

@@ -298,6 +298,69 @@ inline WMatrix4 operator*(const WMatrix4& a, const WMatrix4& b)
 	return m;
 }
 
+inline WVector2D operator*(float scale, const WVector2D& v)
+{
+	return WVector2D(scale * v.x, scale * v.y);
+}
+
+inline WVector2D operator*(const WVector2D& v, float scale)
+{
+	return WVector2D(v.x * scale, v.y * scale);
+}
+
+inline WVector2D operator+(const WVector2D& a, const WVector2D& b)
+{
+	return WVector2D(a.x + b.x, a.y + b.y);
+}
+
+inline WVector2D operator-(const WVector2D& a, const WVector2D& b)
+{
+	return WVector2D(a.x - b.x, a.y - b.y);
+}
+
+inline void WVector2D::Reset()
+{
+	x = y = 0.0f;
+}
+
+inline float WVector2D::Magnitude() const
+{
+	return sqrtf(SquareMagnitude());
+}
+
+inline float WVector2D::SquareMagnitude() const
+{
+	return x * x + y * y;
+}
+
+#ifdef REBANG_LEGACY_CPP
+inline WVector2D& WVector2D::operator=(const WVector2D& other)
+{
+	x = other.x;
+	y = other.y;
+	return *this;
+}
+#endif
+
+inline void WVector2D::operator+=(const WVector2D& v)
+{
+	x += v.x;
+	y += v.y;
+}
+
+inline void WVector2D::operator*=(float f)
+{
+	x *= f;
+	y *= f;
+}
+
+inline void WVector2D::operator/=(float f)
+{
+	float inv = 1.0f / f;
+	x *= inv;
+	y *= inv;
+}
+
 inline float operator*(const WPlane& plane, const WVector& vector)
 {
 	return plane.normal * vector + plane.dis;
@@ -390,6 +453,29 @@ inline int operator&(const Waabb& left, const Waabb& right)
 			return 0;
 	}
 	return 1;
+}
+
+inline Wobb& Wobb::operator=(const Wobb& obb)
+{
+	center = obb.center;
+	extend[0] = obb.extend[0];
+	extend[1] = obb.extend[1];
+	extend[2] = obb.extend[2];
+	return *this;
+}
+
+inline WVector Waabb::GetCenter() const
+{
+	return (min + max) * 0.5f;
+}
+
+inline Wobb& Wobb::operator=(const Waabb& box)
+{
+	center = box.GetCenter();
+	extend[0] = WVector(box.max.x - box.min.x, 0.0f, 0.0f) * 0.5f;
+	extend[1] = WVector(0.0f, box.max.y - box.min.y, 0.0f) * 0.5f;
+	extend[2] = WVector(0.0f, 0.0f, box.max.z - box.min.z) * 0.5f;
+	return *this;
 }
 
 inline bool Wobb::IsInclude(const WVector& point) const
