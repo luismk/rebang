@@ -45,7 +45,11 @@
       "pch": "source/client/ProjectG/stdafx.cpp",
       "extra_flags": ["/FIstdafx.h", "/Zd"]
     },
-    "source/client/ProjectG/shareddoc.obj",
+    {
+      "path": "source/client/ProjectG/shareddoc.cpp",
+      "pch": "source/client/ProjectG/stdafx.cpp",
+      "extra_flags": ["/FIstdafx.h", "/Zd"]
+    },
     "source/client/ProjectG/taskmain.obj",
     "source/client/ProjectG/golfdoc.obj",
     "source/client/ProjectG/golfrule.obj",

@@ -3,11 +3,6 @@
 #include "club.h"
 #include "quadtree.h"
 
-inline WVector GetHoleCupPos()
-{
-	return GOLFDOC()->GetHoleData(GOLFDOC()->m_currentHole).pin;
-}
-
 void CAutoTarget::Reset()
 {
 	m_pointList.clear();

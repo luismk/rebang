@@ -13,7 +13,25 @@ public:
 	struct sShotData
 	{
 		unsigned char hole;
-		// TODO: incomplete
+		WVector wind;
+		unsigned char weather;
+		unsigned char stroke;
+		sBar bar;
+		WVector pos;
+		float angle;
+		float curve;
+		float spin;
+		int pvsFrame;
+		unsigned long special;
+		unsigned long clubPower;
+		char club[4];
+		unsigned char bunker;
+		unsigned long item;
+		float deviation;
+		unsigned char holeStroke;
+		int pang;
+		int bonusPang;
+		WCrypticValue<float> gauge;
 	};
 
 	void AddPlayer(unsigned char index, const char* name, unsigned long uid,

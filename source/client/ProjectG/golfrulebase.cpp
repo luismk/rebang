@@ -8,8 +8,6 @@
 #include "gatewayactor.h"
 #include "../../shared/localize.h"
 
-inline sPlayerData* PLAYER(unsigned char index);
-
 CGolfRuleBase::CGolfRuleBase()
 {
 	m_pGolfRule = NULL;
@@ -417,9 +415,4 @@ bool CGolfRuleBase::CheckGiveUp()
 		return stroke > limit;
 
 	return stroke >= limit;
-}
-
-inline sPlayerData* PLAYER(unsigned char index)
-{
-	return GOLFDOC()->GetPlayer(index);
 }

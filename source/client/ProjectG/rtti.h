@@ -20,8 +20,9 @@ static __declspec(thread) void* __rtti_obj;
 			: NULL)
 
 #define IS_KINDOF(type, obj) \
-	((__rtti_obj = (void*)(obj)) ? ((IObject*)__rtti_obj)->IsKindOf(&type::m_RTTI) \
-						  : false)
+	((__rtti_obj = (void*)(obj)) \
+			? ((IObject*)__rtti_obj)->IsKindOf(&type::m_RTTI) \
+			: false)
 
 #define IS_EXACTKINDOF(type, obj) \
 	((__rtti_obj = (void*)(obj)) \

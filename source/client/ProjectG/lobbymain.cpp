@@ -263,8 +263,6 @@ static const char* GetGameTypeText(unsigned char gameType)
 	return "";
 }
 
-const char* GetGameTypeName(unsigned char gameType);
-
 bool ApproachRankUserCompare(const void* a, const void* b);
 bool RankUserCompare(const void* a, const void* b);
 bool FinishUserCompare(const void* a, const void* b);
@@ -3115,8 +3113,6 @@ void CLobbyMain::AnimateWebEventButton(float dt)
 void CLobbyMain::OnDisplay()
 {
 }
-sRivalData* GUILDMATCHUP(unsigned char index);
-
 void CLobbyMain::HandleMsg(const MsgObject& msg)
 {
 	switch (msg.message)
@@ -9332,6 +9328,9 @@ void CLobbyMain::OnRoomList_RoomListOwnerDraw(int param)
 						(float)pEmblem->Width(), (float)pEmblem->Height()),
 					0xffffffff, 0);
 		}
+
+		if (!pGDI)
+			break;
 
 		pGDI->Print(WPoint(pItem->pos.x + 120.0f, pItem->pos.y + 18.0f), 0,
 			"%s", GetGameTypeName(pRoom->gameType));

@@ -45,6 +45,7 @@
 #include "integritycheck.h"
 #include "chatmsg.h"
 #include "golftask.h"
+#include "lobbytask.h"
 #include "registry.h"
 #include <float.h>
 extern "C" __declspec(dllimport) int __cdecl mkdir(const char*);

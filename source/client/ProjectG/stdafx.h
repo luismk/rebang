@@ -21,6 +21,8 @@ extern WTL::CAppModule _Module;
 #include <atlctrlw.h>
 #include <atlctrlx.h>
 
+#include <math.h>
+#include <stdexcept>
 #include "wmath.h"
 #include "gamath.h"
 #include "wutil.h"
@@ -104,25 +106,26 @@ ILFILL1
 #include "frframe.h"
 #include "fremoticon.h"
 #include "frviewer.h"
-#include "networksystem.h"
 #include "tweaker.h"
+#include "networksystem.h"
 #include "networkmonitor.h"
 #include "projectg.h"
 #include "gdtextbox.h"
 #include "gdbitmapbox.h"
 #include "gdvoiceitem.h"
 #include "voiceitem.h"
+#include "../../shared/globalgamedefine.h"
+#include "../../shared/globalnetworkdefine.h"
 #include "actor.h"
 #include "taskmain.h"
 #include "nodecontainer.h"
-#include "golfrule.h"
 #include "scenemanager.h"
 #include "courseorder.h"
 
 // HACK: workaround for unsolved symbol ordering problems
 template void std::vector<WVector>::reserve(unsigned int);
-#include "golftask.h"
 #include "shareddoc.h"
+#include "uccmanager.h"
 #include "frtext.h"
 #include "mainframe.h"
 #include "wtemplate.h"

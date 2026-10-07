@@ -9,6 +9,10 @@ class WPolySoup;
 struct sApproachResultData;
 class CSky;
 
+enum eApproachMissionType
+{
+};
+
 #pragma pack(push, 1)
 struct sWinningPrize
 {
@@ -179,6 +183,21 @@ private:
 const float BAR_END = 500.0f;
 const float BAR_START = 140.0f;
 
+struct sBar
+{
+	float power;
+	float impact;
+	float gauge;
+	float gaugeStep;
+	int grade;
+	bool bFullPower;
+	int dir;
+	float center;
+	float calipers;
+
+	void Reset();
+};
+
 struct sHoleData
 {
 	WVector tee;
@@ -227,8 +246,10 @@ public:
 	std::list<sApproachResultData*>& GetApproachCurHoleResult();
 	std::list<sApproachResultData*>& GetApproachGameResult();
 	void LoadXml(const char* filename, unsigned char hole, bool bReload);
+	eApproachMissionType GetApproachMissionType() const;
 
 	unsigned char GetCurrentPlayer() { return m_currentPlayer; }
+	unsigned char GetPlayerNum() { return m_playerNum; }
 	sHoleData& GetHoleData() { return m_pHoleData[m_currentHole - 1]; }
 	sHoleData& GetHoleData(unsigned char hole) { return m_pHoleData[hole - 1]; }
 

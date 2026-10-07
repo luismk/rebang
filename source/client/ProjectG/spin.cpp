@@ -15,8 +15,6 @@ inline int WisZero(const float& f, float epsilon = g_EPSILON)
 	return Wabs(f) < epsilon;
 }
 
-inline sPlayerData* PLAYER(unsigned char index);
-
 IMPLEMENT_ACTOR(CSpin, IActor)
 
 CSpin::CSpin()
@@ -538,9 +536,4 @@ bool CSpin::IsInclude(float x, float y)
 	return x * x / (m_rangeX * m_rangeX) + y * y / (m_rangeY * m_rangeY) < 1.0f
 		? true
 		: false;
-}
-
-inline sPlayerData* PLAYER(unsigned char index)
-{
-	return GOLFDOC()->GetPlayer(index);
 }

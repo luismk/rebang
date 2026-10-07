@@ -5,13 +5,21 @@
 #include <map>
 #include <vector>
 #include "../../shared/globalgamedefine.h"
+#include "../../shared/globalnetworkdefine.h"
+typedef std::map<unsigned long, sUserInfoTime>::iterator USERINFOTIME_MAP_IT;
+typedef std::map<unsigned long, sBriefUserInfo>::iterator BRIEFUSERINFO_MAP_IT;
+typedef std::map<int, GuildMemberInfo_t>::iterator GUILDMEMBER_MAP_IT;
+typedef std::list<sMailInfoBrief>::iterator MAIL_LIST_IT;
+typedef std::vector<unsigned long>::iterator ACQUIREITEM_LIST_IT;
+typedef std::list<unsigned long>::iterator GUID_LIST_IT;
+typedef std::map<unsigned long, unsigned char>::iterator INDEX_MAP_IT;
+typedef std::auto_ptr<std::string>::element_type AUTOSTRING_ELEM;
 #include "polysoup.h"
 #include "golfdoc.h"
 #include "z_ilfill.h"
 ILFILL2A
 #include "../../shared/classdefine.h"
 ILFILL2
-#include "../../shared/itemmanager.h"
 #include "../../shared/localize.h"
 #include "hatmanager.h"
 #include "parttidlist.h"
@@ -91,9 +99,9 @@ struct sGolfGame
 		  gameType(0),
 		  weather(0),
 		  shotTimeLimit(0),
-		  gameTimeLimit(0)
+		  gameTimeLimit(0),
+		  holes(18)
 	{
-		holes = 18;
 		memset(gameTypeName, 0, sizeof(gameTypeName));
 	}
 };
@@ -140,6 +148,7 @@ struct sRivalData
 	unsigned char pangNitro;
 };
 
+#pragma pack(push, 1)
 struct sRecordedItemInfo
 {
 	sItemInfo itemInfo;
@@ -148,6 +157,7 @@ struct sRecordedItemInfo
 	char fileName[32];
 	unsigned char bValid;
 };
+#pragma pack(pop)
 
 class CGolfDoc;
 
@@ -156,6 +166,49 @@ struct sChatLine
 	std::string text;
 	unsigned long color;
 };
+
+#include "../../shared/itemmanager.h"
+typedef std::map<unsigned long, sRoomSlot>::iterator ROOMSLOT_MAP_IT;
+typedef std::list<sItemInfo>::iterator ITEM_LIST_IT;
+typedef std::list<sRecordedItemInfo>::iterator RECORDEDITEM_LIST_IT;
+typedef std::list<sGiftInfo>::iterator GIFT_LIST_IT;
+typedef std::map<unsigned long, sFriend>::iterator FRIEND_MAP_IT;
+typedef std::map<unsigned int, std::string>::iterator STRING_MAP_IT;
+typedef std::map<unsigned int, sCharacterInfo>::iterator CHAR_MAP_IT;
+typedef std::map<unsigned int, sCaddieInfo>::iterator CADDIE_MAP_IT;
+typedef std::map<unsigned int, sMascotInfo>::iterator MASCOT_MAP_IT;
+typedef std::map<unsigned int, sItemInfo>::iterator CLUBSET_MAP_IT;
+typedef std::vector<sRivalData>::iterator RIVAL_LIST_IT;
+typedef std::vector<sCaddieReportData>::iterator CADDIEREPORT_LIST_IT;
+typedef std::list<std::string>::iterator STRING_LIST_IT;
+typedef std::list<sNoteInfo>::iterator NOTE_LIST_IT;
+typedef std::list<sSpecialTrophy>::iterator SPECIALTROPHY_LIST_IT;
+typedef std::list<sGuildTrophy>::iterator GUILDTROPHY_LIST_IT;
+typedef std::vector<sGuildMatchup>::iterator GUILDMATCHUP_LIST_IT;
+typedef std::list<sGuildMatchFlagInfo>::iterator GUILDMATCHFLAG_LIST_IT;
+typedef std::list<sQuest>::iterator QUEST_LIST_IT;
+typedef std::list<sTradeItem>::iterator TRADEITEM_LIST_IT;
+typedef std::list<sStall>::iterator STALL_LIST_IT;
+typedef std::list<sSaleItem>::iterator SALEITEM_LIST_IT;
+typedef std::list<sFurniture_List>::iterator FURNITURE_LIST_IT;
+typedef std::list<sCards>::iterator CARD_LIST_IT;
+typedef std::list<sSCardAvilityPeriodInfo>::iterator CARDABILITY_LIST_IT;
+typedef std::list<sCardStack>::iterator CARDSTACK_LIST_IT;
+typedef std::list<sBurnningSpCard>::iterator BURNNINGSPCARD_LIST_IT;
+typedef std::list<sMapEventInfo>::iterator MAPEVENT_LIST_IT;
+typedef std::list<CGolfRule::sShotData>::iterator SHOTDATA_LIST_IT;
+typedef std::list<sItemAttachCard>::iterator ITEMATTACHCARD_LIST_IT;
+typedef std::map<unsigned char, sMapStatistics>::iterator MAPSTATISTICS_MAP_IT;
+typedef std::list<unsigned short>::iterator COUNT_LIST_IT;
+typedef std::list<sRoomInfo>::iterator ROOM_LIST_IT;
+typedef std::list<sChannelInfo>::iterator CHANNEL_LIST_IT;
+typedef std::list<sSlotInfo>::iterator SLOT_LIST_IT;
+typedef std::list<sGameServerInfo>::iterator GAMESERVER_LIST_IT;
+typedef std::vector<sGameServerInfo>::iterator GAMESERVER_VECTOR_IT;
+typedef std::list<sRoomUserInfo>::iterator ROOMUSER_LIST_IT;
+typedef std::list<sChatLine>::iterator CHATLINE_LIST_IT;
+typedef std::map<std::string, std::list<std::string> >::iterator
+	VISGROUP_MAP_IT;
 
 class CSharedDoc : public WSingleton<CSharedDoc>
 {
@@ -174,6 +227,7 @@ public:
 	std::string GetLoginAuthKey();
 	int IsControlServerService(int service);
 	void ClearUserInfoTimeMap(unsigned long uid);
+	void HaveAngelWing(bool bHave) { m_bHaveAngelWing = bHave; }
 	void SetIndex(unsigned long uid);
 	unsigned char GetIndex(unsigned long guid);
 	float GetWtPepPangyaComboGauge(unsigned char player);
@@ -190,6 +244,7 @@ public:
 	const std::list<sItemInfo>& GetConstMyItemList() { return m_myItemList; }
 	eReplayModeType GetPlayingMode() { return m_playingMode; }
 
+	void ClearCardStack() { m_cardStackList.clear(); }
 	void ClearAll();
 	void ClearUcc();
 	void ClearJapanVars();
@@ -265,6 +320,17 @@ public:
 	int GetIndexPangyaLogoImage();
 	void SetInitAbilityItem();
 	void InitTradeData();
+	eStateTrade GetStateTrade() { return m_stateTrade; }
+	void ClearListTradeItem() { m_listTradeItem.clear(); }
+	std::list<sTradeItem>* GetListTradeItem() { return &m_listTradeItem; }
+	int GetSizeTradeItem() { return (int)m_listTradeItem.size(); }
+	void ClearListStallItem() { m_listStallItem.clear(); }
+	std::list<sStall>* GetListStallItem() { return &m_listStallItem; }
+	void AddListStallItem(sStall item) { m_listStallItem.push_back(item); }
+	sStall* GetStallItem() { return &m_stallItem; }
+	std::list<sSaleItem>* GetMaketList() { return &m_maketList; }
+	void ClearMaketList() { m_maketList.clear(); }
+	void AddMaketListItem(sSaleItem item) { m_maketList.push_back(item); }
 	bool AddListTradeItem(sTradeItem item);
 	bool MinusListTradeItem(sTradeItem item);
 	void SetTradeUID(unsigned long uid);
@@ -287,6 +353,7 @@ public:
 	void UpdateGachaTickets();
 	unsigned long GetMyDisconPangPenalty();
 	void LoadVisGroup(const char* filename);
+	void SetTradeMode(unsigned char mode) { m_tradeMode = mode; }
 	void SetFileName(char* const filename);
 	void ReplaySavFileCheck();
 	std::list<std::string>* GetVisGroup(const char* name);
@@ -548,11 +615,15 @@ public:
 	std::string m_tradeTitle;
 	int m_countVisitor;
 	unsigned char m_tradeMode;
-	unsigned char m_stallItem[0x927];
+	sStall m_stallItem;
 	std::list<sStall> m_listStallItem;
 	std::list<sSaleItem> m_maketList;
 	unsigned char m_rmrMode;
 	__int64 m_tradeIncome;
+	void SetHaveHalloweenItem(bool bHave) { m_bHaveHalloweenItem = bHave; }
+	void SetWearHalloweenItem(bool bWear) { m_bWearHalloweenItem = bWear; }
+	bool IsHaveHalloweenItem() { return m_bHaveHalloweenItem; }
+	bool IsWearHalloweenItem() { return m_bWearHalloweenItem; }
 	bool m_bHaveHalloweenItem;
 	bool m_bWearHalloweenItem;
 	void SetReplayState(int state) { m_replayState = state; }
@@ -581,6 +652,8 @@ public:
 	unsigned long m_unused5cb0;
 	std::map<unsigned long, sUserInfoTime> m_userInfoTimeMap;
 	int m_userInfoMod;
+	int GetUserInfoMod() { return m_userInfoMod; }
+	void SetUserInfoMod(int mod) { m_userInfoMod = mod; }
 	unsigned char m_forceNicknameChange;
 	std::map<unsigned char, sMapStatistics> m_pastMapStat[4];
 	std::map<std::string, std::list<std::string> > m_visGroupMap;
@@ -609,4 +682,8 @@ unsigned char GetCurMap();
 
 ILFILL3
 
+#include "golftask.h"
+class CContentsDoc;
+// HACK!
+typedef char CONTENTSDOC_SINGLETON_SIZE[sizeof(WSingleton<CContentsDoc>)];
 #include "shareddoc.inl"

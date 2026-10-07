@@ -7,9 +7,6 @@
 #include "cardsystem.h"
 #include "../../shared/localize.h"
 
-inline sPlayerData* PLAYER(unsigned char index);
-inline sTeamData* TEAM(unsigned char index);
-
 CGolfRuleTeam::CGolfRuleTeam(CGolfRule* pGolfRule)
 {
 	m_pGolfRule = pGolfRule;
@@ -225,14 +222,4 @@ bool CGolfRuleTeam::CheckGiveUp()
 		return stroke > limit;
 
 	return stroke >= limit;
-}
-
-inline sPlayerData* PLAYER(unsigned char index)
-{
-	return GOLFDOC()->GetPlayer(index);
-}
-
-inline sTeamData* TEAM(unsigned char index)
-{
-	return GOLFDOC()->GetTeam(index);
 }

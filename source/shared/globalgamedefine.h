@@ -124,336 +124,6 @@ enum eTitle
 	TITLE_MANNERANGEL
 };
 
-#pragma pack(push, 1)
-
-struct sRoomDetail
-{
-	unsigned char holes;
-	unsigned long gameTime;
-	unsigned char map;
-	unsigned char gameType;
-	unsigned char holeOrder;
-	unsigned long matchTypeId;
-};
-
-struct sPangYaUserInfo
-{
-	char sID[22];
-	char sNick[22];
-	char sGuild[21];
-	char szEmblemName[12];
-	unsigned long school;
-	unsigned long dwIdentity;
-	unsigned long dwGalleryGuid;
-	unsigned long dwGuid;
-	unsigned long dwRank[3];
-	unsigned long dwGuildId;
-	unsigned long dwEmblemVer;
-	unsigned char DoTutorial : 1;
-	unsigned char gender : 1;
-	unsigned char manner : 1;
-	unsigned char angelicWings : 1;
-	unsigned char angelicWingsEffect : 1;
-	unsigned char devilWings : 1;
-	unsigned char RookieFEvent : 2;
-	unsigned char NewYearEvent : 1;
-	unsigned char Reserved : 7;
-	short iBongdariShopUsableTimes;
-	short iBongdariShopBonusTimes;
-	short iBongdariShopRemainedBonus;
-	unsigned long dwPointPointEvent;
-	unsigned long dwFlagBlock;
-	int iTimeBlock;
-	int nChannelingFlag;
-	char sDisplayID[128];
-	unsigned long dwUID;
-
-	bool IsIdentity(unsigned long identity)
-	{
-		return (dwIdentity & identity) ? true : false;
-	}
-};
-
-struct sPangYaUserStatistics
-{
-	unsigned long dwDrive;
-	unsigned long dwPutt;
-	unsigned long dwVisitTime;
-	unsigned long dwShotTime;
-	float fLongest;
-	unsigned long dwPangya;
-	unsigned long dwTimeOut;
-	unsigned long dwOB;
-	unsigned long dwDistance;
-	unsigned long dwHole;
-	unsigned long dwMatchHole;
-	unsigned short wHoleInOne;
-	unsigned short wBunker;
-	unsigned long dwFairway;
-	unsigned short wAlbatross;
-	unsigned long dwHoleIn;
-	unsigned long dwPuttIn;
-	float fLongestPuttIn;
-	float fLongestChipIn;
-	unsigned long dwExp;
-	unsigned char Level;
-	__int64 i64Pang;
-	int iTotalScore;
-	char cBestScore[6];
-	__int64 i64MaxPang[6];
-	unsigned long dwGameCount;
-	unsigned long dwDisconnectCount;
-	unsigned long dwTeamWin;
-	unsigned long dwTeamGames;
-	unsigned long dwLadderPoint;
-	unsigned long dwLadderWin;
-	unsigned long dwLadderLose;
-	unsigned long dwLadderDraw;
-	unsigned long dwLadderHoles;
-	unsigned int nMannerCombo;
-	unsigned int nMaxMannerCombo;
-	unsigned long dwNoMannerGameCount;
-	__int64 i64TotalSkinsPang;
-	unsigned long dwSkinsWin;
-	unsigned long dwSkinsLose;
-	unsigned long dwSkinsGames;
-	int iStrikePoint;
-	unsigned short iAllInCount;
-	unsigned long eventValue;
-	unsigned long eventFlag;
-	unsigned long dwSeasonCount;
-	__int64 i64SumPang;
-};
-
-struct sTrophyStatistics
-{
-	unsigned short Trophy[13][3];
-};
-
-struct sUserEquip
-{
-	unsigned long guidCaddie;
-	unsigned long guidChar;
-	unsigned long guidClubSet;
-	unsigned long tidBall;
-	unsigned long tidItemSlot[10];
-	unsigned long guidSkin[6];
-	unsigned long tidSkin[6];
-	unsigned long guidMascot;
-};
-
-struct sMapStatistics
-{
-	unsigned char bMap;
-	unsigned long dwDrive;
-	unsigned long dwPutt;
-	unsigned long dwHole;
-	unsigned long dwFairway;
-	unsigned long dwHoleIn;
-	unsigned long dwPuttIn;
-	int iTotalScore;
-	char cBestScore;
-	__int64 i64MaxPang;
-	unsigned long tidChar;
-	unsigned char eventScore;
-
-	sMapStatistics() { bMap = 0xff; }
-};
-
-struct sMyInfo
-{
-	unsigned short roomIndex;
-	sPangYaUserInfo info;
-	sPangYaUserStatistics stat;
-	sTrophyStatistics trophy;
-	sUserEquip userEquip;
-	sMapStatistics mapStat[20];
-	sMapStatistics classicMapStat[20];
-};
-
-struct sCharacterInfo
-{
-	unsigned long tid;
-	unsigned long guid;
-	unsigned long tidParts[24];
-	unsigned char hairClr;
-	unsigned char shirtsClr : 4;
-	unsigned char gift_flag : 4;
-	char PCL[5];
-	char Purchase;
-	unsigned long tidAuxParts[5];
-	char UccIndexList[24][9];
-	unsigned long ItemIdList[24];
-
-	sCharacterInfo()
-	{
-		tid = 0;
-		guid = 0;
-		hairClr = 0;
-		shirtsClr = 0;
-		gift_flag = 0;
-		Purchase = 0;
-		memset(tidParts, 0, sizeof(tidParts));
-		memset(PCL, 0, sizeof(PCL));
-		memset(tidAuxParts, 0, sizeof(tidAuxParts));
-		memset(ItemIdList, 0, sizeof(ItemIdList));
-		memset(UccIndexList, 0, sizeof(UccIndexList));
-	}
-};
-
-struct sCaddieInfo
-{
-	unsigned long guid;
-	unsigned long tid;
-	unsigned long tidPart;
-	unsigned char Level;
-	unsigned long Exp;
-	unsigned char gift_flag : 1;
-	unsigned char Rent_flag : 1;
-	unsigned short Remain_Date;
-	unsigned short Remain_Partdate;
-	char Purchase;
-	unsigned char byCheckCaddieWarning;
-	bool PCBangCaddie;
-};
-
-struct sClubInfo
-{
-	unsigned long guid;
-	unsigned long tid;
-	short PCL[5];
-};
-
-struct sMascotInfo
-{
-	unsigned long guid;
-	unsigned long tid;
-	unsigned char Level;
-	unsigned long Exp;
-	char szMsg[30];
-	unsigned short Remain_Date;
-	char Purchase;
-	_SYSTEMTIME endDate;
-	bool PCBangMascot;
-};
-
-struct sUserInfo : public sMyInfo
-{
-	sCharacterInfo charInfo;
-	sCaddieInfo caddieInfo;
-	sClubInfo clubInfo;
-	sMascotInfo mascotInfo;
-};
-
-struct sSpecialTrophy
-{
-	unsigned long guid;
-	unsigned long tid;
-	unsigned long count;
-};
-
-struct sGuildTrophy
-{
-	unsigned long TypeID;
-};
-
-struct sSeasonRecord
-{
-	sPangYaUserStatistics userStat;
-	sMapStatistics mapStat[20];
-	sMapStatistics classicMapStat[20];
-	sTrophyStatistics trophyStat;
-	int numTrophies;
-	sSpecialTrophy* trophies;
-	int numGuildTrophies;
-	sGuildTrophy* guildTrophies;
-};
-
-struct sUserPosition
-{
-	unsigned short iRoomIdx;
-	int iRoomType;
-	int iServerGUID;
-	unsigned char iChannelUid;
-	char csChannelName[64];
-
-	sUserPosition()
-	{
-		iRoomIdx = 0xffff;
-		iRoomType = -1;
-		iServerGUID = -1;
-		iChannelUid = 0xff;
-		memset(csChannelName, 0, sizeof(csChannelName));
-	}
-};
-
-struct sUserInfoTime
-{
-	unsigned long dwUpdate;
-	sUserInfo info;
-	int numTrophies;
-	sSpecialTrophy* trophies;
-	int numGuildTrophies;
-	sGuildTrophy* guildTrophies;
-	unsigned long dwGuildPang;
-	unsigned long dwGuildPoint;
-	sSeasonRecord oldSeason;
-	sUserPosition userPosition;
-	unsigned long hasSeasonData;
-};
-
-struct sItemInfo
-{
-	unsigned long guid;
-	unsigned long tid;
-	int HourRemain;
-	short Common[5];
-	char Purchase;
-	unsigned char gift_flag : 1;
-	unsigned char Expired : 1;
-	unsigned char ItemFlag : 2;
-	unsigned char ItemType : 3;
-	_SYSTEMTIME ItemDate;
-	unsigned char Reserve : 1;
-	unsigned char IsValid : 1;
-	char ItemName[41];
-	char UccIndex[9];
-	unsigned char status;
-	unsigned short Seq;
-	char CopierNick[22];
-	unsigned long attachCard[12];
-	unsigned short CharacterSlotNum;
-	unsigned short CaddieSlotNum;
-
-	sItemInfo()
-	{
-		gift_flag = 0;
-		Expired = 0;
-		ItemFlag = 0;
-		ItemType = 0;
-		Reserve = 0;
-		IsValid = 0;
-		guid = 0;
-		tid = 0;
-		HourRemain = 0;
-		Purchase = 0;
-		memset(Common, 0, sizeof(Common));
-		memset(&ItemDate, 0, sizeof(ItemDate));
-		memset(ItemName, 0, sizeof(ItemName));
-		memset(UccIndex, 0, sizeof(UccIndex));
-		memset(CopierNick, 0, sizeof(CopierNick));
-		memset(attachCard, 0, sizeof(attachCard));
-		CharacterSlotNum = 0;
-		CaddieSlotNum = 0;
-		status = 0;
-		Seq = 0;
-	}
-
-	bool operator==(const unsigned long& type) const { return tid == type; }
-};
-
-#pragma pack(pop)
-
 enum GUILD_CLASS_IDX
 {
 };
@@ -782,6 +452,253 @@ struct EncryptKey
 };
 
 #pragma pack(push, 1)
+
+struct sRoomDetail
+{
+	unsigned char holes;
+	unsigned long gameTime;
+	unsigned char map;
+	unsigned char gameType;
+	unsigned char holeOrder;
+	unsigned long matchTypeId;
+};
+
+struct sPangYaUserInfo
+{
+	char sID[22];
+	char sNick[22];
+	char sGuild[21];
+	char szEmblemName[12];
+	unsigned long school;
+	unsigned long dwIdentity;
+	unsigned long dwGalleryGuid;
+	unsigned long dwGuid;
+	unsigned long dwRank[3];
+	unsigned long dwGuildId;
+	unsigned long dwEmblemVer;
+	unsigned char DoTutorial : 1;
+	unsigned char gender : 1;
+	unsigned char manner : 1;
+	unsigned char angelicWings : 1;
+	unsigned char angelicWingsEffect : 1;
+	unsigned char devilWings : 1;
+	unsigned char RookieFEvent : 2;
+	unsigned char NewYearEvent : 1;
+	unsigned char Reserved : 7;
+	short iBongdariShopUsableTimes;
+	short iBongdariShopBonusTimes;
+	short iBongdariShopRemainedBonus;
+	unsigned long dwPointPointEvent;
+	unsigned long dwFlagBlock;
+	int iTimeBlock;
+	int nChannelingFlag;
+	char sDisplayID[128];
+	unsigned long dwUID;
+
+	bool IsIdentity(unsigned long identity)
+	{
+		return (dwIdentity & identity) ? true : false;
+	}
+};
+
+struct sPangYaUserStatistics
+{
+	unsigned long dwDrive;
+	unsigned long dwPutt;
+	unsigned long dwVisitTime;
+	unsigned long dwShotTime;
+	float fLongest;
+	unsigned long dwPangya;
+	unsigned long dwTimeOut;
+	unsigned long dwOB;
+	unsigned long dwDistance;
+	unsigned long dwHole;
+	unsigned long dwMatchHole;
+	unsigned short wHoleInOne;
+	unsigned short wBunker;
+	unsigned long dwFairway;
+	unsigned short wAlbatross;
+	unsigned long dwHoleIn;
+	unsigned long dwPuttIn;
+	float fLongestPuttIn;
+	float fLongestChipIn;
+	unsigned long dwExp;
+	unsigned char Level;
+	__int64 i64Pang;
+	int iTotalScore;
+	char cBestScore[6];
+	__int64 i64MaxPang[6];
+	unsigned long dwGameCount;
+	unsigned long dwDisconnectCount;
+	unsigned long dwTeamWin;
+	unsigned long dwTeamGames;
+	unsigned long dwLadderPoint;
+	unsigned long dwLadderWin;
+	unsigned long dwLadderLose;
+	unsigned long dwLadderDraw;
+	unsigned long dwLadderHoles;
+	unsigned int nMannerCombo;
+	unsigned int nMaxMannerCombo;
+	unsigned long dwNoMannerGameCount;
+	__int64 i64TotalSkinsPang;
+	unsigned long dwSkinsWin;
+	unsigned long dwSkinsLose;
+	unsigned long dwSkinsGames;
+	int iStrikePoint;
+	unsigned short iAllInCount;
+	unsigned long eventValue;
+	unsigned long eventFlag;
+	unsigned long dwSeasonCount;
+	__int64 i64SumPang;
+};
+
+struct sTrophyStatistics
+{
+	unsigned short Trophy[13][3];
+};
+
+struct sUserEquip
+{
+	unsigned long guidCaddie;
+	unsigned long guidChar;
+	unsigned long guidClubSet;
+	unsigned long tidBall;
+	unsigned long tidItemSlot[10];
+	unsigned long guidSkin[6];
+	unsigned long tidSkin[6];
+	unsigned long guidMascot;
+};
+
+struct sMapStatistics
+{
+	unsigned char bMap;
+	unsigned long dwDrive;
+	unsigned long dwPutt;
+	unsigned long dwHole;
+	unsigned long dwFairway;
+	unsigned long dwHoleIn;
+	unsigned long dwPuttIn;
+	int iTotalScore;
+	char cBestScore;
+	__int64 i64MaxPang;
+	unsigned long tidChar;
+	unsigned char eventScore;
+
+	sMapStatistics() { bMap = 0xff; }
+};
+
+struct sCharacterInfo
+{
+	unsigned long tid;
+	unsigned long guid;
+	unsigned long tidParts[24];
+	unsigned char hairClr;
+	unsigned char shirtsClr : 4;
+	unsigned char gift_flag : 4;
+	char PCL[5];
+	char Purchase;
+	unsigned long tidAuxParts[5];
+	char UccIndexList[24][9];
+	unsigned long ItemIdList[24];
+
+	sCharacterInfo()
+	{
+		tid = 0;
+		guid = 0;
+		hairClr = 0;
+		shirtsClr = 0;
+		gift_flag = 0;
+		Purchase = 0;
+		memset(tidParts, 0, sizeof(tidParts));
+		memset(PCL, 0, sizeof(PCL));
+		memset(tidAuxParts, 0, sizeof(tidAuxParts));
+		memset(ItemIdList, 0, sizeof(ItemIdList));
+		memset(UccIndexList, 0, sizeof(UccIndexList));
+	}
+};
+
+struct sMyInfo
+{
+	unsigned short roomIndex;
+	sPangYaUserInfo info;
+	sPangYaUserStatistics stat;
+	sTrophyStatistics trophy;
+	sUserEquip userEquip;
+	sMapStatistics mapStat[20];
+	sMapStatistics classicMapStat[20];
+};
+
+struct sCaddieInfo
+{
+	unsigned long guid;
+	unsigned long tid;
+	unsigned long tidPart;
+	unsigned char Level;
+	unsigned long Exp;
+	unsigned char gift_flag : 1;
+	unsigned char Rent_flag : 1;
+	unsigned short Remain_Date;
+	unsigned short Remain_Partdate;
+	char Purchase;
+	unsigned char byCheckCaddieWarning;
+	bool PCBangCaddie;
+};
+
+struct sClubInfo
+{
+	unsigned long guid;
+	unsigned long tid;
+	short PCL[5];
+};
+
+struct sMascotInfo
+{
+	unsigned long guid;
+	unsigned long tid;
+	unsigned char Level;
+	unsigned long Exp;
+	char szMsg[30];
+	unsigned short Remain_Date;
+	char Purchase;
+	_SYSTEMTIME endDate;
+	bool PCBangMascot;
+};
+
+struct sUserInfo : public sMyInfo
+{
+	sCharacterInfo charInfo;
+	sCaddieInfo caddieInfo;
+	sClubInfo clubInfo;
+	sMascotInfo mascotInfo;
+};
+
+struct sSpecialTrophy
+{
+	unsigned long guid;
+	unsigned long tid;
+	unsigned long count;
+};
+
+struct sGuildTrophy
+{
+	unsigned long TypeID;
+};
+
+struct sSeasonRecord
+{
+	sPangYaUserStatistics userStat;
+	sMapStatistics mapStat[20];
+	sMapStatistics classicMapStat[20];
+	sTrophyStatistics trophyStat;
+	int numTrophies;
+	sSpecialTrophy* trophies;
+	int numGuildTrophies;
+	sGuildTrophy* guildTrophies;
+};
+
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct sUserInfoExt : public sUserInfo
 {
 	sUserInfoExt()
@@ -860,6 +777,92 @@ struct sBriefUserInfo
 		return (dwIdentity & identity) ? true : false;
 	}
 };
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct sUserPosition
+{
+	unsigned short iRoomIdx;
+	int iRoomType;
+	int iServerGUID;
+	unsigned char iChannelUid;
+	char csChannelName[64];
+
+	sUserPosition()
+	{
+		iRoomIdx = 0xffff;
+		iRoomType = -1;
+		iServerGUID = -1;
+		iChannelUid = 0xff;
+		memset(csChannelName, 0, sizeof(csChannelName));
+	}
+};
+
+struct sUserInfoTime
+{
+	unsigned long dwUpdate;
+	sUserInfo info;
+	int numTrophies;
+	sSpecialTrophy* trophies;
+	int numGuildTrophies;
+	sGuildTrophy* guildTrophies;
+	unsigned long dwGuildPang;
+	unsigned long dwGuildPoint;
+	sSeasonRecord oldSeason;
+	sUserPosition userPosition;
+	unsigned long hasSeasonData;
+};
+
+struct sItemInfo
+{
+	unsigned long guid;
+	unsigned long tid;
+	int HourRemain;
+	short Common[5];
+	char Purchase;
+	unsigned char gift_flag : 1;
+	unsigned char Expired : 1;
+	unsigned char ItemFlag : 2;
+	unsigned char ItemType : 3;
+	_SYSTEMTIME ItemDate;
+	unsigned char Reserve : 1;
+	unsigned char IsValid : 1;
+	char ItemName[41];
+	char UccIndex[9];
+	unsigned char status;
+	unsigned short Seq;
+	char CopierNick[22];
+	unsigned long attachCard[12];
+	unsigned short CharacterSlotNum;
+	unsigned short CaddieSlotNum;
+
+	sItemInfo()
+	{
+		gift_flag = 0;
+		Expired = 0;
+		ItemFlag = 0;
+		ItemType = 0;
+		Reserve = 0;
+		IsValid = 0;
+		guid = 0;
+		tid = 0;
+		HourRemain = 0;
+		Purchase = 0;
+		memset(Common, 0, sizeof(Common));
+		memset(&ItemDate, 0, sizeof(ItemDate));
+		memset(ItemName, 0, sizeof(ItemName));
+		memset(UccIndex, 0, sizeof(UccIndex));
+		memset(CopierNick, 0, sizeof(CopierNick));
+		memset(attachCard, 0, sizeof(attachCard));
+		CharacterSlotNum = 0;
+		CaddieSlotNum = 0;
+		status = 0;
+		Seq = 0;
+	}
+
+	bool operator==(const unsigned long& type) const { return tid == type; }
+};
+
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -1637,12 +1640,15 @@ struct sSCardAvilityPeriodInfo
 struct sCards
 {
 	unsigned long uid;
-	unsigned long typeId;
-	unsigned char reserved08[12];
-	int count;
-	unsigned char reserved18[32];
-	unsigned char type;
-	unsigned char reserved39;
+	unsigned long tid;
+	unsigned long partTid;
+	unsigned long partUid;
+	int selectedCardSlotNum;
+	int cardCount;
+	_SYSTEMTIME useStartTime;
+	_SYSTEMTIME useEndTime;
+	unsigned char valid;
+	unsigned char bUseDT;
 };
 
 namespace IFF_STRUCT

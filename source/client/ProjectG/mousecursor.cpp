@@ -14,7 +14,6 @@
 extern WMatrix g_camera;
 extern Fresh* g_pFresh;
 bool IsMyTurn(bool check);
-sPlayerData* PLAYER(unsigned char index);
 int float2int(float value);
 extern "C" float __fastcall floorf(float value);
 
@@ -975,8 +974,4 @@ inline bool IsMyTurn(bool check)
 	else if (Doc()->m_gameMode == 5)
 		return PLAYER(GOLFDOC()->m_currentPlayer)->oid == MyGuid(false);
 	return true;
-}
-inline sPlayerData* PLAYER(unsigned char index)
-{
-	return GOLFDOC()->GetPlayer(index);
 }

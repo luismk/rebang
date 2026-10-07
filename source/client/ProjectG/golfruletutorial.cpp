@@ -8,8 +8,6 @@
 #include "polysoup.h"
 #include "../../shared/localize.h"
 
-inline sPlayerData* PLAYER(unsigned char index);
-
 CGolfRuleTutorial::CGolfRuleTutorial(CGolfRule* pGolfRule)
 {
 	m_pGolfRule = pGolfRule;
@@ -127,9 +125,4 @@ void CGolfRuleTutorial::SetEquipCharCaddieInfoForTutorial()
 	Doc()->m_userInfo[0].userEquip.tidBall = 0x14000000;
 
 	Doc()->m_userInfo[0].caddieInfo.Level = 2;
-}
-
-inline sPlayerData* PLAYER(unsigned char index)
-{
-	return GOLFDOC()->GetPlayer(index);
 }
