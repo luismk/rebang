@@ -1,1127 +1,1080 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frwnd.cpp
+#define FRWND_WTYPES_INLINE
 #include <string.h>
+
 #include <algorithm>
+
 #include "frwnd.h"
-#include "frscrollbar.h"
 #include "frwndmanager.h"
-#include "frdesktop.h"
-#include "frform.h"
+#include "frscrollbar.h"
 #include "frtooltip.h"
-#include "soundmanager.h"
+#include "frform.h"
+#include "frdesktop.h"
+#include "../client/Wangreal/include/woverlay.h"
+#include "../client/Wangreal/include/wview.h"
+#include "../client/ProjectG/SoundManager.h"
 
-extern WView* g_view;
+// Wangreal float helper (out of line in ClientSetting); its header is not
+// transcribed yet.
+int WisZero(const float& f, float eps);
 
-typedef std::list<FrWnd*> FRWNDLIST;
+// frwnd.cpp:18 (run-time type and factory registration of FrWnd)
+const WRTTI FrWnd::m_RTTI("FrWnd", &IObject::m_RTTI);
 
-inline int WisZero(const float& v, float e)
-{
-	return Wabs(v) < e;
-}
-
-FrToolTip* FrWnd::m_pToolTip = NULL;
-
-IObject* FrWndMakeInstance()
-{
+IObject* FrWndMakeInstance(void) {
 	return new FrWnd;
 }
 
-struct __sFrWnd
-{
-	__sFrWnd() { ObjectFactory().AddObjectFunctor(FrWndMakeInstance, "FrWnd"); }
+struct __sFrWnd {
+	__sFrWnd(void) {
+		ObjectFactory().AddObjectFunctor(FrWndMakeInstance, "FrWnd");
+	}
 };
+static __sFrWnd s_registerFrWnd;
 
-const WRTTI FrWnd::m_RTTI("FrWnd", &IObject::m_RTTI);
-static __sFrWnd __implFrWnd;
+FrToolTip* FrWnd::m_pToolTip = 0;
 
-FrWnd::FrWnd()
+// frwnd.cpp:30
+FrWnd::FrWnd(void)
 	: m_nFlags(0),
-	  m_pParentWnd(NULL),
-	  m_pOwner(NULL),
+	  m_pParentWnd(0),
+	  m_pOwner(0),
 	  m_dwStyle(0),
 	  m_wndAlpha(1.0f),
 	  m_wndAlpha2(1.0f),
-	  m_pWndManager(NULL),
-	  m_pScrBar(NULL),
+	  m_pWndManager(0),
+	  m_pScrBar(0),
 	  m_fadeTime(0.0f),
-	  m_szPushSound(NULL),
+	  m_szPushSound(0),
 	  m_dblClickTimeout(-100.0f),
 	  m_dblClicked(false),
 	  m_hoverOn(false),
 	  m_hoverTime(0.0f),
 	  m_accHoverTime(0.0f),
-	  m_pToolTipData(NULL)
-{
+	  m_pToolTipData(0) {
 }
 
-FrWnd::~FrWnd()
-{
-	FrWndManager* pManager = m_pWndManager;
-	if (pManager)
-	{
+// frwnd.cpp:35
+FrWnd::~FrWnd(void) {
+	if (FrWndManager* pManager = m_pWndManager) {
 		pManager->DeleteTopmostWindow(this);
 		pManager->ReleaseCapture(this);
 	}
+
 	DestroyChild();
-	if (m_pToolTipData)
-	{
+	if (m_pToolTipData) {
 		delete m_pToolTipData;
-		m_pToolTipData = NULL;
+		m_pToolTipData = 0;
 	}
 }
 
-void FrWnd::CreateToolTip(FrWndManager* pManager)
-{
-	if (m_pToolTip == NULL)
-		m_pToolTip = new FrToolTip(pManager);
+// frwnd.cpp:47
+void FrWnd::CreateToolTip(FrWndManager* pWndManager) {
+	if (!m_pToolTip) {
+		m_pToolTip = new FrToolTip(pWndManager);
+	}
 }
 
-FrToolTip* FrWnd::ToolTip()
-{
+// frwnd.cpp:53
+FrToolTip* FrWnd::ToolTip(void) {
 	return m_pToolTip;
 }
 
-void FrWnd::DestroyToolTip()
-{
-	if (m_pToolTip)
+// frwnd.cpp:59
+void FrWnd::DestroyToolTip(void) {
+	if (m_pToolTip) {
 		delete m_pToolTip;
-	m_pToolTip = NULL;
+	}
+	m_pToolTip = 0;
 }
 
-void FrWnd::RemoveWindow(FrWnd* pWnd)
-{
-	FRWNDLIST::iterator it =
-		std::find(m_childList.begin(), m_childList.end(), pWnd);
-	if (it != m_childList.end())
+// frwnd.cpp:67
+void FrWnd::RemoveWindow(FrWnd* pWnd) {
+	std::list<FrWnd*>::iterator it = std::find(m_childList.begin(), m_childList.end(), pWnd);
+	if (it != m_childList.end()) {
 		m_childList.erase(it);
+	}
 }
 
-bool FrWnd::Close(bool bFade)
-{
-	if (!m_nFlags.GetFlag(FWF_DESTROY))
-	{
-		if (bFade)
-			m_nFlags.Enable(FWF_FADEOUT | FWF_FADING);
-		else
-		{
-			m_nFlags.Disable(FWF_FADING);
-			m_nFlags.Enable(FWF_DESTROY);
+// frwnd.cpp:74
+bool FrWnd::Close(bool bDestroy) {
+	if (!m_nFlags.GetFlag(0x20)) {
+		if (bDestroy) {
+			m_nFlags.Enable(0x140);
+		} else {
+			m_nFlags.Disable(0x100);
+			m_nFlags.Enable(0x20);
 		}
 
-		if (m_pWndManager)
+		if (m_pWndManager) {
 			m_pWndManager->ResetKeyFocus(this);
+		}
 	}
 
-	if (m_dwStyle.GetFlag(FWS_TOPMOST))
+	if (m_dwStyle.GetFlag(0x10)) {
 		SetTopmost(false);
-
+	}
 	return true;
 }
 
-void FrWnd::DestroyChild()
-{
-	FRWNDLIST::iterator it = m_childList.begin();
-	while (it != m_childList.end())
-	{
+// frwnd.cpp:100
+void FrWnd::DestroyChild(void) {
+	std::list<FrWnd*>::iterator it = m_childList.begin();
+	while (it != m_childList.end()) {
 		delete *it;
 		it = m_childList.erase(it);
 	}
 }
 
-bool FrWnd::Create(const char* lpszWindowText, const char* lpszWindowName,
-	FrWndManager* pManager, unsigned long dwStyle, const WRect& rect,
-	FrWnd* pParentWnd)
-{
-	if (lpszWindowText)
+// frwnd.cpp:114
+bool FrWnd::Create(const char* lpszWindowText, const char* lpszWindowName, FrWndManager* pManager, unsigned long dwStyle,
+	const WRect& rect, FrWnd* pParentWnd) {
+	if (lpszWindowText) {
 		m_wndText = lpszWindowText;
-	if (lpszWindowName)
+	}
+	if (lpszWindowName) {
 		m_wndName = lpszWindowName;
+	}
 
 	PreCreateWindow(pManager, dwStyle, rect, pParentWnd);
-	m_dwStyle.Enable(FWS_NOWHEELEVENT);
+
+	m_dwStyle.Enable(0x800);
+
 	m_nRefID = pManager->RefIndex()++;
 
-	if (m_dwStyle.GetFlag(FWS_TOPMOST))
+	if (m_dwStyle.GetFlag(0x10)) {
 		pManager->AddTopmostWindow(this);
+	}
 
-	if (pParentWnd)
-	{
-		pParentWnd->AddChild(this);
+	if (pParentWnd) {
+		pParentWnd->m_childList.push_back(this);
 		m_rect.x += pParentWnd->m_rect.x;
 		m_rect.y += pParentWnd->m_rect.y;
 	}
 
 	m_dblClickTimeout = -100.0f;
 	m_dblClicked = false;
+
 	return true;
 }
 
-void FrWnd::PreCreateWindow(FrWndManager* pManager, unsigned long dwStyle,
-	const WRect& rect, FrWnd* pParentWnd)
-{
-	m_pWndManager = pManager;
-	m_dwStyle = dwStyle;
+// frwnd.cpp:152
+void FrWnd::PreCreateWindow(FrWndManager* pWndManager, unsigned long style, const WRect& rect, FrWnd* pParent) {
+	m_pWndManager = pWndManager; m_dwStyle = style;
 	m_rect = rect;
-	m_pParentWnd = pParentWnd;
+	m_pParentWnd = pParent;
 }
 
-bool FrWnd::SendCmdToOwnerTarget(eFrCmd cmd, int var1, sFRESH_HANDLER* pHandler)
-{
-	if (m_nFlags.GetFlag(FWF_DESTROY))
+// frwnd.cpp:160
+bool FrWnd::SendCmdToOwnerTarget(eFrCmd cmd, intptr_t param, sFRESH_HANDLER* pHandler) {
+	if (m_nFlags.GetFlag(0x20)) {
 		return false;
-	return SendCmdToOwnerTarget(m_pOwner, cmd, var1, pHandler);
+	}
+	return SendCmdToOwnerTarget(m_pOwner, cmd, param, pHandler);
 }
 
-bool FrWnd::SendCmdToOwnerTarget(FrCmdTarget* pCmdTarget, eFrCmd cmd, int var1,
-	sFRESH_HANDLER* pHandler)
-{
-	if (pCmdTarget)
-	{
-		std::string fullname("");
-		if (this == m_pWndManager->GetDesktop())
-			fullname = m_pWndManager->GetLayoutID();
-		else if (this == pCmdTarget)
-			fullname = ".";
-		else
-		{
-			std::string temp;
-			fullname = m_wndName;
+// frwnd.cpp:168
+bool FrWnd::SendCmdToOwnerTarget(FrCmdTarget* pTarget, eFrCmd cmd, intptr_t param, sFRESH_HANDLER* pHandler) {
+	if (pTarget) {
+		std::string strName("");
+		if (this == m_pWndManager->GetDesktop()) {
+			strName = m_pWndManager->GetLayoutID();
+		} else if (this == pTarget) {
+			strName = ".";
+		} else {
+			std::string strPath;
+			strName = m_wndName;
 
-			for (FrWnd* pParent = m_pParentWnd;;
-				pParent = pParent->m_pParentWnd)
-			{
-				if (pParent == NULL || pParent == WndManager()->GetDesktop())
-				{
-					temp = m_pWndManager->GetLayoutID();
-					temp += ".";
-					temp += fullname;
-					fullname = temp;
+			for (FrWnd* pParent = m_pParentWnd;; pParent = pParent->m_pParentWnd) {
+				if (pParent == NULL || pParent == WndManager()->GetDesktop()) {
+					strPath = m_pWndManager->GetLayoutID();
+					strPath += ".";
+					strPath += strName;
+					strName = strPath;
 					break;
 				}
 
-				if (pParent == pCmdTarget)
+				if (pParent == pTarget) {
 					break;
+				}
 
-				temp = pParent->m_wndName;
-				temp += ".";
-				temp += fullname;
-				fullname = temp;
+				strPath = pParent->m_wndName;
+				strPath += ".";
+				strPath += strName;
+				strName = strPath;
 			}
 		}
 
-		return pCmdTarget->OnFreshMsg(fullname.c_str(), cmd, var1, pHandler);
+		return pTarget->OnFreshMsg(strName.c_str(), cmd, param, pHandler);
 	}
 	return true;
 }
 
-FrGraphicInterface* FrWnd::GDI() const
-{
+// frwnd.cpp:220
+FrGraphicInterface* FrWnd::GDI(void) const {
 	return m_pWndManager->GetGDI();
 }
 
-FrEmoticon* FrWnd::Emo() const
-{
+// frwnd.cpp:225
+FrEmoticon* FrWnd::Emo(void) const {
 	return m_pWndManager->GetEmoticon();
 }
 
-FrWnd* FrWnd::GetParent() const
-{
+// frwnd.cpp:230
+FrWnd* FrWnd::GetParent(void) const {
 	return m_pParentWnd;
 }
 
-FrWnd* FrWnd::FindChild(const FrWnd* pWnd)
-{
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
-		if (*it == pWnd)
+// frwnd.cpp:235
+FrWnd* FrWnd::FindChild(const FrWnd* pWnd) {
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		FrWnd* pChild = *it;
+		if (pChild == pWnd) {
 			return *it;
-
-		if (*it)
-		{
-			FrWnd* pFound = (*it)->FindChild(pWnd);
-			if (pFound)
+		}
+		if (pChild) {
+			FrWnd* pFound = pChild->FindChild(pWnd);
+			if (pFound) {
 				return pFound;
+			}
 		}
 	}
-	return NULL;
+	return 0;
 }
 
-FrWnd* FrWnd::FindChild(const char* lpszWindowText)
-{
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
-		if ((*it)->m_wndText == lpszWindowText)
+// frwnd.cpp:255
+FrWnd* FrWnd::FindChild(const char* name) {
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		if ((*it)->m_wndText == name) {
 			return *it;
+		}
 	}
-	return NULL;
+	return 0;
 }
 
-FrWnd* FrWnd::FindChildByName(const char* lpszWindowName)
-{
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
-		if ((*it)->m_wndName == lpszWindowName)
+// frwnd.cpp:268
+FrWnd* FrWnd::FindChildByName(const char* name) {
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		if ((*it)->m_wndName == name) {
 			return *it;
+		}
 	}
-	return NULL;
+	return 0;
 }
 
-FrWnd* FrWnd::FindChildByStyle(unsigned long style)
-{
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
-		if ((*it)->m_dwStyle.GetFlag(style))
+// frwnd.cpp:281
+FrWnd* FrWnd::FindChildByStyle(unsigned long style) {
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		if ((*it)->m_dwStyle.GetFlag(style)) {
 			return *it;
+		}
 	}
-	return NULL;
+	return 0;
 }
 
-FrWnd* FrWnd::FindChildForm(const char* lpszWindowName)
-{
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
+// frwnd.cpp:294
+FrWnd* FrWnd::FindChildForm(const char* name) {
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		if ((__rtti_obj = *it) != 0 && ((IObject*)*it)->IsKindOf(&FrForm::m_RTTI) && (*it)->m_wndName == name) {
+			return *it;
+		}
+	}
+	return 0;
+}
+
+// frwnd.cpp:306
+void FrWnd::EnumerateChildWindow(ENUM_CHILD_WINDOW_CALLBACK pfn, void* pParam) {
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
 		FrWnd* pWnd = *it;
-		if (IS_KINDOF(FrForm, pWnd) && (*it)->m_wndName == lpszWindowName)
-			return *it;
-	}
-	return NULL;
-}
-
-void FrWnd::EnumerateChildWindow(bool (*callback)(FrWnd*, void*), void* parm)
-{
-	for (FRWNDLIST::iterator it = m_childList.begin(); it != m_childList.end();
-		++it)
-	{
-		FrWnd* pWnd = *it;
-		if (!callback(pWnd, parm))
+		if (!pfn(pWnd, pParam)) {
 			break;
+		}
 	}
 }
 
-void FrWnd::SetOwner(FrCmdTarget* pOwner)
-{
+// frwnd.cpp:316
+void FrWnd::SetOwner(FrCmdTarget* pOwner) {
 	m_pOwner = pOwner;
 }
 
-bool FrWnd::IsChild(const FrWnd* pWnd) const
-{
+// frwnd.cpp:321
+bool FrWnd::IsChild(const FrWnd* pWnd) const {
 	FrWnd* pParent = m_pParentWnd;
-	while (pParent)
-	{
-		if (pParent == pWnd)
+	while (pParent) {
+		if (pParent == pWnd) {
 			return true;
+		}
 		pParent = pParent->m_pParentWnd;
 	}
 	return false;
 }
 
-void FrWnd::CloseChild(FrWnd* pChildWnd, bool bFade, bool force)
-{
-	if (pChildWnd)
-	{
-		FRWNDLIST::iterator it =
-			std::find(m_childList.begin(), m_childList.end(), pChildWnd);
-		if (it != m_childList.end())
-		{
-			if (force || !pChildWnd->IsFixed())
-				(*it)->Close(bFade);
+// frwnd.cpp:335
+void FrWnd::CloseChild(FrWnd* pChild, bool bDestroy, bool bAll) {
+	if (pChild) {
+		std::list<FrWnd*>::iterator it = std::find(m_childList.begin(), m_childList.end(), pChild);
+		if (it != m_childList.end()) {
+			if (bAll || !pChild->IsFixed()) {
+				(*it)->Close(bDestroy);
+			}
 		}
-	}
-	else
-	{
-		FRWNDLIST::iterator it = m_childList.begin();
-		while (it != m_childList.end())
-		{
-			if ((!force && (*it)->IsFixed()) ||
-				(*it)->m_nFlags.GetFlag(FWF_DESTROY))
-			{
+	} else {
+		std::list<FrWnd*>::iterator it = m_childList.begin();
+		while (it != m_childList.end()) {
+			if ((!bAll && (*it)->IsFixed())
+				|| (*it)->m_nFlags.GetFlag(0x20)) {
 				it++;
 				continue;
 			}
-			(*it)->Close(bFade);
+			(*it)->Close(bDestroy);
 			it++;
 		}
 	}
 }
 
-void FrWnd::CloseChildForm(bool bFade, bool force)
-{
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
-		if (!force && (*it)->IsFixed())
+// frwnd.cpp:371
+void FrWnd::CloseChildForm(bool bDestroy, bool bAll) {
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		if ((!bAll && (*it)->IsFixed())
+			|| (*it)->m_nFlags.GetFlag(0x20)) {
 			continue;
-		if ((*it)->m_nFlags.GetFlag(FWF_DESTROY))
-			continue;
-		FrWnd* pWnd = *it;
-		if (IS_KINDOF(FrForm, pWnd))
-			(*it)->Close(bFade);
+		}
+		if ((__rtti_obj = *it) != 0 && ((IObject*)*it)->IsKindOf(&FrForm::m_RTTI)) {
+			(*it)->Close(bDestroy);
+		}
 	}
 }
 
-void FrWnd::GetClientRect(WRect& rect) const
-{
+// frwnd.cpp:394
+void FrWnd::GetClientRect(WRect& rect) const {
 	rect = m_rect;
 	ScreenToClient(rect);
 }
 
-void FrWnd::SetClientRect(const WRect& rect)
-{
-	WRect r = rect;
-	ClientToScreen(r);
-	SetRect(r);
+// frwnd.cpp:400
+void FrWnd::SetClientRect(const WRect& rect) {
+	WRect rc = rect;
+	ClientToScreen(rc);
+	SetRect(rc);
 }
 
-void FrWnd::ClientToScreen(WRect& rect) const
-{
-	FrWnd* pParent = m_pParentWnd;
-	while (pParent)
-	{
+// frwnd.cpp:407
+void FrWnd::ClientToScreen(WRect& rect) const {
+	for (FrWnd* pParent = m_pParentWnd; pParent; pParent = pParent->m_pParentWnd) {
 		rect.x += pParent->m_rect.x;
 		rect.y += pParent->m_rect.y;
-		pParent = pParent->m_pParentWnd;
 	}
 }
 
-void FrWnd::ClientToScreen(WPoint& point) const
-{
-	FrWnd* pParent = m_pParentWnd;
-	while (pParent)
-	{
-		point.x += pParent->m_rect.x;
-		point.y += pParent->m_rect.y;
-		pParent = pParent->m_pParentWnd;
+// frwnd.cpp:417
+void FrWnd::ClientToScreen(WPoint& pt) const {
+	for (FrWnd* pParent = m_pParentWnd; pParent; pParent = pParent->m_pParentWnd) {
+		pt.x += pParent->m_rect.x;
+		pt.y += pParent->m_rect.y;
 	}
 }
 
-void FrWnd::ScreenToClient(WRect& rect) const
-{
-	FrWnd* pParent = m_pParentWnd;
-	while (pParent)
-	{
+// frwnd.cpp:427
+void FrWnd::ScreenToClient(WRect& rect) const {
+	for (FrWnd* pParent = m_pParentWnd; pParent; pParent = pParent->m_pParentWnd) {
 		rect.x -= pParent->m_rect.x;
 		rect.y -= pParent->m_rect.y;
-		pParent = pParent->m_pParentWnd;
 	}
 }
 
-void FrWnd::ScreenToClient(WPoint& point) const
-{
-	FrWnd* pParent = m_pParentWnd;
-	while (pParent)
-	{
-		point.x -= pParent->m_rect.x;
-		point.y -= pParent->m_rect.y;
-		pParent = pParent->m_pParentWnd;
+// frwnd.cpp:437
+void FrWnd::ScreenToClient(WPoint& pt) const {
+	for (FrWnd* pParent = m_pParentWnd; pParent; pParent = pParent->m_pParentWnd) {
+		pt.x -= pParent->m_rect.x;
+		pt.y -= pParent->m_rect.y;
 	}
 }
 
-void FrWnd::SetWindowTextA(const char* lpszText)
-{
-	if (lpszText)
-		m_wndText = lpszText;
+// frwnd.cpp:447
+void FrWnd::SetWindowTextA(const char* text) {
+	if (text) {
+		m_wndText = text;
+	}
 }
 
-void FrWnd::GetWindowTextA(char* lpszTextBuf, unsigned int nBuffMax) const
-{
-	strcpy(lpszTextBuf, m_wndText.c_str());
+// frwnd.cpp:453
+void FrWnd::GetWindowTextA(char* text, unsigned int size) const {
+	strcpy(text, m_wndText.c_str());
 }
 
-void FrWnd::GetWindowTextA(std::string& outText) const
-{
-	outText = m_wndText;
+// frwnd.cpp:459
+void FrWnd::GetWindowTextA(std::string& text) const {
+	text = m_wndText;
 }
 
-unsigned int FrWnd::GetWindowTextLengthA() const
-{
+// frwnd.cpp:464
+unsigned int FrWnd::GetWindowTextLengthA(void) const {
 	return m_wndText.length();
 }
 
-void FrWnd::SetWindowName(const char* lpszName)
-{
-	if (lpszName)
-		m_wndName = lpszName;
+// frwnd.cpp:469
+void FrWnd::SetWindowName(const char* name) {
+	if (name) {
+		m_wndName = name;
+	}
 }
 
-void FrWnd::GetWindowName(char* lpszNameBuf, unsigned int nBuffMax) const
-{
-	strcpy(lpszNameBuf, m_wndName.c_str());
+// frwnd.cpp:475
+void FrWnd::GetWindowName(char* name, unsigned int size) const {
+	strcpy(name, m_wndName.c_str());
 }
 
-void FrWnd::GetWindowName(std::string& outName) const
-{
-	outName = m_wndName;
+// frwnd.cpp:481
+void FrWnd::GetWindowName(std::string& name) const {
+	name = m_wndName;
 }
 
-unsigned int FrWnd::GetWindowNameLength() const
-{
+// frwnd.cpp:486
+unsigned int FrWnd::GetWindowNameLength(void) const {
 	return m_wndName.length();
 }
 
-void FrWnd::SetToolTipText(const std::string& text)
-{
+// frwnd.cpp:491
+void FrWnd::SetToolTipText(const std::string& text) {
 	m_wndToolTip = text;
-	m_nFlags.Enable(FWF_TOOLTIPS);
-	if (m_pToolTipData == NULL)
-	{
+	EnableToolTip(true);
+
+	if (!m_pToolTipData) {
 		m_pToolTipData = new sToolTipData;
 		m_pToolTipData->style = 0;
-		m_pToolTipData->bFixWnd = FALSE;
-		m_pToolTipData->posFixWnd = WPoint(0, 0);
+		m_pToolTipData->bFixWnd = 0;
+		m_pToolTipData->posFixWnd = WPoint(0.0f, 0.0f);
 	}
 }
 
-void FrWnd::SetFixTooltipWnd(const WPoint& pos)
-{
-	if (m_pToolTipData)
-	{
-		m_pToolTipData->bFixWnd = TRUE;
-		m_pToolTipData->posFixWnd = pos;
+// frwnd.cpp:505
+void FrWnd::SetFixTooltipWnd(const WPoint& pt) {
+	if (m_pToolTipData) {
+		m_pToolTipData->bFixWnd = 1;
+		m_pToolTipData->posFixWnd = pt;
 	}
 }
 
-void FrWnd::SetUnFixToolTipWnd()
-{
-	if (m_pToolTipData)
-		m_pToolTipData->bFixWnd = FALSE;
+// frwnd.cpp:514
+void FrWnd::SetUnFixToolTipWnd(void) {
+	if (m_pToolTipData) {
+		m_pToolTipData->bFixWnd = 0;
+	}
 }
 
-int FrWnd::IsFixedToolTip() const
-{
-	if (m_pToolTipData)
+// frwnd.cpp:520
+int FrWnd::IsFixedToolTip(void) const {
+	if (m_pToolTipData) {
 		return m_pToolTipData->bFixWnd;
-	return FALSE;
-}
-
-const WPoint& FrWnd::GetToolTipWndPos() const
-{
-	if (m_pToolTipData && m_pToolTipData->bFixWnd)
-		return m_pToolTipData->posFixWnd;
-	return m_pWndManager->GetMousePos();
-}
-
-void FrWnd::SetToolTipFrameStyle(unsigned long style)
-{
-	if (m_pToolTipData)
-		m_pToolTipData->style = style;
-}
-
-unsigned long FrWnd::GetToolTipFrameStyle() const
-{
-	if (m_pToolTipData)
-		return m_pToolTipData->style;
+	}
 	return 0;
 }
 
-void FrWnd::OnDisplay(bool checkTopmost, bool drawChild, bool drawOneself)
-{
-	if (checkTopmost && m_dwStyle.GetFlag(FWS_TOPMOST))
-		return;
-	if (!m_nFlags.GetFlag(FWF_INITED))
-		return;
-	if (!m_dwStyle.GetFlag(FWS_VISIBLE) && !m_nFlags.GetFlag(FWF_FADING_EX))
-		return;
-	if (m_nFlags.GetFlag(FWF_DESTROY))
-		return;
+// frwnd.cpp:528
+const WPoint& FrWnd::GetToolTipWndPos(void) const {
+	if (m_pToolTipData && m_pToolTipData->bFixWnd) {
+		return m_pToolTipData->posFixWnd;
+	}
+	return m_pWndManager->GetMousePos();
+}
 
-	if (m_nFlags.GetFlag(FWF_FADING))
-	{
+// frwnd.cpp:536
+void FrWnd::SetToolTipFrameStyle(unsigned long style) {
+	if (m_pToolTipData) {
+		m_pToolTipData->style = style;
+	}
+}
+
+// frwnd.cpp:542
+unsigned long FrWnd::GetToolTipFrameStyle(void) const {
+	if (m_pToolTipData) {
+		return m_pToolTipData->style;
+	}
+	return 0;
+}
+
+// frwnd.cpp:550
+void FrWnd::OnDisplay(bool bSkipTopmost, bool bChildren, bool bDraw) {
+	if (bSkipTopmost && m_dwStyle.GetFlag(0x10)) {
+		return;
+	}
+	if (!m_nFlags.GetFlag(0x80)) {
+		return;
+	}
+	if (!IsVisible() && !m_nFlags.GetFlag(0x400)) {
+		return;
+	}
+	if (m_nFlags.GetFlag(0x20)) {
+		return;
+	}
+	if (m_nFlags.GetFlag(0x100)) {
 		DoFadeDisplay();
 		return;
 	}
 
-	if (drawOneself)
+	if (bDraw) {
 		OnDraw();
-
-	if (drawChild)
-	{
-		FRWNDLIST::iterator it;
-		for (it = m_childList.begin(); it != m_childList.end(); ++it)
-		{
-			FrWnd* pWnd = *it;
-			if (m_nFlags.GetFlag(FWF_FADING))
-				pWnd->m_wndAlpha = m_wndAlpha;
-			pWnd->OnDisplay(true, true, true);
+	}
+	if (bChildren) {
+		for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+			FrWnd* pChild = *it;
+			if (m_nFlags.GetFlag(0x100)) {
+				pChild->m_wndAlpha = m_wndAlpha;
+			}
+			pChild->OnDisplay(true, true, true);
 		}
 	}
 }
 
-void FrWnd::OnDraw()
-{
+// frwnd.cpp:592
+void FrWnd::OnDraw(void) {
 }
 
-void FrWnd::DoFadeProcess(const float deltaTime, bool bExtend)
-{
-	if (bExtend)
-	{
-		if (m_nFlags.GetFlag(FWF_FADEOUT_EX))
-		{
-			m_fadeTime -= deltaTime * 5.0f;
-			if (m_fadeTime < 0.0f)
-			{
-				m_fadeTime = 0.0f;
-				m_nFlags.Disable(FWF_FADING_EX);
-				if (m_nFlags.GetFlag(FWF_FADEELEMENT))
-				{
-					m_nFlags.Disable(FWF_FADEELEMENT);
-					m_dwStyle.Disable(FWS_VISIBLE);
-				}
-				else
-					Close(false);
-			}
-		}
-		else
-		{
-			if (m_nFlags.GetFlag(FWF_FADEELEMENT))
-				m_dwStyle.Enable(FWS_VISIBLE);
+// frwnd.cpp:615
+void FrWnd::DoFadeProcess(const float dt, bool bElement) {
+	if (bElement) {
+		if (m_nFlags.GetFlag(0x800)) {
+			m_fadeTime -= dt * 5.0f;
 
-			m_fadeTime += deltaTime * 5.0f;
-			if (m_fadeTime > 0.9f)
-			{
+			if (m_fadeTime < 0.0f) {
+				m_fadeTime = 0.0f;
+
+				m_nFlags.Disable(0x400);
+				if (m_nFlags.GetFlag(0x2000)) {
+					m_nFlags.Disable(0x2000);
+					m_dwStyle.Disable(0x1);
+				} else {
+					Close(false);
+				}
+			}
+		} else {
+			if (m_nFlags.GetFlag(0x2000)) {
+				m_dwStyle.Enable(0x1);
+			}
+
+			m_fadeTime += dt * 5.0f;
+
+			if (m_fadeTime > 0.9f) {
 				m_fadeTime = 1.0f;
-				m_nFlags.Disable(FWF_FADING_EX);
-				if (m_nFlags.GetFlag(FWF_FADEELEMENT))
-					m_nFlags.Disable(FWF_FADEELEMENT);
+
+				m_nFlags.Disable(0x400);
+				if (m_nFlags.GetFlag(0x2000)) {
+					m_nFlags.Disable(0x2000);
+				}
 			}
 		}
 		SetAlpha2ToChild(m_fadeTime);
-	}
-	else
-	{
-		if (m_nFlags.GetFlag(FWF_FADEOUT))
-		{
-			m_fadeTime -= deltaTime * 5.0f;
-			if (m_fadeTime < 0.0f)
-			{
+	} else {
+		if (m_nFlags.GetFlag(0x40)) {
+			m_fadeTime -= dt * 5.0f;
+			if (m_fadeTime < 0.0f) {
 				m_fadeTime = 0.0f;
-				if (m_nFlags.GetFlag(FWF_FADEELEMENT))
-				{
-					m_nFlags.Disable(FWF_FADEELEMENT);
-					m_dwStyle.Disable(FWS_VISIBLE);
+				if (m_nFlags.GetFlag(0x2000)) {
+					m_nFlags.Disable(0x2000);
+					m_dwStyle.Disable(0x1);
+				} else {
+					m_nFlags.Enable(0x20);
 				}
-				else
-					m_nFlags.Enable(FWF_DESTROY);
 			}
-		}
-		else
-		{
-			if (m_nFlags.GetFlag(FWF_FADEELEMENT))
-				m_dwStyle.Enable(FWS_VISIBLE);
+		} else {
+			if (m_nFlags.GetFlag(0x2000)) {
+				m_dwStyle.Enable(0x1);
+			}
 
-			m_fadeTime += deltaTime * 5.0f;
-			if (m_fadeTime > 0.9f)
-			{
+			m_fadeTime += dt * 5.0f;
+			if (m_fadeTime > 0.9f) {
 				m_fadeTime = 1.0f;
-				m_nFlags.Disable(FWF_FADING);
-				if (m_nFlags.GetFlag(FWF_FADEELEMENT))
-					m_nFlags.Disable(FWF_FADEELEMENT);
+				m_nFlags.Disable(0x100);
+				if (m_nFlags.GetFlag(0x2000)) {
+					m_nFlags.Disable(0x2000);
+				}
 			}
 		}
 	}
 }
 
-void FrWnd::DoFadeDisplay()
-{
-	float t = 1.0f - m_fadeTime;
-	WRect box;
-	box.x = t * m_iconRect.x + m_rect.x * m_fadeTime;
-	box.y = t * m_iconRect.y + m_rect.y * m_fadeTime;
-	box.w = t * m_iconRect.w + m_rect.w * m_fadeTime;
-	box.h = t * m_iconRect.h + m_rect.h * m_fadeTime;
-	WOverlay::DrawLineBox(g_view, box, 0, 0xffffffff);
+// frwnd.cpp:709
+void FrWnd::DoFadeDisplay(void) {
+	float inv = 1.0f - m_fadeTime;
+
+	WOverlay::DrawLineBox(g_view, WRect(inv * m_iconRect.x + m_rect.x * m_fadeTime, inv * m_iconRect.y + m_rect.y * m_fadeTime,
+		inv * m_iconRect.w + m_rect.w * m_fadeTime, inv * m_iconRect.h + m_rect.h * m_fadeTime), 0, 0xffffffff);
 }
 
-void FrWnd::CheckHover(float deltaTime, bool bInClient, bool& hoverChecked)
-{
-	if (bInClient)
-	{
-		if (hoverChecked)
-			return;
-		hoverChecked = true;
+// frwnd.cpp:720
+void FrWnd::CheckHover(float dt, bool bIn, bool& bHover) {
+	if (bIn) {
+		if (!bHover) {
+			bHover = true;
 
-		if (m_hoverOn)
-			return;
-
-		m_accHoverTime += deltaTime;
-		if (m_accHoverTime > m_hoverTime)
-		{
-			m_accHoverTime = 0.0f;
-			m_hoverOn = true;
-			SendCmdToOwnerTarget(FRCMD_HOVERON, (int)this, NULL);
+			if (!m_hoverOn) {
+				m_accHoverTime += dt;
+				if (m_accHoverTime > m_hoverTime) {
+					m_accHoverTime = 0.0f; m_hoverOn = true; SendCmdToOwnerTarget(FRCMD_HOVERON, (intptr_t)this, 0);
+				}
+			}
 		}
-	}
-	else
-	{
+	} else {
 		m_accHoverTime = 0.0f;
-		if (m_hoverOn)
-		{
+		if (m_hoverOn) {
 			m_hoverOn = false;
-			SendCmdToOwnerTarget(FRCMD_HOVEROFF, (int)this, NULL);
+			SendCmdToOwnerTarget(FRCMD_HOVEROFF, (intptr_t)this, 0);
 		}
 	}
 }
 
-void FrWnd::OnProcess(const float deltaTime, FrInputState& istate,
-	bool checkTopmost, bool bUnableMode)
-{
-	if (checkTopmost && m_dwStyle.GetFlag(FWS_TOPMOST))
-		return;
-
-	if (!m_nFlags.GetFlag(FWF_INITED) && !m_nFlags.GetFlag(FWF_DESTROY))
-	{
-		m_nFlags.Enable(FWF_INITED);
+// frwnd.cpp:765
+void FrWnd::OnProcess(const float deltaTime, FrInputState& istate, bool checkTopmost, bool bUnableMode) {
+	if (checkTopmost && m_dwStyle.GetFlag(0x10)) {
 		return;
 	}
 
-	if (!m_dwStyle.GetFlag(FWS_VISIBLE) && !m_nFlags.GetFlag(FWF_FADING_EX))
+	if (!m_nFlags.GetFlag(0x80) && !m_nFlags.GetFlag(0x20)) {
+		m_nFlags.Enable(0x80);
 		return;
+	}
 
-	if (m_nFlags.GetFlag(FWF_FADING))
-	{
+	if (!IsVisible() && !m_nFlags.GetFlag(0x400)) {
+		return;
+	}
+
+	if (m_nFlags.GetFlag(0x100)) {
 		DoFadeProcess(deltaTime, false);
 		return;
 	}
 
-	FRWNDLIST::iterator it = --m_childList.end();
-	while (it != m_childList.end())
-	{
-		FrWnd* pWnd = *it;
-		if (pWnd->m_nFlags.GetFlag(FWF_DESTROY))
-		{
-			if (pWnd->m_dwStyle.GetFlag(FWS_TOPMOST))
-				m_pWndManager->DeleteTopmostWindow(pWnd);
-			pWnd->ResetKeyFocus();
-			bool viewFocused = pWnd->m_nFlags.GetFlag(FWF_VIEWFOCUS);
-			delete pWnd;
+	std::list<FrWnd*>::iterator it = m_childList.end();
+	for (--it; it != m_childList.end(); --it) {
+		FrWnd* pChild = *it;
+
+		if (pChild->m_nFlags.GetFlag(0x20)) {
+			if (pChild->m_dwStyle.GetFlag(0x10)) {
+				m_pWndManager->DeleteTopmostWindow(pChild);
+			}
+			pChild->m_pWndManager->ResetKeyFocus(pChild);
+			bool viewFocused = pChild->m_nFlags.GetFlag(0x8);
+
+			delete pChild;
 			it = m_childList.erase(it);
-			if (viewFocused)
+
+			if (viewFocused) {
 				m_pWndManager->HandOverViewFocus();
+			}
+		} else {
+			pChild->OnProcess(deltaTime, istate, true, bUnableMode);
 		}
-		else
-			pWnd->OnProcess(deltaTime, istate, true, bUnableMode);
-		--it;
 	}
 
-	if (m_nFlags.GetFlag(FWF_FADING_EX))
-	{
+	if (m_nFlags.GetFlag(0x400)) {
 		DoFadeProcess(deltaTime, true);
 		return;
 	}
 
-	if (!m_nFlags.GetFlag(FWF_INITED))
+	if (!m_nFlags.GetFlag(0x80)) {
 		return;
+	}
 
 	OnProc(deltaTime);
 
-	if (m_pWndManager->GetWheelFocus() == NULL)
-	{
+	if (m_pWndManager->GetWheelFocus() == 0) {
 		FrScrollBar* pScrBar = DYNAMIC_CAST(FrScrollBar, this);
-		if (pScrBar == NULL)
+		if (!pScrBar) {
 			pScrBar = m_pScrBar;
+		}
+		if (pScrBar && !pScrBar->m_dwStyle.GetFlag(0x800) && pScrBar->IsBarVisible()) {
+			bool bIn;
+			if (pScrBar->m_pParentWnd) {
+				bIn = pScrBar->m_pParentWnd->m_rect.IsInRect(istate.mousePos);
+			} else {
+				bIn = m_rect.IsInRect(istate.mousePos);
+			}
 
-		if (pScrBar && !pScrBar->m_dwStyle.GetFlag(FWS_NOWHEELEVENT) &&
-			pScrBar->IsBarVisible())
-		{
-			bool bInClient = pScrBar->GetParent()
-				? pScrBar->GetParent()->m_rect.IsInRect(istate.mousePos)
-				: m_rect.IsInRect(istate.mousePos);
-			if (bInClient)
-			{
+			if (bIn) {
 				m_pWndManager->SetWheelFocus(pScrBar);
-				if (!WisZero(istate.wheelDelta, g_EPSILON))
+				if (!WisZero(istate.wheelDelta, 1e-5f)) {
 					OnWheel(istate);
+				}
+			}
+		} else if (IsVisible()) {
+			if ((__rtti_obj = this) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&FrForm::m_RTTI)) {
+				if (m_rect.IsInRect(istate.mousePos)) {
+					m_pWndManager->SetWheelFocus(m_pWndManager->GetDesktop()->GetScrollBar());
+				}
 			}
 		}
-		else if (IsVisible())
-		{
-			if (IS_KINDOF(FrForm, this) && m_rect.IsInRect(istate.mousePos))
-				m_pWndManager->SetWheelFocus(
-					m_pWndManager->GetDesktop()->m_pScrBar);
+	}
+
+	if (!m_dwStyle.GetFlag(0x10) && bUnableMode == true && m_pWndManager && m_pWndManager->GetDesktop()) {
+		return;
+	}
+
+	if (IsEnableToolTip() && m_rect.IsInRect(istate.mousePos)) {
+		m_pToolTip->SetToolTipText(m_wndToolTip);
+		m_pToolTip->SetFrameStyle(m_pToolTipData ? m_pToolTipData->style : 0);
+		if (m_pToolTipData && m_pToolTipData->bFixWnd) {
+			m_pToolTip->Move(m_pToolTipData->posFixWnd);
 		}
 	}
 
-	if (!m_dwStyle.GetFlag(FWS_TOPMOST) && bUnableMode == true &&
-		m_pWndManager && m_pWndManager->GetDesktop())
+	if (m_dwStyle.GetFlag(0x2)) {
 		return;
-
-	if (m_nFlags.GetFlag(FWF_TOOLTIPS) && m_rect.IsInRect(istate.mousePos))
-	{
-		m_pToolTip->SetToolTipText(m_wndToolTip);
-		m_pToolTip->SetFrameStyle(m_pToolTipData ? m_pToolTipData->style : 0);
-		if (IsFixedToolTip())
-			m_pToolTip->Move(m_pToolTipData->posFixWnd);
+	}
+	if (m_pWndManager && m_pWndManager->GetDesktop() && m_pWndManager->GetDesktop()->GetStyle().GetFlag(0x2)) {
+		return;
 	}
 
-	if (m_dwStyle.GetFlag(FWS_DISABLED))
-		return;
-	if (m_pWndManager && m_pWndManager->GetDesktop() &&
-		m_pWndManager->GetDesktop()->m_dwStyle.GetFlag(FWS_DISABLED))
-		return;
-
-	if (m_dblClickTimeout > -0.1f)
-	{
+	if (m_dblClickTimeout > -0.1f) {
 		m_dblClickTimeout -= deltaTime;
-		if (m_dblClickTimeout < 0.0f)
+		if (m_dblClickTimeout < 0.0f) {
 			m_dblClickTimeout = -100.0f;
+		}
 	}
 
-	if (istate.keyFocused == this && istate.im)
+	if (istate.keyFocused == this && istate.im) {
 		OnKeyFocus(istate.im);
+	}
 
-	if (!IsViewFocused())
+	if (!IsViewFocused()) {
 		return;
-	if (m_dwStyle.GetFlag(FWS_NOMOUSEEVENT))
+	}
+
+	if (m_dwStyle.GetFlag(0x40)) {
 		return;
+	}
 
 	FrWnd* pCaptured = m_pWndManager->GetCapture();
-	if (pCaptured && pCaptured != this)
-	{
-		if (!m_pWndManager->IsValidWindow(pCaptured))
+	if (pCaptured && pCaptured != this) {
+		if (!m_pWndManager->IsValidWindow(pCaptured)) {
 			m_pWndManager->ReleaseCapture(pCaptured);
+		}
 		return;
 	}
 
 	bool bInClient = m_rect.IsInRect(istate.mousePos);
 	OnSetCursor(bInClient, istate.mousePos);
 
-	if (m_dwStyle.GetFlag(FWS_HOVER))
+	if (m_dwStyle.GetFlag(0x400)) {
 		CheckHover(deltaTime, bInClient, istate.hoverChecked);
+	}
 
-	if (pCaptured == NULL && !bInClient)
+	if (!pCaptured && !bInClient) {
 		return;
+	}
 
-	if (istate.mouse & 0x2)
+	if (istate.mouse & 0x2) {
 		OnMouseMove(istate.mousePos);
+	}
 
-	if (istate.mouse & 0x4)
-	{
-		if (m_dblClickTimeout > -0.1f && m_dblClickPos == istate.mousePos)
-		{
+	if (istate.mouse & 0x4) {
+		if (m_dblClickTimeout > -0.1f && m_dblClickPos == istate.mousePos) {
 			m_dblClicked = true;
 			istate.mouse &= ~0x4;
-		}
-		else if (!OnLButtonDown(istate.mousePos))
-		{
+		} else if (!OnLButtonDown(istate.mousePos)) {
 			istate.mouse &= ~0x4;
-			if (!m_dwStyle.GetFlag(FWS_NODBLCLICK))
-			{
+
+			if (!m_dwStyle.GetFlag(0x200)) {
 				m_dblClickTimeout = 0.5f;
 				m_dblClickPos = istate.mousePos;
 			}
 
-			if (istate.keyFocused != this)
-			{
-				m_pWndManager->GetDesktop()->ResetKeyFocus();
+			if (istate.keyFocused != this) {
+				FrWnd* pDesktop = (FrWnd*)m_pWndManager->GetDesktop();
+				pDesktop->m_pWndManager->ResetKeyFocus(pDesktop);
 				SetKeyFocus(true);
-			}
-			else if (m_dwStyle.GetFlag(FWS_KEYEVENT))
+			} else if (m_dwStyle.GetFlag(0x80)) {
 				OnSelectText(&istate);
+			}
 		}
 	}
 
-	if (istate.mouse & 0x8)
-	{
-		if (m_dblClicked)
-		{
+	if (istate.mouse & 0x8) {
+		if (m_dblClicked) {
 			OnDblClick(istate.mousePos);
 			istate.mouse &= ~0x8;
 			m_dblClickTimeout = -100.0f;
 			m_dblClicked = false;
-		}
-		else if (!OnLButtonUp(istate.mousePos))
+		} else if (!OnLButtonUp(istate.mousePos)) {
 			istate.mouse &= ~0x8;
+		}
 	}
 
-	if (istate.mouse & 0x10)
-	{
-		if (!OnRButtonDown(istate.mousePos))
+	if (istate.mouse & 0x10) {
+		if (!OnRButtonDown(istate.mousePos)) {
 			istate.mouse &= ~0x10;
+		}
 	}
 
-	if (istate.mouse & 0x20)
-	{
-		if (!OnRButtonUp(istate.mousePos))
+	if (istate.mouse & 0x20) {
+		if (!OnRButtonUp(istate.mousePos)) {
 			istate.mouse &= ~0x20;
+		}
 	}
 }
 
-void FrWnd::SetVisible(bool visible)
-{
-	if (!visible && m_pWndManager)
+// frwnd.cpp:1030
+void FrWnd::SetVisible(bool bVisible) {
+	if (!bVisible && m_pWndManager) {
 		m_pWndManager->ReleaseCapture(this);
-	m_dwStyle.Turn(FWS_VISIBLE, visible);
+	}
+	m_dwStyle.Turn(0x1, bVisible);
 }
 
-void FrWnd::SetTopmost(bool topmost)
-{
-	if (topmost)
-	{
-		m_dwStyle.Enable(FWS_TOPMOST);
+// frwnd.cpp:1038
+void FrWnd::SetTopmost(bool bTopmost) {
+	if (bTopmost) {
+		m_dwStyle.Enable(0x10);
 		m_pWndManager->AddTopmostWindow(this);
-	}
-	else
-	{
-		m_dwStyle.Disable(FWS_TOPMOST);
+	} else {
+		m_dwStyle.Disable(0x10);
 		m_pWndManager->DeleteTopmostWindow(this);
-
-		FRWNDLIST::iterator it;
-		for (it = m_childList.begin(); it != m_childList.end(); ++it)
+		for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
 			(*it)->SetTopmost(false);
+		}
 	}
 }
 
-void FrWnd::EnableHover(bool enable, float time)
-{
-	m_dwStyle.Turn(FWS_HOVER, enable);
+// frwnd.cpp:1055
+void FrWnd::EnableHover(bool bEnable, float time) {
+	m_dwStyle.Turn(0x400, bEnable);
 	m_hoverTime = time;
 	m_accHoverTime = 0.0f;
 }
 
-void FrWnd::SetWheelEvent(bool enable)
-{
-	m_dwStyle.Turn(FWS_NOWHEELEVENT, !enable);
-	if (m_pScrBar)
-		m_pScrBar->SetWheelEvent(enable);
+// frwnd.cpp:1062
+void FrWnd::SetWheelEvent(bool bEnable) {
+	if (!bEnable) {
+		m_dwStyle.Enable(0x800);
+	} else {
+		m_dwStyle.Disable(0x800);
+	}
+	if (m_pScrBar) {
+		m_pScrBar->SetWheelEvent(bEnable);
+	}
 }
 
-void FrWnd::SetViewFocus(bool takeFromOthers)
-{
+// frwnd.cpp:1070
+void FrWnd::SetViewFocus(bool bReset) {
 	FrWnd* pModal = m_pWndManager->GetModalForm();
-	if (pModal && pModal != this)
+	if (pModal && pModal != this) {
 		return;
+	}
 
-	if (takeFromOthers)
-		m_pWndManager->GetDesktop()->ResetViewFocus(NULL);
+	if (bReset) {
+		m_pWndManager->GetDesktop()->ResetViewFocus(0);
+	}
 
-	FrWnd* pWnd = this;
-	while (pWnd)
-	{
-		if (pWnd->m_pParentWnd == NULL || IS_KINDOF(FrForm, pWnd))
-		{
-			pWnd->m_nFlags.Enable(FWF_VIEWFOCUS);
+	for (FrWnd* pWnd = this; pWnd; pWnd = pWnd->m_pParentWnd) {
+		if (!pWnd->m_pParentWnd || ((__rtti_obj = pWnd) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&FrForm::m_RTTI))) {
+			pWnd->m_nFlags.Enable(0x8);
 			return;
 		}
-		pWnd = pWnd->m_pParentWnd;
 	}
 }
 
-void FrWnd::ResetViewFocus(FrWnd* pWndStop)
-{
-	if (pWndStop == this)
+// frwnd.cpp:1094
+void FrWnd::ResetViewFocus(FrWnd* pWnd) {
+	if (pWnd == this) {
 		return;
-
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
-		(*it)->ResetViewFocus(pWndStop);
-		(*it)->ReleaseCapture();
 	}
-	m_nFlags.Disable(FWF_VIEWFOCUS);
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		(*it)->ResetViewFocus(pWnd);
+		(*it)->m_pWndManager->ReleaseCapture(*it);
+	}
+	m_nFlags.Disable(0x8);
 }
 
-FrWnd* FrWnd::FindViewFocused(bool enabled_visible)
-{
-	for (FRWNDLIST::reverse_iterator rit = m_childList.rbegin();
-		rit != m_childList.rend(); rit++)
-	{
-		FrWnd* pWnd = *rit;
-		if (pWnd->m_dwStyle.GetFlag(FWS_TOPMOST))
-		{
-			if (pWnd->m_nFlags.GetFlag(FWF_TOPFOCUS))
-				return *rit;
-		}
-		else if (pWnd->m_nFlags.GetFlag(FWF_VIEWFOCUS))
-		{
-			if (!enabled_visible || (pWnd->IsEnabled() && pWnd->IsVisible()))
-				return *rit;
+// frwnd.cpp:1108
+FrWnd* FrWnd::FindViewFocused(bool bEnabledOnly) {
+	for (std::list<FrWnd*>::reverse_iterator it = m_childList.rbegin(); it != m_childList.rend(); ++it) {
+		FrWnd* pWnd = *it;
+
+		if (pWnd->m_dwStyle.GetFlag(0x10)) {
+			if (pWnd->m_nFlags.GetFlag(0x200)) {
+				return *it;
+			}
+		} else if (pWnd->m_nFlags.GetFlag(0x8)) {
+			if (!bEnabledOnly || (pWnd->IsEnabled() && pWnd->IsVisible())) {
+				return *it;
+			}
 		}
 	}
-	return NULL;
+	return 0;
 }
 
-bool FrWnd::IsViewFocused() const
-{
-	FrWnd* pWnd = (FrWnd*)this;
-	while (pWnd)
-	{
-		if (pWnd->m_nFlags.GetFlag(FWF_VIEWFOCUS) ||
-			pWnd->m_dwStyle.GetFlag(FWS_FIXED))
+// frwnd.cpp:1136
+bool FrWnd::IsViewFocused(void) const {
+	const FrWnd* pWnd = this;
+	while (pWnd) {
+		if (pWnd->m_nFlags.GetFlag(0x8) || pWnd->m_dwStyle.GetFlag(0x100)) {
 			return true;
-		if (IS_KINDOF(FrForm, pWnd))
-			return false;
+		}
+		if ((__rtti_obj = (void*)pWnd) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&FrForm::m_RTTI)) {
+			break;
+		}
 		pWnd = pWnd->m_pParentWnd;
 	}
 	return false;
 }
 
-bool FrWnd::IsTopFocus() const
-{
-	if (m_nFlags.GetFlag(FWF_TOPFOCUS) && m_dwStyle.GetFlag(FWS_TOPMOST))
+// frwnd.cpp:1151
+bool FrWnd::IsTopFocus(void) const {
+	if (m_nFlags.GetFlag(0x200) && m_dwStyle.GetFlag(0x10)) {
 		return true;
+	}
 	return false;
 }
 
-bool FrWnd::SetKeyFocus(bool resetPrevImeData)
-{
-	return WndManager()->SetKeyFocus(this, resetPrevImeData);
+// frwnd.cpp:1162
+bool FrWnd::SetKeyFocus(bool bFocus) {
+	return WndManager()->SetKeyFocus(this, bFocus);
 }
 
-bool FrWnd::ResetKeyFocus()
-{
+// frwnd.cpp:1167
+bool FrWnd::ResetKeyFocus(void) {
 	return WndManager()->ResetKeyFocus(this);
 }
 
-void FrWnd::MoveWindow(const WPoint& pos)
-{
-	WPoint step = pos - m_rect.TopLeft();
-	m_rect.x = pos.x;
-	m_rect.y = pos.y;
+// frwnd.cpp:1172
+void FrWnd::MoveWindow(const WPoint& pt) {
+	WPoint offset = pt - m_rect.TopLeft();
+	m_rect.x = pt.x;
+	m_rect.y = pt.y;
 
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
-	{
-		if (IS_KINDOF(FrForm, *it))
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
+		if ((__rtti_obj = *it) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&FrForm::m_RTTI)) {
 			continue;
-		WPoint dest = (*it)->m_rect.TopLeft() + step;
-		(*it)->MoveWindow(dest);
+		}
+		WPoint childPt = (*it)->m_rect.TopLeft();
+		(*it)->MoveWindow(childPt + offset);
 	}
 }
 
-void FrWnd::SetRect(const WRect& rect)
-{
+// frwnd.cpp:1192
+void FrWnd::SetRect(const WRect& rect) {
 	MoveWindow(WPoint(rect.x, rect.y));
 	m_rect.w = rect.w;
 	m_rect.h = rect.h;
 	OnResize();
-
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
 		(*it)->OnResize();
+	}
 }
 
-bool FrWnd::SetCapture()
-{
+// frwnd.cpp:1208
+bool FrWnd::SetCapture(void) {
 	return WndManager()->SetCapture(this);
 }
 
-FrWnd* FrWnd::GetCapture()
-{
+// frwnd.cpp:1213
+FrWnd* FrWnd::GetCapture(void) {
 	return m_pWndManager->GetCapture();
 }
 
-bool FrWnd::ReleaseCapture()
-{
+// frwnd.cpp:1218
+bool FrWnd::ReleaseCapture(void) {
 	return WndManager()->ReleaseCapture(this);
 }
 
-void FrWnd::SetCursor(int hCursor)
-{
-	m_pWndManager->SetCursor(hCursor);
+// frwnd.cpp:1223
+void FrWnd::SetCursor(int cursor) {
+	m_pWndManager->SetCursor(cursor);
 }
 
-int FrWnd::GetCursor() const
-{
+// frwnd.cpp:1228
+int FrWnd::GetCursor(void) const {
 	return m_pWndManager->GetCursor();
 }
 
-void FrWnd::MoveCursor(const char* name)
-{
+// frwnd.cpp:1233
+void FrWnd::MoveCursor(const char* name) {
 	FrWnd* pModal = m_pWndManager->GetModalForm();
-	if (pModal && this != pModal)
-		return;
-	m_pWndManager->MoveCursor(this, name);
+
+	if (!pModal || this == pModal) {
+		m_pWndManager->MoveCursor(this, name);
+	}
 }
 
-void FrWnd::SetPushSound(const char* name_const)
-{
-	m_szPushSound = name_const;
+// frwnd.cpp:1243
+void FrWnd::SetPushSound(const char* sound) {
+	m_szPushSound = sound;
 }
 
-bool FrWnd::PlayPushSound()
-{
-	if (m_szPushSound)
-	{
-		g_audio->PlaySfx(m_szPushSound);
+// frwnd.cpp:1248
+bool FrWnd::PlayPushSound(void) {
+	if (m_szPushSound) {
+		g_audio->PlaySfx(m_szPushSound, 0, 0, 0, 0, 0.5f, 200.0f);
 		return true;
 	}
 	return false;
 }
 
-void FrWnd::SetWheelFocus()
-{
+// frwnd.cpp:1259
+void FrWnd::SetWheelFocus(void) {
 	FrScrollBar* pScrBar = DYNAMIC_CAST(FrScrollBar, this);
-	if (pScrBar)
+	if (pScrBar) {
 		m_pWndManager->SetWheelFocus(pScrBar);
-	else
+	} else {
 		m_pWndManager->SetWheelFocus(m_pScrBar);
+	}
 }
 
-void FrWnd::AddChild(FrWnd* pChild)
-{
+// frwnd.cpp:1268
+void FrWnd::AddChild(FrWnd* pChild) {
 	m_childList.push_back(pChild);
 }
 
-void FrWnd::SetElementFadeOut(bool bOut)
-{
-	if (m_nFlags.GetFlag(FWF_FADING_EX))
-		return;
+// frwnd.cpp:1286
+void FrWnd::SetElementFadeOut(bool bFadeout) {
+	if (!m_nFlags.GetFlag(0x400)) {
+		m_nFlags.Enable(0x2400);
 
-	m_nFlags.Enable(FWF_FADING_EX | FWF_FADEELEMENT);
-	if (bOut)
-	{
-		m_nFlags.Enable(FWF_FADEOUT_EX);
-		m_fadeTime = 1.0f;
-	}
-	else
-	{
-		m_nFlags.Disable(FWF_FADEOUT_EX);
-		m_fadeTime = 0.0f;
+		if (bFadeout) {
+			m_nFlags.Enable(0x800);
+			m_fadeTime = 1.0f;
+		} else {
+			m_nFlags.Disable(0x800);
+			m_fadeTime = 0.0f;
+		}
 	}
 }
 
-void FrWnd::SetFadeout(bool bOut)
-{
-	if (m_nFlags.GetFlag(FWF_FADING_EX))
-		return;
+// frwnd.cpp:1318
+void FrWnd::SetFadeout(bool bFadeout) {
+	if (!m_nFlags.GetFlag(0x400)) {
+		m_nFlags.Enable(0x400);
 
-	m_nFlags.Enable(FWF_FADING_EX);
-	if (bOut)
-	{
-		m_nFlags.Enable(FWF_FADEOUT_EX);
-		m_fadeTime = 1.0f;
-	}
-	else
-	{
-		m_nFlags.Disable(FWF_FADEOUT_EX);
-		m_fadeTime = 0.0f;
+		if (bFadeout) {
+			m_nFlags.Enable(0x800);
+			m_fadeTime = 1.0f;
+		} else {
+			m_nFlags.Disable(0x800);
+			m_fadeTime = 0.0f;
+		}
 	}
 }
 
-void FrWnd::SetAlpha2ToChild(float a)
-{
-	m_wndAlpha2 = a;
+// frwnd.cpp:1347
+void FrWnd::SetAlpha2ToChild(float alpha) {
+	m_wndAlpha2 = alpha;
 
-	FRWNDLIST::iterator it;
-	for (it = m_childList.begin(); it != m_childList.end(); ++it)
+	for (std::list<FrWnd*>::iterator it = m_childList.begin(); it != m_childList.end(); ++it) {
 		(*it)->SetAlpha2ToChild(m_wndAlpha2);
+	}
 }
 
-void FrWnd::FindNextTopFocus(bool bForce)
-{
-	if (!m_dwStyle.GetFlag(FWS_TOPMOST))
-		return;
+// frwnd.cpp:1374
+void FrWnd::FindNextTopFocus(bool bForce) {
+	if (m_dwStyle.GetFlag(0x10)) {
+		m_pWndManager->ResetTopFocus();
 
-	m_pWndManager->ResetTopFocus();
-	m_nFlags.Enable(FWF_TOPFOCUS);
+		m_nFlags.Enable(0x200);
+		FrForm* pForm = DYNAMIC_CAST(FrForm, this);
 
-	FrForm* pForm = DYNAMIC_CAST(FrForm, this);
-	if (m_nFlags.GetFlag(FWF_FADING_EX) && !bForce)
-		return;
-
-	if (pForm)
-		pForm->SetFrameCaptionFocus(true);
-	SetAlpha2ToChild(1.0f);
+		if (!m_nFlags.GetFlag(0x400) || bForce) {
+			if (pForm) {
+				pForm->SetFrameCaptionFocus(true);
+			}
+			SetAlpha2ToChild(1.0f);
+		}
+	}
 }

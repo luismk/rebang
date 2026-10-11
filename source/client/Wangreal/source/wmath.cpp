@@ -1,176 +1,153 @@
-#include "wmath.h"
+// Original: d:\build\custom\temp\code\client\wangreal\source\wmath.cpp
+#include "../include/wmath.h"
+#include "../include/wutil.h"
 
+void __cdecl InitMath();
+void __cdecl UninitMath();
+
+__declspec(align(8)) const WVector4 WVector4::ONE(1.0f, 1.0f, 1.0f, 1.0f);
+__declspec(align(8)) const WVector4 WVector4::ZERO(0.0f, 0.0f, 0.0f, 0.0f);
+
+// The WVector constants (the class declares them; wmath.cpp is where the
+// original emits their storage). Without these the 3D basis vectors are zero
+// and every camera matrix collapses.
 const WVector WVector::ONE(1.0f, 1.0f, 1.0f);
+const WVector WVector::ZERO(0.0f, 0.0f, 0.0f);
 const WVector WVector::UNIT_POS_X(1.0f, 0.0f, 0.0f);
 const WVector WVector::UNIT_POS_Y(0.0f, 1.0f, 0.0f);
 const WVector WVector::UNIT_POS_Z(0.0f, 0.0f, 1.0f);
 const WVector WVector::UNIT_NEG_X(-1.0f, 0.0f, 0.0f);
 const WVector WVector::UNIT_NEG_Y(0.0f, -1.0f, 0.0f);
 const WVector WVector::UNIT_NEG_Z(0.0f, 0.0f, -1.0f);
-const WMatrix WMatrix::IDENTITY(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
-	1.0f);
-__declspec(align(8)) const WMatrix4 WMatrix4::IDENTITY(1.0f, 0.0f, 0.0f, 0.0f,
-	0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-__declspec(align(8)) const WVector4 WVector4::ONE(1.0f, 1.0f, 1.0f, 1.0f);
 
-float* costable = 0;
-float* sqrttable = 0;
-float* acostable = 0;
-const WVector WVector::ZERO(0.0f, 0.0f, 0.0f);
-const WMatrix WMatrix::ZERO(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-	0.0f);
-__declspec(align(8)) const WMatrix4 WMatrix4::ZERO(0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
-	0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-__declspec(align(8)) const WVector4 WVector4::ZERO(0.0f, 0.0f, 0.0f, 0.0f);
+const WMatrix WMatrix::IDENTITY(1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+const WMatrix WMatrix::ZERO(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 
-Waabb& Waabb::operator+=(const WVector& vector)
-{
-	if (vector.x > 0.0f)
-		max.x += vector.x;
+const WMatrix4 WMatrix4::IDENTITY(1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+const WMatrix4 WMatrix4::ZERO(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+// wmath.cpp:58
+void WMatrix::Rotate(float angle, char direct) {
+	if (direct >= 3)
+		*this = RotMat(angle, direct - 3) * *this;
 	else
-		min.x += vector.x;
-	if (vector.y > 0.0f)
-		max.y += vector.y;
-	else
-		min.y += vector.y;
-	if (vector.z > 0.0f)
-		max.z += vector.z;
-	else
-		min.z += vector.z;
-	return *this;
+		*this = *this * RotMat(angle, direct);
 }
 
-void WMatrix::Normalize()
-{
+// wmath.cpp:66
+void WMatrix::Rotate(const WVector& rot) {
+	*this = *this * (RotMat(rot.x, 0) * RotMat(rot.y, 1) * RotMat(rot.z, 2));
+}
+
+// wmath.cpp:73
+void WMatrix::Normalize(void) {
 	xa.Normalize();
 	ya.Normalize();
 	za.Normalize();
 }
 
-void WMatrix::GetRotMatrix(WMatrix* result) const
-{
+// wmath.cpp:83
+void WMatrix::GetRotMatrix(WMatrix* m) const {
 	WVector v(1.0f, 0.0f, 0.0f);
-	*result = *this;
-	result->xm = result->ym = result->zm = 0.0f;
-	v = v * *result;
-	float size = 1.0f / (float)sqrt(v.y * v.y + v.x * v.x + v.z * v.z);
-	result->xa *= size;
-	result->ya *= size;
-	result->za *= size;
+	*m = *this;
+
+	m->xm = m->ym = m->zm = 0.0f;
+	v = v * *m;
+	float s = 1.0f / v.Magnitude();
+
+	*m *= s;
 }
 
-void WMatrix::AxisScale(WVector& scale)
-{
+// wmath.cpp:101
+void WMatrix::AxisScale(WVector& scale) {
 	Normalize();
-	xx = scale.x * xx;
-	yx = yx * scale.x;
-	zx = zx * scale.x;
-	xy = scale.y * xy;
-	yy = scale.y * yy;
-	zy = scale.y * zy;
-	xz = xz * scale.z;
-	yz = yz * scale.z;
-	zz = zz * scale.z;
+
+	xa.x *= scale.x;
+	xa.y *= scale.x;
+	xa.z *= scale.x;
+	ya.x *= scale.y;
+	ya.y *= scale.y;
+	ya.z *= scale.y;
+	za.x *= scale.z;
+	za.y *= scale.z;
+	za.z *= scale.z;
 }
 
-void WQuat::Reset()
-{
+// wmath.cpp:119
+void WQuat::Reset(void) {
 	x = y = z = 0.0f;
 	w = 1.0f;
 }
 
-void WQuat::Normalize()
-{
-	float size = 1.0f / (float)sqrt(x * x + y * y + z * z + w * w);
-	x *= size;
-	y *= size;
-	z *= size;
-	w *= size;
+// wmath.cpp:128
+void WQuat::Normalize(void) {
+	float inv = 1.0f / sqrtf(x * x + y * y + z * z + w * w);
+	x *= inv;
+	y *= inv;
+	z *= inv;
+	w *= inv;
 }
 
-void WQuat::SetFromAxisAngle(const WVector& vector, float theta)
-{
-	float halfTheta = theta * 0.5f;
-	float sinValue = (float)sin(halfTheta);
-	x = sinValue * vector.x;
-	y = sinValue * vector.y;
-	z = sinValue * vector.z;
-	w = (float)cos(halfTheta);
+// wmath.cpp:140
+void WQuat::SetFromAxisAngle(const WVector& axis, float angle) {
+	float half = angle * 0.5f; float s = sinf(half);
+	x = s * axis.x;
+	y = s * axis.y;
+	z = s * axis.z;
+	w = cosf(half);
 }
 
-void WQuat::ConvertToAxisAngle(WVector* vector, float* theta)
-{
-	float cosine;
-	*(unsigned long*)&cosine = *(unsigned long*)&w;
-	float angle = (float)acos((double)cosine);
-	*theta = 2.0f * angle;
-	float absoluteTheta;
-	if (*(unsigned long*)theta & 0x80000000)
-		absoluteTheta = -*theta;
-	else
-		absoluteTheta = *theta;
-	if (absoluteTheta < g_EPSILON)
-	{
-		vector->x = 1.0f;
-		vector->y = 0.0f;
-		vector->z = 0.0f;
-		return;
+// wmath.cpp:152
+void WQuat::ConvertToAxisAngle(WVector* v, float* fTheta) {
+	*fTheta = (float)acos(w) * 2.0f;
+	if (Wabs(*fTheta) < g_EPSILON) {
+		v->x = 1.0f;
+		v->y = 0.0f;
+		v->z = 0.0f;
+	} else {
+		float sinValue = 1.0f / (float)sin(*fTheta * 0.5f);
+		v->x = sinValue * x;
+		v->y = sinValue * y;
+		v->z = sinValue * z;
 	}
-	float sinValue = 1.0f / (float)sin(*theta * 0.5f);
-	vector->x = sinValue * x;
-	vector->y = sinValue * y;
-	vector->z = sinValue * z;
 }
 
-void WQuat::ConvertToRotationMatrix(WMatrix& rotation) const
-{
-	float fTx = 2.0f * x;
-	float fTy = 2.0f * y;
-	float fTz = 2.0f * z;
-	float fTwx = fTx * w;
-	float fTwy = fTy * w;
-	float fTwz = fTz * w;
-	float fTxx = fTx * x;
-	float fTxy = fTy * x;
-	float fTxz = fTz * x;
-	float fTyy = fTy * y;
-	float fTyz = fTz * y;
-	float fTzz = fTz * z;
+// wmath.cpp:169
+void WQuat::ConvertToRotationMatrix(WMatrix& m) const {
+	float x2 = x + x, y2 = y + y, z2 = z + z;
+	float wx = x2 * w, wy = y2 * w, wz = z2 * w;
+	float xx = x2 * x, xy = y2 * x, xz = z2 * x;
+	float yy = y2 * y, yz = z2 * y, zz = z2 * z;
 
-	rotation.xm = rotation.ym = rotation.zm = 0.0f;
-	rotation.xx = 1.0f - (fTyy + fTzz);
-	rotation.yx = fTxy - fTwz;
-	rotation.zx = fTxz + fTwy;
-	rotation.xy = fTxy + fTwz;
-	rotation.yy = 1.0f - (fTxx + fTzz);
-	rotation.zy = fTyz - fTwx;
-	rotation.xz = fTxz - fTwy;
-	rotation.yz = fTyz + fTwx;
-	rotation.zz = 1.0f - (fTxx + fTyy);
+	m.xx = 1.0f - (yy + zz); m.yx = xy - wz; m.zx = xz + wy;
+	m.xy = xy + wz; m.yy = 1.0f - (xx + zz); m.zy = yz - wx;
+	m.xz = xz - wy; m.yz = yz + wx; m.zz = 1.0f - (xx + yy);
+	m.xm = m.ym = m.zm = 0.0f;
 }
 
-void WQuat::SetFromAngles(float yaw, float pitch, float roll)
-{
-	float fSinYaw = sinf(yaw * 0.5f);
-	float fSinPitch = sinf(pitch * 0.5f);
-	float fSinRoll = sinf(roll * 0.5f);
-	float fCosYaw = cosf(yaw * 0.5f);
-	float fCosPitch = cosf(pitch * 0.5f);
-	float fCosRoll = cosf(roll * 0.5f);
+// wmath.cpp:201
+void WQuat::SetFromAngles(float fYaw, float fPitch, float fRoll) {
+	float fSinYaw = sinf(fYaw * 0.5f);
+	float fSinPitch = sinf(fPitch * 0.5f);
+	float fSinRoll = sinf(fRoll * 0.5f);
+	float fCosYaw = cosf(fYaw * 0.5f);
+	float fCosPitch = cosf(fPitch * 0.5f);
+	float fCosRoll = cosf(fRoll * 0.5f);
+
 	x = fCosPitch * fCosYaw * fSinRoll - fCosRoll * fSinPitch * fSinYaw;
 	y = fCosPitch * fSinRoll * fSinYaw + fCosRoll * fCosYaw * fSinPitch;
 	z = fCosRoll * fCosPitch * fSinYaw - fCosYaw * fSinRoll * fSinPitch;
 	w = fCosRoll * fCosPitch * fCosYaw + fSinRoll * fSinPitch * fSinYaw;
+
 	Normalize();
 }
 
-void WQuat::operator=(const WMatrix& matrix)
-{
+// wmath.cpp:218
+void WQuat::operator=(const WMatrix& matrix) {
 	float t = matrix.xx + matrix.yy + matrix.zz;
 	float len;
 	float s;
-	if (t > 0.0f)
-	{
+	if (t > 0.0f) {
 		len = (float)sqrt((float)(t + 1.0f));
 		s = 0.5f / len;
 		w = len * 0.5f;
@@ -181,8 +158,7 @@ void WQuat::operator=(const WMatrix& matrix)
 	}
 
 	switch (matrix.xx > matrix.yy ? (matrix.xx > matrix.zz ? 0 : 2)
-								  : (matrix.yy > matrix.zz ? 1 : 2))
-	{
+	                              : (matrix.yy > matrix.zz ? 1 : 2)) {
 	case 0:
 		len = (float)sqrt(1.0f + matrix.xx - matrix.yy - matrix.zz);
 		s = 0.5f / len;
@@ -210,111 +186,37 @@ void WQuat::operator=(const WMatrix& matrix)
 	}
 }
 
-void WMatrix::operator=(const WQuat& quat)
-{
-	float _xx = 2.0f * quat.x * quat.x;
-	float _yy = 2.0f * quat.y * quat.y;
-	float _zz = 2.0f * quat.z * quat.z;
-	float _xy = 2.0f * quat.x * quat.y;
-	float _xz = 2.0f * quat.x * quat.z;
-	float _yz = 2.0f * quat.y * quat.z;
-	float _wx = 2.0f * quat.w * quat.x;
-	float _wy = 2.0f * quat.w * quat.y;
-	float _wz = 2.0f * quat.w * quat.z;
+// wmath.cpp:269
+void WMatrix::operator=(const WQuat& q) {
+	float qxx = q.x * q.x * 2.0f;
+	float qyy = q.y * q.y * 2.0f;
+	float qzz = q.z * q.z * 2.0f;
+	float qxy = q.x * q.y * 2.0f;
+	float qxz = q.z * q.x * 2.0f;
+	float qyz = q.z * q.y * 2.0f;
+	float qwx = q.x * q.w * 2.0f;
+	float qwy = q.w * q.y * 2.0f;
+	float qwz = q.z * q.w * 2.0f;
 
-	xx = 1.0f - (_yy + _zz);
-	yx = _xy - _wz;
-	zx = _xz + _wy;
-	xy = _xy + _wz;
-	yy = 1.0f - (_xx + _zz);
-	zy = _yz - _wx;
-	xz = _xz - _wy;
-	yz = _yz + _wx;
-	zz = 1.0f - (_xx + _yy);
+	xx = 1.0f - (qzz + qyy);
+	yx = qxy - qwz;
+	zx = qwy + qxz;
+
+	xy = qwz + qxy;
+	yy = 1.0f - (qzz + qxx);
+	zy = qyz - qwx;
+
+	xz = qxz - qwy;
+	yz = qwx + qyz;
+	zz = 1.0f - (qyy + qxx);
 }
 
-WVector __fastcall MinPointLineSegment(WVector& vp, WVector& va, WVector& vb,
-	WVector* vt)
-{
-	WVector vm = vb - va;
-	WVector vdiff = vp - va;
-	float t = vdiff * vm;
-	float mSqr;
-	if (t <= 0.0f)
-	{
-		*vt = va;
-	}
-	else if (t >= (mSqr = vm.SquareMagnitude()))
-	{
-		vdiff = vdiff - vm;
-		*vt = vb;
-	}
-	else
-	{
-		t /= mSqr;
-		*vt = va + vm * t;
-		vdiff = vp - *vt;
-	}
-	return vdiff;
-}
-
-void __cdecl UninitMath()
-{
-}
-
-void WMatrix::Rotate(float angle, char direct)
-{
-	if (direct >= 3)
-		*this = RotMat(angle, direct - 3) * *this;
-	else
-		*this = *this * RotMat(angle, direct);
-}
-
-void WMatrix::Rotate(const WVector& rotation)
-{
-	*this = *this *
-		(RotMat(rotation.x, 0) * RotMat(rotation.y, 1) * RotMat(rotation.z, 2));
-}
-
-void __cdecl InitMath()
-{
-}
-
-float __cdecl CalcDeltaAngle(const WVector& v1, const WVector& v2)
-{
-	union FloatBits
-	{
-		float value;
-		unsigned long bits;
-	};
-	FloatBits xBits, yBits, zBits;
-	zBits.value = v1.z;
-	xBits.value = v1.x;
-	yBits.value = 0.0f;
-	WVector va;
-	*(unsigned long*)&va.x = xBits.bits;
-	*(unsigned long*)&va.y = yBits.bits;
-	*(unsigned long*)&va.z = zBits.bits;
-	zBits.value = v2.z;
-	xBits.value = v2.x;
-	yBits.value = 0.0f;
-	WVector vb;
-	*(unsigned long*)&vb.x = xBits.bits;
-	*(unsigned long*)&vb.y = yBits.bits;
-	*(unsigned long*)&vb.z = zBits.bits;
-	float la = (float)sqrt(va.x * va.x + va.y * va.y + va.z * va.z);
-	float lb = (float)sqrt(vb.x * vb.x + vb.y * vb.y + vb.z * vb.z);
-	if ((*(unsigned long*)&la & 0x80000000 ? -la : la) < g_EPSILON ||
-		(*(unsigned long*)&lb & 0x80000000 ? -lb : lb) < g_EPSILON)
-		return 0.0f;
-	float angle = acosf(Between<float>(-1.0f, va * vb / (la * lb), 1.0f));
-	return v2.x * v1.z - v2.z * v1.x > 0.0f ? angle : -angle;
-}
-
-float __fastcall WCollisionTest(const Waabb& origin, const WVector& vec,
-	const Waabb& target, WPlane* plane)
-{
+// wmath.cpp:376
+// Sweeps box by vel against target: the fraction of vel that can be moved
+// before touching it (1 = no contact), and the contact plane's normal.
+float WCollisionTest(const Waabb& origin, const WVector& vec, const Waabb& target, WPlane* plane) {
 	Waabb area(origin.min, origin.max);
+	WVector gap;
 	area += vec;
 	if (!(area & target) || WisEqual(vec, WVector::ZERO, g_EPSILON))
 		return 1.0f;
@@ -322,21 +224,14 @@ float __fastcall WCollisionTest(const Waabb& origin, const WVector& vec,
 	int direct = 3;
 	float t = 1.0f;
 	float t2;
-	for (int i = 0; i < 3; i++)
-	{
-		float absoluteComponent;
-		if (*(unsigned long*)&vec.p[i] & 0x80000000)
-			absoluteComponent = -vec.p[i];
-		else
-			absoluteComponent = vec.p[i];
-		if (absoluteComponent < g_EPSILON)
+	for (int i = 0; i < 3; i++) {
+		if (Wabs(vec.p[i]) < g_EPSILON)
 			continue;
 		if (vec.p[i] > 0.0f)
 			t2 = 1.0f - (area.max.p[i] - target.min.p[i]) / vec.p[i];
 		else
 			t2 = 1.0f - (area.min.p[i] - target.max.p[i]) / vec.p[i];
-		if (direct == 3 || t < t2)
-		{
+		if (direct == 3 || t < t2) {
 			t = t2;
 			direct = i;
 		}
@@ -344,25 +239,60 @@ float __fastcall WCollisionTest(const Waabb& origin, const WVector& vec,
 
 	if (direct >= 3 || t >= 1.0f)
 		return 1.0f;
-	float absoluteT;
-	if (*(unsigned long*)&t & 0x80000000)
-		absoluteT = -t;
-	else
-		absoluteT = t;
-	if ((Abs(t), absoluteT) < g_EPSILON)
+	if (Wabs(t) < g_EPSILON)
 		return 0.0f;
 
-	WVector gap;
 	gap = vec * t;
-	if (WisEqual(WCollisionTest(origin + gap, vec * (1.0f - t), target, 0),
-			1.0f, g_EPSILON))
-	{
+	if (WisEqual(WCollisionTest(origin + gap, vec * (1.0f - t), target, 0), 1.0f, g_EPSILON))
 		return 1.0f;
-	}
-	if (plane)
-	{
+
+	if (plane) {
 		plane->normal = WVector::ZERO;
 		plane->normal.p[direct] = vec.p[direct] > 0.0f ? -1.0f : 1.0f;
 	}
+
 	return t;
+}
+
+// wmath.cpp:446
+WVector MinPointLineSegment(WVector& vp, WVector& va, WVector& vb, WVector* vt) {
+	WVector vm = vb - va;
+	WVector vdiff = vp - va;
+	float t = vdiff * vm;
+	float mSqr;
+
+	if (t <= 0.0f) {
+		*vt = va;
+	} else if (t >= (mSqr = vm.SquareMagnitude())) {
+		vdiff = vdiff - vm;
+		*vt = vb;
+	} else {
+		t /= mSqr;
+		*vt = va + vm * t;
+		vdiff = vp - *vt;
+	}
+
+	return vdiff;
+}
+
+// wmath.cpp:541
+void __cdecl InitMath() {
+}
+
+// wmath.cpp:566
+void __cdecl UninitMath() {
+}
+
+// wmath.cpp:575
+float __cdecl CalcDeltaAngle(const WVector& v1, const WVector& v2) {
+	WVector va, vb; va = WVector(v1.x, 0.0f, v1.z); vb = WVector(v2.x, 0.0f, v2.z);
+	float la = va.Magnitude();
+	float lb = vb.Magnitude();
+
+	if (Wabs(la) < g_EPSILON || Wabs(lb) < g_EPSILON)
+		return 0.0f;
+
+	float ang = acosf(Between<float>(-1.0f, va * vb / (la * lb), 1.0f));
+
+	return (v2.x * v1.z - v2.z * v1.x > 0.0f) ? ang : -ang;
 }

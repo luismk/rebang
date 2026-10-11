@@ -1,324 +1,259 @@
-#include "minatl.h"
-#include "../../shared/sharedtables.h"
-#include "mascotinfodlg.h"
-#include "mascot.h"
+// Original: d:\build\custom\temp\code\client\projectg\mascotinfodlg.cpp
+#include <string.h>
+#include "MascotInfoDlg.h"
+#include "ObjectFactory.h"
+#include "frarea.h"
+#include "frbutton.h"
+#include "fredit.h"
+#include "frstatic.h"
 #include "logininfo.h"
+#include "mascot.h"
+#include "commonutil.h"
+#include "SharedDoc.h"
+#include "../shared/classdefine.h"
+#include "Packet.h"
+#include "TaskManager.h"
 #include "actor.h"
-#include "../../shared/token.h"
-#include "../../shared/localize.h"
+#include "binstr.h"
+#include "fresh.h"
+#include "frwndmanager.h"
 
-extern Fresh* g_pFresh;
+// mascotinfodlg.cpp:21 (run-time type and factory registration of FrMascotInfoDlg)
+const WRTTI FrMascotInfoDlg::m_RTTI("FrMascotInfoDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrMascotInfoDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrMascotInfoDlg, FrForm)
-
-ON_FRESH_VI("portrait", FRCMD_INIT, FrMascotInfoDlg::OnPortraitInit)
-ON_FRESH_VI("vacation", FRCMD_INIT, FrMascotInfoDlg::OnVacationInit)
-ON_FRESH_VI("limit", FRCMD_INIT, FrMascotInfoDlg::OnLimitInit)
-ON_FRESH_VI("name", FRCMD_INIT, FrMascotInfoDlg::OnNameInit)
-ON_FRESH_VI("text_message", FRCMD_INIT, FrMascotInfoDlg::OnTextMessageInit)
-ON_FRESH_VI("mascot_msg", FRCMD_INIT, FrMascotInfoDlg::OnMascotMsgInit)
-ON_FRESH_VI("ok", FRCMD_INIT, FrMascotInfoDlg::OnOkInit)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrMascotInfoDlg::OnOkBtnUp)
-ON_FRESH_VI("cancel", FRCMD_INIT, FrMascotInfoDlg::OnCancelInit)
-ON_FRESH_VV("cancel", FRCMD_LBUTTONUP, FrMascotInfoDlg::OnCancelBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrMascotInfoDlg::FrMascotInfoDlg()
-{
-	memset(&m_mascotInfo, 0, sizeof(m_mascotInfo));
-	m_pPortrait = NULL;
-	m_pVacation = NULL;
-	m_pLimit = NULL;
-	m_pName = NULL;
-	m_pMascotMsg = NULL;
-	m_pOk = NULL;
-	m_pCancel = NULL;
-	m_pConfirmDlg = NULL;
-	m_pPuppet = NULL;
+IObject* FrMascotInfoDlgMakeInstance(void) {
+	return new FrMascotInfoDlg;
 }
 
-void FrMascotInfoDlg::OnPortraitInit(int param)
-{
-	m_pPortrait = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+struct __sFrMascotInfoDlg {
+	__sFrMascotInfoDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrMascotInfoDlgMakeInstance, "FrMascotInfoDlg");
+	}
+};
+static __sFrMascotInfoDlg s_registerFrMascotInfoDlg;
+
+// mascotinfodlg.cpp:23
+const sFRESH_MSGMAP* FrMascotInfoDlg::GetMessageMap(void) const {
+	return &FrMascotInfoDlg::_MsgMap;
 }
 
-void FrMascotInfoDlg::OnVacationInit(int param)
-{
-	m_pVacation = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pVacation)
-		m_pVacation->SetVisible(false);
+sFRESH_MSGMAP FrMascotInfoDlg::_MsgMap = { &FrForm::_MsgMap, &FrMascotInfoDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrMascotInfoDlg::_MsgEntries[] = {
+	// mascotinfodlg.cpp:25
+	{ "portrait", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnPortraitInit },
+	// mascotinfodlg.cpp:26
+	{ "vacation", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnVacationInit },
+	// mascotinfodlg.cpp:27
+	{ "limit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnLimitInit },
+	// mascotinfodlg.cpp:28
+	{ "name", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnNameInit },
+	// mascotinfodlg.cpp:29
+	{ "text_message", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnTextMessageInit },
+	// mascotinfodlg.cpp:30
+	{ "mascot_msg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnMascotMsgInit },
+	// mascotinfodlg.cpp:31
+	{ "ok", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnOkInit },
+	// mascotinfodlg.cpp:32
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrMascotInfoDlg::OnOkBtnUp },
+	// mascotinfodlg.cpp:33
+	{ "cancel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMascotInfoDlg::OnCancelInit },
+	// mascotinfodlg.cpp:34
+	{ "cancel", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrMascotInfoDlg::OnCancelBtnUp },
+
+	// mascotinfodlg.cpp:36
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// mascotinfodlg.cpp:40
+FrMascotInfoDlg::FrMascotInfoDlg(void) {
+	memset(&m_info, 0, sizeof(m_info));
+	m_pPortrait = 0;
+	m_pVacation = 0;
+	m_pLimit = 0;
+	m_pName = 0;
+	m_pMascotMsg = 0;
+	m_pOk = 0;
+	m_pCancel = 0;
+	m_pConfirmDlg = 0;
+	m_pPuppet = 0;
 }
 
-void FrMascotInfoDlg::OnLimitInit(int param)
-{
-	m_pLimit = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pLimit)
-		m_pLimit->SetVisible(false);
-}
+// mascotinfodlg.cpp:57
+void FrMascotInfoDlg::SetMascotInfo(const sMascotInfo& info, WPuppet* pPuppet) {
 
-void FrMascotInfoDlg::OnNameInit(int param)
-{
-	m_pName = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-}
 
-void FrMascotInfoDlg::OnTextMessageInit(int param)
-{
-	m_pTextMessage = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-	if (m_pTextMessage)
-		m_pTextMessage->SetVisible(false);
-}
-
-void FrMascotInfoDlg::OnMascotMsgInit(int param)
-{
-	m_pMascotMsg = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pMascotMsg)
-		m_pMascotMsg->SetVisible(false);
-}
-
-void FrMascotInfoDlg::OnOkInit(int param)
-{
-	m_pOk = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pOk)
-		m_pOk->Enable(false);
-}
-
-void FrMascotInfoDlg::OnCancelInit(int param)
-{
-	m_pCancel = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-}
-
-void FrMascotInfoDlg::SetMascotInfo(const sMascotInfo& info, WPuppet* pPuppet)
-{
-	m_mascotInfo = info;
-	m_message = m_mascotInfo.szMsg;
+	m_info = info;
+	m_msg = m_info.message;
 	m_pPuppet = pPuppet;
 }
 
-void FrMascotInfoDlg::OnCancelBtnUp()
-{
-	if (strcmp(m_mascotInfo.szMsg, m_message.c_str()))
-	{
-		IFF_STRUCT::sMascot* pMascot =
-			ItemManager()->FindMascot(m_mascotInfo.tid);
-		if (m_pPuppet && pMascot)
-			CMascot::ChangeMascotMsgInTex(m_mascotInfo.szMsg, pMascot,
-				m_pPuppet,
-				MakeStr("myroom%02d", (pMascot->c.TypeId & 0x3ffffff)));
+// mascotinfodlg.cpp:75
+void FrMascotInfoDlg::OnPortraitInit(intptr_t param) {
+	m_pPortrait = DYNAMIC_CAST(FrArea, param);
+}
+
+// mascotinfodlg.cpp:80
+void FrMascotInfoDlg::OnVacationInit(intptr_t param) {
+	m_pVacation = DYNAMIC_CAST(FrArea, param);
+
+	if (m_pVacation) {
+		m_pVacation->SetVisible(false);
 	}
+}
+
+// mascotinfodlg.cpp:88
+void FrMascotInfoDlg::OnLimitInit(intptr_t param) {
+	m_pLimit = DYNAMIC_CAST(FrArea, param);
+
+
+	if (m_pLimit) {
+		m_pLimit->SetVisible(false);
+	}
+}
+
+// mascotinfodlg.cpp:96
+void FrMascotInfoDlg::OnNameInit(intptr_t param) {
+	m_pName = DYNAMIC_CAST(FrEdit, param);
+}
+
+// mascotinfodlg.cpp:101
+void FrMascotInfoDlg::OnTextMessageInit(intptr_t param) {
+	m_pTextMessage = DYNAMIC_CAST(FrStatic, param);
+
+
+	if (m_pTextMessage) {
+		m_pTextMessage->SetVisible(false);
+	}
+}
+
+// mascotinfodlg.cpp:109
+void FrMascotInfoDlg::OnMascotMsgInit(intptr_t param) {
+	m_pMascotMsg = DYNAMIC_CAST(FrEdit, param);
+
+
+	if (m_pMascotMsg) {
+		m_pMascotMsg->SetVisible(false);
+	}
+}
+
+// mascotinfodlg.cpp:119
+void FrMascotInfoDlg::OnOkInit(intptr_t param) {
+	m_pOk = DYNAMIC_CAST(FrButton, param);
+
+
+	if (m_pOk) {
+		m_pOk->Enable(false);
+	}
+}
+
+// mascotinfodlg.cpp:127
+void FrMascotInfoDlg::OnOkBtnUp(void) {
+	if (strcmp(m_msg.c_str(), m_info.message) != 0) {
+
+		if (m_info.typeId == 0x40000004) {
+			if (strlen(m_msg.c_str()) > 8) {
+				AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xB8\xDE\xBC\xBC\xC1\xF6 \xC3\xD6\xB4\xEB \xB1\xE6\xC0\xCC\xB4\xC2 \xBF\xB5\xB9\xAE 8\xB1\xDB\xC0\xDA, \xC7\xD1\xB1\xDB 4\xB1\xDB\xC0\xDA \xC0\xD4\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+				return;
+			}
+		}
+		else {
+			if (strlen(m_msg.c_str()) > 16) {
+				AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xB8\xDE\xBC\xBC\xC1\xF6 \xC3\xD6\xB4\xEB \xB1\xE6\xC0\xCC\xB4\xC2 \xBF\xB5\xB9\xAE 16\xB1\xDB\xC0\xDA, \xC7\xD1\xB1\xDB 8\xB1\xDB\xC0\xDA \xC0\xD4\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+				return;
+			}
+		}
+
+		cTokenV token;
+		token.Init(m_msg.c_str(), strlen(m_msg.c_str()));
+		int count = token.GetTokenNum(0, "'", 1) - 1;
+
+		if (count > 0) {
+			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"[']\xB4\xC2 \xB8\xDE\xBC\xBC\xC1\xF6\xBF\xA1 \xBB\xE7\xBF\xEB\xC7\xD2 \xBC\xF6 \xBE\xF8\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+		}
+		else {
+			char text[256];
+			strcpy(text, m_msg.c_str());
+
+			if (WSingleton<CSharedDoc>::Instance()->m_chatManager.Filtering(text)) {
+				AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xC0\xFB\xB4\xE7\xC7\xCF\xC1\xF6\xBE\xCA\xC0\xBA \xB4\xDC\xBE\xEE\xB0\xA1 \xC6\xF7\xC7\xD4\xB5\xC7\xBE\xFA\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+			}
+			else {
+				if (!m_pConfirmDlg) {
+					m_pConfirmDlg = CreateForm<FrForm>(g_pFresh->GetManager(), this, "mascot_msg", 0);
+				}
+
+				if (m_pConfirmDlg) {
+					m_pConfirmDlg->SetMessage("\xB8\xB6\xBD\xBA\xC4\xDA\xC6\xAE \xB8\xDE\xBC\xBC\xC1\xF6\xB8\xA6 \xBA\xAF\xB0\xE6 \xC7\xCF\xBD\xC3\xB0\xDA\xBD\xC0\xB4\xCF\xB1\xEE?", false);
+					m_pConfirmDlg->Open((FRESH_RESULT_CALLBACK)&FrMascotInfoDlg::OnChangeMsgConfirmDlgResult, 1);
+				}
+			}
+		}
+	}
+}
+
+// mascotinfodlg.cpp:274
+void FrMascotInfoDlg::OnCancelInit(intptr_t param) {
+	m_pCancel = DYNAMIC_CAST(FrButton, param);
+}
+
+// mascotinfodlg.cpp:279
+void FrMascotInfoDlg::OnCancelBtnUp(void) {
+	if (strcmp(m_info.message, m_msg.c_str()) != 0) {
+
+		IFF_STRUCT::sMascot* pMascot = ItemManager()->FindMascot(m_info.typeId);
+
+		if (m_pPuppet && pMascot) {
+			CMascot::ChangeMascotMsgInTex(m_info.message, pMascot, m_pPuppet, MakeStr("myroom%02d", pMascot->m_typeId & 0x3FFFFFF));
+		}
+	}
+
 	OnFreshCancel();
 }
 
-bool FrMascotInfoDlg::OnChangeMsgConfirmDlgResult(int result, FrForm* pForm)
-{
-	m_pConfirmDlg = NULL;
-	if (result == 1)
-	{
-		if (CLoginInfo::Instance()->IsPcBang() && m_mascotInfo.PCBangMascot)
-		{
-			WSendPacket send((enumClientPacket)151);
-			send.Encode1(1);
-			send.Encode4(m_mascotInfo.guid);
-			send.EncodeStr(m_message);
-			send.Send(TO_GAME);
+// mascotinfodlg.cpp:292
+bool FrMascotInfoDlg::OnChangeMsgConfirmDlgResult(int result, FrForm* pForm) {
+	m_pConfirmDlg = 0;
+
+	if (result == 1) {
+
+		if (CLoginInfo::Instance()->IsPcBang() && m_info.pcBang) {
+
+			WSendPacket packet((enumClientPacket)0x97);
+			packet.Encode1(1);
+			packet.Encode4(m_info.id);
+			packet.EncodeStr(m_msg);
+			packet.Send(SEND_TO_DEFAULT);
 		}
-		else
-		{
-			WSendPacket send((enumClientPacket)115);
-			send.Encode4(m_mascotInfo.guid);
-			send.EncodeStr(m_message);
-			send.Send(TO_GAME);
+		else {
+			WSendPacket packet((enumClientPacket)0x73);
+			packet.Encode4(m_info.id);
+			packet.EncodeStr(m_msg);
+			packet.Send(SEND_TO_DEFAULT);
 		}
-		AfxGetTask()->GetActor("RealMyRoom")
-			<< MsgObject(NULL, 1, 0, 0, 0, 0, 0);
+		AfxGetTask()->PassMsgToActor("RealMyRoom", MsgObject(0, 1, 0, 0, 0, 0, 0));
+
 		Close(FrOK, true);
 	}
+
+
+
 	return true;
 }
 
-bool FrMascotInfoDlg::OnInit()
-{
-	if (!m_mascotInfo.tid)
-		return false;
-	if ((m_mascotInfo.tid & 0x3ffffff) == 4)
-		m_pMascotMsg->SetCharLimit(8, true);
-	IFF_STRUCT::sMascot* pMascot = ItemManager()->FindMascot(m_mascotInfo.tid);
-	bool bInfo = false;
-	if (m_pPortrait)
-	{
-		if (pMascot)
-		{
-			bInfo = true;
-			m_pPortrait->SetBgImg(pMascot->c.Icon);
-		}
-		else
-			m_pPortrait->SetBgImg("hide");
-	}
-	if (bInfo && m_pName)
-	{
-		char text[512] = { 0 };
-		sprintf(text, "\300\314  \270\247: %s", pMascot->c.Name);
-		if (pMascot->ItemDropUp > 0)
-			strcat(text,
-				MakeStr(
-					"\n\276\306\300\314\305\333 \265\345\267\323\267\374 : %d%%",
-					pMascot->ItemDropUp));
-		if (pMascot->PangUp > 0)
-			strcat(text,
-				MakeStr(
-					"\n\303\337\260\241 \306\316 \310\271\265\346\267\374 : %d%%",
-					pMascot->PangUp - 100));
-		if (pMascot->ExpUp > 0)
-			strcat(text,
-				MakeStr(
-					"\n\303\337\260\241 \260\346\307\350\304\241 \310\271\265\346\267\374 : %d%%",
-					pMascot->ExpUp - 100));
-		if (pMascot->ItemSlot > 0)
-			strcat(text,
-				MakeStr(
-					"\n\276\306\300\314\305\333 \275\275\267\324 : %d\304\255",
-					pMascot->ItemSlot));
-		unsigned short days = m_mascotInfo.Remain_Date / 24;
-		unsigned short hours = m_mascotInfo.Remain_Date % 24;
-		strcat(text, "\n\263\262\300\272\275\303\260\243 : ");
-		bool special = false;
-		if (IsLocalContent((localContentType_t)108))
-		{
-			if (m_mascotInfo.tid == 0x40000006)
-			{
-				strcat(text, "\271\253\301\246\307\321");
-				special = true;
-			}
-			if (m_mascotInfo.tid == 0x40000004)
-			{
-				strcat(text, "PC\271\346 \271\253\301\246\307\321");
-				special = true;
-			}
-			if (m_mascotInfo.tid == 0x40000013)
-			{
-				strcat(text, "\271\253\301\246\307\321");
-				special = true;
-			}
-		}
-		if (!special)
-		{
-			if (days > 0)
-				strcat(text, MakeStr("%d\300\317 ", days));
-			if (hours > 0)
-				strcat(text, MakeStr("%d\275\303\260\243", hours));
-			if (days <= 0 && hours <= 0)
-				strcat(text, "\301\276\267\341");
-		}
-		m_pName->AddText(text, false, true);
-		IFF_STRUCT::sDesc* pDesc = ItemManager()->FindDesc(pMascot->c.TypeId);
-		if (pDesc)
-			SetMessage(pDesc->Desc, false);
-	}
-	else
-	{
-		if (m_pName)
-			m_pName->AddText(
-				"\300\314\270\247: \272\322\270\355\n\n\267\271\272\247: \272\322\270\355",
-				false, true);
-		SetMessage(
-			"\272\243\300\317\277\241 \275\316\300\316 \301\244\303\274\272\322\270\355\300\307 \301\270\300\347",
-			false);
-	}
-	if (pMascot)
-	{
-		if (Doc()->m_myInfo.stat.Level < pMascot->c.Level)
-		{
-			if (m_pLimit)
-				m_pLimit->SetVisible(true);
-			SetDesc(
-				"\267\271\272\247 \301\246\307\321\300\270\267\316 \273\347\277\353\307\322 \274\366 \276\370\275\300\264\317\264\331.");
-		}
-		if (pMascot->ShowMsg)
-		{
-			if (m_pMascotMsg)
-			{
-				m_pMascotMsg->SetVisible(true);
-				m_pMascotMsg->SetLine(1, m_mascotInfo.szMsg, 0, 0, false);
-			}
-			if (m_pTextMessage)
-				m_pTextMessage->SetVisible(true);
-			if (m_pOk)
-				m_pOk->Enable(true);
-		}
-	}
-	return true;
-}
+// mascotinfodlg.cpp:506
+void FrMascotInfoDlg::OnProc(const float dt) {
+	if (m_pMascotMsg) {
 
-void FrMascotInfoDlg::OnProc(const float dt)
-{
-	if (m_pMascotMsg)
-	{
-		if (stricmp(m_pMascotMsg->GetLine(1, false), m_message.c_str()))
-		{
-			m_message = m_pMascotMsg->GetLine(1, false);
-			IFF_STRUCT::sMascot* pMascot =
-				ItemManager()->FindMascot(m_mascotInfo.tid);
-			if (m_pPuppet && pMascot)
-				CMascot::ChangeMascotMsgInTex(m_message.c_str(), pMascot,
-					m_pPuppet,
-					MakeStr("myroom%02d", (pMascot->c.TypeId & 0x3ffffff)));
-		}
-	}
-}
+		if (stricmp(m_pMascotMsg->GetLine(1, false), m_msg.c_str()) != 0) {
 
-void FrMascotInfoDlg::OnOkBtnUp()
-{
-	if (!strcmp(m_message.c_str(), m_mascotInfo.szMsg))
-		return;
-	if (m_mascotInfo.tid == 0x40000004)
-	{
-		if (strlen(m_message.c_str()) > 8)
-		{
-			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 35,
-				(int)"\270\336\274\274\301\366 \303\326\264\353 \261\346\300\314\264\302 \277\265\271\256 8\261\333\300\332, \307\321\261\333 4\261\333\300\332 \300\324\264\317\264\331.",
-				0, 0, 0, 0);
-			return;
-		}
-	}
-	else if (strlen(m_message.c_str()) > 16)
-	{
-		AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 35,
-			(int)"\270\336\274\274\301\366 \303\326\264\353 \261\346\300\314\264\302 \277\265\271\256 16\261\333\300\332, \307\321\261\333 8\261\333\300\332 \300\324\264\317\264\331.",
-			0, 0, 0, 0);
-		return;
-	}
-	cTokenV token;
-	token.Init(m_message.c_str(), strlen(m_message.c_str()));
-	int count = token.GetTokenNum(0, "'", 1) - 1;
-	if (count > 0)
-	{
-		AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 35,
-			(int)"[']\264\302 \270\336\274\274\301\366\277\241 \273\347\277\353\307\322 \274\366 \276\370\275\300\264\317\264\331.",
-			0, 0, 0, 0);
-	}
-	else
-	{
-		char text[256];
-		strcpy(text, m_message.c_str());
-		if (Doc()->m_chatManager.Filtering(text))
-			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 35,
-				(int)"\300\373\264\347\307\317\301\366\276\312\300\272 \264\334\276\356\260\241 \306\367\307\324\265\307\276\372\275\300\264\317\264\331.",
-				0, 0, 0, 0);
-		else
-		{
-			if (!m_pConfirmDlg)
-				m_pConfirmDlg = CreateForm<FrForm>(g_pFresh->GetManager(), this,
-					"mascot_msg", NULL);
-			if (m_pConfirmDlg)
-			{
-				m_pConfirmDlg->SetMessage(
-					"\270\266\275\272\304\332\306\256 \270\336\274\274\301\366\270\246 \272\257\260\346 \307\317\275\303\260\332\275\300\264\317\261\356?",
-					false);
-				m_pConfirmDlg->Open((FRESH_PFN_RESULT)&FrMascotInfoDlg::
-										OnChangeMsgConfirmDlgResult,
-					1);
+			m_msg = m_pMascotMsg->GetLine(1, false);
+
+			IFF_STRUCT::sMascot* pMascot = ItemManager()->FindMascot(m_info.typeId);
+
+			if (m_pPuppet && pMascot) {
+
+				CMascot::ChangeMascotMsgInTex(m_msg.c_str(), pMascot, m_pPuppet, MakeStr("myroom%02d", pMascot->m_typeId & 0x3FFFFFF));
 			}
 		}
 	}

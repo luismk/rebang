@@ -1,44 +1,61 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\fresh\include\frarea.h
+#ifndef PG_CLIENT_FRESH_INCLUDE_FRAREA_H
+#define PG_CLIENT_FRESH_INCLUDE_FRAREA_H
+
 #include <string>
-#include "rtti.h"
+
+#include "..\..\defines.h"
 #include "frwnd.h"
 
 class Bitmap;
 class FrGuiItem;
-class FrWndManager;
 
-class FrArea : public FrWnd
-{
+// A window drawing a background image. Layout and access from the PDB (size
+// 0x114, base FrWnd); ClippingArea is the one new virtual (slot 23).
+class FrArea : public FrWnd {
+	LAYOUT_CHECK_FRIEND;
 public:
 	static const WRTTI m_RTTI;
-	virtual const WRTTI* GetRTTI() const { return &m_RTTI; }
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // frarea.h:16
 
-	FrArea();
-	virtual ~FrArea();
+	FrArea(void);
+	virtual ~FrArea(void);
 
-	void Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent);
+	void Init(FrGuiItem& item, FrWndManager* pWndManager, FrWnd* pParent);
 	bool SetBgImg(const Bitmap* pBitmap);
 	bool SetBgImg(const char* name);
-	const Bitmap* GetBgImg() { return m_pBitmap; }
-	void SetMouseEvent(bool active);
-	void EnableClipping(bool enable) { m_isClipping = enable; }
-	void SetClipArea(const WRect& rect) { m_rcClipArea = rect; }
-	void GetClipArea(WRect& rect) { rect = m_rcClipArea; }
+	const Bitmap* GetBgImg(void) { return m_pBitmap; }   // frarea.h:24
+	void SetMouseEvent(bool mouseEvent);
 
 protected:
+	virtual void OnDraw(void);
+	virtual void OnSetCursor(bool b, const WPoint& pt);
+	virtual bool OnLButtonUp(const WPoint& pt);
+	virtual bool OnLButtonDown(const WPoint& pt);
 	virtual bool ClippingArea(WRect& src, WRect& dst);
-	virtual void OnDraw();
-	virtual void OnSetCursor(bool bInClient, const WPoint& mousePos);
-	virtual bool OnLButtonUp(const WPoint& mousePos);
-	virtual bool OnLButtonDown(const WPoint& mousePos);
 
-	FrGuiItem* m_pItem;
-	const Bitmap* m_pBitmap;
-	bool m_center;
-	bool m_stretch;
-	bool m_mouseEvent;
-	unsigned long m_color;
-	std::string m_imgName;
-	bool m_isClipping;
-	WRect m_rcClipArea;
+	FrGuiItem* m_pItem;          // 0xd4
+	const Bitmap* m_pBitmap;     // 0xd8
+	bool m_center;               // 0xdc
+	bool m_stretch;              // 0xdd
+	bool m_mouseEvent;           // 0xde
+	unsigned long m_color;       // 0xe0
+	std::string m_imgName;       // 0xe4
+	bool m_isClipping;           // 0x100
+	WRect m_rcClipArea;          // 0x104
 };
+
+CHECK_SIZE(FrArea, 0x114);
+BEGIN_LAYOUT_CHECK(FrArea)
+	CHECK_FIELD(FrArea, m_pItem, 0xd4);
+	CHECK_FIELD(FrArea, m_pBitmap, 0xd8);
+	CHECK_FIELD(FrArea, m_center, 0xdc);
+	CHECK_FIELD(FrArea, m_stretch, 0xdd);
+	CHECK_FIELD(FrArea, m_mouseEvent, 0xde);
+	CHECK_FIELD(FrArea, m_color, 0xe0);
+	CHECK_FIELD(FrArea, m_imgName, 0xe4);
+	CHECK_FIELD(FrArea, m_isClipping, 0x100);
+	CHECK_FIELD(FrArea, m_rcClipArea, 0x104);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_FRESH_INCLUDE_FRAREA_H

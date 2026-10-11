@@ -1,60 +1,53 @@
-#include "minatl.h"
-#include "monitor.h"
-#include "woverlay.h"
+// Original: d:\build\custom\temp\code\client\projectg\monitor.cpp
+#include "../client/ProjectG/monitor.h"
+#include "../client/Wangreal/include/woverlay.h"
 
-CMonitor::CMonitor()
-	: m_boxColor(0xff000000),
-	  m_lineColor(0xffff0000),
-	  m_bVisible(true),
-	  m_current(0),
-	  m_sampleNum(0),
-	  m_maxValue(1)
-{
+// monitor.cpp:21
+CMonitor::CMonitor(void)
+	: m_boxColor(0xff000000), m_graphColor(0xffff0000), m_bVisible(true), m_nCur(0), m_nCount(0), m_nScale(1) {
 }
 
-CMonitor::~CMonitor()
-{
+// monitor.cpp:26
+CMonitor::~CMonitor(void) {
 	m_samples.clear();
 }
 
-void CMonitor::Init(int sampleNum, int maxValue, WRect& rect)
-{
-	m_current = 0;
-	m_sampleNum = sampleNum;
-	m_maxValue = maxValue;
+// monitor.cpp:31
+void CMonitor::Init(int count, int scale, WRect& rect) {
+	m_nCur = 0;
+	m_nCount = count;
+	m_nScale = scale;
 	m_rect = rect;
 
-	m_samples.reserve(sampleNum);
+	m_samples.reserve(count);
 
-	for (int i = 0; i < sampleNum; i++)
+	for (int i = 0; i < count; i++)
 		m_samples[i] = 0;
 }
 
-void CMonitor::Trace(int value)
-{
-	if (value == -1)
-	{
-		if (m_current == 0)
-		{
-			if (m_sampleNum <= 0)
+// monitor.cpp:50
+void CMonitor::Trace(int value) {
+	if (value == -1) {
+		if (m_nCur == 0) {
+			if (m_nCount <= 0)
 				m_samples[0] = 0;
 			else
-				m_samples[0] = m_samples[m_sampleNum - 1];
+				m_samples[0] = m_samples[m_nCount - 1];
+		} else {
+			m_samples[m_nCur] = m_samples[m_nCur - 1];
 		}
-		else
-			m_samples[m_current] = m_samples[m_current - 1];
+	} else {
+		m_samples[m_nCur] = value;
 	}
-	else
-		m_samples[m_current] = value;
 }
 
-void CMonitor::Process(float fElapsed)
-{
-	m_current = (m_current + 1) % m_sampleNum;
+// monitor.cpp:68
+void CMonitor::Process(float elapsed) {
+	m_nCur = (m_nCur + 1) % m_nCount;
 }
 
-bool CMonitor::Render(WView* view) const
-{
+// monitor.cpp:73
+bool CMonitor::Render(WView* view) const {
 	if (!m_bVisible)
 		return false;
 

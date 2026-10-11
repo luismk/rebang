@@ -1,95 +1,127 @@
-#include "minatl.h"
-#include "friendinfodlg.h"
-#include "fredit.h"
+// Original: d:\build\custom\temp\code\client\projectg\friendinfodlg.cpp
+#include "FriendInfoDlg.h"
+#include "ObjectFactory.h"
+#include "TaskManager.h"
 #include "frbutton.h"
+#include "fredit.h"
+#include "SharedDoc.h"
 
-IMPLEMENT_OBJECT(FrFriendInfoDlg, FrForm)
+#include <algorithm>
 
-BEGIN_FRESH_MSGMAP(FrFriendInfoDlg, FrForm)
+// friendinfodlg.cpp:17 (run-time type and factory registration of FrFriendInfoDlg)
+const WRTTI FrFriendInfoDlg::m_RTTI("FrFriendInfoDlg", &FrForm::m_RTTI);
 
-ON_FRESH_VI("id", FRCMD_INIT, FrFriendInfoDlg::OnIDInit)
-ON_FRESH_VI("nick", FRCMD_INIT, FrFriendInfoDlg::OnNickInit)
-ON_FRESH_VI("sex", FRCMD_INIT, FrFriendInfoDlg::OnSexInit)
-ON_FRESH_VI("server", FRCMD_INIT, FrFriendInfoDlg::OnServerInit)
-ON_FRESH_VI("channel", FRCMD_INIT, FrFriendInfoDlg::OnChannelInit)
-ON_FRESH_VV("whisper", FRCMD_LBUTTONUP, FrFriendInfoDlg::OnWhisperBtnUp)
-ON_FRESH_VI("ignore", FRCMD_INIT, FrFriendInfoDlg::OnIgnoreInit)
-ON_FRESH_VV("ignore", FRCMD_LBUTTONUP, FrFriendInfoDlg::OnIgnoreBtnUp)
-ON_FRESH_VV("close", FRCMD_LBUTTONUP, FrFriendInfoDlg::OnCloseBtnUp)
-
-END_FRESH_MSGMAP()
-
-void FrFriendInfoDlg::OnIDInit(int param)
-{
-	m_pID = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+IObject* FrFriendInfoDlgMakeInstance(void) {
+	return new FrFriendInfoDlg;
 }
 
-void FrFriendInfoDlg::OnNickInit(int param)
-{
-	m_pNick = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+struct __sFrFriendInfoDlg {
+	__sFrFriendInfoDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrFriendInfoDlgMakeInstance, "FrFriendInfoDlg");
+	}
+};
+static __sFrFriendInfoDlg s_registerFrFriendInfoDlg;
+
+// friendinfodlg.cpp:19
+const sFRESH_MSGMAP* FrFriendInfoDlg::GetMessageMap(void) const {
+	return &FrFriendInfoDlg::_MsgMap;
 }
 
-void FrFriendInfoDlg::OnSexInit(int param)
-{
-	m_pSex = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+sFRESH_MSGMAP FrFriendInfoDlg::_MsgMap = { &FrForm::_MsgMap, &FrFriendInfoDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrFriendInfoDlg::_MsgEntries[] = {
+	// friendinfodlg.cpp:21
+	{ "id", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFriendInfoDlg::OnIDInit },
+	// friendinfodlg.cpp:22
+	{ "nick", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFriendInfoDlg::OnNickInit },
+	// friendinfodlg.cpp:23
+	{ "sex", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFriendInfoDlg::OnSexInit },
+	// friendinfodlg.cpp:24
+	{ "server", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFriendInfoDlg::OnServerInit },
+	// friendinfodlg.cpp:25
+	{ "channel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFriendInfoDlg::OnChannelInit },
+	// friendinfodlg.cpp:26
+	{ "whisper", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrFriendInfoDlg::OnWhisperBtnUp },
+	// friendinfodlg.cpp:27
+	{ "ignore", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFriendInfoDlg::OnIgnoreInit },
+	// friendinfodlg.cpp:28
+	{ "ignore", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrFriendInfoDlg::OnIgnoreBtnUp },
+	// friendinfodlg.cpp:29
+	{ "close", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrFriendInfoDlg::OnCloseBtnUp },
+
+	// friendinfodlg.cpp:31
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// friendinfodlg.cpp:34
+void FrFriendInfoDlg::OnIDInit(intptr_t param) {
+	m_pID = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrFriendInfoDlg::OnServerInit(int param)
-{
-	m_pServer = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// friendinfodlg.cpp:39
+void FrFriendInfoDlg::OnNickInit(intptr_t param) {
+	m_pNick = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrFriendInfoDlg::OnChannelInit(int param)
-{
-	m_pChannel = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// friendinfodlg.cpp:44
+void FrFriendInfoDlg::OnSexInit(intptr_t param) {
+	m_pSex = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrFriendInfoDlg::SetInfo(sFriend* pFriend)
-{
+// friendinfodlg.cpp:49
+void FrFriendInfoDlg::OnServerInit(intptr_t param) {
+	m_pServer = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrFriendInfoDlg::OnWhisperBtnUp()
-{
-	AfxGetTask()->GetActor("Lobby")
-		<< MsgObject(NULL, 55, (int)m_pNick->GetLine(1, false), 0, 0, 0, 0);
+// friendinfodlg.cpp:54
+void FrFriendInfoDlg::OnChannelInit(intptr_t param) {
+	m_pChannel = DYNAMIC_CAST(FrEdit, param);
+}
+
+// friendinfodlg.cpp:59
+void FrFriendInfoDlg::SetInfo(sFriend *info) {
+}
+
+// friendinfodlg.cpp:64
+void FrFriendInfoDlg::OnWhisperBtnUp(void) {
+	AfxGetTask()->PassMsgToActor("Lobby", MsgObject(0, 0x37, (intptr_t)m_pNick->GetLine(1, false), 0, 0, 0, 0));
 
 	Close(true);
 }
 
-void FrFriendInfoDlg::OnIgnoreInit(int param)
-{
-	m_pIgnore = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// friendinfodlg.cpp:71
+void FrFriendInfoDlg::OnIgnoreInit(intptr_t param) {
+	m_pIgnore = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrFriendInfoDlg::OnIgnoreBtnUp()
-{
-	std::list<std::string>::iterator it = std::find(Doc()->m_ignoreList.begin(),
-		Doc()->m_ignoreList.end(), m_pNick->GetLine(1, false));
-	if (it != Doc()->m_ignoreList.end())
-	{
-		Doc()->m_ignoreList.erase(it);
+// friendinfodlg.cpp:76
+void FrFriendInfoDlg::OnIgnoreBtnUp(void) {
+	std::list<std::string>::iterator it = std::find(WSingleton<CSharedDoc>::Instance()->m_ignoreList.begin(), WSingleton<CSharedDoc>::Instance()->m_ignoreList.end(), m_pNick->GetLine(1, false));
+	if (it != WSingleton<CSharedDoc>::Instance()->m_ignoreList.end()) {
+		// Already ignored: drop the nickname.
+		WSingleton<CSharedDoc>::Instance()->m_ignoreList.erase(it);
 		m_pIgnore->SetButtonImg("i58", FrButton::NORMAL);
 	}
-	else
-	{
-		Doc()->m_ignoreList.push_back(m_pNick->GetLine(1, false));
+	else {
+		WSingleton<CSharedDoc>::Instance()->m_ignoreList.push_back(m_pNick->GetLine(1, false));
 		m_pIgnore->SetButtonImg("i59", FrButton::NORMAL);
 	}
 }
 
-void FrFriendInfoDlg::OnCloseBtnUp()
-{
+// friendinfodlg.cpp:91
+void FrFriendInfoDlg::OnCloseBtnUp(void) {
 	Close(true);
 }
 
-bool FrFriendInfoDlg::OnInit()
-{
-	FrWnd* pStatic = FindChildByName("s_id");
-	if (pStatic)
-		pStatic->SetVisible(false);
-
-	if (m_pID)
+// friendinfodlg.cpp:97
+bool FrFriendInfoDlg::OnInit(void) {
+	FrWnd* pIdStatic = FindChildByName("s_id");
+	if (pIdStatic) {
+		pIdStatic->SetVisible(false);
+	}
+	if (m_pID) {
 		m_pID->SetVisible(false);
+	}
 
 	FrWnd* wnds[8];
 	wnds[0] = FindChildByName("s_nick");
@@ -101,10 +133,8 @@ bool FrFriendInfoDlg::OnInit()
 	wnds[6] = m_pServer;
 	wnds[7] = m_pChannel;
 
-	for (int i = 0; i < 8; i++)
-	{
-		if (wnds[i])
-		{
+	for (int i = 0; i < 8; i++) {
+		if (wnds[i]) {
 			WRect rect;
 			rect = wnds[i]->GetRect();
 			rect.y -= 14.0f;

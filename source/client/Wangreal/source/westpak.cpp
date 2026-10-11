@@ -1,197 +1,362 @@
-#include "westpak.h"
-#include "wminmax.h"
+// Original: d:\build\custom\temp\code\client\wangreal\source\westpak.cpp
+#include "../include/westpak.h"
+#include "../include/wlist.h"
+#include "../include/wutil.h"
+
+#include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <windows.h>
 
-// TODO: This is a workaround to get an exact match.
-// It's probably what the original code did, but it'll do for now.
-
-void* __cdecl operator new[](unsigned int);
-void __cdecl operator delete[](void*);
-
-extern "C"
-{
-	__declspec(dllimport) int __cdecl open(const char* filename, int mode, ...);
-	__declspec(dllimport) int __cdecl close(int handle);
-	__declspec(dllimport) int __cdecl read(int handle, void* buffer,
-		unsigned int count);
-	__declspec(dllimport) long __cdecl lseek(int handle, long offset,
-		int origin);
-	__declspec(dllimport) long __cdecl tell(int handle);
-	__declspec(dllimport) int __cdecl _access(const char* path, int mode);
-	__declspec(dllimport) int __cdecl _mkdir(const char* path);
-	__declspec(dllimport) int __cdecl _chdir(const char* path);
-	__declspec(dllimport) int __cdecl strcmpi(const char* left,
-		const char* right);
+// <io.h> of the VC7 CRT (not in externs/vs-2003/Vc7/include): the declarations used here.
+extern "C" {
+__declspec(dllimport) int __cdecl _close(int fh);
+__declspec(dllimport) long __cdecl _lseek(int fh, long offset, int origin);
+__declspec(dllimport) int __cdecl _read(int fh, void* buffer, unsigned int count);
+__declspec(dllimport) long __cdecl _tell(int fh);
+__declspec(dllimport) int __cdecl _open(const char* filename, int oflag, ...);
+__declspec(dllimport) int __cdecl open(const char* filename, int oflag, ...);
+__declspec(dllimport) int __cdecl _access(const char* path, int mode);
+// <direct.h>
+__declspec(dllimport) int __cdecl mkdir(const char* dirname);
+__declspec(dllimport) int __cdecl _chdir(const char* dirname);
 }
 
-void __fastcall Decipher(const unsigned int* const, unsigned int* const,
-	const unsigned int* const);
+// <fcntl.h>
+#define _O_RDONLY 0x0000
+#define _O_BINARY 0x8000
 
-struct sPakinfo
-{
-	char type;
-	short next;
-	int offset;
-	int packedsize;
-	int size;
-	char filename[1];
+// Stand-ins for Min/Max with the comparisons of rebang's wminmax.h (a > b ? b : a,
+// a < b ? b : a), which these functions' branch layout needs; wutil.h's Min/Max
+// (a <= b ? a : b, a >= b ? a : b) invert the branches. Drop these once the shared
+// header's Min/Max take that form.
+template <class T> T WestpakMin(T a, T b) { return a > b ? b : a; }
+template <class T> T WestpakMax(T a, T b) { return a < b ? b : a; }
+
+// The XTEA key of the pak index (type 0x20 entries), per regional client.
+// The original is the KR client; the CMake build reads another region's paks
+// with PG_PAK_REGION (CMakeLists.txt, docs/PAK_FORMAT.md). The default must
+// stay KR: the matching build defines none of these.
+#if defined(PG_PAK_REGION_EU)
+#define PAK_KEY0 0x1E986D8
+#define PAK_KEY1 0x5818479
+#define PAK_KEY2 0x3D2B0BB
+#define PAK_KEY3 0x2C9B030
+#elif defined(PG_PAK_REGION_JP)
+#define PAK_KEY0 0x20A5FD4
+#define PAK_KEY1 0x1EEBDFF
+#define PAK_KEY2 0x2B3C6A0
+#define PAK_KEY3 0x4F6A3E1
+#elif defined(PG_PAK_REGION_TH)
+#define PAK_KEY0 0x50AD33B
+#define PAK_KEY1 0x0BAFF09
+#define PAK_KEY2 0x452FFDA
+#define PAK_KEY3 0x2CB4422
+#elif defined(PG_PAK_REGION_US)
+#define PAK_KEY0 0x3F607A9
+#define PAK_KEY1 0x36F5A3E
+#define PAK_KEY2 0x11002B4
+#define PAK_KEY3 0x4AB00EA
+#elif defined(PG_PAK_REGION_ID)
+#define PAK_KEY0 0x1640DB7
+#define PAK_KEY1 0x1455A9B
+#define PAK_KEY2 0x27F1AB7
+#define PAK_KEY3 0x5918B54
+#elif defined(PG_PAK_REGION_BR)
+#define PAK_KEY0 0x165C26F
+#define PAK_KEY1 0x14936E3
+#define PAK_KEY2 0x27F1FB7
+#define PAK_KEY3 0x5A9601C
+#else // KR, the original
+#define PAK_KEY0 0x485B576
+#define PAK_KEY1 0x5148E02
+#define PAK_KEY2 0x5141D96
+#define PAK_KEY3 0x28FA9D6
+#endif
+
+// shared/tea.cpp
+void Decipher(const unsigned int* const v, unsigned int* const w, const unsigned int* const k);
+
+cFile* __cdecl GetCFile(const char* filename, int len, int pakonly);
+void __cdecl HookPAKFile(cFile* fp);
+
+// An index entry of a pak: the type, the next entry of the hash chain, where
+// the packed data sits and the name, which runs past the end of the record.
+struct sPakinfo {
+	char type;         // 0x0
+	short next;        // 0x2
+	long offset;       // 0x4
+	long packedsize;   // 0x8
+	long size;         // 0xc
+	char filename[1];  // 0x10
 };
+CHECK_SIZE(sPakinfo, 0x14);
+CHECK_FIELD(sPakinfo, type, 0x0);
+CHECK_FIELD(sPakinfo, next, 0x2);
+CHECK_FIELD(sPakinfo, offset, 0x4);
+CHECK_FIELD(sPakinfo, packedsize, 0x8);
+CHECK_FIELD(sPakinfo, size, 0xc);
+CHECK_FIELD(sPakinfo, filename, 0x10);
 
-struct sPak
-{
-	int num;
-	cFile* fp;
-	int offset;
-	short hash[256];
-	HANDLE lock;
-	sPakinfo** list;
-	sPak* next;
+// An opened pak: its file, the base offset, the name hash and the index.
+struct sPak {
+	long num;             // 0x0
+	cFile* fp;            // 0x4
+	long offset;          // 0x8
+	short hash[256];      // 0xc
+	void* lock;           // 0x20c
+	sPakinfo** list;      // 0x210
+	sPak* next;           // 0x214
 };
+CHECK_SIZE(sPak, 0x218);
+CHECK_FIELD(sPak, num, 0x0);
+CHECK_FIELD(sPak, fp, 0x4);
+CHECK_FIELD(sPak, offset, 0x8);
+CHECK_FIELD(sPak, hash, 0xc);
+CHECK_FIELD(sPak, lock, 0x20c);
+CHECK_FIELD(sPak, list, 0x210);
+CHECK_FIELD(sPak, next, 0x214);
 
-class cFilePacked : public cFile
-{
+// A file mapped into memory.
+class cFileMap : public cFile {
+	LAYOUT_CHECK_FRIEND;
 public:
-	cFilePacked(sPak* pak, sPakinfo* info, int buffersize);
+	cFileMap();
+	virtual ~cFileMap();
+	virtual bool Open(const char* filename);
+	virtual int Read(void* buffer, int size);
+	virtual int GetByte();
+	virtual void Seek(int offset, int origin);
+	virtual int Tell();
+
+protected:
+	void* m_hFile;  // 0x8
+	void* m_hMap;   // 0xc
+	char* m_pBuff;  // 0x10
+	int m_offset;   // 0x14
+};
+CHECK_SIZE(cFileMap, 0x18);
+BEGIN_LAYOUT_CHECK(cFileMap)
+	CHECK_FIELD(cFileMap, m_hFile, 0x8);
+	CHECK_FIELD(cFileMap, m_hMap, 0xc);
+	CHECK_FIELD(cFileMap, m_pBuff, 0x10);
+	CHECK_FIELD(cFileMap, m_offset, 0x14);
+END_LAYOUT_CHECK
+
+// A file opened with _open, read through the CRT's low-level calls.
+class cFileDefault : public cFile {
+	LAYOUT_CHECK_FRIEND;
+public:
+	cFileDefault(int fhl);
+	virtual ~cFileDefault();
+	virtual int Read(void* buffer, int size);
+	virtual int GetByte();
+	virtual void Seek(int offset, int origin);
+	virtual int Tell();
+
+private:
+	int fhl;  // 0x8
+};
+CHECK_SIZE(cFileDefault, 0xc);
+BEGIN_LAYOUT_CHECK(cFileDefault)
+	CHECK_FIELD(cFileDefault, fhl, 0x8);
+END_LAYOUT_CHECK
+
+// A whole file copied into memory.
+class cFileMemory : public cFile {
+	LAYOUT_CHECK_FRIEND;
+public:
+	cFileMemory(cFile* file);
+	virtual ~cFileMemory();
+	virtual int Read(void* buffer, int size);
+	virtual int GetByte();
+	virtual void Seek(int offset, int origin);
+	virtual int Tell();
+
+private:
+	char* buffer;  // 0x8
+	int offset;    // 0xc
+};
+CHECK_SIZE(cFileMemory, 0x10);
+BEGIN_LAYOUT_CHECK(cFileMemory)
+	CHECK_FIELD(cFileMemory, buffer, 0x8);
+	CHECK_FIELD(cFileMemory, offset, 0xc);
+END_LAYOUT_CHECK
+
+// A stored (uncompressed) entry of a pak, read through a block buffer.
+class cFilePacked : public cFile {
+	LAYOUT_CHECK_FRIEND;
+public:
+	cFilePacked(sPak* pak, sPakinfo* pakinfo, int bufsize);
 	virtual ~cFilePacked();
-	virtual int Read(void* target, int size);
-	virtual int GetByte(void);
-	virtual int Tell(void);
-	virtual void Seek(int position, int origin);
+	virtual int Read(void* buffer, int size);
+	virtual int GetByte();
+	virtual void Seek(int offset, int origin);
+	virtual int Tell();
+
+private:
+	void ReadBlock();
+
+	char* buffer;        // 0x8
+	int current;         // 0xc
+	int pivot;           // 0x10
+	int trace;           // 0x14
+	int size;            // 0x18
+	int offset;          // 0x1c
+	int bufsize;         // 0x20
+	sPak* pak;           // 0x24
+	sPakinfo* pakinfo;   // 0x28
+};
+CHECK_SIZE(cFilePacked, 0x2c);
+BEGIN_LAYOUT_CHECK(cFilePacked)
+	CHECK_FIELD(cFilePacked, buffer, 0x8);
+	CHECK_FIELD(cFilePacked, current, 0xc);
+	CHECK_FIELD(cFilePacked, pivot, 0x10);
+	CHECK_FIELD(cFilePacked, trace, 0x14);
+	CHECK_FIELD(cFilePacked, size, 0x18);
+	CHECK_FIELD(cFilePacked, offset, 0x1c);
+	CHECK_FIELD(cFilePacked, bufsize, 0x20);
+	CHECK_FIELD(cFilePacked, pak, 0x24);
+	CHECK_FIELD(cFilePacked, pakinfo, 0x28);
+END_LAYOUT_CHECK
+
+// An LZ-compressed entry of a pak, decoded block by block.
+class cFileLZ : public cFilePacked {
+	LAYOUT_CHECK_FRIEND;
+public:
+	cFileLZ(sPak* pak, sPakinfo* pakinfo, int bufsize);
+	virtual int Read(void* buffer, int size);
+	virtual int GetByte();
+	virtual void Seek(int offset, int origin);
+	virtual int Tell();
 
 protected:
-	char* buffer;
-	int current;
-	int pivot;
-	int trace;
-	int size;
-	int offset;
-	int bufsize;
-	sPak* pak;
-	sPakinfo* pakinfo;
+	virtual void ReadBlock();
+
+	int current;                    // 0x2c
+	int offset;                     // 0x30
+	int trace;                      // 0x34
+	unsigned char buffer[8192];     // 0x38
+};
+CHECK_SIZE(cFileLZ, 0x2038);
+BEGIN_LAYOUT_CHECK(cFileLZ)
+	CHECK_FIELD(cFileLZ, current, 0x2c);
+	CHECK_FIELD(cFileLZ, offset, 0x30);
+	CHECK_FIELD(cFileLZ, trace, 0x34);
+	CHECK_FIELD(cFileLZ, buffer, 0x38);
+END_LAYOUT_CHECK
+
+// An entry of a pak compressed with the second LZ variant.
+class cFileLZ2 : public cFileLZ {
+public:
+	cFileLZ2(sPak* pak, sPakinfo* pakinfo, int bufsize);
 
 private:
-	void ReadBlock(void);
-	friend class cFileLZ;
-	friend class cFileLZ2;
+	virtual void ReadBlock();
 };
+CHECK_SIZE(cFileLZ2, 0x2038);
 
-class cFileLZ : public cFilePacked
-{
-public:
-	cFileLZ(sPak* pak, sPakinfo* info, int buffersize);
-	virtual int Read(void* target, int size);
-	virtual int GetByte(void);
-	virtual int Tell(void);
-	virtual void Seek(int position, int origin);
+sPak* pak = NULL;
+static char logname[128];
+static char clonedirectory[128];
+// The keys cFileLZ2 scrambles its back references with.
+static unsigned int secutable[8] = { 0xff21, 0x834f, 0x675f, 0x34, 0xf237, 0x815f, 0x4765, 0x233 };
 
-protected:
-	virtual void ReadBlock(void);
-	int current;
-	int offset;
-	int trace;
-	unsigned char buffer[0x2000];
-};
+// westpak.cpp:77
+void __cdecl EnumFileList(WList<char*>* list) {
+	WList<char*> mul(4096, 128);
 
-class cFileLZ2 : public cFileLZ
-{
-public:
-	cFileLZ2(sPak* archive, sPakinfo* info, int buffersize)
-		: cFileLZ(archive, info, buffersize)
-	{
-	}
+	for (sPak* s = pak; s; s = s->next) {
+		for (int i = 0; i < s->num; i++) {
+			if (s->list[i]->type == 2)
+				continue;
 
-private:
-	virtual void ReadBlock(void);
-};
+			if (mul.Find(s->list[i]->filename))
+				continue;
 
-class cFileRaw : public cFile
-{
-public:
-	cFileRaw(int handle, int buffersize);
-	virtual ~cFileRaw();
-	virtual int Read(void* target, int size);
-	virtual int GetByte(void);
-	virtual int Tell(void);
-	virtual void Seek(int position, int origin);
-
-private:
-	void ReadBlock(void);
-	int current;
-	int offset;
-	int trace;
-	int bufsize;
-	char* buffer;
-	int fhl;
-};
-
-static char logname[128] = { 0 };
-static char clonedirectory[128] = { 0 };
-sPak* pak = 0;
-
-static unsigned long secutable[8] = { 0x0000ff21, 0x0000834f, 0x0000675f,
-	0x00000034, 0x0000f237, 0x0000815f, 0x00004765, 0x00000233 };
-
-cFileMap::cFileMap()
-{
-	m_hFile = 0;
-	m_hMap = 0;
-	m_pBuff = 0;
-	m_offset = 0;
-}
-
-cFileMap::~cFileMap()
-{
-	if (m_pBuff)
-	{
-		UnmapViewOfFile(m_pBuff);
-		m_pBuff = 0;
-	}
-	if (m_hMap)
-	{
-		CloseHandle(m_hMap);
-		m_hMap = 0;
-	}
-	if (m_hFile)
-	{
-		CloseHandle(m_hFile);
-		m_hFile = 0;
-	}
-}
-
-bool cFileMap::Open(const char* filename)
-{
-	HANDLE handle = CreateFileA(filename, 0x80000000, 1, 0, 3, 0x80, 0);
-	m_hFile = handle;
-	if (handle == INVALID_HANDLE_VALUE)
-		return false;
-	m_nLen = GetFileSize(handle, 0);
-	m_hMap = CreateFileMappingA(m_hFile, 0, 2, 0, 0, 0);
-	if (m_hMap)
-	{
-		if (GetLastError() == 0xb6)
-		{
-			CloseHandle(m_hMap);
-			m_hMap = 0;
+			char* fname = new char[strlen(s->list[i]->filename) + 1];
+			strcpy(fname, s->list[i]->filename);
+			*list += fname;
+			mul.AddItem(fname, fname);
 		}
 	}
-	if (m_hMap)
-	{
-		m_pBuff = (char*)MapViewOfFile(m_hMap, 4, 0, 0, 0);
+}
+
+// westpak.cpp:155
+cFileLZ2::cFileLZ2(sPak* pak, sPakinfo* pakinfo, int bufsize) : cFileLZ(pak, pakinfo, bufsize) {}
+
+// westpak.cpp:211
+cFileMap::cFileMap() : m_hFile(NULL), m_hMap(NULL), m_pBuff(NULL), m_offset(0) {}
+
+// A plain file read through a block buffer.
+class cFileRaw : public cFile {
+	LAYOUT_CHECK_FRIEND;
+public:
+	cFileRaw(int fhl, int bufsize);
+	virtual ~cFileRaw();
+	virtual int Read(void* buffer, int size);
+	virtual int GetByte();
+	virtual void Seek(int offset, int origin);
+	virtual int Tell();
+
+private:
+	void ReadBlock();
+
+	int current;    // 0x8
+	int offset;     // 0xc
+	int trace;      // 0x10
+	int bufsize;    // 0x14
+	char* buffer;   // 0x18
+	int fhl;        // 0x1c
+};
+CHECK_SIZE(cFileRaw, 0x20);
+BEGIN_LAYOUT_CHECK(cFileRaw)
+	CHECK_FIELD(cFileRaw, current, 0x8);
+	CHECK_FIELD(cFileRaw, offset, 0xc);
+	CHECK_FIELD(cFileRaw, trace, 0x10);
+	CHECK_FIELD(cFileRaw, bufsize, 0x14);
+	CHECK_FIELD(cFileRaw, buffer, 0x18);
+	CHECK_FIELD(cFileRaw, fhl, 0x1c);
+END_LAYOUT_CHECK
+
+// westpak.cpp:215
+cFileMap::~cFileMap() {
+	if (m_pBuff) {
+		UnmapViewOfFile(m_pBuff);
+		m_pBuff = NULL;
+	}
+	if (m_hMap) { CloseHandle(m_hMap); m_hMap = NULL; }
+	if (m_hFile) { CloseHandle(m_hFile); m_hFile = NULL; }
+}
+
+// westpak.cpp:227
+bool cFileMap::Open(const char* pFilename) {
+	m_hFile = CreateFileA(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (m_hFile == INVALID_HANDLE_VALUE)
+		return false;
+
+	m_nLen = GetFileSize(m_hFile, NULL);
+	m_hMap = CreateFileMappingA(m_hFile, NULL, PAGE_READONLY, 0, 0, NULL);
+	if (m_hMap != NULL && GetLastError() == ERROR_INVALID_ORDINAL) {
+		CloseHandle(m_hMap);
+		m_hMap = NULL;
+	}
+
+	if (m_hMap) {
+		m_pBuff = (char*)MapViewOfFile(m_hMap, FILE_MAP_READ, 0, 0, 0);
 		m_offset = 0;
 	}
+
 	return true;
 }
 
-int cFileMap::Read(void* target, int size)
-{
-	if (m_pBuff)
-	{
-		size = Min(m_nLen - m_offset, size);
-		if (size > 0)
-		{
-			memcpy(target, m_pBuff + m_offset, size);
+// westpak.cpp:252
+int cFileMap::Read(void* pDest, int size) {
+	if (m_pBuff) {
+		if (m_nLen - m_offset <= size) size = m_nLen - m_offset;
+		if (size > 0) {
+			memcpy(pDest, m_pBuff + m_offset, size);
 			m_offset += size;
 			return size;
 		}
@@ -199,463 +364,432 @@ int cFileMap::Read(void* target, int size)
 	return 0;
 }
 
-int cFileMap::GetByte(void)
-{
-	if (m_pBuff && m_offset < m_nLen && m_offset >= 0)
-		return (unsigned char)m_pBuff[m_offset++];
+// westpak.cpp:267
+int cFileMap::GetByte() {
+	if (m_pBuff) {
+		if (m_offset < m_nLen && m_offset >= 0)
+			return (unsigned char)m_pBuff[m_offset++];
+	}
 	return -1;
 }
 
-void cFileMap::Seek(int position, int origin)
-{
-	switch (origin)
-	{
-	case 0:
-		m_offset = position;
-		break;
-	case 1:
-		m_offset = m_offset + position;
-		break;
-	case 2:
-		m_offset = m_nLen + position;
-		break;
+// westpak.cpp:277
+void cFileMap::Seek(int pos, int origin) {
+	switch (origin) {
+	case SEEK_SET: m_offset = pos; break;
+	case SEEK_CUR: m_offset += pos; break;
+	case SEEK_END: m_offset = m_nLen + pos; break;
 	}
 }
 
-int cFileMap::Tell(void)
-{
+// westpak.cpp:287
+int cFileMap::Tell() {
 	return m_offset;
 }
 
-class cFileDefault : public cFile
-{
-public:
-	cFileDefault(int handle) { fhl = handle; }
-	~cFileDefault() { close(fhl); }
-	virtual int Read(void* target, int size) { return read(fhl, target, size); }
-	virtual int GetByte(void)
-	{
-		unsigned char value;
-		if (Read(&value, 1))
-			return value;
-		return -1;
-	}
+// westpak.cpp:362
+cFileDefault::cFileDefault(int fhl) : fhl(fhl) {}
+// westpak.cpp:363
+cFileDefault::~cFileDefault() { _close(fhl); }
+// westpak.cpp:365
+int cFileDefault::Read(void* data, int size) { return _read(fhl, data, size); }
+// westpak.cpp:366
+int cFileDefault::GetByte() { unsigned char c; if (Read(&c, 1)) return c; return -1; }
+// westpak.cpp:367
+void cFileDefault::Seek(int offset, int origin) { _lseek(fhl, offset, origin); }
+// westpak.cpp:368
+int cFileDefault::Tell() { return _tell(fhl); }
 
-	virtual void Seek(int position, int origin)
-	{
-		lseek(fhl, position, origin);
-	}
-	virtual int Tell(void) { return tell(fhl); }
+// westpak.cpp:383
+cFileMemory::cFileMemory(cFile* fp) {
+	m_nLen = fp->Length();
+	buffer = new char[fp->Length()];
+	fp->Read(buffer, fp->Length());
+	offset = 0;
+	delete fp;
+}
 
-private:
-	int fhl;
-};
+// westpak.cpp:393
+cFileMemory::~cFileMemory() {
+	delete[] buffer;
+}
 
-class cFileMemory : public cFile
-{
-public:
-	cFileMemory(cFile* file)
-	{
-		m_nLen = file->Length();
-		buffer = new char[file->Length()];
-		file->Read(buffer, file->Length());
-		offset = 0;
-		CloseCFile(file);
-	}
-	~cFileMemory() { delete[] buffer; }
-	virtual int Read(void* target, int size)
-	{
-		if (offset + size > m_nLen)
-			size = m_nLen - offset;
-		if (size)
-		{
-			memcpy(target, buffer + offset, size);
-			offset += size;
-		}
-		return size;
-	}
-	virtual int GetByte(void)
-	{
-		if (offset < m_nLen)
-			return (unsigned char)buffer[offset++];
-		return -1;
-	}
+// westpak.cpp:398
+int cFileMemory::Read(void* data, int size) {
+	if (offset + size > m_nLen)
+		size = m_nLen - offset;
 
-	virtual void Seek(int position, int origin)
-	{
-		switch (origin)
-		{
-		case 0:
-			offset = position;
-			break;
-		case 1:
-			offset = offset + position;
-			break;
-		case 2:
-			offset = m_nLen + position;
-			break;
-		}
+	if (size) {
+		memcpy(data, buffer + offset, size);
+		offset += size;
 	}
-	virtual int Tell(void) { return offset; }
+	return size;
+}
 
-private:
-	char* buffer;
-	int offset;
-};
+// westpak.cpp:411
+int cFileMemory::GetByte() {
+	return offset < m_nLen ? (unsigned char)buffer[offset++] : -1;
+}
 
-static sPak* OpenPAKFILE2(cFile* file)
-{
-	int namelen = 0;
-	if (file == 0)
-		return 0;
-	sPak* archive = new sPak;
-	archive->lock = CreateEventA(0, 0, 1, 0);
+// westpak.cpp:416
+void cFileMemory::Seek(int pos, int origin) {
+	switch (origin) {
+	case SEEK_CUR:
+		offset += pos;
+		break;
+
+	case SEEK_SET:
+		offset = pos;
+		break;
+
+	case SEEK_END:
+		offset = m_nLen + pos;
+		break;
+	}
+}
+
+// westpak.cpp:432
+int cFileMemory::Tell() {
+	return offset;
+}
+
+// <new>: the array form is declared from here on (the earlier new[] call operator new).
+void* __cdecl operator new[](unsigned int);
+
+// westpak.cpp:573
+static sPak* OpenPAKFILE2(cFile* fp) {
+	int len = 0;
+	if (!fp)
+		return NULL;
+
+	sPak* s = new sPak;
+
+	s->lock = CreateEventA(NULL, FALSE, TRUE, NULL);
+
 	for (int slot = 0; slot < 256; slot++)
-		archive->hash[slot] = -1;
-	file->Seek(-9, 2);
-	int names;
-	file->Read(&names, 4);
-	file->Read(archive, 4);
-	if (archive->num <= 0)
-	{
-		delete archive;
-		return 0;
+		s->hash[slot] = -1;
+
+	fp->Seek(-9, SEEK_END);
+
+	int offset;
+	fp->Read(&offset, 4);
+	fp->Read(&s->num, 4);
+
+	if (s->num <= 0) {
+		delete s;
+		return NULL;
 	}
-	archive->list = (sPakinfo**)new char[archive->num * 4];
-	archive->list[0] =
-		(sPakinfo*)new char[file->Tell() - 8 + (archive->num * 6 - names)];
-	file->Seek(names, 0);
-	names = 0;
-	int index = 0;
-	if (archive->num > 0)
-	{
-		do
-		{
-			archive->list[index] = (sPakinfo*)((char*)archive->list[0] + names);
-			file->Read(&namelen, 1);
-			file->Read(archive->list[index], 1);
-			if ((archive->list[index]->type & 0xf0) == 0)
-				archive->list[index]->type |= 0x10;
-			switch (archive->list[index]->type & 0xf0)
-			{
-			case 0x10:
-			{
-				file->Read(&archive->list[index]->offset, 4);
-				file->Read(&archive->list[index]->packedsize, 4);
-				file->Read(&archive->list[index]->size, 4);
-				file->Read(archive->list[index]->filename, namelen + 1);
-				archive->list[index]->size ^= 0x71;
-				for (int b = 0; b < namelen; b++)
-					archive->list[index]->filename[b] ^= 0x71;
-				int code =
-					(int)((strlen(archive->list[index]->filename) & 0xf) *
-							0x10 +
-						(archive->list[index]->filename[0] & 0xf));
-				archive->list[index]->next = archive->hash[code];
-				archive->hash[code] = (short)index;
-				names = names + 0x15 + namelen;
-			}
-			break;
-			case 0x20:
-			{
-				unsigned int key[4];
-				unsigned int input[2];
-				unsigned int output[2];
-				file->Read(&archive->list[index]->offset, 4);
-				file->Read(&archive->list[index]->packedsize, 4);
-				file->Read(&archive->list[index]->size, 4);
-				file->Read(archive->list[index]->filename, namelen);
-				input[0] = archive->list[index]->offset;
-				input[1] = archive->list[index]->size;
-				key[0] = 0x0485b576;
-				key[1] = 0x05148e02;
-				key[2] = 0x05141d96;
-				key[3] = 0x028fa9d6;
-				Decipher(input, output, key);
-				archive->list[index]->offset = output[0];
-				archive->list[index]->size = output[1];
-				for (int b = 0; b < namelen; b += 8)
-				{
-					input[0] =
-						*(unsigned int*)(archive->list[index]->filename + b);
-					input[1] = *(
-						unsigned int*)(archive->list[index]->filename + b + 4);
-					Decipher(input,
-						(unsigned int*)(archive->list[index]->filename + b),
-						key);
+
+	s->list = new sPakinfo*[s->num];
+	s->list[0] = (sPakinfo*)new char[fp->Tell() - offset + s->num * 6 - 8];
+
+	fp->Seek(offset, SEEK_SET);
+
+	offset = 0;
+	int i = 0;
+	if (s->num > 0) {
+		do {
+			s->list[i] = (sPakinfo*)((char*)s->list[0] + offset);
+
+			fp->Read(&len, 1);
+			fp->Read(s->list[i], 1);
+
+			if (!(s->list[i]->type & 0xf0))
+				s->list[i]->type |= 0x10;
+
+			switch (s->list[i]->type & 0xf0) {
+			case 0x10: {
+				fp->Read(&s->list[i]->offset, 4);
+				fp->Read(&s->list[i]->packedsize, 4);
+				fp->Read(&s->list[i]->size, 4);
+				fp->Read(s->list[i]->filename, len + 1);
+
+				s->list[i]->size ^= 0x71;
+
+				for (int j = 0; j < len; j++)
+					s->list[i]->filename[j] ^= 0x71;
+
+				int h = ((strlen(s->list[i]->filename) & 0xf) << 4) + (s->list[i]->filename[0] & 0xf);
+
+				s->list[i]->next = s->hash[h];
+				s->hash[h] = i;
+
+				offset += len + sizeof(sPakinfo) + 1;
+			} break;
+
+			case 0x20: {
+				unsigned int k[4];
+				unsigned int v[2];
+				unsigned int w[2];
+				fp->Read(&s->list[i]->offset, 4);
+				fp->Read(&s->list[i]->packedsize, 4);
+				fp->Read(&s->list[i]->size, 4);
+				fp->Read(s->list[i]->filename, len);
+
+				v[0] = s->list[i]->offset; v[1] = s->list[i]->size;
+
+				k[0] = PAK_KEY0; k[1] = PAK_KEY1; k[2] = PAK_KEY2; k[3] = PAK_KEY3; Decipher(v, w, k);
+				s->list[i]->offset = w[0];
+				s->list[i]->size = w[1];
+
+				for (int kk = 0; kk < len; kk += 8) {
+					v[0] = *(unsigned int*)(s->list[i]->filename + kk);
+					v[1] = *(unsigned int*)(s->list[i]->filename + kk + 4);
+					Decipher(v, (unsigned int*)(s->list[i]->filename + kk), k);
 				}
-				int code = (namelen & 0xf) * 0x10 +
-					(archive->list[index]->filename[0] & 0xf);
-				archive->list[index]->next = archive->hash[code];
-				archive->hash[code] = (short)index;
-				names = names + 0x14 + namelen;
+
+				int h = ((len & 0xf) << 4) + (s->list[i]->filename[0] & 0xf);
+
+				s->list[i]->next = s->hash[h];
+				s->hash[h] = i;
+
+				offset += len + sizeof(sPakinfo);
+			} break;
+
+			case 0x80: {
+				fp->Read(&s->list[i]->offset, 4);
+				fp->Read(&s->list[i]->packedsize, 4);
+				fp->Read(&s->list[i]->size, 4);
+				fp->Read(s->list[i]->filename, len + 1);
+
+				int h = ((strlen(s->list[i]->filename) & 0xf) << 4) + (s->list[i]->filename[0] & 0xf);
+
+				s->list[i]->next = s->hash[h];
+				s->hash[h] = i;
+
+				offset += len + sizeof(sPakinfo) + 1;
+			} break;
 			}
-			break;
-			case 0x80:
-			{
-				file->Read(&archive->list[index]->offset, 4);
-				file->Read(&archive->list[index]->packedsize, 4);
-				file->Read(&archive->list[index]->size, 4);
-				file->Read(archive->list[index]->filename, namelen + 1);
-				int code =
-					(int)((strlen(archive->list[index]->filename) & 0xf) *
-							0x10 +
-						(archive->list[index]->filename[0] & 0xf));
-				archive->list[index]->next = archive->hash[code];
-				archive->hash[code] = (short)index;
-				names = names + 0x15 + namelen;
-			}
-			break;
-			}
-			index++;
-		} while (index < archive->num);
+			i++;
+		} while (i < s->num);
 	}
-	archive->offset = file->Tell();
-	archive->next = 0;
-	archive->fp = file;
-	return archive;
+
+	s->offset = fp->Tell();
+	s->next = NULL;
+	s->fp = fp;
+	return s;
 }
 
-void __cdecl HookPAKFile(const char* filename)
-{
-	int handle = open(filename, 0x8000, 0);
-	if (handle != -1)
-	{
-		cFile* file = new cFileDefault(handle);
-		sPak* archive = OpenPAKFILE2(file);
-		archive->next = pak;
-		pak = archive;
-	}
-	else
-	{
-		cFile* file = GetCFile(filename, 0x8000, 0);
-		if (file)
-		{
-			sPak* archive = OpenPAKFILE2(file);
-			archive->next = pak;
-			pak = archive;
-		}
+// westpak.cpp:713
+void __cdecl HookPAKFile(const char* filename) {
+	cFile* fp;
+	int fhl = _open(filename, _O_BINARY, 0);
+
+	if (fhl != -1) {
+		fp = new cFileDefault(fhl);
+
+		sPak* s = OpenPAKFILE2(fp);
+
+		s->next = pak;
+		pak = s;
+	} else {
+		fp = GetCFile(filename, 0x8000, 0);
+		if (fp) HookPAKFile(fp);
 	}
 }
 
-void __cdecl HookPAKFile(cFile* file)
-{
-	sPak* archive = OpenPAKFILE2(file);
-	archive->next = pak;
-	pak = archive;
+// westpak.cpp:755
+void __cdecl HookPAKFile(cFile* fp) {
+	sPak* s = OpenPAKFILE2(fp);
+
+	s->next = pak;
+	pak = s;
 }
 
-static void ReleasePAK(sPak* archive)
-{
-	if (archive == 0)
-		return;
-	if (archive->next)
-		ReleasePAK(archive->next);
-	delete[] (char*)archive->list[0];
-	delete[] (char*)archive->list;
-	CloseCFile(archive->fp);
-	CloseHandle(archive->lock);
-	delete archive;
+// westpak.cpp:771
+static void ReleasePAK(sPak* s) {
+	if (s) {
+		if (s->next)
+			ReleasePAK(s->next);
+
+		delete[] s->list[0];
+		delete[] s->list;
+		delete s->fp;
+
+		CloseHandle(s->lock);
+
+		delete s;
+	}
 }
 
-void __cdecl ReleasePAK(void)
-{
+// westpak.cpp:806
+void __cdecl ReleasePAK() {
 	ReleasePAK(pak);
-	pak = 0;
+	pak = NULL;
 }
 
-void __cdecl MakeLog(char* name)
-{
-	strcpy(logname, name);
-	FILE* stream = fopen(logname, "wt");
-	fprintf(stream, "LogFile (%s %s)\n-------\n", "Oct 21 2011", "12:23:28");
-	fclose(stream);
+// westpak.cpp:821
+void __cdecl MakeLog(char* filename) {
+	strcpy(logname, filename);
+
+	FILE* fp = fopen(logname, "wt");
+	fprintf(fp, "LogFile (%s %s)\n-------\n", __DATE__, __TIME__);
+	fclose(fp);
 }
 
-static void makedirectory(char* path)
-{
-	CHAR restore[128];
-	char part[128];
-	GetCurrentDirectoryA(128, restore);
-	char* cursor = path;
-	while (*cursor != 0)
-	{
-		cursor = strchr(cursor + 1, '\\');
-		if (cursor == 0)
-			cursor = path + strlen(path);
-		if (cursor[-1] != ':')
-		{
-			unsigned int used = (unsigned int)(cursor - path);
-			memcpy(part, path, used);
-			part[used] = 0;
-			_mkdir(part);
-			_chdir(part);
-		}
+// westpak.cpp:834
+static void makedirectory(char* directory) {
+	char dir[128];
+	char curdir[128];
+	char* p;
+
+	GetCurrentDirectoryA(128, curdir);
+
+	for (p = directory; *p; ) {
+		p = strchr(p + 1, '\\');
+		if (!p)
+			p = directory + strlen(directory);
+		if (p[-1] == ':')
+			continue;
+
+		memcpy(dir, directory, p - directory);
+		dir[p - directory] = 0;
+		mkdir(dir);
+		_chdir(dir);
 	}
-	_chdir(restore);
+
+	_chdir(curdir);
 }
 
-void __fastcall ConvertDirectoryMarks(char* target, unsigned int limit,
-	const char* source)
-{
-	strcpy(target, source);
-	unsigned int index = 0;
-	while (target[index] != 0 && index < limit)
-	{
-		if (target[index] == '/')
-			target[index] = '\\';
-		index++;
+// westpak.cpp:857
+void ConvertDirectoryMarks(char* pDest, unsigned int nDestLen, const char* pSrc) {
+	strcpy(pDest, pSrc);
+	for (unsigned int i = 0; pDest[i] && i < nDestLen; i++) {
+		if (pDest[i] == '/')
+			pDest[i] = '\\';
 	}
 }
 
-void __cdecl ExportFiles(const char* directory)
-{
+// westpak.cpp:869
+void __cdecl ExportFiles(const char* directory) {
 	strcpy(clonedirectory, directory);
-	if (clonedirectory[strlen(clonedirectory) - 1] == '/')
-	{
-		if (clonedirectory[strlen(clonedirectory) - 1] == '\\')
-			return;
-	}
-	strcat(clonedirectory, "\\");
+
+	if (clonedirectory[strlen(clonedirectory) - 1] != '/' || clonedirectory[strlen(clonedirectory) - 1] != '\\')
+		strcat(clonedirectory, "\\");
 }
 
-static cFile* GetCFileSub(const char* name, int buffersize, int flag)
-{
-	if (buffersize < 0)
-	{
-		cFile* source = GetCFile(name, 0x1000, flag);
-		if (source)
-			return new cFileMemory(source);
-		return 0;
+// westpak.cpp:877
+static cFile* GetCFileSub(const char* filename, int len, int pakonly) {
+	char fname[260];
+
+	if (len < 0) {
+		cFile* fp = GetCFile(filename, 0x1000, pakonly);
+		return fp ? new cFileMemory(fp) : NULL;
 	}
-	if (logname[0] != 0)
-	{
-		FILE* stream = fopen(logname, "at");
-		fprintf(stream, "%s\n", name);
-		fclose(stream);
+
+	if (logname[0]) {
+		FILE* fp = fopen(logname, "at");
+		fprintf(fp, "%s\n", filename);
+		fclose(fp);
 	}
-	for (sPak* archive = pak; archive != 0; archive = archive->next)
-	{
-		for (int index = 0; index < archive->num; index++)
-		{
-			if (strcmpi(name, archive->list[index]->filename) == 0)
-			{
-				switch (archive->list[index]->type & 0xf)
-				{
+
+	for (sPak* s = pak; s; s = s->next) {
+		for (int i = 0; i < s->num; i++) {
+			if (strcmpi(filename, s->list[i]->filename) == 0) {
+				switch (s->list[i]->type & 0xf) {
 				case 0:
-					return new cFilePacked(archive, archive->list[index],
-						buffersize);
+					return new cFilePacked(s, s->list[i], len);
 				case 1:
-					return new cFileLZ(archive, archive->list[index],
-						buffersize);
+					return new cFileLZ(s, s->list[i], len);
 				case 3:
-					return new cFileLZ2(archive, archive->list[index],
-						buffersize);
+					return new cFileLZ2(s, s->list[i], len);
 				}
 			}
 		}
 	}
-	if (flag == 0)
-	{
-		char path[260];
-		ConvertDirectoryMarks(path, 0x104, name);
-		int handle = open(path, 0x8000, 0);
-		if (handle != -1)
-			return new cFileRaw(handle, buffersize);
-	}
-	return 0;
+
+	if (pakonly)
+		return NULL;
+
+	ConvertDirectoryMarks(fname, 260, filename);
+
+	int fhl;
+	if ((fhl = open(fname, _O_RDONLY | _O_BINARY, 0)) != -1)
+		return new cFileRaw(fhl, len);
+
+	return NULL;
 }
 
-cFile* __cdecl GetCFile(const char* name, int buffersize, int flag)
-{
-	char directory[260];
-	char full[260];
-	cFile* file = GetCFileSub(name, buffersize, flag);
-	if (file && clonedirectory[0] != 0)
-	{
-		sprintf(full, "%s%s", clonedirectory, name);
-		while (strchr(full, '/') != 0)
-			*strchr(full, '/') = '\\';
-		if (_access(full, 0) == -1)
-		{
-			strcpy(directory, full);
-			*strrchr(directory, '\\') = 0;
-			makedirectory(directory);
-			FILE* stream = fopen(full, "wb");
-			for (int index = 0; index < file->Length(); index++)
-				fputc(file->GetByte(), stream);
-			fclose(stream);
+// westpak.cpp:980
+cFile* __cdecl GetCFile(const char* filename, int len, int pakonly) {
+	char dir[260];
+	char fname[260];
+
+	cFile* fp = GetCFileSub(filename, len, pakonly);
+
+	if (fp && clonedirectory[0]) {
+		sprintf(fname, "%s%s", clonedirectory, filename);
+		while (strchr(fname, '/'))
+			*strchr(fname, '/') = '\\';
+
+		if (_access(fname, 0) == -1) {
+			strcpy(dir, fname);
+			*strrchr(dir, '\\') = 0;
+			makedirectory(dir);
+
+			FILE* f = fopen(fname, "wb");
+			for (int i = 0; i < fp->Length(); i++)
+				fputc(fp->GetByte(), f);
+			fclose(f);
 		}
-		file->Seek(0, 0);
+
+		fp->Seek(0, 0);
 	}
-	return file;
+
+	return fp;
 }
 
-void __cdecl EnumFileList(WList<char*>* out)
-{
-	WList<char*> seen(0x1000, 0x80);
-	for (sPak* archive = pak; archive != 0; archive = archive->next)
-	{
-		for (int index = 0; index < archive->num; index++)
-		{
-			sPakinfo* info = archive->list[index];
-			if (info->type != 2)
-			{
-				if (seen.Find(info->filename) == 0)
-				{
-					char* name = new char[strlen(info->filename) + 1];
-					strcpy(name, archive->list[index]->filename);
-					*out += name;
-					seen.AddItem(name, name, false);
-				}
-			}
-		}
-	}
-}
-
-void __cdecl CloseCFile(cFile* file)
-{
-	if (file)
+// westpak.cpp:1025
+void __cdecl CloseCFile(cFile* file) {
+	if (file) {
 		delete file;
+	}
 }
 
-bool cFile::Scan(const char* format, ...)
-{
-	int arg = 0;
-	char buffer[128];
-	int c = -1;
-	int length = (int)strlen(format);
+// westpak.cpp:1047
+// The original reaches the variadic arguments through the address of the last
+// named parameter (`((T**)&fmt)[++arg]`), which only works where the arguments
+// are contiguous on the stack. cl 13.10 lays them out that way; arm64 passes
+// them in registers, so the port reads them through va_list (docs/PORTABILITY.md).
+#if PG_ABI32
+#define PG_SCAN_PTR(T) ((T)((void**)&fmt)[++arg])
+#else
+#define PG_SCAN_PTR(T) ((T)va_arg(ap, void*))
+#endif
 
-	for (int i = 0; i < length; i++)
-	{
-		if (format[i] == '%')
-		{
-			if (c == -1)
-			{
+bool __cdecl cFile::Scan(const char* fmt, ...) {
+	int arg = 0;
+	char temp[128];
+	int c = -1;
+	int len = (int)strlen(fmt);
+#if !PG_ABI32
+	va_list ap;
+	va_start(ap, fmt);
+#endif
+
+	for (int i = 0; i < len; i++) {
+		if (fmt[i] == '%') {
+			if (c == -1) {
 				c = GetByte();
 				if (c == -1)
 					return false;
 			}
-			while (c == 10 || c == 9 || c == 13 || c == 32)
-			{
+
+			while (c == 10 || c == 9 || c == 13 || c == 32) {
 				c = GetByte();
 				if (c == -1)
 					return false;
 			}
-			switch (format[i + 1])
-			{
+
+			switch (fmt[i + 1]) {
 			case 'X':
-			case 'x':
-			{
+			case 'x': {
 				int code = 0;
 				int flag = 0;
-				while ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
-					(c >= 'A' && c <= 'F') || (!flag && c == '-'))
-				{
+				while ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F') || (!flag && c == '-')) {
 					if (c == '-')
 						flag |= 1;
-					else
-					{
+					else {
 						if (c >= 'a')
 							c -= 0x20;
 						code = code * 16 + (c <= '9' ? c - '0' : c - 'A' + 10);
@@ -666,66 +800,54 @@ bool cFile::Scan(const char* format, ...)
 				}
 				if (flag)
 					code = -code;
-				*((int**)&format)[++arg] = code;
+				*(int*)PG_SCAN_PTR(void*) = code;
 			}
 			break;
 			case 'F':
 			case 'G':
 			case 'f':
-			case 'g':
-			{
+			case 'g': {
 				int code = 0;
 				int flag = 0;
-				for (; (c >= '0' && c <= '9') || (!code && c == '-') ||
-					(!flag && c == '.');
-					code++)
-				{
+				for (; (c >= '0' && c <= '9') || (!code && c == '-') || (!flag && c == '.'); code++) {
 					if (c == '.')
 						flag = 1;
-					buffer[code] = (char)c;
-					if ((c = GetByte()) == -1)
-					{
+					temp[code] = (char)c;
+					if ((c = GetByte()) == -1) {
 						code++;
 						break;
 					}
 				}
-				buffer[code] = 0;
-				float code2 = (float)atof(buffer);
-				*((int**)&format)[++arg] = *(int*)&code2;
+				temp[code] = 0;
+				float code2 = (float)atof(temp);
+				*(int*)PG_SCAN_PTR(void*) = *(int*)&code2;
 			}
 			break;
 			case 'D':
 			case 'U':
 			case 'd':
-			case 'u':
-			{
+			case 'u': {
 				int code;
-				for (code = 0; (c >= '0' && c <= '9') || (!code && c == '-');
-					code++)
-				{
-					buffer[code] = (char)c;
-					if ((c = GetByte()) == -1)
-					{
+				for (code = 0; (c >= '0' && c <= '9') || (!code && c == '-'); code++) {
+					temp[code] = (char)c;
+					if ((c = GetByte()) == -1) {
 						code++;
 						break;
 					}
 				}
-				buffer[code] = 0;
-				*((int**)&format)[++arg] = atoi(buffer);
+				temp[code] = 0;
+				*(int*)PG_SCAN_PTR(void*) = atoi(temp);
 			}
 			break;
 			case 'S':
-			case 's':
-			{
+			case 's': {
 				int code = 0;
-				char* target = ((char**)&format)[++arg];
-				for (code = 0; c != 10; code++)
-				{
+				char* target = PG_SCAN_PTR(char*);
+				for (code = 0; c != 10; code++) {
 					if (c == 9 || c == 13 || c == 32 || c == -1)
 						break;
 					target[code] = (char)c;
-					if ((c = GetByte()) == -1)
-					{
+					if ((c = GetByte()) == -1) {
 						code++;
 						break;
 					}
@@ -734,17 +856,14 @@ bool cFile::Scan(const char* format, ...)
 			}
 			break;
 			case 'N':
-			case 'n':
-			{
+			case 'n': {
 				int code = 0;
-				char* target = ((char**)&format)[++arg];
-				for (code = 0; c != 10; code++)
-				{
+				char* target = PG_SCAN_PTR(char*);
+				for (code = 0; c != 10; code++) {
 					if (c == 9 || c == 13 || c == -1)
 						break;
 					target[code] = (char)c;
-					if ((c = GetByte()) == -1)
-					{
+					if ((c = GetByte()) == -1) {
 						code++;
 						break;
 					}
@@ -755,101 +874,111 @@ bool cFile::Scan(const char* format, ...)
 			}
 		}
 	}
+
 	if (c != -1 && c != 13)
 		Seek(-1, 1);
+
+#if !PG_ABI32
+	va_end(ap);
+#endif
 	return true;
 }
+#undef PG_SCAN_PTR
 
-inline void cFilePacked::ReadBlock(void)
-{
-	if (offset < pivot + size)
-	{
-		WaitForSingleObject(pak->lock, 0xffffffff);
+// westpak.cpp:1200
+void cFilePacked::ReadBlock() {
+	if (offset < pivot + size) {
+		WaitForSingleObject(pak->lock, INFINITE);
 		if (pak->offset != offset)
-			pak->fp->Seek(offset, 0);
-		int want = Min(bufsize, pivot - offset + size);
-		int start = bufsize - want;
+			pak->fp->Seek(offset, SEEK_SET);
+
+		int len = WestpakMin(bufsize, pivot - offset + size);
+		int start = bufsize - len;
+
 		current = start;
 		trace = offset;
-		offset += pak->fp->Read(buffer + start, want);
+		offset += pak->fp->Read(buffer + start, len);
 		pak->offset = offset;
 		SetEvent(pak->lock);
-	}
-	else
-	{
+	} else {
 		current = bufsize;
 	}
 }
 
-cFilePacked::cFilePacked(sPak* archive, sPakinfo* info, int buffersize)
-{
-	pak = archive;
-	pakinfo = info;
-	m_nLen = info->size;
+// westpak.cpp:1223
+cFilePacked::cFilePacked(sPak* pak_, sPakinfo* pakinfo_, int len) {
+	pak = pak_;
+	pakinfo = pakinfo_;
+	m_nLen = pakinfo->size;
 	current = 0;
-	trace = info->offset;
-	pivot = info->offset;
-	offset = info->offset;
-	size = info->packedsize;
-	int room = (info->packedsize < buffersize) ? info->packedsize : buffersize;
-	bufsize = room;
-	buffer = new char[room];
+	trace = pakinfo->offset;
+	pivot = pakinfo->offset;
+	offset = pakinfo->offset;
+	size = pakinfo->packedsize;
+	bufsize = pakinfo->packedsize < len ? pakinfo->packedsize : len;
+	buffer = new char[bufsize];
+
 	ReadBlock();
 }
 
-cFilePacked::~cFilePacked()
-{
+// westpak.cpp:1239
+cFilePacked::~cFilePacked() {
 	delete[] buffer;
 }
 
-inline int cFilePacked::GetByte(void)
-{
-	if (current >= bufsize)
-	{
+// westpak.cpp:1244
+int cFilePacked::GetByte() {
+	if (current >= bufsize) {
 		if (offset >= size + pivot)
 			return -1;
 		ReadBlock();
 	}
+
 	return (unsigned char)buffer[current++];
 }
 
-inline int cFilePacked::Read(void* target, int length)
-{
-	length = Min(size - offset + pivot - current + bufsize, length);
-	int done = 0;
-	if (length > 0)
-	{
-		do
-		{
+// westpak.cpp:1256
+int cFilePacked::Read(void* data, int len) {
+	len = WestpakMin(size - offset + pivot - current + bufsize, len);
+
+	int i = 0;
+	if (len > 0) {
+		do {
 			if (current >= bufsize)
 				ReadBlock();
-			int part = Min(length - done, bufsize - current);
-			memcpy((char*)target + done, buffer + current, part);
-			current += part;
-			done += part;
-		} while (done < length);
+
+			int n = WestpakMin(len - i, bufsize - current);
+
+			memcpy((char*)data + i, buffer + current, n);
+
+			current += n; i += n;
+		} while (i < len);
 	}
-	return done;
+
+	return i;
 }
 
-void cFilePacked::Seek(int position, int origin)
-{
+// westpak.cpp:1278
+void cFilePacked::Seek(int intv, int origin) {
 	int noff;
-	switch (origin)
-	{
-	case 0:
-		noff = pivot + position;
+
+	switch (origin) {
+	case SEEK_SET:
+		noff = pivot + intv;
 		break;
-	case 1:
-		noff = offset - bufsize + current + position;
+
+	case SEEK_END:
+		noff = size + pivot + intv;
 		break;
-	case 2:
-		noff = size + pivot + position;
+
+	case SEEK_CUR:
+		noff = offset - bufsize + current + intv;
 		break;
 	}
-	noff = Max(pivot, Min(noff, size + pivot));
-	if (noff >= trace && noff < offset)
-	{
+
+	noff = WestpakMax(pivot, WestpakMin(noff, size + pivot));
+
+	if (noff >= trace && noff < offset) {
 		current = bufsize - offset + noff;
 		return;
 	}
@@ -858,254 +987,262 @@ void cFilePacked::Seek(int position, int origin)
 	ReadBlock();
 }
 
-int cFilePacked::Tell(void)
-{
+// westpak.cpp:1308
+int cFilePacked::Tell() {
 	return offset - bufsize - pivot + current;
 }
 
-cFileLZ::cFileLZ(sPak* archive, sPakinfo* info, int buffersize)
-	: cFilePacked(archive, info, buffersize)
-{
+// westpak.cpp:1317
+cFileLZ::cFileLZ(sPak* pak, sPakinfo* pakinfo, int bufsize) : cFilePacked(pak, pakinfo, bufsize) {
 	current = 0;
 	offset = 0;
 	trace = 0;
 }
 
-inline void cFileLZ::ReadBlock(void)
-{
+// westpak.cpp:1324
+void cFileLZ::ReadBlock() {
+	unsigned short d1;
+	unsigned short rest;
+	unsigned short d2;
+
 	trace = offset;
-	unsigned short d1 = (unsigned short)cFilePacked::GetByte();
-	int count = 8;
-	do
-	{
-		if (d1 & 1)
-		{
-			unsigned short d2;
+	d1 = (unsigned short)cFilePacked::GetByte();
+	int i = 8;
+
+	do {
+		if (d1 & 1) {
 			cFilePacked::Read(&d2, 2);
 			unsigned short len = (d2 >> 12) + 2;
+
 			d2 = offset - (d2 & 0xfff);
-			while (len > 0)
-			{
-				unsigned short rest =
-					Min(Min((int)len, 0x2000 - (offset & 0x1fff)),
-						0x2000 - (d2 & 0x1fff));
-				memcpy(buffer + (offset & 0x1fff), buffer + (d2 & 0x1fff),
-					rest);
+
+			while (len > 0) {
+				rest = WestpakMin(WestpakMin((int)len, 8192 - (offset & 8191)), 8192 - (d2 & 8191));
+
+				memcpy(&buffer[offset & 8191], &buffer[d2 & 8191], rest);
 				offset += rest;
 				d2 += rest;
 				len -= rest;
 			}
-		}
-		else
-		{
-			buffer[offset & 0x1fff] = (unsigned char)cFilePacked::GetByte();
-			offset++;
+		} else {
+			buffer[offset & 8191] = (unsigned char)cFilePacked::GetByte(); offset++;
 		}
 		d1 >>= 1;
-		count--;
-	} while (count != 0);
+		i--;
+	} while (i != 0);
+
 	if (offset > m_nLen)
 		offset = m_nLen;
 }
 
-inline void cFileLZ2::ReadBlock(void)
-{
-	trace = offset;
-	unsigned int raw = cFilePacked::GetByte();
-	unsigned short d1 = (unsigned short)(raw ^ 0xc8);
-	int count = 8;
-	do
-	{
-		if (d1 & 1)
-		{
-			unsigned short d2;
+// westpak.cpp:1364
+void cFileLZ2::ReadBlock() {
+	unsigned short d1;
+	unsigned short len;
+	unsigned short d2;
+	unsigned short rest;
+	int i;
+
+	trace = offset; unsigned int key = cFilePacked::GetByte();
+
+	for (d1 = key ^ 0xc8, i = 0; i < 8; i++, d1 >>= 1) {
+		if (d1 & 1) {
 			cFilePacked::Read(&d2, 2);
-			d2 ^= secutable[(raw >> 3) & 7];
-			unsigned short len = (d2 >> 12) + 2;
-			d2 = offset - (d2 & 0xfff);
-			while (len > 0)
-			{
-				unsigned short rest =
-					Min(Min((int)len, 0x2000 - (offset & 0x1fff)),
-						0x2000 - (d2 & 0x1fff));
-				memcpy(buffer + (offset & 0x1fff), buffer + (d2 & 0x1fff),
-					rest);
-				offset += rest;
-				d2 += rest;
+
+			d2 ^= secutable[(key >> 3) & 7];
+
+			len = (d2 >> 12) + 2; d2 = (unsigned short)offset - (d2 & 0xfff);
+
+			while (len > 0) {
+				rest = Min<int>(Min<int>(len, 8192 - (offset & 8191)), 8192 - (d2 & 8191));
+
+				memcpy(&buffer[offset & 8191], &buffer[d2 & 8191], rest);
+
+				offset += rest; d2 += rest;
 				len -= rest;
 			}
+		} else {
+			buffer[offset & 8191] = cFilePacked::GetByte(); offset++;
 		}
-		else
-		{
-			buffer[offset & 0x1fff] = (unsigned char)cFilePacked::GetByte();
-			offset++;
-		}
-		d1 >>= 1;
-		count--;
-	} while (count != 0);
+	}
+
 	if (offset > m_nLen)
 		offset = m_nLen;
 }
 
-int cFileLZ::Read(void* target, int length)
-{
-	length = Min(m_nLen - current, length);
-	int done = 0;
-	if (length > 0)
-	{
-		do
-		{
+// westpak.cpp:1403
+int cFileLZ::Read(void* data, int len) {
+	len = WestpakMin(m_nLen - current, len);
+
+	int i = 0;
+	if (len > 0) {
+		do {
 			if (current >= offset)
 				ReadBlock();
-			int part = Min(Min(length - done, offset - current),
-				0x2000 - (current & 0x1fff));
-			memcpy((char*)target + done, buffer + (current & 0x1fff), part);
-			current += part;
-			done += part;
-		} while (done < length);
+
+			int n = WestpakMin(WestpakMin(len - i, offset - current), 8192 - (current & 8191));
+
+			memcpy((char*)data + i, buffer + (current & 8191), n);
+
+			current += n; i += n;
+		} while (i < len);
 	}
-	return done;
+
+	return i;
 }
 
-int cFileLZ::GetByte(void)
-{
-	if (current >= offset)
-	{
+// westpak.cpp:1424
+int cFileLZ::GetByte() {
+	if (current >= offset) {
 		if (current >= m_nLen)
 			return -1;
 		ReadBlock();
 	}
-	return (unsigned char)buffer[current++ & 0x1fff];
+
+	return buffer[current++ & 8191];
 }
 
-void cFileLZ::Seek(int position, int origin)
-{
-	int noff = position;
-	switch (origin)
-	{
-	case 0:
-		noff = position;
+// westpak.cpp:1435
+void cFileLZ::Seek(int pos, int pivot) {
+	int noff;
+
+	switch (pivot) {
+	case SEEK_SET:
+		noff = pos;
 		break;
-	case 1:
-		noff = current + position;
+
+	case SEEK_END:
+		noff = m_nLen + pos;
 		break;
-	case 2:
-		noff = m_nLen + position;
+
+	case SEEK_CUR:
+		noff = current + pos;
 		break;
+
 	default:
-		noff = position;
+		noff = pos;
 		break;
 	}
-	noff = Max(0, Min(noff, m_nLen));
-	if (noff < trace)
-	{
+
+	noff = WestpakMax(0, WestpakMin(noff, m_nLen));
+
+	if (noff < trace) {
 		current = 0;
 		offset = 0;
-		cFilePacked::Seek(0, 0);
+		cFilePacked::Seek(0, SEEK_SET);
 	}
+
 	while (offset < noff)
 		ReadBlock();
+
 	current = noff;
 }
 
-int cFileLZ::Tell(void)
-{
+// westpak.cpp:1469
+int cFileLZ::Tell() {
 	return current;
 }
 
-inline void cFileRaw::ReadBlock(void)
-{
-	if (offset < m_nLen)
-	{
-		int want = Min(m_nLen - offset, bufsize);
-		current = bufsize - want;
-		trace = offset;
-		offset += read(fhl, buffer + current, want);
-	}
-	else
-	{
+// westpak.cpp:1478
+void cFileRaw::ReadBlock() {
+	if (offset < m_nLen) {
+		int len = WestpakMin(m_nLen - offset, bufsize);
+		current = bufsize - len; trace = offset;
+
+		offset += _read(fhl, buffer + current, len);
+	} else {
 		current = bufsize;
 	}
 }
 
-cFileRaw::cFileRaw(int handle, int buffersize)
-{
-	fhl = handle;
-	m_nLen = lseek(handle, 0, 2);
-	current = 0;
-	offset = 0;
-	bufsize = Min(m_nLen, buffersize);
+// westpak.cpp:1492
+cFileRaw::cFileRaw(int fhl_, int len) {
+	fhl = fhl_;
+
+	m_nLen = _lseek(fhl, 0, SEEK_END); current = 0; offset = 0;
+
+	bufsize = WestpakMin(m_nLen, len);
 	buffer = new char[bufsize];
-	lseek(fhl, 0, 0);
+
+	_lseek(fhl, 0, SEEK_SET);
+
 	ReadBlock();
 }
 
-cFileRaw::~cFileRaw()
-{
+// westpak.cpp:1507
+cFileRaw::~cFileRaw() {
 	if (buffer)
 		delete[] buffer;
-	close(fhl);
+
+	_close(fhl);
 }
 
-int cFileRaw::GetByte(void)
-{
-	if (current >= bufsize)
-	{
+// westpak.cpp:1515
+int cFileRaw::GetByte() {
+	if (current >= bufsize) {
 		if (offset >= m_nLen)
 			return -1;
 		ReadBlock();
 	}
+
 	return (unsigned char)buffer[current++];
 }
 
-int cFileRaw::Read(void* target, int length)
-{
-	length = Min(m_nLen - current - offset + bufsize, length);
-	int done = 0;
-	while (done < length)
-	{
+// westpak.cpp:1531
+int cFileRaw::Read(void* data, int len) {
+	len = WestpakMin(m_nLen - current - offset + bufsize, len);
+
+	int i = 0;
+	while (i < len) {
 		if (current >= bufsize)
 			ReadBlock();
-		int part = Min(length - done, bufsize - current);
-		memcpy((char*)target + done, buffer + current, part);
-		current += part;
-		done += part;
+
+		int n = WestpakMin(len - i, bufsize - current);
+
+		memcpy((char*)data + i, buffer + current, n);
+
+		current += n; i += n;
 	}
-	return done;
+
+	return i;
 }
 
-void cFileRaw::Seek(int position, int origin)
-{
+// westpak.cpp:1556
+void cFileRaw::Seek(int pos, int origin) {
 	int noff;
-	switch (origin)
-	{
+
+	switch (origin) {
+	case SEEK_SET:
+		noff = pos;
+		break;
+
+	case SEEK_END:
+		noff = m_nLen + pos;
+		break;
+
+	case SEEK_CUR:
+		noff = offset - bufsize + current + pos;
+		break;
+
 	default:
-		noff = position;
-		break;
-	case 0:
-		noff = position;
-		break;
-	case 1:
-		noff = offset - bufsize + current + position;
-		break;
-	case 2:
-		noff = m_nLen + position;
+		noff = pos;
 		break;
 	}
-	noff = Max(0, Min(noff, m_nLen));
-	if (noff >= trace && noff < offset)
-	{
+
+	noff = WestpakMax(0, WestpakMin(noff, m_nLen));
+
+	if (noff >= trace && noff < offset) {
 		current = bufsize - offset + noff;
 		return;
 	}
-	lseek(fhl, noff, 0);
-	int place = tell(fhl);
+	_lseek(fhl, noff, SEEK_SET);
+	int place = _tell(fhl);
 	offset = place;
 	trace = place;
 	ReadBlock();
 }
 
-int cFileRaw::Tell(void)
-{
+// westpak.cpp:1587
+int cFileRaw::Tell() {
 	return offset - bufsize + current;
 }

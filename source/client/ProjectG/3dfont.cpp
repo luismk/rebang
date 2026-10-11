@@ -1,172 +1,171 @@
-#include "minatl.h"
-#include "projectg.h"
+// Original: d:\build\custom\temp\code\client\projectg\3dfont.cpp
 #include "3dfont.h"
 
-C3dFont::C3dFont()
-	: m_texHandle(0), m_projectionStyle(ProjectionStyle::Perspective)
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "wresrcmng.h"
+#include "wview.h"
+
+// 3dfont.cpp:19
+C3dFont::C3dFont(void)
+	: m_texture(0), m_projectionStyle(ProjectionStyle::Default)
 {
-	m_pos.Reset();
+	m_pos.x = m_pos.y = m_pos.z = 0.0f;
 
-	m_pVtx[0] = &m_vtx[0];
-	m_pVtx[1] = &m_vtx[1];
-	m_pVtx[2] = &m_vtx[2];
-	m_pVtx[3] = &m_vtx[3];
-
-	m_reserved = 0;
+	for (int i = 0; i < 4; i++) {
+		m_vertexList[i] = &m_vertex[i];
+	}
+	m_unknownE0 = 0;
 }
 
-C3dFont::~C3dFont()
+// 3dfont.cpp:31
+C3dFont::~C3dFont(void)
 {
-	if (m_texHandle)
-	{
-		g_resrcmng->Release(m_texHandle);
-		m_texHandle = 0;
+	if (m_texture) {
+		g_resrcmng->Release(m_texture);
+		m_texture = 0;
 	}
 }
 
-void C3dFont::LoadTexture(const char* filename, int width, int height,
-	const char* charTable, float offsetX, float offsetY)
+// 3dfont.cpp:40
+void C3dFont::LoadTexture(const char* filename, int charWidth, int charHeight, const char* charSet, float offsetX, float offsetY)
 {
-	m_texHandle = g_resrcmng->LoadTexture(filename, 0, 0, 0);
-	int texWidth = g_resrcmng->GetTextureWidth(m_texHandle);
-	int texHeight = g_resrcmng->GetTextureHeight(m_texHandle);
+	m_texture = g_resrcmng->LoadTexture(filename, 0, 0, 0);
+	int width = g_resrcmng->GetTextureWidth(m_texture);
+	int height = g_resrcmng->GetTextureHeight(m_texture);
 
-	m_uStep = (float)width / texWidth;
-	m_cols = texWidth / width;
+	m_cellU = (float)charWidth / width;
+	m_columns = width / charWidth;
+	m_charSet = charSet;
 
-	m_charTable = charTable;
-	m_vStep = (float)height / texHeight;
 	m_offsetX = offsetX;
 	m_offsetY = offsetY;
 
-	m_width = width;
-	m_height = height;
+	m_charWidth = charWidth;
+	m_charHeight = charHeight;
+	m_cellV = (float)charHeight / height;
 }
 
+// 3dfont.cpp:58
 void C3dFont::SetPos(const WVector& pos)
 {
 	m_pos = pos;
 }
 
+// 3dfont.cpp:63
 void C3dFont::SetSize(int width, int height)
 {
-	m_width = width;
-	m_height = height;
+	m_charWidth = width;
+	m_charHeight = height;
 }
 
+// 3dfont.cpp:69
 void C3dFont::SetColor(int color)
 {
-	m_pVtx[0]->diffuse = color;
-	m_pVtx[1]->diffuse = color;
-	m_pVtx[2]->diffuse = color;
-	m_pVtx[3]->diffuse = color;
+	for (int i = 0; i < 4; i++) m_vertexList[i]->diffuse = color;
 }
 
-void C3dFont::Printf(WView* view, int space, const char* format, ...)
+// 3dfont.cpp:76
+void C3dFont::Printf(WView* view, int spacing, const char* format, ...)
 {
-	char buf[1024];
-
-	if (!m_cols)
+	if (m_columns == 0) {
 		return;
+	}
 
 	WVector pos = view->Projection(m_pos);
-
-	if (pos.z <= 0.0f || pos.z >= 1.0f)
+	if (pos.z <= 0.0f || pos.z >= 1.0f) {
 		return;
-
-	for (int k = 0; k < 4; k++)
-	{
-		m_vtx[k].sz = pos.z;
-		m_vtx[k].rhw = 1.0f;
 	}
 
+	for (int i = 0; i < 4; i++) {
+		m_vertex[i].z = pos.z;
+		m_vertex[i].rhw = 1.0f;
+	}
+
+	char buff[1024];
 	va_list args;
 	va_start(args, format);
-	if (_vsnprintf(buf, sizeof(buf) - 1, format, args) == -1)
-		buf[sizeof(buf) - 1] = 0;
+	if (_vsnprintf(buff, 1023, format, args) == -1) {
+		buff[1023] = 0;
+	}
 
-	int len = strlen(buf);
+	int len = strlen(buff);
 
-	const char* table = m_charTable;
-
-	const char* p = buf;
-	if (!table)
+	const char* charSet = m_charSet;
+	if (charSet == NULL) {
 		return;
+	}
 
-	for (int i = 0; i < len; i++)
-	{
-		int c = *p++;
+	for (int n = 0; n < len; n++) {
+		int ch = buff[n];
+		int cell = strchr(charSet, ch) - charSet;
 
-		const char* found = strchr(table, c);
+		float u = (cell % m_columns) * m_cellU;
+		float v = (cell / m_columns) * m_cellV;
 
-		float u = ((found - table) % m_cols) * m_uStep;
-		float v = ((found - table) / m_cols) * m_vStep;
+		m_vertex[0].tu = u;
+		m_vertex[0].tv = v + m_cellV;
+		m_vertex[1].tu = u;
+		m_vertex[1].tv = v;
+		m_vertex[2].tu = u + m_cellU;
+		m_vertex[2].tv = v;
+		m_vertex[3].tu = u + m_cellU;
+		m_vertex[3].tv = v + m_cellV;
 
-		m_vtx[0].tu = u;
-		m_vtx[0].tv = v + m_vStep;
-		m_vtx[1].tu = u;
-		m_vtx[1].tv = v;
-		m_vtx[2].tu = u + m_uStep;
-		m_vtx[2].tv = v;
-		m_vtx[3].tv = v + m_vStep;
-		m_vtx[3].tu = u + m_uStep;
+		float left = m_offsetX - (m_charWidth * len + (len - 1) * spacing) * 0.5f + (m_charWidth + spacing) * n;
+		float right = left + m_charWidth;
+		float top = m_offsetY - m_charHeight * 0.5f;
+		float bottom = top + m_charHeight;
 
-		float x0 = m_offsetX - (m_width * len + (len - 1) * space) * 0.5f +
-			(m_width + space) * i;
-		float x1 = x0 + m_width;
-		float y0 = m_offsetY - m_height * 0.5f;
-		float y1 = y0 + m_height;
-
-		if (!(pos.x + x0 > g_view->GetWidth() - 0.5f || pos.x + x1 < 0.5f ||
-				pos.y + y0 > g_view->GetHeight() - 0.5f || pos.y + y1 < 0.5f))
-		{
-			m_vtx[0].sx = pos.x + x0;
-			m_vtx[0].sy = pos.y + y1;
-
-			m_vtx[1].sx = pos.x + x0;
-			m_vtx[1].sy = pos.y + y0;
-
-			m_vtx[2].sx = pos.x + x1;
-			m_vtx[2].sy = pos.y + y0;
-
-			m_vtx[3].sx = pos.x + x1;
-			m_vtx[3].sy = pos.y + y1;
-
-			for (int j = 0; j < 4; j++)
-				ClipChar(j);
-
-			int type = (m_texHandle & 0x7ff) | 0x2080000;
-			if (m_projectionStyle == ProjectionStyle::Screen)
-				type |= 0x300000;
-
-			view->DrawPolygonFan(m_pVtx, type, 0, 1);
+		float x0 = pos.x + left;
+		float x1;
+		float y0;
+		float y1;
+		if (x0 > g_view->GetWidth() - 0.5f || (x1 = pos.x + right) < 0.5f
+			|| (y0 = pos.y + top) > g_view->GetHeight() - 0.5f || (y1 = pos.y + bottom) < 0.5f) {
+			continue;
 		}
+
+		m_vertex[0].x = x0;
+		m_vertex[0].y = y1;
+		m_vertex[1].x = x0;
+		m_vertex[1].y = y0;
+		m_vertex[2].x = x1;
+		m_vertex[2].y = y0;
+		m_vertex[3].x = x1;
+		m_vertex[3].y = y1;
+
+		for (int j = 0; j < 4; j++) {
+			ClipChar(j);
+		}
+
+		int flags = (m_texture & 0x7ff) | 0x2080000;
+		if (m_projectionStyle == ProjectionStyle::Overlay) {
+			flags |= 0x300000;
+		}
+
+		view->DrawPolygonFan(m_vertexList, flags, 0, true);
 	}
 }
 
+// 3dfont.cpp:205
 void C3dFont::ClipChar(int index)
 {
-	if (m_vtx[index].sx < 0.5f)
-	{
-		m_vtx[index].tu += (0.5f - m_vtx[index].sx) * m_uStep / m_width;
-		m_vtx[index].sx = 0.5f;
-	}
-	else if (m_vtx[index].sx > g_view->GetWidth() - 0.5f)
-	{
-		m_vtx[index].tu -=
-			(m_vtx[index].sx - g_view->GetWidth() + 0.5f) * m_uStep / m_width;
-		m_vtx[index].sx = g_view->GetWidth() - 0.5f;
+	if (m_vertex[index].x < 0.5f) {
+		m_vertex[index].tu += (0.5f - m_vertex[index].x) * m_cellU / m_charWidth;
+		m_vertex[index].x = 0.5f;
+	} else if (g_view->GetWidth() - 0.5f < m_vertex[index].x) {
+		m_vertex[index].tu -= (m_vertex[index].x - g_view->GetWidth() + 0.5f) * m_cellU / m_charWidth;
+		m_vertex[index].x = g_view->GetWidth() - 0.5f;
 	}
 
-	if (m_vtx[index].sy < 0.5f)
-	{
-		m_vtx[index].tv += (0.5f - m_vtx[index].sy) * m_vStep / m_height;
-		m_vtx[index].sy = 0.5f;
-	}
-	else if (m_vtx[index].sy > g_view->GetHeight() - 0.5f)
-	{
-		m_vtx[index].tv -=
-			(m_vtx[index].sy - g_view->GetHeight() + 0.5f) * m_vStep / m_height;
-		m_vtx[index].sy = g_view->GetHeight() - 0.5f;
+	if (m_vertex[index].y < 0.5f) {
+		m_vertex[index].tv += (0.5f - m_vertex[index].y) * m_cellV / m_charHeight;
+		m_vertex[index].y = 0.5f;
+	} else if (g_view->GetHeight() - 0.5f < m_vertex[index].y) {
+		m_vertex[index].tv -= (m_vertex[index].y - g_view->GetHeight() + 0.5f) * m_cellV / m_charHeight;
+		m_vertex[index].y = g_view->GetHeight() - 0.5f;
 	}
 }

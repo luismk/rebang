@@ -1,12 +1,11 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\topicons.h
+#ifndef PG_CLIENT_PROJECTG_TOPICONS_H
+#define PG_CLIENT_PROJECTG_TOPICONS_H
 
-#include "topiconinterface.h"
-#include "topiconmanager.h"
+#include "TopIconInterface.h"
+#include "TopIconManager.h"
 
-class CWizcityOpenEvent : public CTopIcon
-{
-	DECLARE_TOPICON(CWizcityOpenEvent, "WizcityOpenEvent")
+// topicons.h:26
+DECLARE_TOP_ICON(WizcityOpenEvent);
 
-	virtual void OnInit(FrButton& button);
-	virtual void OnButtonDown();
-};
+#endif // PG_CLIENT_PROJECTG_TOPICONS_H

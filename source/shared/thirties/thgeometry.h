@@ -1,34 +1,17 @@
-#pragma once
+// Original: d:\build\custom\temp\code\shared\thirties\thgeometry.h
+#ifndef PG_SHARED_THIRTIES_THGEOMETRY_H
+#define PG_SHARED_THIRTIES_THGEOMETRY_H
 
-#include "gamath.h"
+#include "..\..\defines.h"
+#include "thirties/gamath.h"
 
-struct ThSphere
-{
-	gaV3 pos;
-	float r;
-
-	ThSphere() { }
-
-	void Set(const gaV3& c, float radius) { Set(c[0], c[1], c[2], radius); }
-
-	void Set(float x, float y, float z, float radius)
-	{
-		SetPos(x, y, z);
-		r = radius;
-	}
-
-	void SetPos(float x, float y, float z)
-	{
-		pos.x = x;
-		pos.y = y;
-		pos.z = z;
-	}
-
-	bool TestIntersection(const ThSphere& other) const
-	{
-		gaV3 d = pos - other.pos;
-		float rr = other.r + r;
-
-		return d.SquaredLength() <= rr * rr;
-	}
+// A bounding sphere (ThSphere::Set stores the centre then the radius). Only
+// the members the decompiled units use are transcribed.
+struct ThSphere {
+	gaV3 center;    // 0x0
+	float radius;   // 0xc
 };
+
+CHECK_SIZE(ThSphere, 0x10);
+
+#endif // PG_SHARED_THIRTIES_THGEOMETRY_H

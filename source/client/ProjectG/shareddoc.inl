@@ -1,333 +1,114 @@
-inline CSharedDoc* Doc()
-{
-	return CSharedDoc::Instance();
+// Original: d:\build\custom\temp\code\client\projectg\shareddoc.inl
+// Global accessors of the shared document. Inline in the original (other
+// units emit some of them, e.g. GOLFDOC); defined once here, in the unit
+// that emitted these, until their callers are transcribed.
+
+// shareddoc.inl:229
+void SetHoles(unsigned char holes) {
+	WSingleton<CSharedDoc>::Instance()->m_holes = holes;
 }
 
-inline CItemManager* ItemManager();
+// shareddoc.inl:293
+void SetWeather(unsigned char weather) {
+	WSingleton<CSharedDoc>::Instance()->m_weather = weather;
+}
 
-inline int GalleryMode();
+// shareddoc.inl:334
+unsigned char GetPlayerNum(void) {
+	return WSingleton<CSharedDoc>::Instance()->m_pGolfDoc->GetPlayerNum();
+}
 
-inline CGolfDoc* GOLFDOC();
+// shareddoc.inl:368
+WVector GetHoleCupPos(void) {
+	return GOLFDOC()->GetHoleData().m_cupPos;
+}
 
-inline unsigned char PrevMap(unsigned char map)
-{
-	int cur = 17;
-	for (int i = 0; i < 18; i++)
-	{
-		if (s_courseOrder[i] == map)
-		{
-			cur = i;
-			break;
+// shareddoc.inl:389, a player's index by UID (the local player's in the golf
+// task for no UID), 0xFF when unknown.
+unsigned char CSharedDoc::GetIndex(unsigned long uid) {
+	if (uid == 0xFFFFFFFF) {
+		if ((__rtti_obj = AfxGetTask()) != 0 ? ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI) : false) {
+			return WSingleton<CSharedDoc>::Instance()->m_pGolfDoc->m_myPlayerIndex;
 		}
+
+		return 0xFF;
 	}
 
-	for (int j = cur - 1; j >= 0; j--)
-	{
-		if (IsLocalContent(S3_ROOKIE_CHANNEL))
-		{
-			if ((Doc()->m_curChannel.Type & 0x800) &&
-				!Doc()->CanUseRookieChannelMap(s_courseOrder[j]))
-				continue;
+	if (OnlinePlay()) {
+		if (m_indexMap.find(uid) == m_indexMap.end()) {
+			return 0xFF;
 		}
-		return s_courseOrder[j];
-	}
-
-	return map;
-}
-
-inline unsigned char NextMap(unsigned char map, bool bLoop)
-{
-	int cur = 0;
-	for (int i = 0; i < 18; i++)
-	{
-		if (s_courseOrder[i] == map)
-		{
-			cur = i;
-			break;
-		}
-	}
-
-	for (int j = cur + 1; j < 18; j++)
-	{
-		if (IsLocalContent(S3_ROOKIE_CHANNEL))
-		{
-			if ((Doc()->m_curChannel.Type & 0x800) &&
-				!Doc()->CanUseRookieChannelMap(s_courseOrder[j]))
-				continue;
-		}
-		return s_courseOrder[j];
-	}
-
-	return map;
-}
-
-inline unsigned char FirstMap()
-{
-	if (!(Doc()->m_curChannel.Type & 0x800))
-		return 19;
-
-	if (IsLocalContent(S3_ROOKIE_CHANNEL) && (Doc()->m_curChannel.Type & 0x800))
-		return 11;
-
-	int i;
-	for (i = 0; i < 18; i++)
-	{
-		IFF_STRUCT::sCourse* pCourse =
-			ItemManager()->FindCourse(s_courseOrder[i] | 0x28000000);
-		if (pCourse->Difficulty < 3)
-			break;
-	}
-	return s_courseOrder[i];
-}
-
-inline unsigned char LastMap(bool bAll)
-{
-	if (!(Doc()->m_curChannel.Type & 0x800))
-	{
-		if (bAll)
-			return 9;
-		return 127;
-	}
-
-	int i;
-	for (i = 17; i >= 0; i--)
-	{
-		if (bAll && s_courseOrder[i] == 127)
-			continue;
-		IFF_STRUCT::sCourse* pCourse =
-			ItemManager()->FindCourse(s_courseOrder[i] | 0x28000000);
-		if (pCourse->Difficulty < 3)
-			break;
-	}
-	return s_courseOrder[i];
-}
-
-inline const char* GetCurMapName()
-{
-	if (Doc()->m_golfGame.pCourse)
-		return Doc()->m_golfGame.pCourse->Data;
-
-	return NULL;
-}
-
-inline const char* GetGameTypeName(unsigned char gameType);
-
-inline void SetGameType(unsigned char gameType)
-{
-	Doc()->m_golfGame.gameType = gameType;
-	if (gameType < GAME_TYPE_MAX)
-		strcpy(Doc()->m_golfGame.gameTypeName, GetGameTypeName(gameType));
-}
-
-inline const sGameTypeInfo* GetGameTypeInfo(unsigned char gameType)
-{
-	if (gameType >= GAME_TYPE_MAX)
-	{
-		return NULL;
-	}
-
-	return &Doc()->m_gameTypeInfo[gameType];
-}
-
-inline const char* GetGameTypeName(unsigned char gameType)
-{
-	if (gameType >= GAME_TYPE_MAX)
-	{
-		return NULL;
-	}
-
-	return Doc()->m_gameTypeInfo[gameType].name;
-}
-
-inline unsigned char GetHoles()
-{
-	return Doc()->m_golfGame.holes;
-}
-
-inline void SetHoles(unsigned char holes)
-{
-	Doc()->m_golfGame.holes = holes;
-}
-
-inline void SetWeather(unsigned char weather)
-{
-	Doc()->m_golfGame.weather = weather;
-}
-
-inline unsigned char GetHoleIndex(unsigned char hole)
-{
-	for (unsigned char i = 0; i < 18; i++)
-	{
-		if (Doc()->m_holeOrder[i] == hole)
-			return i + 1;
-	}
-	return 19;
-}
-
-inline unsigned long GetShotTimeLimit()
-{
-	return Doc()->m_golfGame.shotTimeLimit;
-}
-
-inline CItemManager* ItemManager()
-{
-	return &Doc()->m_itemManager;
-}
-
-inline unsigned char GetPlayerNum()
-{
-	return GOLFDOC()->GetPlayerNum();
-}
-
-inline sPlayerData* PLAYER(unsigned char index)
-{
-	return GOLFDOC()->GetPlayer(index);
-}
-
-inline sTeamData* TEAM(unsigned char index)
-{
-	return GOLFDOC()->GetTeam(index);
-}
-
-inline sRivalData* GUILDMATCHUP(unsigned char index)
-{
-	return &Doc()->m_rivalList[Doc()->GetIndex(Doc()->m_teamPlayerGuid[index])];
-}
-
-inline CGolfDoc* GOLFDOC()
-{
-	return Doc()->m_pGolfDoc;
-}
-
-inline WVector GetHoleCupPos()
-{
-	return GOLFDOC()->m_pHoleData[GOLFDOC()->m_currentHole - 1].pin;
-}
-
-inline unsigned char CSharedDoc::GetIndex(unsigned long uid)
-{
-	if (uid == 0xffffffff)
-	{
-		if (IS_KINDOF(CGolfTask, AfxGetTask()))
-			return GOLFDOC()->m_currentPlayer;
-	}
-	else if (OnlinePlay())
-	{
-		if (m_indexMap.find(uid) == m_indexMap.end())
-			return 0xff;
 
 		return m_indexMap[uid];
 	}
-	else
-	{
-		if (IS_KINDOF(CGolfTask, AfxGetTask()))
-			return GOLFDOC()->m_currentPlayer;
+
+	if ((__rtti_obj = AfxGetTask()) != 0 ? ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI) : false) {
+		return WSingleton<CSharedDoc>::Instance()->m_pGolfDoc->m_myPlayerIndex;
 	}
 
-	return 0xff;
+	return 0xFF;
 }
 
-// HACK: stands in for an unknown PCH inline that deletes a std::string
-inline void DeleteString(std::string* p)
-{
-	std::auto_ptr<std::string> holder(p);
-}
+// shareddoc.inl:340 PLAYER: defined in SharedDoc.h (SHAREDDOC_INLINE).
 
-inline unsigned long MyGuid(bool bGallery)
-{
-	if (bGallery && GalleryMode())
-		return Doc()->m_myInfo.info.dwGalleryGuid;
-	return Doc()->m_myInfo.info.dwGuid;
-}
+// shareddoc.inl:446 MyUID: defined in SharedDoc.h (SHAREDDOC_INLINE).
 
-inline unsigned long MyUID()
-{
-	return Doc()->m_myInfo.info.dwUID;
-}
-
-inline int IsMassGame()
-{
-	switch (Doc()->m_golfGame.gameType)
-	{
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
-		return TRUE;
+// shareddoc.inl:451
+int IsMassGame(void) {
+	switch (WSingleton<CSharedDoc>::Instance()->m_roomType) {
+	case 4:
+	case 5:
+	case 6:
+	case 9:
+	case 10:
+		return 1;
 	}
-	return FALSE;
+
+	return 0;
 }
 
-inline int IsMassGame(unsigned char gameType)
-{
-	switch (gameType)
-	{
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
-	case GAME_TYPE_USEMAX:
-		return TRUE;
-	}
-	return FALSE;
+// shareddoc.inl:482
+int IsGuildGame(void) {
+	return WSingleton<CSharedDoc>::Instance()->m_roomType == 6;
 }
 
-inline int IsGuildGame()
-{
-	return Doc()->m_golfGame.gameType == GAME_TYPE_GUILD_MATCH;
+// shareddoc.inl:492
+char *MyNick(void) {
+	return WSingleton<CSharedDoc>::Instance()->m_userInfo.nickname;
 }
 
-inline char* MyId()
-{
-	return Doc()->m_myInfo.info.sID;
-}
-
-inline char* MyNick()
-{
-	return Doc()->m_myInfo.info.sNick;
-}
-
-inline __int64 MyPang()
-{
-	return Doc()->m_myInfo.stat.i64Pang;
-}
-
-inline __int64 MyCookie()
-{
-	return Doc()->m_cookie;
-}
-
-inline int GalleryMode()
-{
-	bool bGM = (Doc()->m_myInfo.info.dwIdentity >> 1) & 1;
-	if (bGM)
-		return TRUE;
-	return FALSE;
-}
-
-inline bool IsAngelWing(unsigned long typeId)
-{
-	switch (typeId)
-	{
-	case 0x08016800:
-	case 0x08058800:
-	case 0x08098800:
-	case 0x080dc800:
-	case 0x08118800:
-	case 0x08160800:
-	case 0x08190800:
-	case 0x081e2800:
-	case 0x08214800:
-	case 0x08254800:
+// shareddoc.inl:562, the angel wing parts (worn only by manner players of
+// level 21 and up, CShopMain).
+bool IsAngelWing(unsigned long typeId) {
+	switch (typeId) {
+	case 0x8016800:
+	case 0x8058800:
+	case 0x8098800:
+	case 0x80DC800:
+	case 0x8118800:
+	case 0x8160800:
+	case 0x8190800:
+	case 0x81E2800:
+	case 0x8214800:
+	case 0x8254800:
 		return true;
 	}
 
 	return false;
 }
 
-inline unsigned char GetCurRoomMapType()
-{
-	return Doc()->m_roomInfo.mapType;
+// shareddoc.inl:602, under 3% of the local player's games ended without
+// manners. Inline in the original (RealMyRoomMainUI emitted the copy the
+// linker kept); defined here until that unit's callers are transcribed.
+bool IsMannerPlayer(void) {
+	unsigned long games = WSingleton<CSharedDoc>::Instance()->m_myStatGamesPlayed;
+	if (games < 1) {
+		games = 1;
+	}
+
+	if ((float)WSingleton<CSharedDoc>::Instance()->m_myStatNoMannerGames / (float)games * 100.0f < 3.0f) {
+		return true;
+	}
+
+	return false;
 }

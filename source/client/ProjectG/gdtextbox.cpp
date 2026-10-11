@@ -1,54 +1,56 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\gdtextbox.cpp
 #include "gdtextbox.h"
+#include "tinyxml.h"
+#include "commonutil.h"
 
-CGDTextBox::CGDTextBox()
-{
+// gdtextbox.cpp:6
+CGDTextBox::CGDTextBox(void) {
 }
 
-CGDTextBox::~CGDTextBox()
-{
+// gdtextbox.cpp:11
+CGDTextBox::~CGDTextBox(void) {
 }
 
-void CGDTextBox::Initialize(TiXmlNode* pNode)
-{
-	TiXmlNode* pChild = pNode->FirstChild("row");
-	while (pChild)
-	{
-		std::string strKey = pChild->ToElement()->Attribute("key");
-		std::string text = pChild->ToElement()->Attribute("text");
+// gdtextbox.cpp:16
+void CGDTextBox::Initialize(TiXmlNode* pNode) {
+	TiXmlNode* pRow = pNode->FirstChild("row");
+	while (pRow) {
 
-		str_Replace(text, "\\n", "\n");
-		str_Replace(text, "\\\\", "\\");
-		const char* value = text.c_str();
-		text = value;
+		std::string strKey = pRow->ToElement()->Attribute("key");
+		std::string strText = pRow->ToElement()->Attribute("text");
 
-		std::map<std::string, std::string>::iterator it =
-			m_textMap.find(strKey);
-		if (it == m_textMap.end())
-		{
-			m_textMap.insert(
-				std::map<std::string, std::string>::value_type(strKey, text));
+		str_Replace(strText, "\\n", "\n");
+		str_Replace(strText, "\\\\", "\\");
+
+		strText = strText.c_str();
+
+		std::map<std::string, std::string>::iterator it = m_mapText.find(strKey);
+		if (it == m_mapText.end()) {
+
+			m_mapText.insert(std::map<std::string, std::string>::value_type(strKey, strText));
 		}
-		pChild = pChild->NextSibling("row");
+		pRow = pRow->NextSibling("row");
 	}
 }
 
-const char* CGDTextBox::GetText(const char* key)
-{
-	std::map<std::string, std::string>::iterator it = m_textMap.find(key);
-	if (it != m_textMap.end())
-	{
-		return (*it).second.c_str();
+// gdtextbox.cpp:39
+const char* CGDTextBox::GetText(const char* szKey) {
+	std::map<std::string, std::string>::iterator it = m_mapText.find(szKey);
+	if (it != m_mapText.end()) {
+
+		return it->second.c_str();
 	}
+
 	return NULL;
 }
 
-const char* CGDTextBox::GetText(std::string& key)
-{
-	std::map<std::string, std::string>::iterator it = m_textMap.find(key);
-	if (it != m_textMap.end())
-	{
-		return (*it).second.c_str();
+// gdtextbox.cpp:50
+const char* CGDTextBox::GetText(std::string& strKey) {
+	std::map<std::string, std::string>::iterator it = m_mapText.find(strKey);
+	if (it != m_mapText.end()) {
+
+		return it->second.c_str();
 	}
+
 	return NULL;
 }

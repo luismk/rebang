@@ -1,104 +1,110 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\wtimer.cpp
 #include "wtimer.h"
+
+#include <string.h>
+
 #include <vector>
 
-CTimerManager::CTimerManager()
-{
-	for (int i = 0; i < 10; ++i)
+// wtimer.cpp:18
+CTimerManager::CTimerManager(void) {
+	for (int i = 0; i < 10; i++) {
 		m_timers[i].Clear();
+	}
 }
 
-CTimerManager::~CTimerManager()
-{
-	m_timerList.clear();
+// wtimer.cpp:27
+CTimerManager::~CTimerManager(void) {
+	m_activeTimers.clear();
 }
 
-bool CTimerManager::AddTimer(float time, const char* name, CTimerEvent* event)
-{
-	for (int i = 0; i < 10; ++i)
-	{
-		if (m_timers[i].active == true)
+// wtimer.cpp:33
+bool CTimerManager::AddTimer(float time, const char* name, CTimerEvent* pEvent) {
+	for (int i = 0; i < 10; i++) {
+		if (m_timers[i].m_active == true) {
 			continue;
+		}
 
-		m_timers[i].active = true;
-		m_timers[i].name = name;
-		m_timers[i].event = event;
-		m_timers[i].time = time;
+		m_timers[i].m_active = true;
+		m_timers[i].m_name = name;
+		m_timers[i].m_pEvent = pEvent;
+		m_timers[i].m_time = time;
 
-		m_timerList.push_back(&m_timers[i]);
+		m_activeTimers.push_back(&m_timers[i]);
+
 		return true;
 	}
+
 	return false;
 }
 
-void CTimerManager::AllClear()
-{
-	m_timerList.clear();
-	for (int i = 0; i < 10; ++i)
-		m_timers[i].Clear();
-}
+// wtimer.cpp:55
+void CTimerManager::AllClear(void) {
+	m_activeTimers.clear();
 
-void CTimerManager::ClearTimer(const char* name)
-{
-	for (std::list<sTimer*>::iterator it = m_timerList.begin();
-		it != m_timerList.end(); ++it)
-	{
-		sTimer* timer = *it;
-		if (strcmp(timer->name.c_str(), name) == 0)
-		{
-			timer->Clear();
-			m_timerList.erase(it);
-			break;
-		}
+	for (int i = 0; i < 10; i++) {
+		m_timers[i].Clear();
 	}
 }
 
-void CTimerManager::UpdateTimer(float dt)
-{
-	std::vector<sTimer*> timers;
-	timers.assign(m_timerList.begin(), m_timerList.end());
+// wtimer.cpp:65
+void CTimerManager::ClearTimer(const char* name) {
+	std::list<sTimer*>::iterator it = m_activeTimers.begin();
+	while (it != m_activeTimers.end()) {
+		sTimer* timer = *it;
+		if (strcmp(timer->m_name.c_str(), name) != 0) {
+			++it;
+			continue;
+		}
 
-	m_timerList.clear();
+		timer->Clear();
+		m_activeTimers.erase(it);
+		break;
+	}
+}
+
+// wtimer.cpp:83
+void CTimerManager::UpdateTimer(float elapsed) {
+	std::vector<sTimer*> timers;
+	timers.insert(timers.begin(), m_activeTimers.begin(), m_activeTimers.end());
+
+	m_activeTimers.clear();
 
 	int count = timers.size();
-	for (int i = 0; i < count; ++i)
-	{
+	for (int i = 0; i < count; i++) {
 		sTimer* timer = timers[i];
-		timer->elapsed += dt;
-		if (timer->time - timer->elapsed < 0.0f)
-		{
-			CTimerEvent* event = timer->event;
+		timer->m_elapsed += elapsed;
+		if (timer->m_time - timer->m_elapsed < 0.0f) {
+			CTimerEvent* pEvent = timer->m_pEvent;
 			timer->Clear();
-			event->OnTimer();
-		}
-		else
-		{
-			m_timerList.push_back(timer);
+			pEvent->OnTimer();
+		} else {
+			m_activeTimers.push_back(timer);
 		}
 	}
 }
 
-CTimerEvent::CTimerEvent()
-{
+// wtimer.cpp:121
+CTimerEvent::CTimerEvent(void) {
 }
 
-CTimerEvent::~CTimerEvent()
-{
-	if (!m_timerName.empty())
-		ClearTimer(m_timerName.c_str());
+// wtimer.cpp:126
+CTimerEvent::~CTimerEvent(void) {
+	if (!m_name.empty()) {
+		CTimerManager::Instance()->ClearTimer(m_name.c_str());
+	}
 }
 
-void CTimerEvent::ClearTimer(const char* name)
-{
+// wtimer.cpp:135
+void CTimerEvent::ClearTimer(const char* name) {
 	CTimerManager::Instance()->ClearTimer(name);
 }
 
-bool CTimerEvent::AddTimer(float time, const char* name)
-{
-	if (CTimerManager::Instance()->AddTimer(time, name, this) == true)
-	{
-		m_timerName = name;
+// wtimer.cpp:140
+bool CTimerEvent::AddTimer(float time, const char* name) {
+	if (CTimerManager::Instance()->AddTimer(time, name, this) == true) {
+		m_name = name;
 		return true;
 	}
+
 	return false;
 }

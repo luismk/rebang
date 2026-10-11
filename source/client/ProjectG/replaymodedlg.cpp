@@ -1,61 +1,85 @@
-#include "minatl.h"
-#include "replaymodedlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\replaymodedlg.cpp
+#include "ReplayModeDlg.h"
+#include "ObjectFactory.h"
+#include "fresh.h"
 #include "frbutton.h"
+#include "SharedDoc.h"
+#include "TaskManager.h"
 #include "actor.h"
 
-IMPLEMENT_OBJECT(FrReplayModeDlg, FrForm)
+#include <string.h>
 
-BEGIN_FRESH_MSGMAP(FrReplayModeDlg, FrForm)
+// replaymodedlg.cpp:20 (run-time type and factory registration of FrReplayModeDlg)
+const WRTTI FrReplayModeDlg::m_RTTI("FrReplayModeDlg", &FrForm::m_RTTI);
 
-ON_FRESH_VI("ok", FRCMD_INIT, FrReplayModeDlg::OnOkInit)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrReplayModeDlg::OnOkBtnUp)
-ON_FRESH_VI("cancel", FRCMD_INIT, FrReplayModeDlg::OnCancelInit)
-ON_FRESH_VV("cancel", FRCMD_LBUTTONUP, FrReplayModeDlg::OnCancelBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrReplayModeDlg::FrReplayModeDlg()
-{
-	m_pOk = NULL;
-	m_pCancel = NULL;
-	SetReplayMode(0);
+IObject* FrReplayModeDlgMakeInstance(void) {
+	return new FrReplayModeDlg;
 }
 
-void FrReplayModeDlg::OnOkInit(int param)
-{
-	m_pOk = DYNAMIC_CAST(FrButton, param);
-}
-
-void FrReplayModeDlg::OnOkBtnUp()
-{
-	if (m_replayMode == 1)
-	{
-		Doc()->m_replayShotIndex = 0;
-		Doc()->m_replayDuration = 0;
-		Doc()->m_replayTick = Doc()->m_curChannel.Type;
-		Doc()->m_replayState = 14;
+struct __sFrReplayModeDlg {
+	__sFrReplayModeDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrReplayModeDlgMakeInstance, "FrReplayModeDlg");
 	}
-	else if (m_replayMode == 2)
-	{
-		for (std::list<sRecordedItemInfo>::iterator it =
-				 Doc()->m_recordedItemList.begin();
-			it != Doc()->m_recordedItemList.end(); ++it)
-		{
-			if (stricmp((*it).fileName, Doc()->m_fileName) == 0)
-			{
-				Doc()->m_recordedItemList.erase(it);
+};
+static __sFrReplayModeDlg s_registerFrReplayModeDlg;
 
-				BOOL bRet = DeleteFile(Doc()->m_fileName);
+// replaymodedlg.cpp:22
+const sFRESH_MSGMAP* FrReplayModeDlg::GetMessageMap(void) const {
+	return &FrReplayModeDlg::_MsgMap;
+}
 
-				if (bRet)
-					AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 35,
-						(int)"\xc1\xa4\xbb\xf3\xc0\xfb\xc0\xb8\xb7\xce \xbb\xe8\xc1\xa6\xc7\xcf\xbf\xb4\xbd\xc0\xb4\xcf\xb4\xd9.",
-						0, 0, 0, 0));
-				else
-					AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 35,
-						(int)"\xbb\xe8\xc1\xa6\xc7\xcf\xb4\xc2 \xb5\xb5\xc1\xdf \xbf\xc0\xb7\xf9\xb0\xa1 \xb9\xdf\xbb\xfd\xc7\xcf\xbf\xb4\xbd\xc0\xb4\xcf\xb4\xd9.",
-						0, 0, 0, 0));
+sFRESH_MSGMAP FrReplayModeDlg::_MsgMap = { &FrForm::_MsgMap, &FrReplayModeDlg::_MsgEntries[0] };
 
+sFRESH_ENTRY FrReplayModeDlg::_MsgEntries[] = {
+	// replaymodedlg.cpp:24
+	{ "ok", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrReplayModeDlg::OnOkInit },
+	// replaymodedlg.cpp:25
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrReplayModeDlg::OnOkBtnUp },
+	// replaymodedlg.cpp:26
+	{ "cancel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrReplayModeDlg::OnCancelInit },
+	// replaymodedlg.cpp:27
+	{ "cancel", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrReplayModeDlg::OnCancelBtnUp },
+
+	// replaymodedlg.cpp:29
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// replaymodedlg.cpp:33
+FrReplayModeDlg::FrReplayModeDlg(void) {
+	m_pOkBtn = 0;
+	m_pCancelBtn = 0;
+	m_replayMode = 0;
+}
+
+// replaymodedlg.cpp:40
+void FrReplayModeDlg::OnOkInit(intptr_t param) {
+	m_pOkBtn = DYNAMIC_CAST(FrButton, param);
+}
+
+// replaymodedlg.cpp:45
+void FrReplayModeDlg::OnOkBtnUp(void) {
+	if (m_replayMode == 1) {
+		// Play the replay.
+		WSingleton<CSharedDoc>::Instance()->m_replayStartB = 0;
+		WSingleton<CSharedDoc>::Instance()->m_replayStartA = 0;
+		WSingleton<CSharedDoc>::Instance()->m_replayChannelFlags = WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags;
+		WSingleton<CSharedDoc>::Instance()->m_replayState = 14;
+	}
+	else if (m_replayMode == 2) {
+		// Delete the replay file.
+		for (std::list<sReplayFileInfo>::iterator it = WSingleton<CSharedDoc>::Instance()->m_replayFileList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_replayFileList.end(); ++it) {
+			if (!stricmp(it->m_fileName, WSingleton<CSharedDoc>::Instance()->m_fileName)) {
+				WSingleton<CSharedDoc>::Instance()->m_replayFileList.erase(it);
+
+				CTaskManager *taskManager;
+				if (DeleteFileA(WSingleton<CSharedDoc>::Instance()->m_fileName)) {
+					taskManager = WSingleton<CTaskManager>::Instance();
+					(taskManager == NULL ? NULL : taskManager->GetCurrentTask())->SendMsgToMainActor(MsgObject(NULL, 0x23, (intptr_t)"\xC1\xA4\xBB\xF3\xC0\xFB\xC0\xB8\xB7\xCE \xBB\xE8\xC1\xA6\xC7\xCF\xBF\xB4\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0));
+				}
+				else {
+					taskManager = WSingleton<CTaskManager>::Instance();
+					(taskManager == NULL ? NULL : taskManager->GetCurrentTask())->SendMsgToMainActor(MsgObject(NULL, 0x23, (intptr_t)"\xBB\xE8\xC1\xA6\xC7\xCF\xB4\xC2 \xB5\xB5\xC1\xDF \xBF\xC0\xB7\xF9\xB0\xA1 \xB9\xDF\xBB\xFD\xC7\xCF\xBF\xB4\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0));
+				}
 				break;
 			}
 		}
@@ -65,22 +89,22 @@ void FrReplayModeDlg::OnOkBtnUp()
 	OnFreshOkay();
 }
 
-void FrReplayModeDlg::OnCancelInit(int param)
-{
-	m_pCancel = DYNAMIC_CAST(FrButton, param);
+// replaymodedlg.cpp:82
+void FrReplayModeDlg::OnCancelInit(intptr_t param) {
+	m_pCancelBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrReplayModeDlg::OnCancelBtnUp()
-{
+// replaymodedlg.cpp:87
+void FrReplayModeDlg::OnCancelBtnUp(void) {
 	OnFreshCancel();
 }
 
-void FrReplayModeDlg::SetReplayMode(int mode)
-{
+// replaymodedlg.cpp:92
+void FrReplayModeDlg::SetReplayMode(int mode) {
 	m_replayMode = mode;
 }
 
-int FrReplayModeDlg::GetReplayMode()
-{
+// replaymodedlg.cpp:97
+int FrReplayModeDlg::GetReplayMode(void) {
 	return m_replayMode;
 }

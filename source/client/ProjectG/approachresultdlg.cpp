@@ -1,867 +1,522 @@
-#include "minatl.h"
-#include "approachresultdlg.h"
-#include "shareddoc.h"
-#include "golfdoc.h"
+// Original: d:\build\custom\temp\code\client\projectg\approachresultdlg.cpp
+#include "ApproachResultDlg.h"
+#include "ObjectFactory.h"
 #include "exhibition.h"
-#include "netresourcemanager.h"
-#include "projectg.h"
+#include "fresh.h"
+#include "frarea.h"
+#include "frlistbox.h"
+#include "frwndmanager.h"
+#include "frgraphicinterface.h"
+#include "bitmap.h"
+#include "GolfDoc.h"
+#include "SharedDoc.h"
+#include "parttidlist.h"
 #include "wfont.h"
+#include "wresrcmng.h"
+#include "wview.h"
+#include <stdio.h>
 
-extern Fresh* g_pFresh;
+// Texture files of the two title fonts of FrApproachResultDlg (no symbol).
+extern "C" char* data_a94d20[2] = { "[font_wind.jpg", "[bigfont.jpg" };
 
-IMPLEMENT_OBJECT(FrApproachResultDlg, FrForm)
+// approachresultdlg.cpp:12 (run-time type and factory registration of FrApproachResultDlg)
+const WRTTI FrApproachResultDlg::m_RTTI("FrApproachResultDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrApproachResultDlg, FrForm)
-
-ON_FRESH_VI("left_area", FRCMD_INIT, FrApproachResultDlg::OnLeftAreaInit)
-ON_FRESH_VI("left_area", FRCMD_OWNERDRAW,
-	FrApproachResultDlg::OnLeftAreaOwnerDraw)
-ON_FRESH_VI("left_list", FRCMD_INIT, FrApproachResultDlg::OnLeftListInit)
-ON_FRESH_VI("left_list", FRCMD_OWNERDRAW,
-	FrApproachResultDlg::OnLeftListOwnerDraw)
-ON_FRESH_VI("right_area", FRCMD_INIT, FrApproachResultDlg::OnRightAreaInit)
-ON_FRESH_VI("right_area", FRCMD_OWNERDRAW,
-	FrApproachResultDlg::OnRightAreaOwnerDraw)
-ON_FRESH_VI("right_list", FRCMD_INIT, FrApproachResultDlg::OnRightListInit)
-ON_FRESH_VI("right_list", FRCMD_OWNERDRAW,
-	FrApproachResultDlg::OnRightListOwnerDraw)
-
-END_FRESH_MSGMAP()
-
-bool ApproachResultCompare(const void* a, const void* b)
-{
-	if (((const sApproachResultData*)a)->byRank <
-		((const sApproachResultData*)b)->byRank)
-		return true;
-	return false;
+IObject* FrApproachResultDlgMakeInstance(void) {
+	return new FrApproachResultDlg;
 }
 
-FrApproachResultDlg::FrApproachResultDlg()
-{
+struct __sFrApproachResultDlg {
+	__sFrApproachResultDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrApproachResultDlgMakeInstance, "FrApproachResultDlg");
+	}
+};
+static __sFrApproachResultDlg s_registerFrApproachResultDlg;
+
+// approachresultdlg.cpp:14
+const sFRESH_MSGMAP* FrApproachResultDlg::GetMessageMap(void) const {
+	return &FrApproachResultDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrApproachResultDlg::_MsgMap = { &FrForm::_MsgMap, &FrApproachResultDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrApproachResultDlg::_MsgEntries[] = {
+	// approachresultdlg.cpp:17
+	{ "left_area", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnLeftAreaInit },
+	// approachresultdlg.cpp:18
+	{ "left_area", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnLeftAreaOwnerDraw },
+	// approachresultdlg.cpp:19
+	{ "left_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnLeftListInit },
+	// approachresultdlg.cpp:20
+	{ "left_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnLeftListOwnerDraw },
+	// approachresultdlg.cpp:21
+	{ "right_area", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnRightAreaInit },
+	// approachresultdlg.cpp:22
+	{ "right_area", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnRightAreaOwnerDraw },
+	// approachresultdlg.cpp:23
+	{ "right_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnRightListInit },
+	// approachresultdlg.cpp:24
+	{ "right_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachResultDlg::OnRightListOwnerDraw },
+
+	// approachresultdlg.cpp:26
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// approachresultdlg.cpp:29 (sort predicate of the result lists)
+bool ApproachResultCompare(const void* lhs, const void* rhs) {
+	const sApproachResultData* pLhs = (const sApproachResultData*)lhs;
+	const sApproachResultData* pRhs = (const sApproachResultData*)rhs;
+
+	return pLhs->m_unk09 < pRhs->m_unk09 ? true : false;
+}
+
+// approachresultdlg.cpp:40
+FrApproachResultDlg::FrApproachResultDlg(void) {
 	ClearVariables();
 }
 
-FrApproachResultDlg::~FrApproachResultDlg()
-{
-	m_pSmallFont->Erase();
-	m_pBigFont->Erase();
-	if (g_resrcmng && m_pSmallFont)
-	{
-		g_resrcmng->Release(m_pSmallFont);
-		m_pSmallFont = NULL;
-	}
-	if (g_resrcmng && m_pBigFont)
-	{
-		g_resrcmng->Release(m_pBigFont);
-		m_pBigFont = NULL;
-	}
-	if (m_pPartTidList)
-	{
-		delete m_pPartTidList;
-		m_pPartTidList = NULL;
-	}
-	if (m_pExhibition)
-	{
-		delete m_pExhibition;
-		m_pExhibition = NULL;
-	}
+// approachresultdlg.cpp:46
+FrApproachResultDlg::~FrApproachResultDlg(void) {
+	m_pTitleFont2->Erase();
+	m_pTitleFont1->Erase();
+	if (g_resrcmng && m_pTitleFont2) { g_resrcmng->Release(m_pTitleFont2); m_pTitleFont2 = 0; }
+	if (g_resrcmng && m_pTitleFont1) { g_resrcmng->Release(m_pTitleFont1); m_pTitleFont1 = 0; }
+	if (m_pPartTidList) { delete m_pPartTidList; m_pPartTidList = 0; }
+	if (m_pExhibition) { delete m_pExhibition; m_pExhibition = 0; }
 }
 
-bool FrApproachResultDlg::OnInit()
-{
+// approachresultdlg.cpp:57
+bool FrApproachResultDlg::OnInit(void) {
 	return FrForm::OnInit();
 }
 
-void FrApproachResultDlg::OnProc(float delta)
-{
-	FrForm::OnProc(delta);
-	if (m_pExhibition)
-		m_pExhibition->Process(delta, true);
-	else
+// approachresultdlg.cpp:62
+void FrApproachResultDlg::OnProc(const float dt) {
+	FrForm::OnProc(dt);
+
+	if (m_pExhibition) {
+		m_pExhibition->Process(dt, true);
+	} else {
 		ShowPet();
+	}
 }
 
-void FrApproachResultDlg::ClearVariables()
-{
-	(void)&g_HUGE;
-	(void)&g_EPSILON;
-	static char* s_smallFont[] = { "[font_wind.jpg" };
-	static char* s_bigFont[] = { "[bigfont.jpg" };
-	m_pLeftArea = NULL;
-	m_pLeftList = NULL;
-	m_pBack = NULL;
-	m_pTab1 = NULL;
-	m_pTab2 = NULL;
-	m_pExhibition = NULL;
-	m_pPartTidList = NULL;
-	m_pRightList = NULL;
-	m_pRightArea = NULL;
-	m_pBigFont = NULL;
-	m_pSmallFont = NULL;
-	WTITLEFONT big;
-	memset(&big, 0, sizeof(big));
-	big.filename = s_bigFont;
-	big.fontw = 32;
-	big.fonth = 32;
-	big.numPages = 1;
-	big.texw = 256;
-	big.texh = 128;
-	big.pCharSet = "1234567890ym%-./x ";
-	m_pBigFont = g_resrcmng->GetTitleFont();
-	m_pBigFont->Create(&big);
-	WTITLEFONT smallInfo;
+// approachresultdlg.cpp:81
+void FrApproachResultDlg::ClearVariables(void) {
+	tagWTITLEFONT bigInfo;
+	memset(&bigInfo, 0, sizeof(bigInfo));
+
+	m_pLeftArea = 0;
+	m_pLeftList = 0;
+	m_pLeftAreaBitmap = 0;
+	m_pLeftTab1 = 0;
+	m_pLeftTab2 = 0;
+	m_pExhibition = 0;
+	m_pPartTidList = 0;
+	m_pRightList = 0;
+	m_pRightArea = 0;
+	m_pTitleFont1 = 0;
+	m_pTitleFont2 = 0;
+
+	bigInfo.filename = &data_a94d20[1];
+	bigInfo.fontw = 32;
+	bigInfo.fonth = 32;
+	bigInfo.numPages = 1;
+	bigInfo.texw = 256;
+	bigInfo.texh = 128;
+	bigInfo.pCharSet = "1234567890ym%-./x ";
+	m_pTitleFont1 = g_resrcmng->GetTitleFont();
+	m_pTitleFont1->Create(&bigInfo);
+
+	tagWTITLEFONT smallInfo;
 	memset(&smallInfo, 0, sizeof(smallInfo));
-	smallInfo.filename = s_smallFont;
+	smallInfo.filename = data_a94d20;
 	smallInfo.fontw = 16;
 	smallInfo.fonth = 16;
 	smallInfo.numPages = 1;
 	smallInfo.texw = 128;
 	smallInfo.texh = 64;
 	smallInfo.pCharSet = "1234567890ym%-.?/:";
-	m_pSmallFont = g_resrcmng->GetTitleFont();
-	m_pSmallFont->Create(&smallInfo);
-	char title[32] = "\0";
-	char box[32] = "\0";
-	switch (GetCurMap())
-	{
+	m_pTitleFont2 = g_resrcmng->GetTitleFont();
+	m_pTitleFont2->Create(&smallInfo);
+
+	char boxName[32] = "\0";
+	char treasureName[32] = "\0";
+
+	switch (GetCurMap()) {
 	case 2:
 	case 3:
 	case 11:
 	case 16:
 	case 19:
-		strcpy(title, "th_box_1");
-		strcpy(box, "treasurebox_a");
+		strcpy(boxName, "th_box_1");
+		strcpy(treasureName, "treasurebox_a");
 		break;
 	case 0:
 	case 1:
 	case 6:
 	case 7:
-		strcpy(title, "th_box_2");
-		strcpy(box, "treasurebox_b");
+		strcpy(boxName, "th_box_2");
+		strcpy(treasureName, "treasurebox_b");
 		break;
 	case 10:
 	case 13:
 	case 15:
-		strcpy(title, "th_box_3");
-		strcpy(box, "treasurebox_c");
+		strcpy(boxName, "th_box_3");
+		strcpy(treasureName, "treasurebox_c");
 		break;
 	case 4:
 	case 5:
 	case 8:
 	case 9:
 	case 14:
-		strcpy(title, "th_box_4");
-		strcpy(box, "treasurebox_d");
+		strcpy(boxName, "th_box_4");
+		strcpy(treasureName, "treasurebox_d");
 		break;
 	}
+
 	m_pRankGold = g_pFresh->GetBitmap("rank_gold");
 	m_pRankSilver = g_pFresh->GetBitmap("rank_silver");
 	m_pRankBronze = g_pFresh->GetBitmap("rank_bronze");
-	m_pGoodLuck = g_pFresh->GetBitmap("prize_goodluck");
-	m_pTreasureBox = g_pFresh->GetBitmap(box);
-	m_pTreasureTitle = g_pFresh->GetBitmap(title);
+	m_pPrizeGoodLuck = g_pFresh->GetBitmap("prize_goodluck");
+	m_pTreasureBox = g_pFresh->GetBitmap(treasureName);
+
+	m_pBoxBitmap = g_pFresh->GetBitmap(boxName);
+
 	m_bApproachEnd = false;
 }
 
-void FrApproachResultDlg::OnLeftAreaInit(int param)
-{
-	m_pLeftArea = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (g_view->GetWidth() < 700.0f)
-	{
+// approachresultdlg.cpp:188
+void FrApproachResultDlg::OnLeftAreaInit(intptr_t param) {
+	m_pLeftArea = DYNAMIC_CAST(FrArea, param);
+
+	if (g_view->GetWidth() < 700.0f) {
+
 		m_pLeftArea->SetVisible(false);
 		m_pLeftArea->Enable(false);
-	}
-	else
-	{
-		char name[64];
-		sprintf(name, "30in_back_%s",
-			(Doc()->m_golfGame.pCourse ? Doc()->m_golfGame.pCourse->Data
-									   : NULL));
-		m_pBack = g_pFresh->GetBitmap(name);
-		m_pTab1 = g_pFresh->GetBitmap("approach_tab1");
-		m_pTab2 = g_pFresh->GetBitmap("approach_tab2");
-	}
-}
-
-void FrApproachResultDlg::OnLeftAreaOwnerDraw(int)
-{
-	if (g_view->GetWidth() < 700.0f)
 		return;
-	{
-		FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-		if (device)
-		{
-			char rank[4];
-			WRect area = m_rect;
-			const Bitmap* line = g_pFresh->GetBitmap("approach_line");
-			if (line)
-			{
-				WRect rect(area.x + 363.0f, area.y + 2.0f,
-					(float)(float)line->Width(), 315.0f);
-				device->DrawTexture(line, rect, 0xffffffff, 0);
-			}
-			if (m_pBack)
-			{
-				device->DrawTexture(m_pBack,
-					WRect(area.x + 2.0f, area.y + 2.0f, (float)m_pBack->Width(),
-						(float)m_pBack->Height()),
-					0xffffffff, 0);
-			}
-			if (m_pTab1 && m_pTab2)
-			{
-				device->DrawTexture(m_pTab1,
-					WRect(area.x + 2.0f, area.y + 231.0f,
-						(float)m_pTab1->Width(), (float)m_pTab2->Height()),
-					0xffffffff, 0);
-				device->DrawTexture(m_pTab2,
-					WRect(area.x + 258.0f, area.y + 231.0f,
-						(float)m_pTab2->Width(), (float)m_pTab2->Height()),
-					0xffffffff, 0);
-			}
-			sApproachResultData* data = NULL;
-			std::list<sApproachResultData*>& results =
-				Doc()->m_pGolfDoc->GetApproachCurHoleResult();
-			for (std::list<sApproachResultData*>::iterator it = results.begin();
-				it != results.end(); ++it)
-			{
-				data = *it;
-				if (data)
-				{
-					if (data->byRank == 1)
-						break;
-					data = NULL;
-				}
-			}
-			if (data)
-			{
-				if (!Doc()->m_userInfoMod &&
-					(!Doc()->IsCurrentMissionBlind() ||
-						(Doc()->IsCurrentMissionBlind() &&
-							data->dwGUID == Doc()->m_myInfo.info.dwGuid)) &&
-					m_pExhibition)
-					m_pExhibition->Display(0.0f, 0.0f);
-				sRivalData* rival =
-					&Doc()->m_rivalList[Doc()->GetIndex(data->dwGUID)];
-				int space = device->SetSpace(0);
-				device->SetTextStyle(1);
-				device->Print(WPoint(area.x + 210.0f, area.y + 56.0f), 0,
-					"\274\370    \300\247");
-				if (!Doc()->IsCurrentMissionBlind() ||
-					(Doc()->IsCurrentMissionBlind() &&
-						data->dwGUID == Doc()->m_myInfo.info.dwGuid))
-				{
-					device->Print(WPoint(area.x + 210.0f, area.y + 93.0f), 0,
-						"\264\353 \310\255 \270\355");
-					device->Print(WPoint(area.x + 210.0f, area.y + 118.0f), 0,
-						"\263\262\300\272\260\305\270\256");
-					device->Print(WPoint(area.x + 210.0f, area.y + 143.0f), 0,
-						"\263\262\300\272\275\303\260\243");
-				}
-				device->Print(WPoint(area.x + 210.0f, area.y + 170.0f), 0,
-					"\310\271\265\346\272\270\273\363");
-				device->SetTextStyle(0);
-				memcpy(rank, "\0", 2);
-				memset(rank + 2, 0, 2);
-				int time = data->dwRemainTime;
-				unsigned int distance = data->dwRemainDistance;
-				itoa(data->byRank, rank, 10);
-				m_pBigFont->Print(g_view, area.x + 280.0f, area.y + 48.0f, rank,
-					0, 0xffffffff, 0);
-				if (!Doc()->IsCurrentMissionBlind() ||
-					(Doc()->IsCurrentMissionBlind() &&
-						data->dwGUID == Doc()->m_myInfo.info.dwGuid))
-				{
-					g_pFresh->GetManager()->PrintText11(
-						WPoint(area.x + 280.0f, area.y + 93.0f), 0,
-						rival->nickname, -1.0f, 0xffffffff);
-					if (distance == -1)
-					{
-						device->Print(WPoint(area.x + 280.0f, area.y + 118.0f),
-							0, "out");
-						device->Print(WPoint(area.x + 280.0f, area.y + 143.0f),
-							0, "-");
-					}
-					else
-					{
-						device->Print(WPoint(area.x + 280.0f, area.y + 118.0f),
-							0, "%d.%d y", distance / 10, distance % 10);
-						device->Print(WPoint(area.x + 280.0f, area.y + 143.0f),
-							0, "%d.%03d \303\312", time / 1000, time % 1000);
-					}
-				}
-				int boxes =
-					data->dwPrizeCount + data->byRankPrize + data->byLuckPrize;
-				if (m_pTreasureTitle)
-				{
-					device->DrawTexture(m_pTreasureTitle,
-						WRect(area.x + 280.0f, area.y + 178.0f,
-							(float)m_pTreasureTitle->Width(),
-							(float)m_pTreasureTitle->Height()),
-						0xffffffff, 0);
-				}
-				char number[3] = "\0";
-				itoa(boxes, number, 10);
-				m_pSmallFont->Print(g_view, area.x + 280.0f, area.y + 170.0f,
-					number, 0, 0xffffffff, 0);
-				device->SetSpace(space);
-			}
-		}
 	}
+
+	char bgName[64];
+	sprintf(bgName, "30in_back_%s", WSingleton<CSharedDoc>::Instance()->m_pCurCourse ? WSingleton<CSharedDoc>::Instance()->m_pCurCourse->m_mapName : 0);
+	m_pLeftAreaBitmap = g_pFresh->GetBitmap(bgName);
+
+	m_pLeftTab1 = g_pFresh->GetBitmap("approach_tab1");
+	m_pLeftTab2 = g_pFresh->GetBitmap("approach_tab2");
 }
 
-void FrApproachResultDlg::OnLeftListInit(int param)
-{
-	m_pLeftList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
+// approachresultdlg.cpp:343
+void FrApproachResultDlg::OnLeftListInit(intptr_t param) {
+	m_pLeftList = DYNAMIC_CAST(FrListBox, param);
+
 
 	m_pLeftList->ClearItem();
-	std::list<sApproachResultData*>& results =
-		Doc()->m_pGolfDoc->GetApproachCurHoleResult();
-	for (std::list<sApproachResultData*>::iterator it = results.begin();
-		it != results.end(); ++it)
-	{
-		sApproachResultData* data = *it;
-		if (data && data->byRank <= 3 && data->byRank > 1)
-			m_pLeftList->AddItem(data);
+
+
+
+	std::list<sApproachResultData*>& results = GOLFDOC()->GetApproachCurHoleResult();
+
+
+
+
+	for (std::list<sApproachResultData*>::iterator it = results.begin(); it != results.end(); ++it) {
+
+		sApproachResultData* pData = *it;
+		if (pData) {
+
+			if (pData->m_unk09 <= 3 && pData->m_unk09 > 1)
+
+				m_pLeftList->AddItem(pData);
+		}
 	}
+
+
 	m_pLeftList->SortItem(ApproachResultCompare);
 }
 
-void FrApproachResultDlg::OnLeftListOwnerDraw(int param)
-{
-	FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-	if (!device || !param)
+// approachresultdlg.cpp:486
+void FrApproachResultDlg::OnRightAreaInit(intptr_t param) {
+	m_pRightArea = DYNAMIC_CAST(FrArea, param);
+
+
+	m_pRightTab1 = g_pFresh->GetBitmap("approach_tab3");
+	m_pRightTab2 = g_pFresh->GetBitmap("approach_tab4");
+}
+
+// approachresultdlg.cpp:495
+void FrApproachResultDlg::OnRightAreaOwnerDraw(int param) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+	if (!pGDI)
 		return;
-	FrListItem* item = (FrListItem*)param;
-	sApproachResultData* data = (sApproachResultData*)item->pData;
-	if (!data)
-		return;
-	sRivalData* rival = &Doc()->m_rivalList[Doc()->GetIndex(data->dwGUID)];
-	WPoint base = item->pos;
-	float y;
-	const Bitmap* frame = data->byRank <= 3 ? g_pFresh->GetBitmap("rank_frm_1")
-											: g_pFresh->GetBitmap("rank_frm_2");
-	if (frame)
-	{
-		WRect rect(base.x + 20.0f - (float)frame->Width() * 0.5f,
-			base.y + 6.0f - 2.0f, (float)frame->Width(),
-			(float)frame->Height());
-		device->DrawTexture(frame, rect, 0xffffffff, 0);
-	}
-	device->SetTextStyle(1);
-	device->SetTextColor(0xffffffff, 0xffffffff);
-	{
-		WPoint rankPos;
-		rankPos.x = base.x + 20.0f;
-		y = base.y + 6.0f;
-		rankPos.y = y;
-		if (data->byRank != 255)
-			device->Print(rankPos, 1, "%d", data->byRank);
-		else
-		{
-			if (!data->bExit)
-				device->Print(rankPos, 1, "-");
-			else
-				device->Print(rankPos, 1, "x");
-		}
-	}
-	device->SetTextColor(0xff000000, 0xffffffff);
-	if (data->dwGUID == Doc()->m_myInfo.info.dwGuid)
-		device->SetTextColor(0xffff0000, 0xffffffff);
-	else
-		device->SetTextStyle(0);
-	if (!Doc()->IsCurrentMissionBlind() ||
-		(Doc()->IsCurrentMissionBlind() &&
-			data->dwGUID == Doc()->m_myInfo.info.dwGuid))
-	{
-		if (rival->guildUID)
-		{
-			const Bitmap* emblem =
-				NetResManager()->GetEmblemByName(rival->guildMark);
-			if (emblem)
-			{
-				WRect rect(base.x + 40.0f, y - 7.0f, (float)emblem->Width(),
-					(float)emblem->Height());
-				device->DrawTexture(emblem, rect, 0xffffffff, 0);
-			}
-		}
-		if (!CProjectG::Instance()->HidePrivacy())
-			g_pFresh->GetManager()->PrintText11(WPoint(base.x + 70.0f, y), 0,
-				rival->nickname, -1.0f, 0xffffffff);
-		if (data->dwRemainTime == -1)
-		{
-			device->Print(WPoint(base.x + 198.0f, y), 2, "Out");
-			device->Print(WPoint(base.x + 252.0f, y), 2, "-");
-		}
-		else
-		{
-			if (rival->approachResultDistance == -1)
-				device->Print(WPoint(base.x + 198.0f, y), 2, "Out");
-			else
-				device->Print(WPoint(base.x + 198.0f, y), 2, "%d.%dy",
-					data->dwRemainDistance / 10, data->dwRemainDistance % 10);
-			device->Print(WPoint(base.x + 266.0f, y), 2, "%d.%03d",
-				data->dwRemainTime / 1000, data->dwRemainTime % 1000);
-		}
-	}
-	device->Print(WPoint(base.x + 327.0f, y), 2, "%d",
-		data->dwPrizeCount + data->byRankPrize + data->byLuckPrize);
-	device->SetTextStyle(0);
+
+
+	WRect rect = GetRect();
+	if (m_pRightTab1)
+
+		pGDI->DrawTexture(m_pRightTab1, WRect(rect.x + 365.0f, rect.y + 2.0f, m_pRightTab1->Width(), m_pRightTab1->Height()), 0xFFFFFFFF, 0);
+
+	if (m_pRightTab2)
+
+		pGDI->DrawTexture(m_pRightTab2, WRect(rect.x + 621.0f, rect.y + 2.0f, m_pRightTab2->Width(), m_pRightTab2->Height()), 0xFFFFFFFF, 0);
 }
 
-void FrApproachResultDlg::OnRightAreaInit(int param)
-{
-	m_pRightArea = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pTab3 = g_pFresh->GetBitmap("approach_tab3");
-	m_pTab4 = g_pFresh->GetBitmap("approach_tab4");
-}
+// approachresultdlg.cpp:512
+void FrApproachResultDlg::OnRightListInit(intptr_t param) {
+	m_pRightList = DYNAMIC_CAST(FrListBox, param);
 
-void FrApproachResultDlg::OnRightAreaOwnerDraw(int)
-{
-	FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-	if (device)
-	{
-		WRect area = m_rect;
-		if (m_pTab3)
-			device->DrawTexture(m_pTab3,
-				WRect(area.x + 365.0f, area.y + 2.0f, m_pTab3->Width(),
-					m_pTab3->Height()),
-				0xffffffff, 0);
-		if (m_pTab4)
-			device->DrawTexture(m_pTab4,
-				WRect(area.x + 621.0f, area.y + 2.0f, m_pTab4->Width(),
-					m_pTab4->Height()),
-				0xffffffff, 0);
-	}
-}
 
-void FrApproachResultDlg::OnRightListInit(int param)
-{
-	m_pRightList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
 
 	m_pRightList->ClearItem();
-	std::list<sApproachResultData*>& results =
-		Doc()->m_pGolfDoc->GetApproachCurHoleResult();
-	for (std::list<sApproachResultData*>::iterator it = results.begin();
-		it != results.end(); ++it)
-	{
-		sApproachResultData* data = *it;
-		if (data)
-			m_pRightList->AddItem(data);
+
+
+	std::list<sApproachResultData*>& results = GOLFDOC()->GetApproachCurHoleResult();
+
+
+
+
+	for (std::list<sApproachResultData*>::iterator it = results.begin(); it != results.end(); ++it) {
+
+		sApproachResultData* pData = *it;
+		if (pData)
+			m_pRightList->AddItem(pData);
 	}
+
+
 	m_pRightList->SortItem(ApproachResultCompare);
 }
 
-void FrApproachResultDlg::OnRightListOwnerDraw(int param)
-{
-	FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-	if (!device || !param)
-		return;
-	FrListItem* item = (FrListItem*)param;
-	sApproachResultData* data = (sApproachResultData*)item->pData;
-	if (!data)
-		return;
-	sRivalData* rival = &Doc()->m_rivalList[Doc()->GetIndex(data->dwGUID)];
-	WPoint base = item->pos;
-	float y;
-	const Bitmap* frame = data->byRank <= 3 ? g_pFresh->GetBitmap("rank_frm_1")
-											: g_pFresh->GetBitmap("rank_frm_2");
-	if (frame)
-	{
-		WRect rect(base.x + 7.0f - (float)frame->Width() * 0.5f,
-			base.y + 9.0f - 2.0f, (float)frame->Width(),
-			(float)frame->Height());
-		device->DrawTexture(frame, rect, 0xffffffff, 0);
-	}
-	device->SetTextStyle(1);
-	device->SetTextColor(0xffffffff, 0xffffffff);
-	{
-		WPoint rankPos;
-		rankPos.x = base.x + 7.0f;
-		y = base.y + 9.0f;
-		rankPos.y = y;
-		if (data->byRank != 255)
-			device->Print(rankPos, 1, "%d", data->byRank);
-		else
-		{
-			if (!data->bExit)
-				device->Print(rankPos, 1, "-");
-			else
-				device->Print(rankPos, 1, "x");
-		}
-	}
-	device->SetTextColor(0xff000000, 0xffffffff);
-	if (data->dwGUID == Doc()->m_myInfo.info.dwGuid)
-		device->SetTextColor(0xffff0000, 0xffffffff);
-	else
-		device->SetTextStyle(0);
-	if (!Doc()->IsCurrentMissionBlind() ||
-		(Doc()->IsCurrentMissionBlind() &&
-			data->dwGUID == Doc()->m_myInfo.info.dwGuid))
-	{
-		if (rival->guildUID)
-		{
-			const Bitmap* emblem =
-				NetResManager()->GetEmblemByName(rival->guildMark);
-			if (emblem)
-			{
-				WRect rect(base.x + 20.0f, y - 6.0f, (float)emblem->Width(),
-					(float)emblem->Height());
-				device->DrawTexture(emblem, rect, 0xffffffff, 0);
-			}
-		}
-		if (!CProjectG::Instance()->HidePrivacy())
-			g_pFresh->GetManager()->PrintText11(WPoint(base.x + 48.0f, y), 0,
-				rival->nickname, -1.0f, 0xffffffff);
-		if (data->dwRemainDistance == -1)
-		{
-			device->Print(WPoint(base.x + 163.0f, y), 2, "Out");
-			device->Print(WPoint(base.x + 208.0f, y), 2, "-");
-		}
-		else
-		{
-			device->Print(WPoint(base.x + 168.0f, y), 2, "%d.%dy",
-				data->dwRemainDistance / 10, data->dwRemainDistance % 10);
-			device->Print(WPoint(base.x + 222.0f, y), 2, "%d.%03d",
-				data->dwRemainTime / 1000, data->dwRemainTime % 1000);
-		}
-	}
-	char number[3] = "\0";
-	if (data->dwPrizeCount > 0)
-	{
-		if (m_pTreasureBox)
-		{
-			device->DrawTexture(m_pTreasureBox,
-				WRect(base.x + 213.0f, y - 5.0f, (float)m_pTreasureBox->Width(),
-					(float)m_pTreasureBox->Height()),
-				0xffffffff, 0);
-		}
-		itoa(data->dwPrizeCount, number, 10);
-		if (m_pSmallFont)
-			m_pSmallFont->Print(g_view, base.x + 230.0f, y + 1.0f, number, 0,
-				0xffffffff, 0);
-	}
-	if (data->byRankPrize > 0)
-	{
-		const Bitmap* medal = NULL;
-		switch (data->byRank)
-		{
-		case 1:
-			medal = m_pRankGold;
-			break;
-		case 2:
-			medal = m_pRankSilver;
-			break;
-		case 3:
-			medal = m_pRankBronze;
-			break;
-		}
-		if (medal)
-		{
-			WRect rect(base.x + 247.0f, y - 3.5f, (float)medal->Width(),
-				(float)medal->Height());
-			device->DrawTexture(medal, rect, 0xffffffff, 0);
-		}
-		itoa(data->byRankPrize, number, 10);
-		if (m_pSmallFont)
-			m_pSmallFont->Print(g_view, base.x + 248.0f, y + 1.0f, number, 0,
-				0xffffffff, 0);
-	}
-	if (data->byLuckPrize > 0)
-	{
-		if (m_pGoodLuck)
-		{
-			device->DrawTexture(m_pGoodLuck,
-				WRect(base.x + 259.0f, y - 5.0f, (float)m_pGoodLuck->Width(),
-					(float)m_pGoodLuck->Height()),
-				0xffffffff, 0);
-		}
-		itoa(data->byLuckPrize, number, 10);
-		if (m_pSmallFont)
-			m_pSmallFont->Print(g_view, base.x + 263.0f, y + 1.0f, number, 0,
-				0xffffffff, 0);
-	}
-	device->SetTextStyle(0);
-	if (data->dwGUID == Doc()->m_myInfo.info.dwGuid)
-		device->SetTextColor(0, 0xffffffff);
+// approachresultdlg.cpp:704
+void FrApproachResultDlg::SetApproachEnd(bool bEnd) {
+	m_bApproachEnd = bEnd;
 }
 
-void FrApproachResultDlg::SetApproachEnd(bool end)
-{
-	m_bApproachEnd = end;
-}
-
-bool FrApproachResultDlg::GetApproachEnd() const
-{
+// approachresultdlg.cpp:709
+bool FrApproachResultDlg::GetApproachEnd(void) const {
 	return m_bApproachEnd;
 }
 
-void FrApproachResultDlg::ShowPet()
-{
-	if (m_pBack)
-	{
-		sApproachResultData* data = NULL;
-		std::list<sApproachResultData*>& results =
-			Doc()->m_pGolfDoc->GetApproachCurHoleResult();
-		for (std::list<sApproachResultData*>::iterator it = results.begin();
-			it != results.end(); ++it)
-		{
-			data = *it;
-			if (data)
-			{
-				if (data->byRank == 1)
-					break;
-				data = NULL;
+// approachresultdlg.cpp:715
+void FrApproachResultDlg::ShowPet(void) {
+	if (!m_pLeftAreaBitmap) {
+		return;
+	}
+	std::list<sApproachResultData*>& results = GOLFDOC()->GetApproachCurHoleResult();
+	if (results.empty()) {
+		return;
+	}
+
+	sApproachResultData* pData = NULL;
+	std::list<sApproachResultData*>::iterator it;
+	for (it = results.begin(); it != results.end(); ++it) {
+		pData = *it;
+		if (pData) {
+			if (pData->m_unk09 == 1) {
+				break;
 			}
 		}
-		if (data)
-		{
-			sRivalData* rival =
-				&Doc()->m_rivalList[Doc()->GetIndex(data->dwGUID)];
-			if (!Doc()->IsCurrentMissionBlind() || rival->oid == MyGuid(false))
-			{
-				std::map<unsigned long, sUserInfoTime>::iterator it;
-				*(volatile unsigned long*)&it = 0;
-				if (Doc()->FindUserInfoTimeUID(
-						*(const volatile unsigned long*)&rival->uid, it))
-				{
-					if (!Doc()->m_userInfoMod)
-					{
-						WRect origin = m_rect;
-						WRect area(origin.x + 5.0f, origin.y - 25.0f,
-							m_pBack->Width(), m_pBack->Height());
-						m_pExhibition = new CExhibition(area.x + area.w * 0.5f,
-							area.y + area.h * 0.5f, 0.33f, false);
-						m_pExhibition->SetDistance(g_view->GetWidth() * 0.0275f,
-							true, false);
-						m_pExhibition->SetArea(area.w, area.h);
-						m_pExhibition->SetControlFlag(16);
-						m_pPartTidList = new CPartTidList;
-						if (!m_pPartTidList->SetTids(&it->second.info.charInfo,
-								255) ||
-							!m_pPartTidList->IsComboValid())
-							m_pPartTidList->SetDefaultTids();
-						char motion[64] = "\0";
-						strcpy(motion, "1\265\356\270\360\274\307");
-						m_pExhibition->SetModel(*m_pPartTidList,
-							it->second.info.charInfo.tidAuxParts, motion, 0.0f,
-							0);
-					}
-				}
-			}
-		}
+
+		pData = NULL;
+	}
+
+	if (!pData) {
+		return;
+	}
+
+	sRivalData* pResult = &WSingleton<CSharedDoc>::Instance()->m_gameResultList[WSingleton<CSharedDoc>::Instance()->GetIndex(pData->m_uid)];
+
+	if (WSingleton<CSharedDoc>::Instance()->IsCurrentMissionBlind() && pResult->m_uid != WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().guid) {
+		return;
+	}
+
+	std::map<unsigned long, sUserInfoTime>::iterator itInfo;
+	if (!WSingleton<CSharedDoc>::Instance()->FindUserInfoTimeUID(pResult->m_id, itInfo)) {
+		return;
+	}
+
+	if (WSingleton<CSharedDoc>::Instance()->GetUserInfoMod() != 0) {
+		return;
+	}
+
+	WRect rect(GetRect().x + 5.0f,
+		GetRect().y - 25.0f, m_pLeftAreaBitmap->Width(), m_pLeftAreaBitmap->Height());
+
+	m_pExhibition = new CExhibition(rect.x + rect.w * 0.5f, rect.y + rect.h * 0.5f, 0.33f, false);
+	m_pExhibition->SetDistance(g_view->GetWidth() * 0.0275f, true, false);
+	m_pExhibition->SetArea(rect.w, rect.h);
+	m_pExhibition->SetControlFlag(0x10);
+
+	m_pPartTidList = new CPartTidList;
+
+	if (!m_pPartTidList->SetTids(&itInfo->second.m_userInfo.m_characterInfo, 0xFF) || !m_pPartTidList->IsComboValid()) {
+		m_pPartTidList->SetDefaultTids();
+	}
+
+	char motion[64] = "1\xB5\xEE\xB8\xF0\xBC\xC7";
+
+	m_pExhibition->SetModel(*m_pPartTidList, itInfo->second.m_userInfo.m_characterInfo.auxParts.tids, motion, 0.0f, 0);
+}
+
+// approachresultdlg.cpp:786 (run-time type and factory registration of FrApproachEndDlg)
+const WRTTI FrApproachEndDlg::m_RTTI("FrApproachEndDlg", &FrForm::m_RTTI);
+
+IObject* FrApproachEndDlgMakeInstance(void) {
+	return new FrApproachEndDlg;
+}
+
+struct __sFrApproachEndDlg {
+	__sFrApproachEndDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrApproachEndDlgMakeInstance, "FrApproachEndDlg");
+	}
+};
+static __sFrApproachEndDlg s_registerFrApproachEndDlg;
+
+// approachresultdlg.cpp:788
+const sFRESH_MSGMAP* FrApproachEndDlg::GetMessageMap(void) const {
+	return &FrApproachEndDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrApproachEndDlg::_MsgMap = { &FrForm::_MsgMap, &FrApproachEndDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrApproachEndDlg::_MsgEntries[] = {
+	// approachresultdlg.cpp:790
+	{ "draw_area", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachEndDlg::OnDrawAreaInit },
+	// approachresultdlg.cpp:791
+	{ "draw_area", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachEndDlg::OnDrawAreaOwnerDraw },
+	// approachresultdlg.cpp:792
+	{ "app_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachEndDlg::OnListInit },
+	// approachresultdlg.cpp:793
+	{ "app_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrApproachEndDlg::OnListOwnerDraw },
+
+	// approachresultdlg.cpp:795
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// approachresultdlg.cpp:798
+FrApproachEndDlg::FrApproachEndDlg(void) {
+	m_pDrawArea = 0;
+	m_pList = 0;
+	m_pBitmap[0] = 0;
+	m_pBitmap[1] = 0;
+	m_pBitmap[2] = 0;
+	m_pBitmap[3] = 0;
+}
+
+// approachresultdlg.cpp:808
+FrApproachEndDlg::~FrApproachEndDlg(void) {
+}
+
+// approachresultdlg.cpp:813
+void FrApproachEndDlg::OnDrawAreaInit(intptr_t param) {
+	m_pDrawArea = DYNAMIC_CAST(FrArea, param);
+
+
+	if (m_pDrawArea) {
+
+		m_pBitmap[0] = g_pFresh->GetBitmap("approach_result1");
+		m_pBitmap[1] = g_pFresh->GetBitmap("approach_result2");
+		m_pBitmap[2] = g_pFresh->GetBitmap("approach_result3");
+		m_pBitmap[3] = g_pFresh->GetBitmap("approach_result4");
 	}
 }
 
-IMPLEMENT_OBJECT(FrApproachEndDlg, FrForm)
+// approachresultdlg.cpp:827
+void FrApproachEndDlg::OnDrawAreaOwnerDraw(int param) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+	if (!pGDI)
+		return;
 
-BEGIN_FRESH_MSGMAP(FrApproachEndDlg, FrForm)
 
-ON_FRESH_VI("draw_area", FRCMD_INIT, FrApproachEndDlg::OnDrawAreaInit)
-ON_FRESH_VI("draw_area", FRCMD_OWNERDRAW, FrApproachEndDlg::OnDrawAreaOwnerDraw)
-ON_FRESH_VI("app_list", FRCMD_INIT, FrApproachEndDlg::OnListInit)
-ON_FRESH_VI("app_list", FRCMD_OWNERDRAW, FrApproachEndDlg::OnListOwnerDraw)
 
-END_FRESH_MSGMAP()
 
-FrApproachEndDlg::FrApproachEndDlg()
-	: m_pDrawArea(NULL),
-	  m_pList(NULL),
-	  m_pResult1(NULL),
-	  m_pResult2(NULL),
-	  m_pResult3(NULL),
-	  m_pResult4(NULL)
-{
+	WRect rect = GetRect();
+	if (m_pBitmap[0])
+
+
+
+
+		pGDI->DrawTexture(m_pBitmap[0], WRect(rect.x + 2.0f, rect.y + 23.0f, m_pBitmap[0]->Width(), m_pBitmap[0]->Height()), 0xFFFFFFFF, 0);
+
+	if (m_pBitmap[1])
+
+
+
+
+		pGDI->DrawTexture(m_pBitmap[1], WRect(rect.x + 258.0f, rect.y + 23.0f, m_pBitmap[1]->Width(), m_pBitmap[1]->Height()), 0xFFFFFFFF, 0);
+
+	if (m_pBitmap[2])
+
+
+
+
+		pGDI->DrawTexture(m_pBitmap[2], WRect(rect.x + 12.0f, rect.y + 313.0f, m_pBitmap[2]->Width(), m_pBitmap[2]->Height()), 0xFFFFFFFF, 0);
+
+	if (m_pBitmap[3])
+
+
+
+
+		pGDI->DrawTexture(m_pBitmap[3], WRect(rect.x + 268.0f, rect.y + 313.0f, m_pBitmap[3]->Width(), m_pBitmap[3]->Height()), 0xFFFFFFFF, 0);
 }
 
-FrApproachEndDlg::~FrApproachEndDlg()
-{
-}
+// approachresultdlg.cpp:865
+void FrApproachEndDlg::OnListInit(intptr_t param) {
+	m_pList = DYNAMIC_CAST(FrListBox, param);
 
-void FrApproachEndDlg::OnDrawAreaInit(int param)
-{
-	m_pDrawArea = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pDrawArea)
-	{
-		m_pResult1 = g_pFresh->GetBitmap("approach_result1");
-		m_pResult2 = g_pFresh->GetBitmap("approach_result2");
-		m_pResult3 = g_pFresh->GetBitmap("approach_result3");
-		m_pResult4 = g_pFresh->GetBitmap("approach_result4");
-	}
-}
 
-void FrApproachEndDlg::OnDrawAreaOwnerDraw(int)
-{
-	FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-	if (device)
-	{
-		WRect area = m_rect;
-		if (m_pResult1)
-			device->DrawTexture(m_pResult1,
-				WRect(area.x + 2.0f, area.y + 23.0f, m_pResult1->Width(),
-					m_pResult1->Height()),
-				0xffffffff, 0);
-		if (m_pResult2)
-			device->DrawTexture(m_pResult2,
-				WRect(area.x + 258.0f, area.y + 23.0f, m_pResult2->Width(),
-					m_pResult2->Height()),
-				0xffffffff, 0);
-		if (m_pResult3)
-			device->DrawTexture(m_pResult3,
-				WRect(area.x + 12.0f, area.y + 313.0f, m_pResult3->Width(),
-					m_pResult3->Height()),
-				0xffffffff, 0);
-		if (m_pResult4)
-			device->DrawTexture(m_pResult4,
-				WRect(area.x + 268.0f, area.y + 313.0f, m_pResult4->Width(),
-					m_pResult4->Height()),
-				0xffffffff, 0);
-	}
-}
 
-void FrApproachEndDlg::OnListInit(int param)
-{
-	m_pList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pList)
-	{
+	if (m_pList) {
+
 		m_pList->ClearItem();
-		std::list<sApproachResultData*>& results =
-			Doc()->m_pGolfDoc->GetApproachGameResult();
-		for (std::list<sApproachResultData*>::iterator it = results.begin();
-			it != results.end(); ++it)
-		{
-			sApproachResultData* data = *it;
-			if (data && (data->byRank > 0 || data->byRank <= 30))
-				m_pList->AddItem(data);
+
+		std::list<sApproachResultData*>& results = GOLFDOC()->GetApproachGameResult();
+
+
+		for (std::list<sApproachResultData*>::iterator it = results.begin(); it != results.end(); ++it) {
+
+			sApproachResultData* pData = *it;
+			if (pData) {
+
+				if (pData->m_unk09 > 0 || pData->m_unk09 <= 30)
+
+					m_pList->AddItem(pData);
+			}
 		}
+
+
 		m_pList->SortItem(ApproachResultCompare);
 	}
 }
 
-void FrApproachEndDlg::OnListOwnerDraw(int param)
-{
-	if (m_pList)
-	{
-		FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-		if (device && param)
-		{
-			FrListItem* item = (FrListItem*)param;
-			sApproachResultData* data = (sApproachResultData*)item->pData;
-			if (data)
-			{
-				WRect area = m_rect;
-				WPoint base = item->pos;
-				float offset = 4.0f;
-				for (int i = 0; i < 2; ++i)
-				{
-					sRivalData* rival =
-						&Doc()->m_rivalList[Doc()->GetIndex(data->dwGUID)];
-					const Bitmap* frame = data->byRank <= 3
-						? g_pFresh->GetBitmap("rank_frm_1")
-						: g_pFresh->GetBitmap("rank_frm_2");
-					if (frame)
-					{
-						WRect rect(base.x + 22.0f -
-								(float)frame->Width() * 0.5f,
-							base.y + offset - 2.0f, (float)frame->Width(),
-							(float)frame->Height());
-						device->DrawTexture(frame, rect, 0xffffffff, 0);
-					}
-					device->SetTextStyle(1);
-					device->SetTextColor(0xffffffff, 0xffffffff);
-					float y;
-					if (data->byRank < 255)
-					{
-						WPoint pos;
-						pos.x = base.x + 22.0f;
-						pos.y = y = base.y + offset;
-						device->Print(pos, 1, "%d", data->byRank);
-					}
-					else
-					{
-						WPoint pos;
-						pos.x = base.x + 22.0f;
-						pos.y = y = base.y + offset;
-						device->Print(pos, 1, "-");
-					}
-					device->SetTextColor(0xff000000, 0xffffffff);
-					if (data->dwGUID == Doc()->m_myInfo.info.dwGuid)
-						device->SetTextColor(0xffff0000, 0xffffffff);
-					else
-						device->SetTextStyle(0);
-					if (rival)
-					{
-						if (rival->guildUID)
-						{
-							const Bitmap* emblem =
-								NetResManager()->GetEmblemByName(
-									rival->guildMark);
-							if (emblem)
-							{
-								WRect rect(base.x + 33.0f, y - 5.0f,
-									(float)emblem->Width(),
-									(float)emblem->Height());
-								device->DrawTexture(emblem, rect, 0xffffffff,
-									0);
-							}
-						}
-						if (!CProjectG::Instance()->HidePrivacy())
-							g_pFresh->GetManager()->PrintText11(
-								WPoint(base.x + 60.0f, y), 0, rival->nickname,
-								-1.0f, 0xffffffff);
-					}
-					unsigned int distance = data->dwRemainDistance;
-					int time = data->dwRemainTime;
-					if (distance == -1)
-					{
-						device->Print(WPoint(base.x + 152.0f, y), 0, "out");
-						device->Print(WPoint(base.x + 212.0f, y), 0, "-");
-					}
-					else
-					{
-						device->Print(WPoint(base.x + 152.0f, y), 0, "%d.%d y",
-							distance / 10, distance % 10);
-						device->Print(WPoint(base.x + 212.0f, y), 0,
-							"%d.%03d\303\312", time / 1000, time % 1000);
-					}
-					device->Print(WPoint(base.x + 320.0f, y), 2, "%d",
-						data->dwPrizeCount + data->byRankPrize +
-							data->byLuckPrize);
-					device->SetTextStyle(0);
-					base.y = area.y;
-					offset = 355.0f;
-					if (data->dwGUID == Doc()->m_myInfo.info.dwGuid)
-						device->SetTextColor(0, 0xffffffff);
-					std::list<sApproachResultData*>& results =
-						Doc()->m_pGolfDoc->GetApproachGameResult();
-					std::list<sApproachResultData*>::iterator it =
-						results.begin();
-					if (it == results.end())
-						break;
-					while (true)
-					{
-						data = *it;
-						if (data && data->dwGUID == Doc()->m_myInfo.info.dwGuid)
-							break;
-						++it;
-						if (it == results.end())
-							return;
-					}
-				}
-			}
-		}
+// approachresultdlg.cpp:1040 (run-time type and factory registration of FrAppTreasureGiftDlg)
+const WRTTI FrAppTreasureGiftDlg::m_RTTI("FrAppTreasureGiftDlg", &FrForm::m_RTTI);
+
+IObject* FrAppTreasureGiftDlgMakeInstance(void) {
+	return new FrAppTreasureGiftDlg;
+}
+
+struct __sFrAppTreasureGiftDlg {
+	__sFrAppTreasureGiftDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrAppTreasureGiftDlgMakeInstance, "FrAppTreasureGiftDlg");
 	}
+};
+static __sFrAppTreasureGiftDlg s_registerFrAppTreasureGiftDlg;
+
+// approachresultdlg.cpp:1042
+const sFRESH_MSGMAP* FrAppTreasureGiftDlg::GetMessageMap(void) const {
+	return &FrAppTreasureGiftDlg::_MsgMap;
 }
 
-IMPLEMENT_OBJECT(FrAppTreasureGiftDlg, FrForm)
+sFRESH_MSGMAP FrAppTreasureGiftDlg::_MsgMap = { &FrForm::_MsgMap, &FrAppTreasureGiftDlg::_MsgEntries[0] };
 
-BEGIN_FRESH_MSGMAP(FrAppTreasureGiftDlg, FrForm)
+sFRESH_ENTRY FrAppTreasureGiftDlg::_MsgEntries[] = {
+	// approachresultdlg.cpp:1045
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
 
-END_FRESH_MSGMAP()
-
-FrAppTreasureGiftDlg::FrAppTreasureGiftDlg()
-{
+// approachresultdlg.cpp:1048
+FrAppTreasureGiftDlg::FrAppTreasureGiftDlg(void) {
 }
 
-FrAppTreasureGiftDlg::~FrAppTreasureGiftDlg()
-{
+// approachresultdlg.cpp:1052
+FrAppTreasureGiftDlg::~FrAppTreasureGiftDlg(void) {
 }

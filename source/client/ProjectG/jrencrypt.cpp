@@ -1,146 +1,116 @@
-#include "minatl.h"
-#include "jrencrypt.h"
+// Original: d:\build\custom\temp\code\client\projectg\jrencrypt.cpp
+#include <new>
+#include <string.h>
 
-void SimpleStreamEncrypt_Alpha(const char* src, char* tar, unsigned int len,
-	unsigned int key)
-{
-	bool same_pointer = false;
-	if (src == tar)
-	{
-		tar = new char[len];
-		same_pointer = true;
+// Stream ciphers of the network packets. The stream is processed as 32-bit
+// words followed by up to three trailing bytes; each trailing byte is XORed
+// with one byte of the last word (or of the key when there is no word).
+
+// jrencrypt.cpp:29
+void SimpleStreamEncrypt_Alpha(const char* source, char* dest, unsigned int length, unsigned int key) {
+	char* buffer = dest;
+	bool allocated = false;
+
+	if (source == dest) {
+		buffer = new char[length];
+		allocated = true;
 	}
 
-	unsigned int fxor;
-	unsigned int upos;
-
-	unsigned int udword = len >> 2;
-	unsigned int uextra = len & 3;
-
-	if (udword > 0)
-	{
-		((unsigned int*)tar)[0] = ((const unsigned int*)src)[0] ^ key;
-		for (unsigned int i = 1; i < udword; i++)
-			((unsigned int*)tar)[i] = ((const unsigned int*)src)[i - 1] ^
-				((const unsigned int*)src)[i];
-		fxor = ((const unsigned int*)src)[udword - 1];
-		upos = udword * 4;
-	}
-	else
-	{
-		fxor = key;
-		upos = 0;
+	unsigned int wordCount = length >> 2;
+	unsigned int byteCount = length & 3;
+	unsigned int last;
+	unsigned int offset;
+	if (wordCount > 0) {
+		((unsigned int*)buffer)[0] = ((const unsigned int*)source)[0] ^ key;
+		for (unsigned int i = 1; i < wordCount; i++)
+			((unsigned int*)buffer)[i] = ((const unsigned int*)source)[i - 1] ^ ((const unsigned int*)source)[i];
+		last = ((const unsigned int*)source)[wordCount - 1];
+		offset = wordCount * 4;
+	} else {
+		last = key;
+		offset = 0;
 	}
 
-	for (unsigned int j = 0; j < uextra; j++)
-		tar[upos + j] = src[upos + j] ^ (char)(fxor >> (j * 8));
+	for (unsigned int i = 0; i < byteCount; i++)
+		buffer[offset + i] = source[offset + i] ^ (char)(last >> (i * 8));
 
-	memcpy((char*)src, tar, len);
+	memcpy((void*)source, buffer, length);
 
-	if (same_pointer)
-	{
-		delete[] tar;
-	}
+	if (allocated)
+		delete[] buffer;
 }
 
-void SimpleStreamDecrypt_Alpha(const char* src, char* tar, unsigned int len,
-	unsigned int key)
-{
-	bool same_pointer = false;
-	if (src == tar)
-	{
-		tar = new char[len];
-		same_pointer = true;
+// jrencrypt.cpp:76
+void SimpleStreamDecrypt_Alpha(const char* source, char* dest, unsigned int length, unsigned int key) {
+	char* buffer = dest;
+	bool allocated = false;
+	if (source == dest) {
+		buffer = new char[length];
+		allocated = true;
 	}
 
-	unsigned int fxor;
-	unsigned int upos;
-
-	unsigned int udword = len >> 2;
-	unsigned int uextra = len & 3;
-
-	if (udword > 0)
-	{
-		((unsigned int*)tar)[0] = ((const unsigned int*)src)[0] ^ key;
-		for (unsigned int i = 1; i < udword; i++)
-			((unsigned int*)tar)[i] =
-				((const unsigned int*)src)[i] ^ ((unsigned int*)tar)[i - 1];
-		fxor = ((unsigned int*)tar)[udword - 1];
-		upos = udword * 4;
-	}
-	else
-	{
-		fxor = key;
-		upos = 0;
+	unsigned int wordCount = length >> 2;
+	unsigned int byteCount = length & 3;
+	unsigned int last;
+	unsigned int offset;
+	if (wordCount > 0) {
+		((unsigned int*)buffer)[0] = ((const unsigned int*)source)[0] ^ key;
+		for (unsigned int i = 1; i < wordCount; i++)
+			((unsigned int*)buffer)[i] = ((const unsigned int*)source)[i] ^ ((unsigned int*)buffer)[i - 1];
+		last = ((unsigned int*)buffer)[wordCount - 1];
+		offset = wordCount * 4;
+	} else {
+		last = key;
+		offset = 0;
 	}
 
-	for (unsigned int j = 0; j < uextra; j++)
-		tar[upos + j] = src[upos + j] ^ (char)(fxor >> (j * 8));
+	for (unsigned int i = 0; i < byteCount; i++)
+		buffer[offset + i] = source[offset + i] ^ (char)(last >> (i * 8));
 
-	memcpy((char*)src, tar, len);
+	memcpy((void*)source, buffer, length);
 
-	if (same_pointer)
-	{
-		delete[] tar;
-	}
+	if (allocated)
+		delete[] buffer;
 }
 
-void SimpleStreamEncrypt_Delta(const char* src, char* tar, unsigned int len,
-	unsigned int key)
-{
-	unsigned int fxor;
-	unsigned int upos;
-
-	unsigned int udword = len >> 2;
-	unsigned int uextra = len & 3;
-
-	if (udword > 0)
-	{
-		((unsigned int*)tar)[0] =
-			((const unsigned int*)src)[0] ^ key ^ 0x9C6C95CE;
-		for (unsigned int i = 1; i < udword; i++)
-			((unsigned int*)tar)[i] = ((const unsigned int*)src)[i - 1] ^
-				(i * i * (i + 966) * (i + 2020)) ^
-				((const unsigned int*)src)[i] ^ 0x9C6C95CE;
-		fxor = ((const unsigned int*)src)[udword - 1];
-		upos = udword * 4;
-	}
-	else
-	{
-		fxor = key;
-		upos = 0;
+// jrencrypt.cpp:123
+void SimpleStreamEncrypt_Delta(const char* source, char* dest, unsigned int length, unsigned int key) {
+	unsigned int wordCount = length >> 2;
+	unsigned int byteCount = length & 3;
+	unsigned int last;
+	unsigned int offset;
+	if (wordCount > 0) {
+		((unsigned int*)dest)[0] = ((const unsigned int*)source)[0] ^ key ^ 0x9C6C95CE;
+		for (unsigned int i = 1; i < wordCount; i++)
+			((unsigned int*)dest)[i] = (i + 966) * (i + 2020) * i * i ^ ((const unsigned int*)source)[i - 1] ^ ((const unsigned int*)source)[i] ^ 0x9C6C95CE;
+		last = ((const unsigned int*)source)[wordCount - 1];
+		offset = wordCount * 4;
+	} else {
+		last = key;
+		offset = 0;
 	}
 
-	for (unsigned int j = 0; j < uextra; j++)
-		tar[upos + j] = src[upos + j] ^ (char)(fxor >> (j * 8));
+	for (unsigned int i = 0; i < byteCount; i++)
+		dest[offset + i] = source[offset + i] ^ (char)(last >> (i * 8));
 }
 
-void SimpleStreamDecrypt_Delta(const char* src, char* tar, unsigned int len,
-	unsigned int key)
-{
-	unsigned int fxor;
-	unsigned int upos;
-
-	unsigned int udword = len >> 2;
-	unsigned int uextra = len & 3;
-
-	if (udword > 0)
-	{
-		((unsigned int*)tar)[0] =
-			((const unsigned int*)src)[0] ^ key ^ 0x9C6C95CE;
-		for (unsigned int i = 1; i < udword; i++)
-			((unsigned int*)tar)[i] = ((const unsigned int*)src)[i] ^
-				(i * i * (i + 966) * (i + 2020)) ^ ((unsigned int*)tar)[i - 1] ^
-				0x9C6C95CE;
-		fxor = ((unsigned int*)tar)[udword - 1];
-		upos = udword * 4;
-	}
-	else
-	{
-		fxor = key;
-		upos = 0;
+// jrencrypt.cpp:149
+void SimpleStreamDecrypt_Delta(const char* source, char* dest, unsigned int length, unsigned int key) {
+	unsigned int wordCount = length >> 2;
+	unsigned int byteCount = length & 3;
+	unsigned int last;
+	unsigned int offset;
+	if (wordCount > 0) {
+		((unsigned int*)dest)[0] = ((const unsigned int*)source)[0] ^ key ^ 0x9C6C95CE;
+		for (unsigned int i = 1; i < wordCount; i++)
+			((unsigned int*)dest)[i] = (i + 966) * (i + 2020) * i * i ^ ((const unsigned int*)source)[i] ^ ((unsigned int*)dest)[i - 1] ^ 0x9C6C95CE;
+		last = ((unsigned int*)dest)[wordCount - 1];
+		offset = wordCount * 4;
+	} else {
+		last = key;
+		offset = 0;
 	}
 
-	for (unsigned int j = 0; j < uextra; j++)
-		tar[upos + j] = src[upos + j] ^ (char)(fxor >> (j * 8));
+	for (unsigned int i = 0; i < byteCount; i++)
+		dest[offset + i] = source[offset + i] ^ (char)(last >> (i * 8));
 }

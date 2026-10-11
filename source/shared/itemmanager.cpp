@@ -1,162 +1,127 @@
-#include "minatl.h"
-#include <atltime.h>
+// Original: d:\build\custom\temp\code\shared\itemmanager.cpp
+#include <stdio.h>
+#include <algorithm>
 #include <sstream>
 
-#include "itemmanager.h"
-#include "tikimagicboxtable.h"
-#include "localize.h"
-#include "cardsystem.h"
+#include "ItemManager.h"
+#include "../client/ProjectG/UccManager.h"
+#include "../client/ProjectG/cardsystem.h"
+#include "../client/ProjectG/commonutil.h"
+#include "client/Wangreal/source/XUnzip.h"
+#include "client/Wangreal/source/XZip.h"
+#ifdef PG_IFF_US
+#include "iff_us.h"
+#endif
+#include "classdefine.h"
+#include "Localize.h"
+#include "TikiMagicBoxTable.h"
 
-struct sRecycleItem
-{
-	unsigned long dwTid;
-	unsigned long dwItemid;
-	unsigned short iNum;
-	unsigned char byLevel;
-	short iChar;
-	short iIndex;
-	unsigned char byItemType;
-	unsigned short wTime;
-	_SYSTEMTIME date;
-	unsigned long dwRandSeq;
-	char szRandName[40];
-};
-
+// The recycle recipe tables (RecycleDlg.h, recycletable.h), freed by Reset.
+#include "../client/ProjectG/RecycleDlg.h"
 extern int g_NumIndexRecycleItem;
-extern int g_NumLowRecycleItem;
-extern int g_NumMidRecycleItem;
-extern int g_NumHighRecycleItem;
-extern int g_NumSpecialRecycleItem;
-extern int g_NumEventRecycleItem;
 extern sRecycleItem** g_ArrayTidMixItem;
-extern sRecycleItem* g_ArrayRecycleItem;
 
-namespace S5
-{
-	bool ISCutinItem(unsigned long typeId);
-}
-
-struct IFF_FILE_HEADER
-{
-	unsigned short nRecords;
-	unsigned int Version;
+// A replacement the item names go through (CheckInvalidItemName).
+struct ChangeWordPair {
+	std::string m_from;   // 0x0
+	std::string m_to;     // 0x1C
 };
 
-void DevFinalStockPrice(IFF_ITEM_COMMON& c)
-{
-	if (c.Final && c.Price >= 1000000)
-	{
-		if (c.InStock != 0 && c.InStock != 4)
-		{
-			char szMsg[128] = { 0 };
-			sprintf(szMsg,
-				"\xbb\xf3\xc1\xa1 \xc1\xf8\xbf\xad\xbb\xf3\xc7\xb0 "
-				"\xb0\xa1\xb0\xdd\xc0\xcc\xbb\xf3(%s)",
-				c.Name);
-			MessageBox(NULL, szMsg, "PangYa", MB_OK);
-			LogOut(0, szMsg);
+// itemmanager.cpp:43
+void DevFinalStockPrice(IFF_ITEM_COMMON &item) {
+	if (item.m_active && item.m_price >= 1000000) {
+		unsigned char stockType = item.m_flags0 >> 5;
+		if (stockType != 0 && stockType != 4) {
+			char text[128] = "";
+			// "Shop display item price anomaly (%s)"
+			sprintf(text, "\xbb\xf3\xc1\xa1 \xc1\xf8\xbf\xad\xbb\xf3\xc7\xb0 \xb0\xa1\xb0\xdd\xc0\xcc\xbb\xf3(%s)", item.m_name);
+			MessageBoxA(NULL, text, "PangYa", MB_OK);
 
-			c.IsSalable = 0;
-			c.InStock = 0;
+			item.m_flags0 &= 1;
 		}
 	}
 }
 
-void DevRentalPreventSale(IFF_STRUCT::sPart& part)
-{
-	if (part.c.Final && part.c.IsSalable != 0)
-	{
-		if (part.RentalPrice > 0)
-		{
-			char szMsg[128] = { 0 };
-			sprintf(szMsg,
-				"\xb0\xc5\xb7\xa1\xb0\xa1 \xb5\xc7\xb4\xc2 \xb7\xa3\xc5\xbb "
-				"\xc6\xc4\xc3\xf7 \xb9\xdf\xb0\xdf(%s)",
-				part.c.Name);
-			MessageBox(NULL, szMsg, "PangYa", MB_OK);
-			LogOut(0, szMsg);
+// itemmanager.cpp:76
+void DevRentalPreventSale(IFF_STRUCT::sPart &part) {
+	if (part.m_active && (part.m_flags & 0x1E)) {
+		if (part.m_rentalPrice > 0) {
+			char text[128] = "";
+			// "Found a tradable rental part (%s)"
+			sprintf(text, "\xb0\xc5\xb7\xa1\xb0\xa1 \xb5\xc7\xb4\xc2 \xb7\xa3\xc5\xbb \xc6\xc4\xc3\xf7 \xb9\xdf\xb0\xdf(%s)", part.m_name);
+			MessageBoxA(NULL, text, "PangYa", MB_OK);
 
-			part.RentalPrice = 0;
+			part.m_rentalPrice = 0;
 		}
 	}
 }
 
-CItemManager::CItemManager()
-{
-	m_IsReloading = false;
+// itemmanager.cpp:105
+CItemManager::CItemManager(void) {
+	m_loaded = false;
 }
 
-CItemManager::~CItemManager()
-{
-	Reset();
-}
-
-void CItemManager::Reload()
-{
+// itemmanager.cpp:115
+void CItemManager::Reload(void) {
 	_client::_private::CLock<_client::CCriticalSection> lock(m_cs);
 
-	DWORD dwTick = GetTickCount();
+	DWORD tick = GetTickCount();
 
-	m_IsReloading = true;
+	m_loaded = true;
 	Reset();
 	Load();
-	m_IsReloading = false;
+
+	m_loaded = false;
 }
 
-void CItemManager::Reset()
-{
-	m_CharMap.clear();
-	m_PartMap.clear();
-	m_ClubMap.clear();
-	m_ClubSetMap.clear();
-	m_BallMap.clear();
-	m_ItemMap.clear();
-	m_CaddieMap.clear();
-	m_CadItemMap.clear();
-	m_SetItemMap.clear();
-	m_CourseMap.clear();
-	m_MatchMap.clear();
-	m_TitleMap.clear();
-	m_EnchantMap.clear();
-	m_SkinMap.clear();
-	m_HairStyleMap.clear();
-	m_ChildItemMap.clear();
-	m_MascotMap.clear();
-	m_DescMap.clear();
-	m_AuxPartMap.clear();
-	m_QuestDropMap.clear();
-	m_FurnitureMap.clear();
-	m_CardMap.clear();
-	m_OfflineShopMap.clear();
-	m_RandomRecycleMaps.clear();
-	m_CadieMagicBox.clear();
-	m_FurnitureAbility.clear();
+// itemmanager.cpp:133
+void CItemManager::Reset(void) {
+	m_charMap.clear();
+	m_partMap.clear();
+	m_clubMap.clear();
+	m_clubSetMap.clear();
+	m_ballMap.clear();
+	m_itemMap.clear();
+	m_caddieMap.clear();
+	m_cadItemMap.clear();
+	m_setItemMap.clear();
+	m_courseMap.clear();
+	m_matchMap.clear();
+	m_titleMap.clear();
+	m_enchantMap.clear();
+	m_skinMap.clear();
+	m_hairStyleMap.clear();
+	m_childItemMap.clear();
+	m_mascotMap.clear();
+	m_descMap.clear();
+	m_auxPartMap.clear();
+	m_questDropMap.clear();
+	m_furnitureMap.clear();
+	m_cardMap.clear();
+	m_offlineShopMap.clear();
+	m_randomRecycleMap.clear();
+	m_cadieMagicBoxList.clear();
+	m_furnitureAbilityList.clear();
 
-	m_CutinInformationMap.clear();
+	m_cutinInformationMap.clear();
 
-	for (std::map<unsigned int, IFF_STRUCT::sQuest>::iterator itr =
-			 m_QuestMap.begin();
-		itr != m_QuestMap.end(); ++itr)
-	{
-		IFF_STRUCT::sQuest* pQuest = &(*itr).second;
+	std::map<unsigned int, IFF_STRUCT::sQuest>::iterator it;
+	for (it = m_questMap.begin(); it != m_questMap.end(); ++it) {
+		IFF_STRUCT::sQuest *quest = &it->second;
 
-		if (pQuest && pQuest->aTidItems)
-		{
-			delete[] pQuest->aTidItems;
-			pQuest->aTidItems = NULL;
+		if (quest && quest->m_extraData) {
+			delete[] quest->m_extraData;
+			quest->m_extraData = NULL;
 		}
 	}
 
-	m_QuestMap.clear();
+	m_questMap.clear();
 
-	m_IsReloading = false;
+	m_loaded = false;
 
-	if (g_ArrayTidMixItem)
-	{
-		for (int i = 0; i < g_NumIndexRecycleItem; i++)
-		{
-			if (g_ArrayTidMixItem[i])
-			{
+	if (g_ArrayTidMixItem) {
+		for (int i = 0; i < g_NumIndexRecycleItem; i++) {
+			if (g_ArrayTidMixItem[i]) {
 				delete[] g_ArrayTidMixItem[i];
 				g_ArrayTidMixItem[i] = NULL;
 			}
@@ -166,315 +131,198 @@ void CItemManager::Reset()
 		g_ArrayTidMixItem = NULL;
 	}
 
-	if (g_ArrayRecycleItem)
-	{
+	if (g_ArrayRecycleItem) {
 		delete[] g_ArrayRecycleItem;
 		g_ArrayRecycleItem = NULL;
 	}
 }
 
-struct ChangeWordPair
-{
-	std::string from;
-	std::string to;
-};
-
+// itemmanager.cpp:239
 ChangeWordPair ChangeWordList[] = {
 	{ "'", "`" },
 };
+int ChangeWordListCount = sizeof(ChangeWordList) / sizeof(ChangeWordList[0]);
 
-int ChangeWordListCount = sizeof(ChangeWordList) / sizeof(ChangeWordPair);
-
+// itemmanager.cpp:246 (the records that embed the common item head)
 template <class T>
-void CheckCommonItemName(T& data)
-{
-	std::string str(data.second.c.Name);
+void CheckCommonItemName(T &item) {
+	std::string name(item.second.m_name);
 
-	for (int i = 0; i < ChangeWordListCount; i++)
-	{
-		if (str_Replace(str, ChangeWordList[i].from, ChangeWordList[i].to) ==
-			true)
-		{
-			if (str.length() >= sizeof(data.second.c.Name) - 1)
-			{
-				strncpy(data.second.c.Name, str.c_str(),
-					sizeof(data.second.c.Name) - 1);
-				data.second.c.Name[sizeof(data.second.c.Name) - 1] = 0;
-			}
-			else
-			{
-				strcpy(data.second.c.Name, str.c_str());
+	for (int i = 0; i < ChangeWordListCount; i++) {
+		if (str_Replace(name, ChangeWordList[i].m_from, ChangeWordList[i].m_to) == true) {
+			if (name.length() >= sizeof(item.second.m_name) - 1) {
+				strncpy(item.second.m_name, name.c_str(), sizeof(item.second.m_name) - 1);
+				item.second.m_name[sizeof(item.second.m_name) - 1] = 0;
+			} else {
+				strcpy(item.second.m_name, name.c_str());
 			}
 		}
 	}
 }
 
+// itemmanager.cpp:273 (the records with a name of their own)
 template <class T>
-void CheckItemName(T& data)
-{
-	std::string str(data.second.Name);
+void CheckItemName(T &item) {
+	std::string name(item.second.m_name);
 
-	for (int i = 0; i < ChangeWordListCount; i++)
-	{
-		if (str_Replace(str, ChangeWordList[i].from, ChangeWordList[i].to) ==
-			true)
-		{
-			if (str.length() >= sizeof(data.second.Name) - 1)
-			{
-				strncpy(data.second.Name, str.c_str(),
-					sizeof(data.second.Name) - 1);
-				data.second.Name[sizeof(data.second.Name) - 1] = 0;
-			}
-			else
-			{
-				strcpy(data.second.Name, str.c_str());
+	for (int i = 0; i < ChangeWordListCount; i++) {
+		if (str_Replace(name, ChangeWordList[i].m_from, ChangeWordList[i].m_to) == true) {
+			if (name.length() >= sizeof(item.second.m_name) - 1) {
+				strncpy(item.second.m_name, name.c_str(), sizeof(item.second.m_name) - 1);
+				item.second.m_name[sizeof(item.second.m_name) - 1] = 0;
+			} else {
+				strcpy(item.second.m_name, name.c_str());
 			}
 		}
 	}
 }
 
-void CItemManager::CheckInvalidItemName()
-{
-	std::for_each(m_CharMap.begin(), m_CharMap.end(),
-		CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sChar> >);
-	std::for_each(m_PartMap.begin(), m_PartMap.end(),
-		CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sPart> >);
-	std::for_each(m_ClubMap.begin(), m_ClubMap.end(),
-		CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sClub> >);
-	std::for_each(m_ClubSetMap.begin(), m_ClubSetMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sClubSet> >);
-	std::for_each(m_BallMap.begin(), m_BallMap.end(),
-		CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sBall> >);
-	std::for_each(m_ItemMap.begin(), m_ItemMap.end(),
-		CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sItem> >);
-	std::for_each(m_CaddieMap.begin(), m_CaddieMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sCaddie> >);
-	std::for_each(m_CadItemMap.begin(), m_CadItemMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sCadItem> >);
-	std::for_each(m_SetItemMap.begin(), m_SetItemMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sSetItem> >);
-	std::for_each(m_SkinMap.begin(), m_SkinMap.end(),
-		CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sSkin> >);
-	std::for_each(m_HairStyleMap.begin(), m_HairStyleMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sHairStyle> >);
-	std::for_each(m_MascotMap.begin(), m_MascotMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sMascot> >);
-	std::for_each(m_AuxPartMap.begin(), m_AuxPartMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sAuxPart> >);
-	std::for_each(m_QuestDropMap.begin(), m_QuestDropMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sQuestDrop> >);
-	std::for_each(m_FurnitureMap.begin(), m_FurnitureMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sFurniture> >);
-	std::for_each(m_CardMap.begin(), m_CardMap.end(),
-		CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sCard> >);
-	std::for_each(m_OfflineShopMap.begin(), m_OfflineShopMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sOfflineShop> >);
-	std::for_each(m_CourseMap.begin(), m_CourseMap.end(),
-		CheckCommonItemName<
-			std::pair<const unsigned int, IFF_STRUCT::sCourse> >);
+// itemmanager.cpp:301
+void CItemManager::CheckInvalidItemName(void) {
+	std::for_each(m_charMap.begin(), m_charMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sChar> >);
+	std::for_each(m_partMap.begin(), m_partMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sPart> >);
+	std::for_each(m_clubMap.begin(), m_clubMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sClub> >);
+	std::for_each(m_clubSetMap.begin(), m_clubSetMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sClubSet> >);
+	std::for_each(m_ballMap.begin(), m_ballMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sBall> >);
+	std::for_each(m_itemMap.begin(), m_itemMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sItem> >);
+	std::for_each(m_caddieMap.begin(), m_caddieMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sCaddie> >);
+	std::for_each(m_cadItemMap.begin(), m_cadItemMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sCadItem> >);
+	std::for_each(m_setItemMap.begin(), m_setItemMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sSetItem> >);
+	std::for_each(m_skinMap.begin(), m_skinMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sSkin> >);
+	std::for_each(m_hairStyleMap.begin(), m_hairStyleMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sHairStyle> >);
+	std::for_each(m_mascotMap.begin(), m_mascotMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sMascot> >);
+	std::for_each(m_auxPartMap.begin(), m_auxPartMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sAuxPart> >);
+	std::for_each(m_questDropMap.begin(), m_questDropMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sQuestDrop> >);
+	std::for_each(m_furnitureMap.begin(), m_furnitureMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sFurniture> >);
+	std::for_each(m_cardMap.begin(), m_cardMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sCard> >);
+	// itemmanager.cpp:319 walks m_offlineShopMap the same way; IFF_STRUCT::sOfflineShop is not defined yet.
+	std::for_each(m_courseMap.begin(), m_courseMap.end(), CheckCommonItemName<std::pair<const unsigned int, IFF_STRUCT::sCourse> >);
 
-	std::for_each(m_MatchMap.begin(), m_MatchMap.end(),
-		CheckItemName<std::pair<const unsigned int, IFF_STRUCT::sMatch> >);
-	std::for_each(m_TitleMap.begin(), m_TitleMap.end(),
-		CheckItemName<std::pair<const unsigned int, IFF_STRUCT::sTitle> >);
-	std::for_each(m_ChildItemMap.begin(), m_ChildItemMap.end(),
-		CheckItemName<std::pair<const unsigned int, IFF_STRUCT::sChildItem> >);
+	std::for_each(m_matchMap.begin(), m_matchMap.end(), CheckItemName<std::pair<const unsigned int, IFF_STRUCT::sMatch> >);
+	std::for_each(m_titleMap.begin(), m_titleMap.end(), CheckItemName<std::pair<const unsigned int, IFF_STRUCT::sTitle> >);
+	std::for_each(m_childItemMap.begin(), m_childItemMap.end(), CheckItemName<std::pair<const unsigned int, IFF_STRUCT::sChildItem> >);
 }
 
-bool CItemManager::Load()
-{
-	std::stringstream path;
+// itemmanager.cpp:328
+bool CItemManager::Load(void) {
+	std::stringstream name;
 
-	path << "PangYa";
+#ifdef PG_IFF_US
+	// The CMake build reads a later client's tables (CMake PG_IFF_US).
+	name << PG_IFF_US_FILE;
+#else
+	name << "PangYa";
+#endif
+	name << ".iff";
 
-	path << ".iff";
+	WFile file(name.str().c_str());
 
-	WFile file(path.str().c_str());
+	int length = file.Length();
+	char *data = new char[length];
 
-	unsigned int len = file.Length();
-	unsigned char* buff = new unsigned char[len];
-
-	file.Read(buff, len);
+	file.Read(data, length);
 	file.Close();
 
-	HZIP hz = OpenZipU(buff, len, ZIP_MEMORY);
-	if (!hz)
-	{
-		delete[] buff;
+	HZIP zip = OpenZipU(data, length, ZIP_MEMORY);
+	if (!zip) {
+		delete[] data;
 		return false;
 	}
 
 	Reset();
 
-	ZIPENTRY ze;
-	GetZipItemA(hz, -1, &ze);
-	int numItems = ze.index;
+	ZIPENTRY entry;
+	GetZipItemA(zip, -1, &entry);
+	int count = entry.index;
 
-	for (int i = 0; i < numItems; i++)
-	{
-		GetZipItemA(hz, i, &ze);
-		char* pBuffer = new char[ze.unc_size];
-		UnzipItem(hz, i, pBuffer, ze.unc_size, ZIP_MEMORY);
+	for (int i = 0; i < count; i++) {
+		GetZipItemA(zip, i, &entry);
+		char *item = new char[entry.unc_size];
+		UnzipItem(zip, i, item, entry.unc_size, ZIP_MEMORY);
+#ifdef PG_IFF_US
+		item = PgConvertIff(entry.name, item, &entry.unc_size);
+#endif
 
-		if (!stricmp(ze.name, "Character.iff"))
-		{
-			MakeCharMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Part.iff"))
-		{
-			MakePartMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Club.iff"))
-		{
-			MakeClubMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "ClubSet.iff"))
-		{
-			MakeClubSetMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Ball.iff"))
-		{
-			MakeBallMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Item.iff"))
-		{
-			MakeItemMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Caddie.iff"))
-		{
-			MakeCaddieMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "CaddieItem.iff"))
-		{
-			MakeCadItemMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "SetItem.iff"))
-		{
-			MakeSetItemMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Course.iff"))
-		{
-			MakeCourseMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Match.iff"))
-		{
-			MakeMatchMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Title.iff"))
-		{
-			MakeTitleMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Enchant.iff"))
-		{
-			MakeEnchantMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Skin.iff"))
-		{
-			MakeSkinMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "HairStyle.iff"))
-		{
-			MakeHairStyleMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "ChildItem.iff"))
-		{
-			MakeChildItemMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Mascot.iff"))
-		{
-			MakeMascotMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "AuxPart.iff"))
-		{
-			MakeAuxPartMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "QuestDrop.iff"))
-		{
-			MakeQuestDropMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Quest.iff"))
-		{
-			MakeQuestMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Card.iff"))
-		{
-			if (IsLocalContent(S4_CARD_SYSTEM))
-				MakeCardMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Furniture.iff"))
-		{
-			if (IsLocalContent(S4_REAL_MYROOM))
-				MakeFurnitureMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "Desc.iff"))
-		{
-			MakeDescMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "OfflineShop.iff"))
-		{
-			if (IsLocalContent(S4_OFFLINE_SHOP))
-				MakeOfflineMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "CadieMagicBox.iff"))
-		{
-			MakeCadieMagicBoxMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "CadieMagicBoxRandom.iff"))
-		{
-			MakeRandomRecycleMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "FurnitureAbility.iff"))
-		{
-			MakeFurnitureAbilityList(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "TikiRecipe.iff"))
-		{
-			MakeTikiRecipeMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "TikiPointTable.iff"))
-		{
-			MakeTikiPointTableMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "TikiSpecialTable.iff"))
-		{
-			MakeTikiSpecialTableMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "CutinInfomation.iff"))
-		{
-			MakeCutinInforMationTableMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "SpecialPrizeItem.iff"))
-		{
-			MakeSpecialPrizeItemMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "RandomBox.sff"))
-		{
-			MakeRandomBoxMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "NonVisibleItemTable.iff"))
-		{
-			MakeNonVisibleItemMap(pBuffer, ze.unc_size);
-		}
-		else if (!stricmp(ze.name, "SubscriptionItemTable.iff"))
-		{
-			MakeSubscriptionItemMap(pBuffer, ze.unc_size);
+		if (_stricmp(entry.name, "Character.iff") == 0) {
+			MakeCharMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Part.iff") == 0) {
+			MakePartMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Club.iff") == 0) {
+			MakeClubMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "ClubSet.iff") == 0) {
+			MakeClubSetMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Ball.iff") == 0) {
+			MakeBallMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Item.iff") == 0) {
+			MakeItemMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Caddie.iff") == 0) {
+			MakeCaddieMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "CaddieItem.iff") == 0) {
+			MakeCadItemMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "SetItem.iff") == 0) {
+			MakeSetItemMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Course.iff") == 0) {
+			MakeCourseMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Match.iff") == 0) {
+			MakeMatchMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Title.iff") == 0) {
+			MakeTitleMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Enchant.iff") == 0) {
+			MakeEnchantMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Skin.iff") == 0) {
+			MakeSkinMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "HairStyle.iff") == 0) {
+			MakeHairStyleMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "ChildItem.iff") == 0) {
+			MakeChildItemMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Mascot.iff") == 0) {
+			MakeMascotMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "AuxPart.iff") == 0) {
+			MakeAuxPartMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "QuestDrop.iff") == 0) {
+			MakeQuestDropMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Quest.iff") == 0) {
+			MakeQuestMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Card.iff") == 0) {
+			if (IsLocalContent((localContentType_t)0x51))
+				MakeCardMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Furniture.iff") == 0) {
+			if (IsLocalContent((localContentType_t)0x56))
+				MakeFurnitureMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "Desc.iff") == 0) {
+			MakeDescMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "OfflineShop.iff") == 0) {
+			if (IsLocalContent((localContentType_t)0x66))
+				MakeOfflineMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "CadieMagicBox.iff") == 0) {
+			MakeCadieMagicBoxMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "CadieMagicBoxRandom.iff") == 0) {
+			MakeRandomRecycleMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "FurnitureAbility.iff") == 0) {
+			MakeFurnitureAbilityList(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "TikiRecipe.iff") == 0) {
+			MakeTikiRecipeMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "TikiPointTable.iff") == 0) {
+			MakeTikiPointTableMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "TikiSpecialTable.iff") == 0) {
+			MakeTikiSpecialTableMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "CutinInfomation.iff") == 0) {
+			MakeCutinInforMationTableMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "SpecialPrizeItem.iff") == 0) {
+			MakeSpecialPrizeItemMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "RandomBox.sff") == 0) {
+			MakeRandomBoxMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "NonVisibleItemTable.iff") == 0) {
+			MakeNonVisibleItemMap(item, entry.unc_size);
+		} else if (_stricmp(entry.name, "SubscriptionItemTable.iff") == 0) {
+			MakeSubscriptionItemMap(item, entry.unc_size);
 		}
 
-		delete[] pBuffer;
+		delete[] item;
 	}
 
-	CloseZipU(hz);
-	delete[] buff;
+	CloseZipU(zip);
+	delete[] data;
 
 	MakeItemBuffMap();
 
@@ -483,623 +331,2712 @@ bool CItemManager::Load()
 	return true;
 }
 
-void CItemManager::MakeCharMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sChar sItem;
+// The head of an IFF table file (the Make*Map functions read the records
+// after it).
+struct sIffHeader {
+	unsigned short m_count;   // 0x0, the number of records
+	unsigned short m_bindingId; // 0x2, the table's binding id (not read here); a scalar, not a
+	                          // byte array, so /GS does not place the header beside the cookie
+	unsigned long m_version;  // 0x4
+};
+CHECK_SIZE(sIffHeader, 0x8);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+// itemmanager.cpp:600
+void CItemManager::MakeCharMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sChar));
-		p += sizeof(IFF_STRUCT::sChar);
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sChar character = *(IFF_STRUCT::sChar *)record;
+		record += sizeof(IFF_STRUCT::sChar);
 
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sChar does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)character;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			m_CharMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sChar>::value_type(
-					sItem.c.TypeId, sItem));
-		}
-	}
-}
-
-void CItemManager::MakePartMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sPart sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sPart));
-		p += sizeof(IFF_STRUCT::sPart);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		if (((_SYSTEMTIME *)((char *)&character + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&character + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
 		}
 
-		if (sItem.c.Final)
-		{
-			DevFinalStockPrice(sItem.c);
-			DevRentalPreventSale(sItem);
-			m_PartMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sPart>::value_type(
-					sItem.c.TypeId, sItem));
+		if (character.m_active) {
+			m_charMap.insert(std::pair<const unsigned int, IFF_STRUCT::sChar>(character.m_typeId, character));
 		}
 	}
 }
 
-void CItemManager::MakeClubMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sClub sItem;
+// itemmanager.cpp:641
+void CItemManager::MakePartMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sPart part = *(IFF_STRUCT::sPart *)record;
+		record += sizeof(IFF_STRUCT::sPart);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sClub));
-		p += sizeof(IFF_STRUCT::sClub);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sPart does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)part;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			DevFinalStockPrice(sItem.c);
-			m_ClubMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sClub>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&part + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&part + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (part.m_active) {
+			DevFinalStockPrice(common);
+			DevRentalPreventSale(part);
+			m_partMap.insert(std::pair<const unsigned int, IFF_STRUCT::sPart>(part.m_typeId, part));
 		}
 	}
 }
 
-void CItemManager::MakeClubSetMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sClubSet sItem;
+// itemmanager.cpp:690
+void CItemManager::MakeClubMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sClub club = *(IFF_STRUCT::sClub *)record;
+		record += sizeof(IFF_STRUCT::sClub);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sClubSet));
-		p += sizeof(IFF_STRUCT::sClubSet);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sClub does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)club;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			m_ClubSetMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sClubSet>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&club + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&club + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (club.m_active) {
+			DevFinalStockPrice(common);
+			m_clubMap.insert(std::pair<const unsigned int, IFF_STRUCT::sClub>(club.m_typeId, club));
 		}
 	}
 }
 
-void CItemManager::MakeBallMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sBall sItem;
+// itemmanager.cpp:730
+void CItemManager::MakeClubSetMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sClubSet clubSet = *(IFF_STRUCT::sClubSet *)record;
+		record += sizeof(IFF_STRUCT::sClubSet);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sBall));
-		p += sizeof(IFF_STRUCT::sBall);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sClubSet does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)clubSet;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			m_BallMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sBall>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&clubSet + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&clubSet + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (clubSet.m_active) {
+			m_clubSetMap.insert(std::pair<const unsigned int, IFF_STRUCT::sClubSet>(clubSet.m_typeId, clubSet));
 		}
 	}
 }
 
-void CItemManager::MakeItemMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sItem sItem;
+// itemmanager.cpp:769
+void CItemManager::MakeBallMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sBall ball = *(IFF_STRUCT::sBall *)record;
+		record += sizeof(IFF_STRUCT::sBall);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sItem));
-		p += sizeof(IFF_STRUCT::sItem);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sBall does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)ball;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			DevFinalStockPrice(sItem.c);
-			m_ItemMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sItem>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&ball + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&ball + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (ball.m_active) {
+			m_ballMap.insert(std::pair<const unsigned int, IFF_STRUCT::sBall>(ball.m_typeId, ball));
 		}
 	}
 }
 
-void CItemManager::MakeCaddieMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sCaddie sItem;
+// itemmanager.cpp:808
+void CItemManager::MakeItemMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sItem item = *(IFF_STRUCT::sItem *)record;
+		record += sizeof(IFF_STRUCT::sItem);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sCaddie));
-		p += sizeof(IFF_STRUCT::sCaddie);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sItem does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)item;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			m_CaddieMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sCaddie>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&item + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&item + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (item.m_active) {
+			DevFinalStockPrice(common);
+			m_itemMap.insert(std::pair<const unsigned int, IFF_STRUCT::sItem>(item.m_typeId, item));
 		}
 	}
 }
 
-void CItemManager::MakeCadItemMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sCadItem sItem;
+// itemmanager.cpp:848
+void CItemManager::MakeCaddieMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sCaddie caddie = *(IFF_STRUCT::sCaddie *)record;
+		record += sizeof(IFF_STRUCT::sCaddie);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sCadItem));
-		p += sizeof(IFF_STRUCT::sCadItem);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sCaddie does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)caddie;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			m_CadItemMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sCadItem>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&caddie + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&caddie + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (caddie.m_active) {
+			m_caddieMap.insert(std::pair<const unsigned int, IFF_STRUCT::sCaddie>(caddie.m_typeId, caddie));
 		}
 	}
 }
 
-void CItemManager::MakeSetItemMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sSetItem sItem;
+// itemmanager.cpp:887
+void CItemManager::MakeCadItemMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sCadItem cadItem = *(IFF_STRUCT::sCadItem *)record;
+		record += sizeof(IFF_STRUCT::sCadItem);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sSetItem));
-		p += sizeof(IFF_STRUCT::sSetItem);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sCadItem does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)cadItem;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			DevFinalStockPrice(sItem.c);
-			m_SetItemMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sSetItem>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&cadItem + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&cadItem + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (cadItem.m_active) {
+			m_cadItemMap.insert(std::pair<const unsigned int, IFF_STRUCT::sCadItem>(cadItem.m_typeId, cadItem));
 		}
 	}
 }
 
-void CItemManager::MakeCourseMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sCourse sItem;
+// itemmanager.cpp:926
+void CItemManager::MakeSetItemMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sSetItem setItem = *(IFF_STRUCT::sSetItem *)record;
+		record += sizeof(IFF_STRUCT::sSetItem);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sCourse));
-		p += sizeof(IFF_STRUCT::sCourse);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
+		// TODO(classdefine.h): sSetItem does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)setItem;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sItem.c.Final)
-		{
-			m_CourseMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sCourse>::value_type(
-					sItem.c.TypeId, sItem));
+		if (((_SYSTEMTIME *)((char *)&setItem + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&setItem + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
 		}
-	}
 
-	memset(&sItem, 0, sizeof(IFF_STRUCT::sCourse));
-	sItem.c.TypeId = 0x280000fd;
-
-	sItem.Difficulty = 1;
-	strcpy(sItem.c.Name, "TUTORIAL");
-	strcpy(sItem.Data, "tuto");
-	sItem.Slope = 1.1f;
-	strcpy(sItem.TexProp, "tuto_property.xml");
-
-	m_CourseMap.insert(std::map<unsigned int, IFF_STRUCT::sCourse>::value_type(
-		sItem.c.TypeId, sItem));
-
-	memset(&sItem, 0, sizeof(IFF_STRUCT::sCourse));
-	sItem.c.TypeId = 0x280000fe;
-
-	sItem.Difficulty = 1;
-	strcpy(sItem.c.Name, "TEST");
-	strcpy(sItem.Data, "test");
-	sItem.Slope = 1.1f;
-	strcpy(sItem.TexProp, "test_property.xml");
-
-	m_CourseMap.insert(std::map<unsigned int, IFF_STRUCT::sCourse>::value_type(
-		sItem.c.TypeId, sItem));
-
-	memset(&sItem, 0, sizeof(IFF_STRUCT::sCourse));
-	sItem.c.TypeId = 0x2800007f;
-	sItem.c.Final = true;
-
-	sItem.Difficulty = 1;
-	strcpy(sItem.c.Name, "RANDOM");
-	strcpy(sItem.Data, "random");
-	sItem.Slope = 1.1f;
-	strcpy(sItem.TexProp, "test_property.xml");
-	strcpy(sItem.c.Icon, "map_random");
-
-	m_CourseMap.insert(std::map<unsigned int, IFF_STRUCT::sCourse>::value_type(
-		sItem.c.TypeId, sItem));
-}
-
-void CItemManager::MakeMatchMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sMatch sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sMatch));
-		p += sizeof(IFF_STRUCT::sMatch);
-
-		if (sItem.Final)
-		{
-			m_MatchMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sMatch>::value_type(
-					sItem.TypeId, sItem));
+		if (setItem.m_active) {
+			DevFinalStockPrice(common);
+			m_setItemMap.insert(std::pair<const unsigned int, IFF_STRUCT::sSetItem>(setItem.m_typeId, setItem));
 		}
 	}
 }
 
-void CItemManager::MakeTitleMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sTitle sItem;
+// itemmanager.cpp:966
+void CItemManager::MakeCourseMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sCourse course = *(IFF_STRUCT::sCourse *)record;
+		record += sizeof(IFF_STRUCT::sCourse);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+		// TODO(classdefine.h): sCourse does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)course;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
+		}
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sTitle));
-		p += sizeof(IFF_STRUCT::sTitle);
+		if (((_SYSTEMTIME *)((char *)&course + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&course + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
 
-		if (sItem.Final)
-		{
-			m_TitleMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sTitle>::value_type(
-					sItem.TypeId, sItem));
+		if (course.m_active) {
+			m_courseMap.insert(std::pair<const unsigned int, IFF_STRUCT::sCourse>(course.m_typeId, course));
+		}
+	}
+
+	// The built-in courses the IFF does not list.
+	IFF_STRUCT::sCourse course;
+	memset(&course, 0, sizeof(course));
+
+	course.courseFlags = (course.courseFlags & 0xF0) | 1;
+	strcpy(course.m_name, "TUTORIAL");
+	strcpy(course.m_mapName, "tuto");
+
+	strcpy(course.m_propertyFile, "tuto_property.xml");
+
+	course.m_typeId = 0x280000FD;
+	course.m_rate = 1.1f;
+	m_courseMap.insert(std::pair<const unsigned int, IFF_STRUCT::sCourse>(course.m_typeId, course));
+
+	memset(&course, 0, sizeof(course));
+	course.courseFlags = (course.courseFlags & 0xF0) | 1;
+	strcpy(course.m_name, "TEST");
+	strcpy(course.m_mapName, "test");
+
+	strcpy(course.m_propertyFile, "test_property.xml");
+	course.m_typeId = 0x280000FE;
+	course.m_rate = 1.1f;
+	m_courseMap.insert(std::pair<const unsigned int, IFF_STRUCT::sCourse>(course.m_typeId, course));
+
+	memset(&course, 0, sizeof(course));
+
+	course.courseFlags = (course.courseFlags & 0xF0) | 1;
+	strcpy(course.m_name, "RANDOM");
+	strcpy(course.m_mapName, "random");
+
+	strcpy(course.m_propertyFile, "test_property.xml");
+	strcpy(course.m_icon, "map_random");
+	course.m_typeId = 0x2800007F;
+	course.m_active = 1;
+	course.m_rate = 1.1f;
+	m_courseMap.insert(std::pair<const unsigned int, IFF_STRUCT::sCourse>(course.m_typeId, course));
+}
+
+// itemmanager.cpp:1043
+void CItemManager::MakeMatchMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sMatch match = *(IFF_STRUCT::sMatch *)record;
+		record += sizeof(IFF_STRUCT::sMatch);
+		if (match.m_active) {
+			m_matchMap.insert(std::pair<const unsigned int, IFF_STRUCT::sMatch>(match.m_typeId, match));
 		}
 	}
 }
 
-void CItemManager::MakeEnchantMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sEnchant sItem;
+// itemmanager.cpp:1067
+void CItemManager::MakeTitleMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sEnchant));
-		p += sizeof(IFF_STRUCT::sEnchant);
-
-		if (sItem.Final)
-		{
-			m_EnchantMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sEnchant>::value_type(
-					sItem.TypeId, sItem));
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sTitle title = *(IFF_STRUCT::sTitle *)record;
+		record += sizeof(IFF_STRUCT::sTitle);
+		if (title.m_active) {
+			m_titleMap.insert(std::pair<const unsigned int, IFF_STRUCT::sTitle>(title.m_typeId, title));
 		}
 	}
 }
 
-void CItemManager::MakeSkinMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sSkin sItem;
+// itemmanager.cpp:1091
+void CItemManager::MakeEnchantMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sSkin));
-		p += sizeof(IFF_STRUCT::sSkin);
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
-		}
-
-		if (sItem.c.Final)
-		{
-			m_SkinMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sSkin>::value_type(
-					sItem.c.TypeId, sItem));
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sEnchant enchant = *(IFF_STRUCT::sEnchant *)record;
+		record += sizeof(IFF_STRUCT::sEnchant);
+		if (enchant.m_active) {
+			m_enchantMap.insert(std::pair<const unsigned int, IFF_STRUCT::sEnchant>(enchant.m_typeId, enchant));
 		}
 	}
 }
 
-void CItemManager::MakeCardMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sCard sCard;
+// itemmanager.cpp:1115
+void CItemManager::MakeSkinMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sSkin skin = *(IFF_STRUCT::sSkin *)record;
+		record += sizeof(IFF_STRUCT::sSkin);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sCard, p, sizeof(IFF_STRUCT::sCard));
-		p += sizeof(IFF_STRUCT::sCard);
-
-		if (sCard.c.SalePrice == 0)
-			sCard.c.SalePrice = sCard.c.Price;
-
-		if (sCard.c.UsedPrice >= sCard.c.SalePrice)
-			sCard.c.UsedPrice = 0;
-
-		if (sCard.c.saleStart.wYear != 0 || sCard.c.saleEnd.wYear != 0)
-		{
-			sCard.c.New = 0;
-			sCard.c.Hit = 0;
+		// TODO(classdefine.h): the sale start (0x70, a _SYSTEMTIME) and end
+		// (0x80) and the shop flags (0x69) are not members of sSkin in its
+		// read-only header yet.
+		if (((_SYSTEMTIME *)((char *)&skin + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&skin + 0x80))->wYear != 0) {
+			*((unsigned char *)&skin + 0x69) &= ~3;
 		}
 
-		if (sCard.c.Final)
-		{
-			m_CardMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sCard>::value_type(
-					sCard.c.TypeId, sCard));
+		if (skin.m_active) {
+			m_skinMap.insert(std::pair<const unsigned int, IFF_STRUCT::sSkin>(skin.m_typeId, skin));
 		}
 	}
 }
 
-void CItemManager::MakeFurnitureMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sFurniture sFurni;
+// itemmanager.cpp:1145
+void CItemManager::MakeCardMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sCard card = *(IFF_STRUCT::sCard *)record;
+		record += sizeof(IFF_STRUCT::sCard);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sFurni, p, sizeof(IFF_STRUCT::sFurniture));
-		p += sizeof(IFF_STRUCT::sFurniture);
-
-		if (sFurni.c.SalePrice == 0)
-			sFurni.c.SalePrice = sFurni.c.Price;
-
-		if (sFurni.c.UsedPrice >= sFurni.c.SalePrice)
-			sFurni.c.UsedPrice = 0;
-
-		if (sFurni.c.saleStart.wYear != 0 || sFurni.c.saleEnd.wYear != 0)
-		{
-			sFurni.c.New = 0;
-			sFurni.c.Hit = 0;
+		// TODO(classdefine.h): sCard does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)card;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sFurni.c.Final)
-		{
-			DevFinalStockPrice(sFurni.c);
-			m_FurnitureMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sFurniture>::value_type(
-					sFurni.c.TypeId, sFurni));
+		if (((_SYSTEMTIME *)((char *)&card + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&card + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (card.m_active) {
+			m_cardMap.insert(std::pair<const unsigned int, IFF_STRUCT::sCard>(card.m_typeId, card));
 		}
 	}
 }
 
-void CItemManager::MakeOfflineMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sOfflineShop sOs;
+// itemmanager.cpp:1181
+void CItemManager::MakeFurnitureMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sFurniture furniture = *(IFF_STRUCT::sFurniture *)record;
+		record += sizeof(IFF_STRUCT::sFurniture);
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sOs, p, sizeof(IFF_STRUCT::sOfflineShop));
-		p += sizeof(IFF_STRUCT::sOfflineShop);
-
-		if (sOs.c.SalePrice == 0)
-			sOs.c.SalePrice = sOs.c.Price;
-
-		if (sOs.c.UsedPrice >= sOs.c.SalePrice)
-			sOs.c.UsedPrice = 0;
-
-		if (sOs.c.saleStart.wYear != 0 || sOs.c.saleEnd.wYear != 0)
-		{
-			sOs.c.New = 0;
-			sOs.c.Hit = 0;
+		// sFurniture starts with IFF_ITEM_COMMON; its sale start (0x70) and
+		// end (0x80) are _SYSTEMTIMEs.
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)furniture;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
 		}
 
-		if (sOs.c.Final)
-		{
-			m_OfflineShopMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sOfflineShop>::value_type(
-					sOs.c.TypeId, sOs));
+		if (((_SYSTEMTIME *)((char *)&furniture + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&furniture + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (furniture.m_active) {
+			DevFinalStockPrice(common);
+			m_furnitureMap.insert(std::pair<const unsigned int, IFF_STRUCT::sFurniture>(furniture.m_typeId, furniture));
 		}
 	}
 }
 
-void CItemManager::MakeCadieMagicBoxMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
+// itemmanager.cpp:1218
+void CItemManager::MakeOfflineMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sOfflineShop shop = *(IFF_STRUCT::sOfflineShop *)record;
+		record += sizeof(IFF_STRUCT::sOfflineShop);
+
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)shop;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
+		}
+
+		if (shop.m_saleStartYear != 0 || shop.m_saleEndYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (shop.m_active) {
+			m_offlineShopMap.insert(std::pair<const unsigned int, IFF_STRUCT::sOfflineShop>(shop.m_typeId, shop));
+		}
+	}
+}
+
+// itemmanager.cpp:1427
+void CItemManager::MakeTikiRecipeMap(char *data, int count) {
+	IFF_STRUCT::sTikiOutputTable table;
+	memset(&table, 0, sizeof(table));
+
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		table = *(IFF_STRUCT::sTikiOutputTable *)record;
+		record += sizeof(IFF_STRUCT::sTikiOutputTable);
+
+		if (WSingleton<CTikiMagicBoxDoc>::Instance()) {
+			WSingleton<CTikiMagicBoxDoc>::Instance()->InsertOutput(table);
+		}
+	}
+}
+
+// itemmanager.cpp:1459
+void CItemManager::MakeTikiPointTableMap(char *data, int count) {
+	IFF_STRUCT::sTikiPointTable table;
+	memset(&table, 0, sizeof(table));
+
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		table = *(IFF_STRUCT::sTikiPointTable *)record;
+		record += sizeof(IFF_STRUCT::sTikiPointTable);
+
+		if (WSingleton<CTikiMagicBoxDoc>::Instance()) {
+			WSingleton<CTikiMagicBoxDoc>::Instance()->InsertPointTable(table);
+		}
+	}
+}
+
+// itemmanager.cpp:1490
+void CItemManager::MakeTikiSpecialTableMap(char *data, int count) {
+	IFF_STRUCT::sTikiSpecialRecipe recipe;
+	memset(&recipe, 0, sizeof(recipe));
+
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		recipe = *(IFF_STRUCT::sTikiSpecialRecipe *)record;
+		record += sizeof(IFF_STRUCT::sTikiSpecialRecipe);
+
+		if (WSingleton<CTikiMagicBoxDoc>::Instance()) {
+			WSingleton<CTikiMagicBoxDoc>::Instance()->InsertSpecialRecipe(recipe);
+		}
+	}
+}
+
+// The key the random box lookups search with.
+struct stFindRandomBox {
+	stFindRandomBox(unsigned long typeId, unsigned long index);
+	bool operator()(const std::pair<unsigned long, _private::sRandomBoxItem> &item) const;
+
+	unsigned long m_typeId;   // 0x0
+	unsigned long m_index;    // 0x4
+};
+
+// itemmanager.cpp:1576
+stFindRandomBox::stFindRandomBox(unsigned long typeId, unsigned long index) {
+	m_typeId = typeId;
+	m_index = index;
+}
+
+// itemmanager.cpp:1580
+bool stFindRandomBox::operator()(const std::pair<unsigned long, _private::sRandomBoxItem> &item) const {
+	return item.second.m_box.m_itemTypeId == m_typeId && item.second.m_box.m_index == (m_index != 0 ? m_index : item.second.m_box.m_index);
+}
+
+// itemmanager.cpp:1682
+void CItemManager::MakeNonVisibleItemMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	m_nonVisibleItemMap.clear();
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sNonVisibleItem item = *(IFF_STRUCT::sNonVisibleItem *)record;
+		record += sizeof(IFF_STRUCT::sNonVisibleItem);
+		if (item.m_active) {
+			m_nonVisibleItemMap.insert(std::pair<const unsigned int, IFF_STRUCT::sNonVisibleItem>(item.m_typeId, item));
+		}
+	}
+}
+
+// itemmanager.cpp:1714
+void CItemManager::MakeSubscriptionItemMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	m_subscriptionItemMap.clear();
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sSubscriptionItem item = *(IFF_STRUCT::sSubscriptionItem *)record;
+		record += sizeof(IFF_STRUCT::sSubscriptionItem);
+
+		// The record's first byte is the active flag, its dword at 0x8 the type id.
+		if (*(char *)&item != 0) {
+			unsigned int typeId = *(unsigned int *)((char *)&item + 0x8);
+			m_subscriptionItemMap.insert(std::pair<const unsigned int, IFF_STRUCT::sSubscriptionItem>(typeId, item));
+		}
+	}
+}
+
+// itemmanager.cpp:1756
+void CItemManager::MakeHairStyleMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sHairStyle hairStyle = *(IFF_STRUCT::sHairStyle *)record;
+		record += sizeof(IFF_STRUCT::sHairStyle);
+
+		// TODO(classdefine.h): sHairStyle does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)hairStyle;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
+		}
+
+		if (((_SYSTEMTIME *)((char *)&hairStyle + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&hairStyle + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (hairStyle.m_active) {
+			m_hairStyleMap.insert(std::pair<const unsigned int, IFF_STRUCT::sHairStyle>(hairStyle.m_typeId, hairStyle));
+		}
+	}
+}
+
+// itemmanager.cpp:1803
+void CItemManager::MakeChildItemMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sChildItem child = *(IFF_STRUCT::sChildItem *)record;
+		record += sizeof(IFF_STRUCT::sChildItem);
+
+		if (child.m_active) {
+			m_childItemMap.insert(std::pair<const unsigned int, IFF_STRUCT::sChildItem>(i, child));
+		}
+	}
+}
+
+// itemmanager.cpp:1827
+void CItemManager::MakeAuxPartMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sAuxPart auxPart = *(IFF_STRUCT::sAuxPart *)record;
+		record += sizeof(IFF_STRUCT::sAuxPart);
+
+		// TODO(classdefine.h): sAuxPart does not embed IFF_ITEM_COMMON yet, nor
+		// the sale start (0x70, a _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)auxPart;
+		if (((_SYSTEMTIME *)((char *)&auxPart + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&auxPart + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (auxPart.m_active) {
+			DevFinalStockPrice(common);
+			m_auxPartMap.insert(std::pair<const unsigned int, IFF_STRUCT::sAuxPart>(auxPart.m_typeId, auxPart));
+		}
+	}
+}
+
+// itemmanager.cpp:1861
+void CItemManager::MakeQuestDropMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sQuestDrop drop = *(IFF_STRUCT::sQuestDrop *)record;
+		record += sizeof(IFF_STRUCT::sQuestDrop);
+
+		// TODO(classdefine.h): the sale start (0x70, a _SYSTEMTIME) and end
+		// (0x80) and the shop flags (0x69) are not members of sQuestDrop in
+		// its read-only header yet.
+		if (((_SYSTEMTIME *)((char *)&drop + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&drop + 0x80))->wYear != 0) {
+			*((unsigned char *)&drop + 0x69) &= ~3;
+		}
+
+		if (drop.m_active) {
+			m_questDropMap.insert(std::pair<const unsigned int, IFF_STRUCT::sQuestDrop>(drop.m_typeId, drop));
+		}
+	}
+}
+
+// itemmanager.cpp:1894
+void CItemManager::MakeQuestMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sQuest quest = *(IFF_STRUCT::sQuest *)record;
+		record += sizeof(IFF_STRUCT::sQuest);
+
+		quest.m_clearedA = 0;
+		quest.m_clearedB = 0;
+		quest.m_extraData = 0;
+
+		if (quest.m_active) {
+			m_questMap.insert(std::pair<const unsigned int, IFF_STRUCT::sQuest>(quest.m_typeId, quest));
+		}
+	}
+}
+
+// itemmanager.cpp:1923
+void CItemManager::MakeMascotMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sMascot mascot = *(IFF_STRUCT::sMascot *)record;
+		record += sizeof(IFF_STRUCT::sMascot);
+
+		// TODO(classdefine.h): sMascot does not embed IFF_ITEM_COMMON in its
+		// read-only header yet, and neither has the sale start (0x70, a
+		// _SYSTEMTIME) and end (0x80).
+		IFF_ITEM_COMMON &common = (IFF_ITEM_COMMON &)mascot;
+		if (common.m_discountPrice == 0) {
+			common.m_discountPrice = common.m_price;
+		}
+		if (common.m_refundPrice >= common.m_discountPrice) {
+			common.m_refundPrice = 0;
+		}
+
+		if (((_SYSTEMTIME *)((char *)&mascot + 0x70))->wYear != 0 || ((_SYSTEMTIME *)((char *)&mascot + 0x80))->wYear != 0) {
+			common.m_flags1 &= ~3;
+		}
+
+		if (mascot.m_active) {
+			DevFinalStockPrice(common);
+			m_mascotMap.insert(std::pair<const unsigned int, IFF_STRUCT::sMascot>(mascot.m_typeId, mascot));
+		}
+	}
+}
+
+// itemmanager.cpp:1964
+void CItemManager::MakeDescMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sDesc desc = *(IFF_STRUCT::sDesc *)record;
+		record += sizeof(IFF_STRUCT::sDesc);
+		m_descMap.insert(std::pair<const unsigned int, IFF_STRUCT::sDesc>(desc.m_typeId, desc));
+	}
+}
+
+// itemmanager.cpp:1986
+void CItemManager::MakeFurnitureAbilityList(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sFurnitureAbility ability = *(IFF_STRUCT::sFurnitureAbility *)record;
+		record += sizeof(IFF_STRUCT::sFurnitureAbility);
+
+		if (ability.m_active) {
+			m_furnitureAbilityList.push_back(ability);
+		}
+	}
+}
+
+// itemmanager.cpp:2021
+IFF_STRUCT::sChar *CItemManager::FindChar(unsigned long typeId) {
+	IFF_STRUCT::sChar *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sChar>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_charMap.find(typeId);
+
+		if (it != m_charMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_charMap.find(typeId);
+
+		if (it != m_charMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2055
+IFF_STRUCT::sPart *CItemManager::FindPart(unsigned long typeId) {
+	IFF_STRUCT::sPart *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sPart>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_partMap.find(typeId);
+
+		if (it != m_partMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_partMap.find(typeId);
+
+		if (it != m_partMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2088
+IFF_STRUCT::sClub *CItemManager::FindClub(unsigned long typeId) {
+	IFF_STRUCT::sClub *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sClub>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_clubMap.find(typeId);
+
+		if (it != m_clubMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_clubMap.find(typeId);
+
+		if (it != m_clubMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2122
+IFF_STRUCT::sClubSet *CItemManager::FindClubSet(unsigned long typeId) {
+	IFF_STRUCT::sClubSet *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sClubSet>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_clubSetMap.find(typeId);
+
+		if (it != m_clubSetMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_clubSetMap.find(typeId);
+
+		if (it != m_clubSetMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2157
+IFF_STRUCT::sBall *CItemManager::FindBall(unsigned long typeId) {
+	IFF_STRUCT::sBall *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sBall>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_ballMap.find(typeId);
+
+		if (it != m_ballMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_ballMap.find(typeId);
+
+		if (it != m_ballMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2191
+IFF_STRUCT::sItem *CItemManager::FindItem(unsigned long typeId) {
+	IFF_STRUCT::sItem *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sItem>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_itemMap.find(typeId);
+
+		if (it != m_itemMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_itemMap.find(typeId);
+
+		if (it != m_itemMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2225
+IFF_STRUCT::sCaddie *CItemManager::FindCaddie(unsigned long typeId) {
+	IFF_STRUCT::sCaddie *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sCaddie>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_caddieMap.find(typeId);
+
+		if (it != m_caddieMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_caddieMap.find(typeId);
+
+		if (it != m_caddieMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2260
+IFF_STRUCT::sCadItem *CItemManager::FindCadItem(unsigned long typeId) {
+	IFF_STRUCT::sCadItem *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sCadItem>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_cadItemMap.find(typeId);
+
+		if (it != m_cadItemMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_cadItemMap.find(typeId);
+
+		if (it != m_cadItemMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2294
+IFF_STRUCT::sSetItem *CItemManager::FindSetItem(unsigned long typeId) {
+	IFF_STRUCT::sSetItem *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sSetItem>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_setItemMap.find(typeId);
+
+		if (it != m_setItemMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_setItemMap.find(typeId);
+
+		if (it != m_setItemMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2394
+IFF_STRUCT::sCourse *CItemManager::FindCourse(unsigned long typeId) {
+	IFF_STRUCT::sCourse *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sCourse>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_courseMap.find(typeId);
+
+		if (it != m_courseMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_courseMap.find(typeId);
+
+		if (it != m_courseMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2429
+IFF_STRUCT::sMatch *CItemManager::FindMatch(unsigned long typeId) {
+	IFF_STRUCT::sMatch *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sMatch>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_matchMap.find(typeId);
+
+		if (it != m_matchMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_matchMap.find(typeId);
+
+		if (it != m_matchMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2462
+IFF_STRUCT::sTitle *CItemManager::FindTitle(unsigned long typeId) {
+	IFF_STRUCT::sTitle *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sTitle>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_titleMap.find(typeId);
+
+		if (it != m_titleMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_titleMap.find(typeId);
+
+		if (it != m_titleMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2496
+IFF_STRUCT::sEnchant *CItemManager::FindEnchant(unsigned long typeId) {
+	IFF_STRUCT::sEnchant *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sEnchant>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_enchantMap.find(typeId);
+
+		if (it != m_enchantMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_enchantMap.find(typeId);
+
+		if (it != m_enchantMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2530
+IFF_STRUCT::sSkin *CItemManager::FindSkin(unsigned long typeId) {
+	IFF_STRUCT::sSkin *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sSkin>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_skinMap.find(typeId);
+
+		if (it != m_skinMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_skinMap.find(typeId);
+
+		if (it != m_skinMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2596
+IFF_STRUCT::sRandomBox *CItemManager::FindRandomBox(unsigned long typeId) {
+	IFF_STRUCT::sRandomBox *result = NULL;
+	_private::sRandomBox *box = findRandomBox(typeId);
+
+	if (box != NULL) {
+		result = &box->m_box;
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2618
+void CItemManager::MakeCutinInforMationTableMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::S5::sCutinInformation info = *(IFF_STRUCT::S5::sCutinInformation *)record;
+		record += sizeof(IFF_STRUCT::S5::sCutinInformation);
+		if (info.m_active) {
+			m_cutinInformationMap.insert(std::pair<const unsigned int, IFF_STRUCT::S5::sCutinInformation>(info.m_typeId, info));
+		}
+	}
+}
+
+// itemmanager.cpp:2652
+IFF_STRUCT::S5::sCutinInformation *CItemManager::FindCutinInformation(unsigned long typeId) {
+	IFF_STRUCT::S5::sCutinInformation *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::S5::sCutinInformation>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_cutinInformationMap.find(typeId);
+
+		if (it != m_cutinInformationMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_cutinInformationMap.find(typeId);
+
+		if (it != m_cutinInformationMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2740
+IFF_STRUCT::sHairStyle *CItemManager::FindHairStyle(unsigned long typeId) {
+	IFF_STRUCT::sHairStyle *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sHairStyle>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_hairStyleMap.find(typeId);
+
+		if (it != m_hairStyleMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_hairStyleMap.find(typeId);
+
+		if (it != m_hairStyleMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2833
+IFF_STRUCT::sChildItem *CItemManager::FindChildItem(unsigned long typeId, int index) {
+	IFF_STRUCT::sChildItem *child = NULL;
+	int count = 0;
+	std::map<unsigned int, IFF_STRUCT::sChildItem>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		for (it = m_childItemMap.begin(); it != m_childItemMap.end(); ++it) {
+			child = &it->second;
+
+			if (child) {
+				if (child->m_typeId == typeId) {
+					if (index == count) {
+						break;
+					}
+					count++;
+				}
+			}
+		}
+		m_cs.unlock();
+	} else {
+		for (it = m_childItemMap.begin(); it != m_childItemMap.end(); ++it) {
+			child = &it->second;
+
+			if (child) {
+				if (child->m_typeId == typeId) {
+					if (index == count) {
+						return child;
+					}
+					count++;
+				}
+			}
+		}
+	}
+
+	return child;
+}
+
+// itemmanager.cpp:2931
+IFF_STRUCT::sAuxPart *CItemManager::FindAuxPart(unsigned long typeId) {
+	IFF_STRUCT::sAuxPart *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sAuxPart>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_auxPartMap.find(typeId);
+
+		if (it != m_auxPartMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_auxPartMap.find(typeId);
+
+		if (it != m_auxPartMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2965
+IFF_STRUCT::sQuestDrop *CItemManager::FindQuestDrop(unsigned long typeId) {
+	IFF_STRUCT::sQuestDrop *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sQuestDrop>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_questDropMap.find(typeId);
+
+		if (it != m_questDropMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_questDropMap.find(typeId);
+
+		if (it != m_questDropMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:2999
+IFF_STRUCT::sQuest *CItemManager::FindQuest(unsigned long typeId) {
+	IFF_STRUCT::sQuest *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sQuest>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_questMap.find(typeId);
+
+		if (it != m_questMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_questMap.find(typeId);
+
+		if (it != m_questMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:3034
+IFF_STRUCT::sMascot *CItemManager::FindMascot(unsigned long typeId) {
+	std::map<unsigned int, IFF_STRUCT::sMascot>::iterator it;
+
+	it = m_mascotMap.find(typeId);
+
+	if (it != m_mascotMap.end()) {
+		return &it->second;
+	}
+
+	return NULL;
+}
+
+// itemmanager.cpp:3053
+IFF_STRUCT::sCard *CItemManager::FindCard(unsigned long typeId) {
+	IFF_STRUCT::sCard *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sCard>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_cardMap.find(typeId);
+
+		if (it != m_cardMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_cardMap.find(typeId);
+
+		if (it != m_cardMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:3089
+IFF_STRUCT::sFurniture *CItemManager::FindFurniture(unsigned long typeId) {
+	if (!IsLocalContent((localContentType_t)0x56)) {
+		return NULL;
+	}
+
+	IFF_STRUCT::sFurniture *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sFurniture>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_furnitureMap.find(typeId);
+
+		if (it != m_furnitureMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_furnitureMap.find(typeId);
+
+		if (it != m_furnitureMap.end()) {
+			result = &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:3167
+IFF_STRUCT::sDesc *CItemManager::FindDesc(unsigned long typeId) {
+	std::map<unsigned int, IFF_STRUCT::sDesc>::iterator it;
+
+	it = m_descMap.find(typeId);
+
+	if (it == m_descMap.end()) {
+		return NULL;
+	}
+
+	return &it->second;
+}
+
+// itemmanager.cpp:3181
+IFF_ITEM_COMMON *CItemManager::FindCommonItem(unsigned long typeId) {
+	switch (typeId >> 26) {
+	case 1: {
+		IFF_STRUCT::sChar *record = FindChar(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 2: {
+		IFF_STRUCT::sPart *record = FindPart(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 3: {
+		IFF_STRUCT::sClub *record = FindClub(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 4: {
+		IFF_STRUCT::sClubSet *record = FindClubSet(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 5: {
+		IFF_STRUCT::sBall *record = FindBall(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 6: {
+		IFF_STRUCT::sItem *record = FindItem(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 7: {
+		IFF_STRUCT::sCaddie *record = FindCaddie(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 8: {
+		IFF_STRUCT::sCadItem *record = FindCadItem(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 9: {
+		IFF_STRUCT::sSetItem *record = FindSetItem(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 10: {
+		IFF_STRUCT::sCourse *record = FindCourse(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 14: {
+		IFF_STRUCT::sSkin *record = FindSkin(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 15: {
+		IFF_STRUCT::sHairStyle *record = FindHairStyle(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 16: {
+		IFF_STRUCT::sMascot *record = FindMascot(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 28: {
+		IFF_STRUCT::sAuxPart *record = FindAuxPart(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 29: {
+		IFF_STRUCT::sQuestDrop *record = FindQuestDrop(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 31: {
+		IFF_STRUCT::sCard *record = FindCard(typeId);
+		if (record) {
+			return (IFF_ITEM_COMMON *)record;
+		}
+		break;
+	}
+	case 18:
+		if (IsLocalContent((localContentType_t)0x56)) {
+			IFF_STRUCT::sFurniture *record = FindFurniture(typeId);
+			if (record) {
+				return (IFF_ITEM_COMMON *)record;
+			}
+		}
+		break;
+	case 19:
+		if (IsLocalContent((localContentType_t)0x66)) {
+			IFF_STRUCT::sOfflineShop *record = FindOfflineShop(typeId);
+			if (record) {
+				return (IFF_ITEM_COMMON *)record;
+			}
+		}
+		break;
+	}
+
+	return NULL;
+}
+
+// itemmanager.cpp:3470
+bool CItemManager::GetDefCombo(unsigned long typeId, unsigned long *combo) {
+	if (combo) {
+		IFF_STRUCT::sChar *character = FindChar(typeId);
+
+		if (character) {
+			for (int i = 0; i < 24; i++) {
+				// The default part of slot i: 0x08000400 | (typeId << 18) | (i << 13).
+				unsigned long partTypeId = (((typeId << 5) | i) << 13) | 0x8000400;
+
+				combo[i] = FindPart(partTypeId) ? partTypeId : 0;
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:3548
+unsigned int CItemManager::GetItemPrice(unsigned long typeId) {
+	IFF_ITEM_COMMON *item = FindCommonItem(typeId);
+
+	if (item) {
+		return item->m_price;
+	}
+
+	return 0xFFFFFFFF;
+}
+
+// itemmanager.cpp:3565
+int CItemManager::CheckStockType(unsigned long typeId, unsigned int stockType) {
+	int result = 0;
+	IFF_ITEM_COMMON *item = FindCommonItem(typeId);
+	if (item) {
+		if ((unsigned int)(item->m_flags0 >> 5) == stockType) {
+			result = 1;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:3580
+bool CItemManager::IsValidBuyItemCount(unsigned long typeId, int count) {
+	if ((typeId & 0xFC000000) == 0x18000000) {
+		IFF_STRUCT::sItem *item = FindItem(typeId);
+
+		if (item == NULL) {
+			return false;
+		}
+		if ((item->m_flags & 1) && item->quantity > 0 && count != item->quantity) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// itemmanager.cpp:3868
+unsigned int CItemManager::GetChildItemPrice(unsigned long typeId, int index) {
+	IFF_STRUCT::sChildItem *child = FindChildItem(typeId, index);
+
+	if (child) {
+		if (child->m_hasPrice) {
+			return child->m_price;
+		} else if (child->m_hasAltPrice) {
+			return child->m_altPrice;
+		}
+	}
+
+	return 0xFFFFFFFF;
+}
+
+// itemmanager.cpp:4127
+bool CItemManager::IsCashChildItem(unsigned long typeId, int index) {
+	IFF_STRUCT::sChildItem *child = FindChildItem(typeId, index);
+
+	if (child) {
+		return child->isCash;
+	}
+
+	return true;
+}
+
+// itemmanager.cpp:4139
+bool CItemManager::IsTimeLimit(unsigned long typeId) {
+	unsigned long group = typeId >> 26;
+
+	switch (group) {
+	case 6: {
+		IFF_STRUCT::sItem *item = FindItem(typeId);
+		if (item) {
+			if (item->m_timeType != 0) {
+				return true;
+			}
+		}
+		break;
+	}
+	case 14: {
+		IFF_STRUCT::sSkin *skin = FindSkin(typeId);
+		if (skin) {
+			if (skin->m_timeType == 1 || skin->m_timeType == 2) {
+				return true;
+			}
+		}
+		break;
+	}
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:4195
+const char *CItemManager::GetItemName(unsigned long typeId) {
+	if (typeId != 0) {
+		switch (typeId >> 26) {
+		case 1: {
+			IFF_STRUCT::sChar *record = FindChar(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 2: {
+			IFF_STRUCT::sPart *record = FindPart(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 3: {
+			IFF_STRUCT::sClub *record = FindClub(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 4: {
+			IFF_STRUCT::sClubSet *record = FindClubSet(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 5: {
+			IFF_STRUCT::sBall *record = FindBall(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 6: {
+			IFF_STRUCT::sItem *record = FindItem(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 7: {
+			IFF_STRUCT::sCaddie *record = FindCaddie(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 8: {
+			IFF_STRUCT::sCadItem *record = FindCadItem(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 9: {
+			IFF_STRUCT::sSetItem *record = FindSetItem(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 10: {
+			IFF_STRUCT::sCourse *record = FindCourse(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 11: {
+			IFF_STRUCT::sMatch *record = FindMatch(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 12: {
+			IFF_STRUCT::sTitle *record = FindTitle(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 14: {
+			IFF_STRUCT::sSkin *record = FindSkin(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 15: {
+			IFF_STRUCT::sHairStyle *record = FindHairStyle(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 16: {
+			IFF_STRUCT::sMascot *record = FindMascot(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 28: {
+			IFF_STRUCT::sAuxPart *record = FindAuxPart(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 29: {
+			IFF_STRUCT::sQuestDrop *record = FindQuestDrop(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 30: {
+			IFF_STRUCT::sQuest *record = FindQuest(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 31: {
+			IFF_STRUCT::sCard *record = FindCard(typeId);
+			if (record) {
+				return record->m_name;
+			}
+			break;
+		}
+		case 18:
+			if (IsLocalContent((localContentType_t)0x56)) {
+				IFF_STRUCT::sFurniture *record = FindFurniture(typeId);
+				if (record) {
+					return record->m_name;
+				}
+			}
+			break;
+		}
+	}
+
+	return "unknown";
+}
+
+// itemmanager.cpp:4364
+bool CItemManager::HasSalePeriod(unsigned long typeId, _SYSTEMTIME **begin, _SYSTEMTIME **end) {
+	*begin = NULL;
+	*end = NULL;
+	IFF_ITEM_COMMON *item = FindCommonItem(typeId);
+
+	if (item) {
+		// The sale start (0x70) and end (0x80) of IFF_ITEM_COMMON are not
+		// members of its read-only header yet (client/ProjectG/UccManager.h).
+		*begin = (_SYSTEMTIME *)((char *)item + 0x70);
+		*end = (_SYSTEMTIME *)((char *)item + 0x80);
+	}
+
+	return *begin ? true : false;
+}
+
+// itemmanager.cpp:4386
+bool CItemManager::IsInSalePeriod(unsigned long typeId, _SYSTEMTIME &time) {
+	_SYSTEMTIME *begin;
+	_SYSTEMTIME *end;
+
+	if (!HasSalePeriod(typeId, &begin, &end)) {
+		return true;
+	}
+
+	return IsBetween(begin, end, time);
+}
+
+// itemmanager.cpp:4400
+int CItemManager::CompareSystemTime(_SYSTEMTIME &a, _SYSTEMTIME &b) {
+	if (a.wYear < b.wYear) return -1;
+	if (a.wYear > b.wYear) return 1;
+
+	if (a.wMonth < b.wMonth) return -1;
+	if (a.wMonth > b.wMonth) return 1;
+
+	if (a.wDay < b.wDay) return -1;
+	if (a.wDay > b.wDay) return 1;
+
+	if (a.wHour < b.wHour) return -1;
+	if (a.wHour > b.wHour) return 1;
+
+	if (a.wMinute < b.wMinute) return -1;
+	if (a.wMinute > b.wMinute) return 1;
+
+	if (a.wSecond < b.wSecond) return -1;
+	if (a.wSecond > b.wSecond) return 1;
+
+	if (a.wMilliseconds < b.wMilliseconds) return -1;
+	if (a.wMilliseconds > b.wMilliseconds) return 1;
+
+	return 0;
+}
+
+// itemmanager.cpp:4427
+int CItemManager::GetCouponKind(unsigned long typeId) {
+	int kind = 0;
+
+	if (typeId & 0x2000000) {
+		switch (typeId & 0x1FFFFFF) {
+		case 0x15: case 0x16: case 0x17:
+		case 0x1D: case 0x1E:
+		case 0x2B: case 0x2C: case 0x2D: case 0x2E:
+		case 0x3A: case 0x3C: case 0x4E:
+			kind = 1;
+			break;
+		case 0x28: case 0x29: case 0x2A:
+			kind = 5;
+			break;
+		case 0x30: case 0x33: case 0x34: case 0xA3:
+			kind = 2;
+			break;
+		case 0x36:
+		case 0x63: case 0x64: case 0x65: case 0x66: case 0x67: case 0x68: case 0x69:
+		case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6E: case 0x6F: case 0x70:
+		case 0x71: case 0x72: case 0x73: case 0x74: case 0x75:
+		case 0xD2:
+			kind = 3;
+			break;
+		case 0x3D: case 0x3F: case 0x53:
+			kind = 4;
+			break;
+		default:
+			kind = 0;
+			break;
+		}
+	}
+
+	return kind;
+}
+
+// itemmanager.cpp:4515
+bool CItemManager::IsDisableDuplicateItem(unsigned long typeId) {
+	if (typeId & 0x2000000) {
+		switch (typeId & 0x1FFFFFF) {
+		case 0xF:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:4555
+bool CItemManager::IsDisplayItemNumber(unsigned long typeId) {
+	bool result = false;
+	switch (typeId >> 26) {
+	case 6:
+		if ((typeId & 0x2000000) && (typeId & 0x1FFFFFF) == 6) {
+			break;
+		}
+		result = true;
+		break;
+	case 5:
+		if (IsUnlimitAztec(typeId)) {
+			break;
+		}
+		result = true;
+		break;
+	case 0x1C: {
+		IFF_STRUCT::sAuxPart *auxPart = FindAuxPart(typeId);
+		if (auxPart == NULL || auxPart->quantity == 0) {
+			break;
+		}
+		result = true;
+		break;
+	}
+	case 0x1F:
+		result = true;
+		break;
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:4930
+unsigned long CItemManager::GetMascotBonusPang(unsigned long typeId, bool flag) {
+	unsigned long bonus = 0;
+
+	if ((typeId & 0xFC000000) == 0x40000000) {
+		switch (typeId & 0x3FFFFFF) {
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			bonus = flag ? 10 : 0;
+			break;
+		case 6:
+		case 14:
+		case 18:
+			bonus = flag ? 10 : 5;
+			break;
+		case 4:
+		case 13:
+		case 16:
+		case 19:
+			bonus = flag ? 15 : 5;
+			break;
+		case 9:
+		case 10:
+		case 11:
+		case 12:
+			bonus = flag ? 15 : 0;
+			break;
+		}
+	}
+
+	return bonus;
+}
+
+// itemmanager.cpp:4987
+bool CItemManager::IsBetween(_SYSTEMTIME *begin, _SYSTEMTIME *end, _SYSTEMTIME &time) {
+	if (begin && end) {
+		if (begin->wYear > 0) {
+			if (end->wYear > 0) {
+				if (CompareSystemTime(*begin, time) <= 0 && CompareSystemTime(time, *end) <= 0) {
+					return true;
+				}
+
+				return false;
+			}
+
+			return CompareSystemTime(*begin, time) <= 0 ? true : false;
+		}
+
+		if (end->wYear > 0) {
+			return CompareSystemTime(time, *end) <= 0 ? true : false;
+		}
+	} else if (begin) {
+		return CompareSystemTime(*begin, time) <= 0 ? true : false;
+	} else if (end) {
+		return CompareSystemTime(time, *end) <= 0 ? true : false;
+	}
+
+	return true;
+}
+
+// itemmanager.cpp:5267
+int CItemManager::GetCourseNum(void) {
+	int num;
+	if (m_loaded) {
+		m_cs.lock();
+		num = m_courseMap.size() - 3;
+		m_cs.unlock();
+	} else {
+		num = m_courseMap.size() - 3;
+	}
+
+	return num;
+}
+
+// itemmanager.cpp:5511
+unsigned char CItemManager::GetItemLevel(eLvlType type, const unsigned long *parts, const unsigned long *cards) {
+	if (parts == NULL) {
+		return 0;
+	}
+
+	IFF_STRUCT::sPart *partList[24];
+	IFF_STRUCT::sAuxPart *auxPartList[5];
+	unsigned char level = 0;
+
+	for (int i = 0; i < 24; i++) {
+		if (parts[i] == 0) {
+			partList[i] = NULL;
+		} else {
+			partList[i] = FindPart(parts[i]);
+		}
+
+		if (partList[i] != NULL) {
+			level += partList[i]->m_baseStat[type];
+		}
+	}
+
+	if (cards != NULL && type < 5) {
+		for (int i = 0; i < 5; i++) {
+			if (cards[i] == 0) {
+				auxPartList[i] = NULL;
+			} else {
+				auxPartList[i] = FindAuxPart(cards[i]);
+			}
+
+			if (auxPartList[i] != NULL && auxPartList[i]->m_levels[type] != 99) {
+				level += auxPartList[i]->m_levels[type];
+			}
+		}
+	}
+
+	return level;
+}
+
+// itemmanager.cpp:5559
+unsigned char CItemManager::GetCharCapacity(eLvlType type, unsigned long charTypeId, const unsigned long *parts, const unsigned long *cards, unsigned char extra) {
+	IFF_STRUCT::sPart *partRecords[24];
+	IFF_STRUCT::sAuxPart *cardRecords[5];
+	unsigned char capacity;
+
+	if (charTypeId != 0) {
+		IFF_STRUCT::sChar *character = FindChar(charTypeId);
+
+		if (character) {
+			capacity = (unsigned char)character->m_capacity[type];
+		} else {
+			capacity = 0;
+		}
+	} else {
+		capacity = 0;
+	}
+
+	if (type == 0 && extra >= 6) {
+		capacity += (extra - 1) / 5;
+	}
+
+	if (parts) {
+		for (int i = 0; i < 24; i++) {
+			if (parts[i] == 0) {
+				partRecords[i] = NULL;
+			} else {
+				partRecords[i] = FindPart(parts[i]);
+			}
+
+			if (partRecords[i]) {
+				capacity += (unsigned char)partRecords[i]->m_slotStat[type];
+			}
+		}
+	}
+
+	if (cards && type < 5) {
+		for (int i = 0; i < 5; i++) {
+			if (cards[i] == 0) {
+				cardRecords[i] = NULL;
+			} else {
+				cardRecords[i] = FindAuxPart(cards[i]);
+			}
+
+			if (cardRecords[i]) {
+				unsigned char value = cardRecords[i]->m_capacity[type];
+
+				if (value != 99) {
+					capacity += value;
+				}
+			}
+		}
+	}
+
+	if (IsLocalContent((localContentType_t)0x51)) {
+		capacity += WSingleton<CCardManager>::Instance()->GetCardStatusSlot(type);
+	}
+
+	return capacity;
+}
+
+// itemmanager.cpp:5659
+unsigned char CItemManager::GetCapacity(eLvlType type, unsigned long charTypeId, const char *levels, const unsigned long *parts, unsigned long clubTypeId, const short *clubLevels, unsigned long ballTypeId, unsigned char extra) {
+	IFF_STRUCT::sPart *partRecords[24];
+	unsigned char capacity;
+
+	IFF_STRUCT::sChar *character = FindChar(charTypeId);
+	IFF_STRUCT::sClubSet *clubSet = FindClubSet(clubTypeId);
+
+	if (character) {
+		if (type == 0) {
+			capacity = (unsigned char)character->m_capacity[0];
+
+			if (extra >= 6) {
+				capacity += (extra - 1) / 5;
+			}
+		} else if (type > 0 && type <= 4) {
+			capacity = (unsigned char)character->m_capacity[type];
+		}
+	} else {
+		capacity = 0;
+	}
+
+	if (parts) {
+		for (int i = 0; i < 24; i++) {
+			if (parts[i] == 0) {
+				partRecords[i] = NULL;
+			} else {
+				partRecords[i] = FindPart(parts[i]);
+			}
+
+			if (partRecords[i]) {
+				capacity += (unsigned char)(partRecords[i]->m_slotStat[type] + partRecords[i]->m_baseStat[type]);
+			}
+		}
+	}
+
+	if (clubSet) {
+		capacity += (unsigned char)clubSet->m_maxStat[type];
+	}
+
+	if ((ballTypeId & 0xFC000000) == 0x20000000) {
+		ballTypeId = ((ballTypeId >> 21) & 0x1F) | 0x1C000000;
+	}
+
+	IFF_STRUCT::sCaddie *caddie = FindCaddie(ballTypeId);
+	unsigned char caddieValue;
+
+	if (caddie && (caddie->m_level & 0x7F) <= extra) {
+		caddieValue = (unsigned char)caddie->m_levels[type];
+	} else {
+		caddieValue = 0;
+	}
+	capacity += caddieValue;
+
+	if (IsLocalContent((localContentType_t)0x51)) {
+		capacity += WSingleton<CCardManager>::Instance()->GetCardPeriodStatus(type);
+		capacity += WSingleton<CCardManager>::Instance()->GetCardStatusSlot(type);
+	}
+
+	return capacity;
+}
+
+// itemmanager.cpp:5636
+unsigned char CItemManager::GetCharLevel(eLvlType type, unsigned long charTypeId, const char *levels) {
+	if (charTypeId == 0)
+		return 0;
+
+	IFF_STRUCT::sChar *chr = FindChar(charTypeId);
+
+	if (chr == 0)
+		return 0;
+
+	unsigned char level = chr->m_baseLevels[type];
+	if (levels)
+		level += levels[type];
+
+	return level;
+}
+
+// itemmanager.cpp:5935
+int CalcPowerPenalty(int power) {
+	if (power >= 66) {
+		return 13;
+	} else if (power >= 61) {
+		return 12;
+	} else if (power >= 56) {
+		return 11;
+	} else if (power >= 51) {
+		return 10;
+	} else if (power >= 46) {
+		return 9;
+	} else if (power >= 41) {
+		return 8;
+	} else if (power >= 36) {
+		return 7;
+	} else if (power >= 31) {
+		return 6;
+	} else if (power >= 26) {
+		return 5;
+	} else if (power >= 21) {
+		return 4;
+	} else if (power >= 16) {
+		return 3;
+	} else if (power >= 11) {
+		return 2;
+	} else if (power >= 6) {
+		return 1;
+	}
+
+	return 0;
+}
+
+// itemmanager.cpp:5966
+status_t CItemManager::GetLevelWithPenalty(eLvlType type, unsigned long charTypeId, const char *levels, const unsigned long *parts, const unsigned long *cards, unsigned long clubTypeId, const short *clubLevels, unsigned long ballTypeId, unsigned char extra) {
+	unsigned char penalty = 0;
+	unsigned char level = GetLevel(type, charTypeId, levels, parts, cards, clubTypeId, clubLevels, ballTypeId, extra);
+
+	if (type == 1 || type == 2) {
+		int base = GetLevel((eLvlType)0, charTypeId, levels, parts, cards, clubTypeId, clubLevels, ballTypeId, extra);
+		int excess = base - CalcPowerPenalty(extra) - 20;
+		penalty = excess > 0 ? excess : 0;
+
+		if (level <= penalty) {
+			level = 0;
+		} else {
+			level -= penalty;
+		}
+	}
+
+	status_t status;
+	status.m_level = level;
+	status.m_penalty = penalty;
+	return status;
+}
+
+// itemmanager.cpp:5998
+bool CItemManager::isTrade(unsigned long typeId) {
+	IFF_ITEM_COMMON *item = FindCommonItem(typeId);
+	if (!item) {
+		return false;
+	}
+
+	return (item->m_flags0 & 0x1E) == 2 ? true : false;
+}
+
+// itemmanager.cpp:6007
+bool CItemManager::IsCanOverlapped(unsigned long typeId, unsigned char a, unsigned char b) {
+	bool result = false;
+
+	IFF_ITEM_COMMON *item = FindCommonItem(typeId);
+	if (!item)
+		return false;
+
+	switch (typeId >> 26) {
+	case 1:
+		if (b == 1)
+			result = true;
+		break;
+	case 7:
+		if (a == 1) {
+			if (typeId == 0x1C000001 || typeId == 0x1C000002 || typeId == 0x1C000003 || typeId == 0x1C000007)
+				result = true;
+		}
+		break;
+	case 2: {
+		unsigned char kind = (item->m_flags0 >> 1) & 0xF;
+		if (kind == 1 || kind == 3)
+			result = true;
+		else
+			result = false;
+		break;
+	}
+	case 4:
+	case 8:
+	case 0xE:
+	case 0xF:
+		result = false;
+		break;
+	case 9: {
+		unsigned long group = (typeId >> 21) & 0x1F;
+		if (group == 6 || group == 5)
+			result = true;
+		else
+			result = false;
+		break;
+	}
+	case 0x1C:
+		if (!(typeId & 0x1F0000))
+			result = true;
+		break;
+	default:
+		result = true;
+		break;
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:6084
+bool CItemManager::IsPartAttachCard(unsigned long cardTypeId, unsigned long partTypeId, int slot) {
+	int cardKind = (cardTypeId >> 22) & 0xF;
+	bool result = false;
+	IFF_STRUCT::sPart *part = FindPart(partTypeId);
+
+	if (part) {
+		if (cardKind == 0) {
+			if (part->m_charCardSlots >= slot && slot > 0 && slot < 5)
+				result = true;
+		} else if (cardKind == 1) {
+			slot -= 4;
+			if (part->m_caddieCardSlots >= slot && slot > 0 && slot < 5)
+				result = true;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:6108
+bool CItemManager::GetCardSlotNum(unsigned long typeId, unsigned short &charSlots, unsigned short &caddieSlots) {
+	charSlots = 0;
+	caddieSlots = 0;
+
+	switch (typeId >> 26) {
+	case 2: {
+		IFF_STRUCT::sPart *part = FindPart(typeId);
+		if (part) {
+			charSlots = part->m_charCardSlots;
+			caddieSlots = part->m_caddieCardSlots;
+			return true;
+		}
+		break;
+	}
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:6137
+bool CItemManager::IsEquipCard(unsigned long typeId) {
+	if ((typeId & 0xFC000000) != 0x7C000000) {
+		return false;
+	}
+
+	if ((typeId & 0x3C00000) <= 0x400000) {
+		return true;
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:6155
+COUNTING_TYPE CItemManager::GetItemCountingType(unsigned long typeId, unsigned char kind) {
+	COUNTING_TYPE type = (COUNTING_TYPE)0;
+
+	switch (typeId >> 26) {
+	case 2:
+	case 4:
+		type = (COUNTING_TYPE)((kind != 0) + 1);
+		break;
+	case 5:
+	case 6:
+	case 0x1C:
+		type = (COUNTING_TYPE)3;
+		break;
+	case 7:
+		type = (COUNTING_TYPE)4;
+		break;
+	case 0x1F:
+		if (IsLocalContent((localContentType_t)0x51))
+			type = (COUNTING_TYPE)5;
+		break;
+	}
+
+	return type;
+}
+
+// itemmanager.cpp:6363
+void CItemManager::MakeSpecialPrizeItemMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
+
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sSpecialPrizeItem item = *(IFF_STRUCT::sSpecialPrizeItem *)record;
+		record += sizeof(IFF_STRUCT::sSpecialPrizeItem);
+		m_specialPrizeItemMap[item.m_type].insert(std::pair<const unsigned int, IFF_STRUCT::sSpecialPrizeItem>(item.m_typeId, item));
+	}
+}
+
+// itemmanager.cpp:6385
+IFF_STRUCT::sSpecialPrizeItem *CItemManager::FindSPItem(unsigned long typeId, eSPAVILITYTYPE type) {
+	IFF_STRUCT::sSpecialPrizeItem *result = NULL;
+	std::map<unsigned int, IFF_STRUCT::sSpecialPrizeItem>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_specialPrizeItemMap[type].find(typeId);
+
+		if (it != m_specialPrizeItemMap[type].end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_specialPrizeItemMap[type].find(typeId);
+
+		if (it != m_specialPrizeItemMap[type].end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:6419
+void CItemManager::MakeItemBuffMap(void) {
+	sItemBuffHelper helper;
+	std::map<unsigned long, sItemBuffHelper>::iterator it;
+
+	m_itemBuffMap.clear();
+
+	m_itemBuffMap.insert(std::make_pair(0x1A0000B3, helper));
+	it = m_itemBuffMap.find(0x1A0000B3);
+	if (it != m_itemBuffMap.end()) {
+		it->second.m_value2 = 1;
+		it->second.m_ability = (specialcardavility)2;
+		it->second.m_value1 = 120;
+		it->second.m_value0 = 5;
+		std::set<unsigned long> &compatible = it->second.m_compatible;
+		compatible.insert(0x1A0000B4);
+	}
+
+	m_itemBuffMap.insert(std::make_pair(0x1A0000B4, helper));
+	it = m_itemBuffMap.find(0x1A0000B4);
+	if (it != m_itemBuffMap.end()) {
+		it->second.m_value2 = 1;
+		it->second.m_ability = (specialcardavility)2;
+		it->second.m_value1 = 120;
+		it->second.m_value0 = 50;
+		std::set<unsigned long> &compatible = it->second.m_compatible;
+		compatible.insert(0x1A0000B3);
+	}
+}
+
+// itemmanager.cpp:6575
+bool CItemManager::IsItemBuff(unsigned long typeId) {
+	std::map<unsigned long, sItemBuffHelper>::iterator it = m_itemBuffMap.find(typeId);
+	if (it != m_itemBuffMap.end()) {
+		return true;
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:6584
+bool CItemManager::IsCompatibleBuff(unsigned long typeId, unsigned long otherTypeId) {
+	std::map<unsigned long, sItemBuffHelper>::iterator it = m_itemBuffMap.find(typeId);
+	if (it == m_itemBuffMap.end()) {
+		return false;
+	}
+
+	const std::set<unsigned long> &compatible = it->second.m_compatible;
+	std::set<unsigned long>::const_iterator found = compatible.find(otherTypeId);
+	return found == compatible.end() ? true : false;
+}
+
+// itemmanager.cpp:6601
+bool CItemManager::GetBuffProperty(unsigned long typeId, specialcardavility &ability, int &value0, int &value1, int &value2) {
+	std::map<unsigned long, sItemBuffHelper>::iterator it = m_itemBuffMap.find(typeId);
+	if (it == m_itemBuffMap.end()) {
+		return false;
+	}
+
+	ability = it->second.m_ability;
+	value0 = it->second.m_value0;
+	value1 = it->second.m_value1;
+	value2 = it->second.m_value2;
+	return true;
+}
+
+// itemmanager.cpp:6621
+bool S5::ISCutinItem(unsigned long typeId) {
+	if ((typeId & 0xFC000000) == 0x38000000 && (typeId & 0x3C00000) == 0x1400000) {
+		return true;
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:6632
+const char *CItemManager::GetIconName(unsigned long typeId) {
+	if ((typeId & 0xFC000000) != 0x2C000000) {
+		IFF_ITEM_COMMON *item = FindCommonItem(typeId);
+		if (item)
+			return item->m_icon;
+	} else {
+		IFF_STRUCT::sMatch *match = FindMatch(typeId);
+		if (match)
+			return match->m_icon;
+	}
+
+	return "";
+}
+
+// itemmanager.cpp:6652
+bool CItemManager::IsUnlimitAztec(unsigned long typeId) {
+	if ((typeId & 0xFC000000) == 0x14000000) {
+		IFF_STRUCT::sBall *ball = FindBall(typeId);
+		if (ball && ball->quantity == 0) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:6668
+bool CItemManager::IsBasicAztecFamily(unsigned long typeId) {
+	if ((typeId & 0xFC000000) == 0x14000000) {
+		if (typeId == (typeId & 0xFC000000))
+			return true;
+
+		IFF_STRUCT::sBall *ball = FindBall(typeId);
+		if (ball && ball->m_price == 0 && ball->quantity == 0)
+			return true;
+	}
+
+	return false;
+}
+
+// itemmanager.cpp:6686
+const char *CItemManager::ChangePartsPosmask(unsigned long typeId, unsigned long posmask) {
+	IFF_STRUCT::sPart *part = FindPart(typeId);
+	if (part) {
+		m_cs.lock();
+
+		part->hideMask = posmask;
+
+		m_cs.unlock();
+		return "The posmask is changed";
+	}
+
+	return "No exist";
+}
+
+// itemmanager.cpp:6700
+const char *CItemManager::ChangePartsPetName(unsigned long typeId, const char *name) {
+	IFF_STRUCT::sPart *part = FindPart(typeId);
+	if (part) {
+		m_cs.lock();
+
+		char oldName[256];
+		strcpy(oldName, part->model);
+		strcpy(part->model, name);
+
+		m_cs.unlock();
+		return "The petname is changed";
+	}
+
+	return "No exist";
+}
+
+// itemmanager.cpp:6717
+const char *CItemManager::ChangePartsTexName(unsigned long typeId, unsigned long texType, unsigned long index, const char *name) {
+	if (texType != 0 && texType != 1) {
+		return "Invalid texture type.";
+	}
+
+	if (index <= 2) {
+		IFF_STRUCT::sPart *part = FindPart(typeId);
+		if (part) {
+			m_cs.lock();
+
+			if (texType == 0) {
+				strcpy(part->texture[index], name);
+			} else if (texType == 1) {
+				strcpy(part->texture2[index], name);
+			}
+
+			m_cs.unlock();
+			return "The texname is changed";
+		}
+
+		return "No exist";
+	}
+
+	return "Invalid texture.";
+}
+
+// itemmanager.cpp:6748
+_private::sRandomBox *CItemManager::findRandomBox(unsigned long typeId) {
+	_private::sRandomBox *result = NULL;
+	std::map<unsigned int, _private::sRandomBox>::iterator it;
+
+	if (m_loaded) {
+		m_cs.lock();
+
+		it = m_randomBoxMap.find(typeId);
+
+		if (it != m_randomBoxMap.end()) {
+			result = &it->second;
+		}
+		m_cs.unlock();
+	} else {
+		it = m_randomBoxMap.find(typeId);
+
+		if (it != m_randomBoxMap.end()) {
+			return &it->second;
+		}
+	}
+
+	return result;
+}
+
+// itemmanager.cpp:6777
+IFF_STRUCT::sRandomBox *CItemManager::GetRandomBoxInfo(unsigned long typeId, unsigned long kind, unsigned long itemTypeId) {
+	_private::sRandomBox *box = findRandomBox(typeId);
+
+	if (box == NULL) {
+		return NULL;
+	}
+
+	std::map<unsigned long, _private::sRandomBoxItem>::iterator it = box->m_items.find(itemTypeId);
+	if (it == box->m_items.end()) {
+		return NULL;
+	}
+
+	return &it->second.m_box;
+}
+
+// itemmanager.cpp:6796
+bool CItemManager::GetEnumRandomBoxStuff(unsigned long typeId, std::vector<IFF_STRUCT::sRandomBox> &stuffs) {
+	_private::sRandomBox *box = findRandomBox(typeId);
+	if (box == NULL) {
+		return false;
+	}
+
+	std::vector<_private::sRandomBoxStuff>::iterator it = box->m_stuffs.begin();
+	std::vector<_private::sRandomBoxStuff>::iterator end = box->m_stuffs.end();
+	for (; it != end; ++it) {
+		stuffs.push_back(*it);
+	}
+
+	return true;
+}
+
+// itemmanager.cpp:6867
+bool CItemManager::IsNonVisibleItem(unsigned long typeId) {
+	std::map<unsigned int, IFF_STRUCT::sSubscriptionItem>::iterator coupon;
+	std::map<unsigned int, IFF_STRUCT::sNonVisibleItem>::iterator it;
+
+	coupon = m_subscriptionItemMap.find(typeId);
+	if (coupon != m_subscriptionItemMap.end() && coupon->second.isCoupon) {
+		return true;
+	}
+
+	it = m_nonVisibleItemMap.find(typeId);
+	if (it == m_nonVisibleItemMap.end()) {
+		return false;
+	}
+
+	return it->second.isNonVisible;
+}
+
+// itemmanager.cpp:6891
+bool CItemManager::IsSubScriptionCoupon(unsigned long typeId) {
+	std::map<unsigned int, IFF_STRUCT::sSubscriptionItem>::iterator it;
+
+	it = m_subscriptionItemMap.find(typeId);
+	if (it == m_subscriptionItemMap.end()) {
+		return false;
+	}
+
+	return it->second.isCoupon;
+}
+
+// itemmanager.cpp:1253
+void CItemManager::MakeCadieMagicBoxMap(char *data, int count) {
+	sIffHeader header;
 	IFF_STRUCT::sCadieMagicBox record;
 
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+	memcpy(&header, data, sizeof(sIffHeader));
+	char *p = data + sizeof(sIffHeader);
 
-	m_CadieMagicBox.clear();
+	m_cadieMagicBoxList.clear();
 
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
+	for (int i = 0; i < header.m_count; i++) {
 		memcpy(&record, p, sizeof(IFF_STRUCT::sCadieMagicBox));
 		p += sizeof(IFF_STRUCT::sCadieMagicBox);
 
-		m_CadieMagicBox.push_back(record);
+		m_cadieMagicBoxList.push_back(record);
 
-		switch (record.uiCategory)
-		{
+		switch (record.m_category) {
 		case 0:
 			g_NumLowRecycleItem++;
 			break;
@@ -1120,12 +3057,9 @@ void CItemManager::MakeCadieMagicBoxMap(char* Buf, int len)
 		g_NumIndexRecycleItem++;
 	}
 
-	if (g_ArrayTidMixItem)
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			if (g_ArrayTidMixItem[i])
-			{
+	if (g_ArrayTidMixItem) {
+		for (int i = 0; i < 4; i++) {
+			if (g_ArrayTidMixItem[i]) {
 				delete[] g_ArrayTidMixItem[i];
 				g_ArrayTidMixItem[i] = NULL;
 			}
@@ -1135,3855 +3069,69 @@ void CItemManager::MakeCadieMagicBoxMap(char* Buf, int len)
 		g_ArrayTidMixItem = NULL;
 	}
 
-	if (g_ArrayRecycleItem)
-	{
+	if (g_ArrayRecycleItem) {
 		delete[] g_ArrayRecycleItem;
 		g_ArrayRecycleItem = NULL;
 	}
 
 	g_ArrayTidMixItem = new sRecycleItem*[g_NumIndexRecycleItem];
-	if (g_ArrayTidMixItem)
-	{
-		for (int i = 0; i < g_NumIndexRecycleItem; i++)
+	if (g_ArrayTidMixItem) {
+		for (int i = 0; i < g_NumIndexRecycleItem; i++) {
 			g_ArrayTidMixItem[i] = new sRecycleItem[4];
+		}
 	}
 
 	g_ArrayRecycleItem = new sRecycleItem[g_NumIndexRecycleItem];
 
-	std::list<IFF_STRUCT::sCadieMagicBox>::iterator it =
-		m_CadieMagicBox.begin();
-	std::list<IFF_STRUCT::sCadieMagicBox>::iterator itEnd =
-		m_CadieMagicBox.end();
+	std::list<IFF_STRUCT::sCadieMagicBox>::iterator it = m_cadieMagicBoxList.begin();
+	std::list<IFF_STRUCT::sCadieMagicBox>::iterator end = m_cadieMagicBoxList.end();
+	for (; it != end; ++it) {
+		memset(&g_ArrayRecycleItem[it->m_number - 1], 0, sizeof(sRecycleItem));
 
-	for (; it != itEnd; ++it)
-	{
-		memset(&g_ArrayRecycleItem[(*it).uiNumber - 1], 0,
-			sizeof(sRecycleItem));
+		g_ArrayRecycleItem[it->m_number - 1].tid = it->m_output;
+		g_ArrayRecycleItem[it->m_number - 1].count = (unsigned short)it->m_outputCount;
+		g_ArrayRecycleItem[it->m_number - 1].level = (unsigned char)it->m_level;
+		g_ArrayRecycleItem[it->m_number - 1].character = (short)it->m_character;
 
-		g_ArrayRecycleItem[(*it).uiNumber - 1].dwTid = (*it).uiOutput;
-		g_ArrayRecycleItem[(*it).uiNumber - 1].iNum =
-			(unsigned short)(*it).uiOutputCount;
-		g_ArrayRecycleItem[(*it).uiNumber - 1].byLevel =
-			(unsigned char)(*it).iLevel;
-		g_ArrayRecycleItem[(*it).uiNumber - 1].iChar = (short)(*it).iCharacter;
-
-		if ((*it).uiRandSeq > 0)
-		{
-			g_ArrayRecycleItem[(*it).uiNumber - 1].dwRandSeq = (*it).uiRandSeq;
-			strncpy(g_ArrayRecycleItem[(*it).uiNumber - 1].szRandName,
-				(*it).szRandName, 39);
-			g_ArrayRecycleItem[(*it).uiNumber - 1].szRandName[39] = 0;
+		if (it->m_randSeq > 0) {
+			g_ArrayRecycleItem[it->m_number - 1].singleRecycle = it->m_randSeq;
+			strncpy(g_ArrayRecycleItem[it->m_number - 1].randName, it->m_randName, 39);
+			g_ArrayRecycleItem[it->m_number - 1].randName[39] = 0;
 		}
 
-		for (int j = 0; j < 4; j++)
-		{
-			memset(&g_ArrayTidMixItem[(*it).uiNumber - 1][j], 0,
-				sizeof(sRecycleItem));
-			g_ArrayTidMixItem[(*it).uiNumber - 1][j].dwTid = (*it).uiElem[j];
-			g_ArrayTidMixItem[(*it).uiNumber - 1][j].iNum =
-				(unsigned short)(*it).uiElemCount[j];
-			g_ArrayTidMixItem[(*it).uiNumber - 1][j].byLevel =
-				(unsigned char)(*it).iLevel;
+		for (int j = 0; j < 4; j++) {
+			memset(&g_ArrayTidMixItem[it->m_number - 1][j], 0, sizeof(sRecycleItem));
+			g_ArrayTidMixItem[it->m_number - 1][j].tid = it->m_element[j];
+			g_ArrayTidMixItem[it->m_number - 1][j].count = (unsigned short)it->m_elementCount[j];
+			g_ArrayTidMixItem[it->m_number - 1][j].level = (unsigned char)it->m_level;
 		}
 	}
 
-	m_CadieMagicBox.clear();
+	m_cadieMagicBoxList.clear();
 }
 
-void CItemManager::MakeRandomRecycleMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sRandomRecycle record;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
+// itemmanager.cpp:1368
+void CItemManager::MakeRandomRecycleMap(char *data, int count) {
+	sIffHeader header = *(sIffHeader *)data;
+	char *record = data + sizeof(sIffHeader);
 
 	std::set<unsigned long> seqNumberSet;
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&record, p, sizeof(IFF_STRUCT::sRandomRecycle));
-		p += sizeof(IFF_STRUCT::sRandomRecycle);
+	for (int i = 0; i < header.m_count; i++) {
+		IFF_STRUCT::sRandomRecycle recycle = *(IFF_STRUCT::sRandomRecycle *)record;
+		record += sizeof(IFF_STRUCT::sRandomRecycle);
 
-		if (seqNumberSet.find(record.uiRandSeq) == seqNumberSet.end())
-			seqNumberSet.insert(record.uiRandSeq);
+		if (seqNumberSet.find(recycle.m_recycleId) == seqNumberSet.end()) {
+			seqNumberSet.insert(recycle.m_recycleId);
+		}
 
-		m_RandomRecycleMaps.insert(
-			std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle>::value_type(
-				record.uiRandSeq, record));
+		m_randomRecycleMap.insert(std::pair<const unsigned int, IFF_STRUCT::sRandomRecycle>(recycle.m_recycleId, recycle));
 	}
 
-	std::set<unsigned long>::const_iterator ci;
-	for (ci = seqNumberSet.begin(); ci != seqNumberSet.end(); ++ci)
-	{
-		std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle>::const_iterator
-			lower = m_RandomRecycleMaps.lower_bound(*ci);
-		std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle>::const_iterator
-			upper = m_RandomRecycleMaps.upper_bound(*ci);
-		while (lower != upper)
-		{
+	for (std::set<unsigned long>::const_iterator it = seqNumberSet.begin(); it != seqNumberSet.end(); ++it) {
+		std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle>::const_iterator lower = m_randomRecycleMap.lower_bound(*it);
+		std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle>::const_iterator upper = m_randomRecycleMap.upper_bound(*it);
+		while (lower != upper) {
 			++lower;
 		}
 	}
-}
-
-void CItemManager::MakeTikiRecipeMap(char* Buf, int len)
-{
-	IFF_STRUCT::sTikiOutputTable record;
-
-	IFF_FILE_HEADER _hdr;
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&record, p, sizeof(IFF_STRUCT::sTikiOutputTable));
-		p += sizeof(IFF_STRUCT::sTikiOutputTable);
-
-		if (CTikiMagicBoxDoc::Instance())
-			CTikiMagicBoxDoc::Instance()->InsertOutput(record);
-	}
-}
-
-void CItemManager::MakeTikiPointTableMap(char* Buf, int len)
-{
-	IFF_STRUCT::sTikiPointTable record;
-
-	IFF_FILE_HEADER _hdr;
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&record, p, sizeof(IFF_STRUCT::sTikiPointTable));
-		p += sizeof(IFF_STRUCT::sTikiPointTable);
-
-		if (CTikiMagicBoxDoc::Instance())
-			CTikiMagicBoxDoc::Instance()->InsertPointTable(record);
-	}
-}
-
-void CItemManager::MakeTikiSpecialTableMap(char* Buf, int len)
-{
-	IFF_STRUCT::sTikiSpecialRecipe record;
-
-	IFF_FILE_HEADER _hdr;
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&record, p, sizeof(IFF_STRUCT::sTikiSpecialRecipe));
-		p += sizeof(IFF_STRUCT::sTikiSpecialRecipe);
-
-		if (CTikiMagicBoxDoc::Instance())
-			CTikiMagicBoxDoc::Instance()->InsertSpecialRecipe(record);
-	}
-}
-
-struct stFindRandomBox
-{
-	stFindRandomBox(unsigned long typeId, unsigned long checkTypeId)
-		: m_typeId(typeId), m_checkTypeId(checkTypeId)
-	{
-	}
-
-	bool operator()(
-		const std::pair<unsigned long, _private::sRandomBoxItem>& item) const
-	{
-		return item.second.box.typeId == m_typeId &&
-			item.second.box.checkTypeId ==
-			(m_checkTypeId ? m_checkTypeId : item.second.box.checkTypeId);
-	}
-
-	unsigned long m_typeId;
-	unsigned long m_checkTypeId;
-};
-
-void CItemManager::MakeRandomBoxMap(char* Buf, int len)
-{
-	static unsigned long s_itemIndex;
-
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sRandomBox box;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	m_RandomBoxMap.clear();
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&box, p, sizeof(IFF_STRUCT::sRandomBox));
-		p += sizeof(IFF_STRUCT::sRandomBox);
-
-		if (!box.active)
-			continue;
-
-		unsigned char kind = box.kind;
-		if (!kind)
-			continue;
-
-		std::map<unsigned int, _private::sRandomBox>::iterator it =
-			m_RandomBoxMap.find(box.boxTypeId);
-		if (it == m_RandomBoxMap.end() && kind == 1)
-		{
-			std::pair<std::map<unsigned int, _private::sRandomBox>::iterator,
-				bool>
-				ret = m_RandomBoxMap.insert(
-					std::map<unsigned int, _private::sRandomBox>::value_type(
-						box.boxTypeId, _private::sRandomBox()));
-			if (!ret.second)
-				continue;
-
-			it = ret.first;
-		}
-
-		if (it == m_RandomBoxMap.end())
-			continue;
-
-		_private::sRandomBox& randomBox = (*it).second;
-
-		switch (kind)
-		{
-		case 1:
-			memcpy(&randomBox.box, &box, sizeof(IFF_STRUCT::sRandomBox));
-			break;
-		case 2:
-		{
-			_private::sRandomBoxItem item;
-			memcpy(&item.box, &box, sizeof(IFF_STRUCT::sRandomBox));
-			std::pair<
-				std::map<unsigned long, _private::sRandomBoxItem>::iterator,
-				bool>
-				result = randomBox.items.insert(std::map<unsigned long,
-					_private::sRandomBoxItem>::value_type(++s_itemIndex, item));
-			if (!result.second)
-				break;
-		}
-		break;
-		case 3:
-		{
-			std::map<unsigned long, _private::sRandomBoxItem>::iterator itItem =
-				std::find_if(randomBox.items.begin(), randomBox.items.end(),
-					stFindRandomBox(box.typeId, box.checkTypeId));
-			if (itItem == randomBox.items.end())
-				break;
-
-			(*itItem).second.checkItems.push_back(box);
-		}
-		break;
-		case 4:
-		{
-			_private::sRandomBoxStuff stuff;
-			memcpy(&stuff.box, &box, sizeof(IFF_STRUCT::sRandomBox));
-			randomBox.stuffs.push_back(stuff);
-		}
-		break;
-		}
-	}
-}
-
-void CItemManager::MakeNonVisibleItemMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sNonVisibleItem item;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	m_NonVisibleItemMap.clear();
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&item, p, sizeof(IFF_STRUCT::sNonVisibleItem));
-		p += sizeof(IFF_STRUCT::sNonVisibleItem);
-
-		if (item.active)
-		{
-			std::pair<std::map<unsigned int,
-						  IFF_STRUCT::sNonVisibleItem>::const_iterator,
-				bool>
-				result = m_NonVisibleItemMap.insert(std::map<unsigned int,
-					IFF_STRUCT::sNonVisibleItem>::value_type(item.typeId,
-					item));
-		}
-	}
-}
-
-void CItemManager::MakeSubscriptionItemMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sSubscriptionItem item;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	m_SubscriptionItemMap.clear();
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&item, p, sizeof(IFF_STRUCT::sSubscriptionItem));
-		p += sizeof(IFF_STRUCT::sSubscriptionItem);
-
-		if (item.active)
-		{
-			std::pair<std::map<unsigned int,
-						  IFF_STRUCT::sSubscriptionItem>::const_iterator,
-				bool>
-				result = m_SubscriptionItemMap.insert(std::map<unsigned int,
-					IFF_STRUCT::sSubscriptionItem>::value_type(item.typeId,
-					item));
-		}
-	}
-}
-
-void CItemManager::MakeHairStyleMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sHairStyle sHair;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sHair, p, sizeof(IFF_STRUCT::sHairStyle));
-		p += sizeof(IFF_STRUCT::sHairStyle);
-
-		if (sHair.c.SalePrice == 0)
-			sHair.c.SalePrice = sHair.c.Price;
-
-		if (sHair.c.UsedPrice >= sHair.c.SalePrice)
-			sHair.c.UsedPrice = 0;
-
-		if (sHair.c.saleStart.wYear != 0 || sHair.c.saleEnd.wYear != 0)
-		{
-			sHair.c.New = 0;
-			sHair.c.Hit = 0;
-		}
-
-		if (sHair.c.Final)
-		{
-			m_HairStyleMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sHairStyle>::value_type(
-					sHair.c.TypeId, sHair));
-		}
-	}
-}
-
-void CItemManager::MakeChildItemMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sChildItem sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sChildItem));
-		p += sizeof(IFF_STRUCT::sChildItem);
-
-		if (sItem.Final)
-		{
-			m_ChildItemMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sChildItem>::value_type(i,
-					sItem));
-		}
-	}
-}
-
-void CItemManager::MakeAuxPartMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sAuxPart sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sAuxPart));
-		p += sizeof(IFF_STRUCT::sAuxPart);
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
-		}
-
-		if (sItem.c.Final)
-		{
-			DevFinalStockPrice(sItem.c);
-			m_AuxPartMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sAuxPart>::value_type(
-					sItem.c.TypeId, sItem));
-		}
-	}
-}
-
-void CItemManager::MakeQuestDropMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sQuestDrop sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sQuestDrop));
-		p += sizeof(IFF_STRUCT::sQuestDrop);
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
-		}
-
-		if (sItem.c.Final)
-		{
-			m_QuestDropMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sQuestDrop>::value_type(
-					sItem.c.TypeId, sItem));
-		}
-	}
-}
-
-void CItemManager::MakeQuestMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sQuest sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sQuest));
-		p += sizeof(IFF_STRUCT::sQuest);
-
-		sItem.ProbTotal = 0;
-		sItem.CurItemIdx = 0;
-		sItem.aTidItems = NULL;
-
-		if (sItem.Final)
-		{
-			m_QuestMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sQuest>::value_type(
-					sItem.TypeId, sItem));
-		}
-	}
-}
-
-void CItemManager::MakeMascotMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sMascot sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::sMascot));
-		p += sizeof(IFF_STRUCT::sMascot);
-
-		if (sItem.c.SalePrice == 0)
-			sItem.c.SalePrice = sItem.c.Price;
-
-		if (sItem.c.UsedPrice >= sItem.c.SalePrice)
-			sItem.c.UsedPrice = 0;
-
-		if (sItem.c.saleStart.wYear != 0 || sItem.c.saleEnd.wYear != 0)
-		{
-			sItem.c.New = 0;
-			sItem.c.Hit = 0;
-		}
-
-		if (sItem.c.Final)
-		{
-			DevFinalStockPrice(sItem.c);
-			m_MascotMap.insert(
-				std::map<unsigned int, IFF_STRUCT::sMascot>::value_type(
-					sItem.c.TypeId, sItem));
-		}
-	}
-}
-
-void CItemManager::MakeDescMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sDesc desc;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&desc, p, sizeof(IFF_STRUCT::sDesc));
-		p += sizeof(IFF_STRUCT::sDesc);
-
-		m_DescMap.insert(std::map<unsigned int, IFF_STRUCT::sDesc>::value_type(
-			desc.TypeId, desc));
-	}
-}
-
-void CItemManager::MakeFurnitureAbilityList(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sFurnitureAbility sOs;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sOs, p, sizeof(IFF_STRUCT::sFurnitureAbility));
-		p += sizeof(IFF_STRUCT::sFurnitureAbility);
-
-		if (sOs.bFinal)
-			m_FurnitureAbility.push_back(sOs);
-	}
-}
-
-IFF_STRUCT::sChar* CItemManager::FindChar(unsigned long tid)
-{
-	IFF_STRUCT::sChar* pChar = NULL;
-	std::map<unsigned int, IFF_STRUCT::sChar>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_CharMap.find(tid);
-
-		if (it != m_CharMap.end())
-			pChar = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_CharMap.find(tid);
-
-		if (it != m_CharMap.end())
-			return &(*it).second;
-	}
-
-	return pChar;
-}
-
-IFF_STRUCT::sPart* CItemManager::FindPart(unsigned long tid)
-{
-	IFF_STRUCT::sPart* pPart = NULL;
-	std::map<unsigned int, IFF_STRUCT::sPart>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_PartMap.find(tid);
-
-		if (it != m_PartMap.end())
-			pPart = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_PartMap.find(tid);
-
-		if (it != m_PartMap.end())
-			return &(*it).second;
-	}
-
-	return pPart;
-}
-
-IFF_STRUCT::sClub* CItemManager::FindClub(unsigned long tid)
-{
-	IFF_STRUCT::sClub* pClub = NULL;
-	std::map<unsigned int, IFF_STRUCT::sClub>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_ClubMap.find(tid);
-
-		if (it != m_ClubMap.end())
-			pClub = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_ClubMap.find(tid);
-
-		if (it != m_ClubMap.end())
-			return &(*it).second;
-	}
-
-	return pClub;
-}
-
-IFF_STRUCT::sClubSet* CItemManager::FindClubSet(unsigned long tid)
-{
-	IFF_STRUCT::sClubSet* pClubSet = NULL;
-	std::map<unsigned int, IFF_STRUCT::sClubSet>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_ClubSetMap.find(tid);
-
-		if (it != m_ClubSetMap.end())
-			pClubSet = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_ClubSetMap.find(tid);
-
-		if (it != m_ClubSetMap.end())
-			return &(*it).second;
-	}
-
-	return pClubSet;
-}
-
-IFF_STRUCT::sBall* CItemManager::FindBall(unsigned long tid)
-{
-	IFF_STRUCT::sBall* pBall = NULL;
-	std::map<unsigned int, IFF_STRUCT::sBall>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_BallMap.find(tid);
-
-		if (it != m_BallMap.end())
-			pBall = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_BallMap.find(tid);
-
-		if (it != m_BallMap.end())
-			return &(*it).second;
-	}
-
-	return pBall;
-}
-
-IFF_STRUCT::sItem* CItemManager::FindItem(unsigned long tid)
-{
-	IFF_STRUCT::sItem* pItem = NULL;
-	std::map<unsigned int, IFF_STRUCT::sItem>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_ItemMap.find(tid);
-
-		if (it != m_ItemMap.end())
-			pItem = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_ItemMap.find(tid);
-
-		if (it != m_ItemMap.end())
-			return &(*it).second;
-	}
-
-	return pItem;
-}
-
-IFF_STRUCT::sCaddie* CItemManager::FindCaddie(unsigned long tid)
-{
-	IFF_STRUCT::sCaddie* pCaddie = NULL;
-	std::map<unsigned int, IFF_STRUCT::sCaddie>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_CaddieMap.find(tid);
-
-		if (it != m_CaddieMap.end())
-			pCaddie = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_CaddieMap.find(tid);
-
-		if (it != m_CaddieMap.end())
-			return &(*it).second;
-	}
-
-	return pCaddie;
-}
-
-IFF_STRUCT::sCadItem* CItemManager::FindCadItem(unsigned long tid)
-{
-	IFF_STRUCT::sCadItem* pCadItem = NULL;
-	std::map<unsigned int, IFF_STRUCT::sCadItem>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_CadItemMap.find(tid);
-
-		if (it != m_CadItemMap.end())
-			pCadItem = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_CadItemMap.find(tid);
-
-		if (it != m_CadItemMap.end())
-			return &(*it).second;
-	}
-
-	return pCadItem;
-}
-
-IFF_STRUCT::sSetItem* CItemManager::FindSetItem(unsigned long tid)
-{
-	IFF_STRUCT::sSetItem* pSetItem = NULL;
-	std::map<unsigned int, IFF_STRUCT::sSetItem>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_SetItemMap.find(tid);
-
-		if (it != m_SetItemMap.end())
-			pSetItem = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_SetItemMap.find(tid);
-
-		if (it != m_SetItemMap.end())
-			return &(*it).second;
-	}
-
-	return pSetItem;
-}
-
-IFF_STRUCT::sSetItem* CItemManager::FindSetItemAtConstruct(unsigned long tid)
-{
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		for (std::map<unsigned int, IFF_STRUCT::sSetItem>::iterator it =
-				 m_SetItemMap.begin();
-			it != m_SetItemMap.end(); ++it)
-		{
-			IFF_STRUCT::sSetItem* pSetItem = &(*it).second;
-			if (pSetItem)
-			{
-				for (int i = 0; i < pSetItem->nElems; i++)
-				{
-					if (pSetItem->ElemIds[i] == tid)
-					{
-						m_cs.unlock();
-						return pSetItem;
-					}
-				}
-			}
-		}
-
-		m_cs.unlock();
-	}
-	else
-	{
-		for (std::map<unsigned int, IFF_STRUCT::sSetItem>::iterator it =
-				 m_SetItemMap.begin();
-			it != m_SetItemMap.end(); ++it)
-		{
-			IFF_STRUCT::sSetItem* pSetItem = &(*it).second;
-			if (pSetItem)
-			{
-				for (int i = 0; i < pSetItem->nElems; i++)
-				{
-					if (pSetItem->ElemIds[i] == tid)
-						return pSetItem;
-				}
-			}
-		}
-	}
-
-	return NULL;
-}
-
-IFF_STRUCT::sCourse* CItemManager::FindCourse(unsigned long tid)
-{
-	IFF_STRUCT::sCourse* pCourse = NULL;
-	std::map<unsigned int, IFF_STRUCT::sCourse>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_CourseMap.find(tid);
-
-		if (it != m_CourseMap.end())
-			pCourse = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_CourseMap.find(tid);
-
-		if (it != m_CourseMap.end())
-			return &(*it).second;
-	}
-
-	return pCourse;
-}
-
-IFF_STRUCT::sMatch* CItemManager::FindMatch(unsigned long tid)
-{
-	IFF_STRUCT::sMatch* pMatch = NULL;
-	std::map<unsigned int, IFF_STRUCT::sMatch>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_MatchMap.find(tid);
-
-		if (it != m_MatchMap.end())
-			pMatch = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_MatchMap.find(tid);
-
-		if (it != m_MatchMap.end())
-			return &(*it).second;
-	}
-
-	return pMatch;
-}
-
-IFF_STRUCT::sTitle* CItemManager::FindTitle(unsigned long tid)
-{
-	IFF_STRUCT::sTitle* pTitle = NULL;
-	std::map<unsigned int, IFF_STRUCT::sTitle>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_TitleMap.find(tid);
-
-		if (it != m_TitleMap.end())
-			pTitle = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_TitleMap.find(tid);
-
-		if (it != m_TitleMap.end())
-			return &(*it).second;
-	}
-
-	return pTitle;
-}
-
-IFF_STRUCT::sEnchant* CItemManager::FindEnchant(unsigned long tid)
-{
-	IFF_STRUCT::sEnchant* pEnchant = NULL;
-	std::map<unsigned int, IFF_STRUCT::sEnchant>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_EnchantMap.find(tid);
-
-		if (it != m_EnchantMap.end())
-			pEnchant = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_EnchantMap.find(tid);
-
-		if (it != m_EnchantMap.end())
-			return &(*it).second;
-	}
-
-	return pEnchant;
-}
-
-IFF_STRUCT::sSkin* CItemManager::FindSkin(unsigned long tid)
-{
-	IFF_STRUCT::sSkin* pSkin = NULL;
-	std::map<unsigned int, IFF_STRUCT::sSkin>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_SkinMap.find(tid);
-
-		if (it != m_SkinMap.end())
-			pSkin = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_SkinMap.find(tid);
-
-		if (it != m_SkinMap.end())
-			return &(*it).second;
-	}
-
-	return pSkin;
-}
-
-IFF_STRUCT::sRandomBox* CItemManager::FindRandomBox(unsigned long typeId)
-{
-	IFF_STRUCT::sRandomBox* pBox = NULL;
-
-	_private::sRandomBox* pRandomBox = findRandomBox(typeId);
-	if (pRandomBox)
-	{
-		pBox = &pRandomBox->box;
-	}
-
-	return pBox;
-}
-
-void CItemManager::MakeCutinInforMationTableMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::S5::sCutinInformation sItem;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&sItem, p, sizeof(IFF_STRUCT::S5::sCutinInformation));
-		p += sizeof(IFF_STRUCT::S5::sCutinInformation);
-
-		if (sItem.bFinal)
-		{
-			m_CutinInformationMap.insert(
-				std::map<unsigned int, IFF_STRUCT::S5::sCutinInformation>::
-					value_type(sItem.NormalTypeId, sItem));
-		}
-	}
-}
-
-IFF_STRUCT::S5::sCutinInformation* CItemManager::FindCutinInformation(
-	unsigned long tid)
-{
-	IFF_STRUCT::S5::sCutinInformation* pCutin = NULL;
-	std::map<unsigned int, IFF_STRUCT::S5::sCutinInformation>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_CutinInformationMap.find(tid);
-
-		if (it != m_CutinInformationMap.end())
-			pCutin = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_CutinInformationMap.find(tid);
-
-		if (it != m_CutinInformationMap.end())
-			return &(*it).second;
-	}
-
-	return pCutin;
-}
-
-IFF_STRUCT::sHairStyle* CItemManager::FindHairStyle(unsigned long tid)
-{
-	IFF_STRUCT::sHairStyle* pHairStyle = NULL;
-	std::map<unsigned int, IFF_STRUCT::sHairStyle>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_HairStyleMap.find(tid);
-
-		if (it != m_HairStyleMap.end())
-			pHairStyle = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_HairStyleMap.find(tid);
-
-		if (it != m_HairStyleMap.end())
-			return &(*it).second;
-	}
-
-	return pHairStyle;
-}
-
-IFF_STRUCT::sHairStyle* CItemManager::FindHairStyle(unsigned char charID,
-	unsigned char hairID)
-{
-	IFF_STRUCT::sHairStyle* pHairStyle = NULL;
-	std::map<unsigned int, IFF_STRUCT::sHairStyle>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		for (it = m_HairStyleMap.begin(); it != m_HairStyleMap.end(); ++it)
-		{
-			if ((*it).second.cCharID == charID &&
-				(*it).second.cHairID == hairID)
-			{
-				pHairStyle = &(*it).second;
-				break;
-			}
-		}
-
-		m_cs.unlock();
-	}
-	else
-	{
-		for (it = m_HairStyleMap.begin(); it != m_HairStyleMap.end(); ++it)
-		{
-			if ((*it).second.cCharID == charID &&
-				(*it).second.cHairID == hairID)
-			{
-				pHairStyle = &(*it).second;
-				break;
-			}
-		}
-	}
-
-	return pHairStyle;
-}
-
-IFF_STRUCT::sChildItem* CItemManager::FindChildItem(unsigned long tid,
-	int iIndex)
-{
-	IFF_STRUCT::sChildItem* pChildItem = NULL;
-	int iNum = 0;
-	std::map<unsigned int, IFF_STRUCT::sChildItem>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		for (it = m_ChildItemMap.begin(); it != m_ChildItemMap.end(); ++it)
-		{
-			pChildItem = &(*it).second;
-
-			if (pChildItem)
-			{
-				if (pChildItem->TypeId == tid)
-				{
-					if (iIndex == iNum)
-						break;
-
-					iNum++;
-				}
-			}
-		}
-
-		m_cs.unlock();
-	}
-	else
-	{
-		for (it = m_ChildItemMap.begin(); it != m_ChildItemMap.end(); ++it)
-		{
-			pChildItem = &(*it).second;
-
-			if (pChildItem)
-			{
-				if (pChildItem->TypeId == tid)
-				{
-					if (iIndex == iNum)
-						break;
-
-					iNum++;
-				}
-			}
-		}
-	}
-
-	return pChildItem;
-}
-
-int CItemManager::FindChildItemNumber(unsigned long tid)
-{
-	int count = 0;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		for (std::map<unsigned int, IFF_STRUCT::sChildItem>::iterator it =
-				 m_ChildItemMap.begin();
-			it != m_ChildItemMap.end(); ++it)
-		{
-			IFF_STRUCT::sChildItem* pChildItem = &(*it).second;
-
-			if (pChildItem)
-			{
-				if (pChildItem->TypeId == tid)
-					count++;
-			}
-		}
-
-		m_cs.unlock();
-	}
-	else
-	{
-		for (std::map<unsigned int, IFF_STRUCT::sChildItem>::iterator it =
-				 m_ChildItemMap.begin();
-			it != m_ChildItemMap.end(); ++it)
-		{
-			IFF_STRUCT::sChildItem* pChildItem = &(*it).second;
-
-			if (pChildItem)
-			{
-				if (pChildItem->TypeId == tid)
-					count++;
-			}
-		}
-	}
-
-	return count;
-}
-
-IFF_STRUCT::sAuxPart* CItemManager::FindAuxPart(unsigned long tid)
-{
-	IFF_STRUCT::sAuxPart* pAuxPart = NULL;
-	std::map<unsigned int, IFF_STRUCT::sAuxPart>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_AuxPartMap.find(tid);
-
-		if (it != m_AuxPartMap.end())
-			pAuxPart = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_AuxPartMap.find(tid);
-
-		if (it != m_AuxPartMap.end())
-			return &(*it).second;
-	}
-
-	return pAuxPart;
-}
-
-IFF_STRUCT::sQuestDrop* CItemManager::FindQuestDrop(unsigned long tid)
-{
-	IFF_STRUCT::sQuestDrop* pQuestDrop = NULL;
-	std::map<unsigned int, IFF_STRUCT::sQuestDrop>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_QuestDropMap.find(tid);
-
-		if (it != m_QuestDropMap.end())
-			pQuestDrop = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_QuestDropMap.find(tid);
-
-		if (it != m_QuestDropMap.end())
-			return &(*it).second;
-	}
-
-	return pQuestDrop;
-}
-
-IFF_STRUCT::sQuest* CItemManager::FindQuest(unsigned long tid)
-{
-	IFF_STRUCT::sQuest* pQuest = NULL;
-	std::map<unsigned int, IFF_STRUCT::sQuest>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_QuestMap.find(tid);
-
-		if (it != m_QuestMap.end())
-			pQuest = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_QuestMap.find(tid);
-
-		if (it != m_QuestMap.end())
-			return &(*it).second;
-	}
-
-	return pQuest;
-}
-
-IFF_STRUCT::sMascot* CItemManager::FindMascot(unsigned long tid)
-{
-	std::map<unsigned int, IFF_STRUCT::sMascot>::iterator it;
-	it = m_MascotMap.find(tid);
-
-	if (it != m_MascotMap.end())
-		return &(*it).second;
-
-	return NULL;
-}
-
-IFF_STRUCT::sCard* CItemManager::FindCard(unsigned long tid)
-{
-	IFF_STRUCT::sCard* pCard = NULL;
-	std::map<unsigned int, IFF_STRUCT::sCard>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_CardMap.find(tid);
-
-		if (it != m_CardMap.end())
-			pCard = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_CardMap.find(tid);
-
-		if (it != m_CardMap.end())
-			return &(*it).second;
-	}
-
-	return pCard;
-}
-
-IFF_STRUCT::sFurniture* CItemManager::FindFurniture(unsigned long tid)
-{
-	if (!IsLocalContent(S4_REAL_MYROOM))
-		return NULL;
-
-	IFF_STRUCT::sFurniture* pFurniture = NULL;
-	std::map<unsigned int, IFF_STRUCT::sFurniture>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_FurnitureMap.find(tid);
-
-		if (it != m_FurnitureMap.end())
-			pFurniture = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_FurnitureMap.find(tid);
-
-		if (it != m_FurnitureMap.end())
-			pFurniture = &(*it).second;
-	}
-
-	return pFurniture;
-}
-
-IFF_STRUCT::sOfflineShop* CItemManager::FindOfflineShop(unsigned long tid)
-{
-	if (!IsLocalContent(S4_OFFLINE_SHOP))
-		return NULL;
-
-	IFF_STRUCT::sOfflineShop* pOfflineShop = NULL;
-	std::map<unsigned int, IFF_STRUCT::sOfflineShop>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_OfflineShopMap.find(tid);
-
-		if (it != m_OfflineShopMap.end())
-			pOfflineShop = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_OfflineShopMap.find(tid);
-
-		if (it != m_OfflineShopMap.end())
-			pOfflineShop = &(*it).second;
-	}
-
-	return pOfflineShop;
-}
-
-IFF_STRUCT::sDesc* CItemManager::FindDesc(unsigned long typeId)
-{
-	std::map<unsigned int, IFF_STRUCT::sDesc>::iterator it;
-	it = m_DescMap.find(typeId);
-
-	if (it == m_DescMap.end())
-		return NULL;
-
-	return &(*it).second;
-}
-
-IFF_ITEM_COMMON* CItemManager::FindCommonItem(unsigned long tid)
-{
-	IFF_ITEM_COMMON* pCommon = NULL;
-
-	switch (tid >> 26)
-	{
-	case 1:
-	{
-		IFF_STRUCT::sChar* pChar = FindChar(tid);
-		if (pChar)
-			return &pChar->c;
-	}
-	break;
-	case 2:
-	{
-		IFF_STRUCT::sPart* pPart = FindPart(tid);
-		if (pPart)
-			return &pPart->c;
-	}
-	break;
-	case 3:
-	{
-		IFF_STRUCT::sClub* pClub = FindClub(tid);
-		if (pClub)
-			return &pClub->c;
-	}
-	break;
-	case 4:
-	{
-		IFF_STRUCT::sClubSet* pClubSet = FindClubSet(tid);
-		if (pClubSet)
-			return &pClubSet->c;
-	}
-	break;
-	case 5:
-	{
-		IFF_STRUCT::sBall* pBall = FindBall(tid);
-		if (pBall)
-			return &pBall->c;
-	}
-	break;
-	case 6:
-	{
-		IFF_STRUCT::sItem* pItem = FindItem(tid);
-		if (pItem)
-			return &pItem->c;
-	}
-	break;
-	case 7:
-	{
-		IFF_STRUCT::sCaddie* pCaddie = FindCaddie(tid);
-		if (pCaddie)
-			return &pCaddie->c;
-	}
-	break;
-	case 8:
-	{
-		IFF_STRUCT::sCadItem* pCadItem = FindCadItem(tid);
-		if (pCadItem)
-			return &pCadItem->c;
-	}
-	break;
-	case 9:
-	{
-		IFF_STRUCT::sSetItem* pSetItem = FindSetItem(tid);
-		if (pSetItem)
-			return &pSetItem->c;
-	}
-	break;
-	case 10:
-	{
-		IFF_STRUCT::sCourse* pCourse = FindCourse(tid);
-		if (pCourse)
-			return &pCourse->c;
-	}
-	break;
-	case 14:
-	{
-		IFF_STRUCT::sSkin* pSkin = FindSkin(tid);
-		if (pSkin)
-			return &pSkin->c;
-	}
-	break;
-	case 15:
-	{
-		IFF_STRUCT::sHairStyle* pHairStyle = FindHairStyle(tid);
-		if (pHairStyle)
-			return &pHairStyle->c;
-	}
-	break;
-	case 16:
-	{
-		pCommon = (IFF_ITEM_COMMON*)FindMascot(tid);
-	}
-	break;
-	case 17:
-		return NULL;
-	case 28:
-	{
-		IFF_STRUCT::sAuxPart* pAuxPart = FindAuxPart(tid);
-		if (pAuxPart)
-			return &pAuxPart->c;
-	}
-	break;
-	case 29:
-	{
-		IFF_STRUCT::sQuestDrop* pQuestDrop = FindQuestDrop(tid);
-		if (pQuestDrop)
-			return &pQuestDrop->c;
-	}
-	break;
-	case 31:
-	{
-		IFF_STRUCT::sCard* pCard = FindCard(tid);
-		if (pCard)
-			return &pCard->c;
-	}
-	break;
-	case 18:
-	{
-		if (IsLocalContent(S4_REAL_MYROOM))
-		{
-			IFF_STRUCT::sFurniture* pFurniture = FindFurniture(tid);
-			if (pFurniture)
-				return &pFurniture->c;
-		}
-	}
-	break;
-	case 19:
-	{
-		if (!IsLocalContent(S4_OFFLINE_SHOP))
-			return NULL;
-
-		pCommon = (IFF_ITEM_COMMON*)FindOfflineShop(tid);
-	}
-	break;
-	}
-
-	if (pCommon)
-		return pCommon;
-
-	return NULL;
-}
-
-bool CItemManager::GetSetItemElem(IFF_STRUCT::sSetItem* pSetItem, int index,
-	unsigned long& typeId, unsigned long& count, unsigned long& type)
-{
-	if (pSetItem == NULL)
-		return false;
-
-	if (index >= pSetItem->nElems)
-		return false;
-
-	typeId = pSetItem->ElemIds[index];
-	switch (typeId >> 26)
-	{
-	case 8:
-	{
-		IFF_STRUCT::sCadItem* pCadItem = ItemManager()->FindCadItem(typeId);
-		if (pCadItem == NULL)
-			return false;
-
-		type = pCadItem->c.Time;
-		count = 1;
-	}
-	break;
-	case 16:
-	{
-		IFF_STRUCT::sMascot* pMascot = ItemManager()->FindMascot(typeId);
-		if (pMascot == NULL)
-			return false;
-
-		type = pMascot->c.Time;
-		count = 1;
-	}
-	break;
-	case 14:
-	{
-		IFF_STRUCT::sSkin* pSkin = ItemManager()->FindSkin(typeId);
-		if (pSkin == NULL)
-			return false;
-
-		type = pSkin->c.Time;
-		count = 1;
-	}
-	break;
-	case 6:
-	{
-		IFF_STRUCT::sItem* pItem = ItemManager()->FindItem(typeId);
-		if (pItem == NULL)
-			return false;
-
-		type = pItem->c.Time;
-		count = pItem->COM[0];
-	}
-	break;
-	case 5:
-	{
-		IFF_STRUCT::sBall* pBall = ItemManager()->FindBall(typeId);
-		if (pBall == NULL)
-			return false;
-
-		type = pBall->c.Time;
-		count = pBall->COM[0];
-	}
-	break;
-	case 4:
-	{
-		IFF_STRUCT::sClubSet* pClubSet = ItemManager()->FindClubSet(typeId);
-		if (pClubSet == NULL)
-			return false;
-
-		type = pClubSet->c.Time;
-		count = 1;
-	}
-	break;
-	case 2:
-	{
-		IFF_STRUCT::sPart* pPart = ItemManager()->FindPart(typeId);
-		if (pPart == NULL)
-			return false;
-
-		type = pPart->c.Time;
-		count = 1;
-	}
-	break;
-	case 1:
-	{
-		IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(typeId);
-		if (pChar == NULL)
-			return false;
-
-		type = 0;
-		count = 1;
-	}
-	break;
-	case 31:
-	{
-		IFF_STRUCT::sCard* pCard = ItemManager()->FindCard(typeId);
-		if (pCard == NULL)
-			return false;
-
-		type = 0;
-		count = pCard->COM[0];
-	}
-	break;
-	case 9:
-		return false;
-	default:
-		type = 0;
-		count = 1;
-		break;
-	}
-
-	return true;
-}
-
-bool CItemManager::GetDefCombo(unsigned long tidChar,
-	unsigned long* atidDefCombo)
-{
-	if (atidDefCombo)
-	{
-		IFF_STRUCT::sChar* pChar = FindChar(tidChar);
-		if (pChar)
-		{
-			for (int i = 0; i < 24; i++)
-			{
-				unsigned long partTypeId =
-					0x8000400 | (((tidChar << 5) | i) << 13);
-				atidDefCombo[i] = FindPart(partTypeId) ? partTypeId : 0;
-			}
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool CItemManager::GetRecycleRandomMixOutItems(unsigned long randSeqNum,
-	std::list<const IFF_STRUCT::sRandomRecycle*>& ltMixOutList)
-{
-	ltMixOutList.clear();
-
-	std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle>::const_iterator
-		lower = m_RandomRecycleMaps.lower_bound(randSeqNum);
-	std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle>::const_iterator
-		upper = m_RandomRecycleMaps.upper_bound(randSeqNum);
-	for (; lower != upper; ++lower)
-		ltMixOutList.push_back(&lower->second);
-
-	return !ltMixOutList.empty();
-}
-
-unsigned int CItemManager::GetItemPrice(unsigned long tid)
-{
-	IFF_ITEM_COMMON* pItem = FindCommonItem(tid);
-	if (pItem)
-		return pItem->Price;
-
-	return (unsigned int)-1;
-}
-
-int CItemManager::CheckStockType(unsigned long typeId, unsigned int stock)
-{
-	int result = 0;
-
-	IFF_ITEM_COMMON* pItem = FindCommonItem(typeId);
-	if (pItem)
-	{
-		if (pItem->InStock == stock)
-			result = 1;
-	}
-
-	return result;
-}
-
-bool CItemManager::IsValidBuyItemCount(unsigned long in_dwItemType,
-	int in_iItemCount)
-{
-	if ((in_dwItemType & 0xfc000000) == 0x18000000)
-	{
-		IFF_STRUCT::sItem* pItem = FindItem(in_dwItemType);
-		if (pItem == NULL)
-			return false;
-
-		if (pItem->c.IsCash && pItem->COM[0] > 0 &&
-			in_iItemCount != pItem->COM[0])
-			return false;
-	}
-
-	return true;
-}
-
-unsigned int CItemManager::IsValidBuyItem(unsigned long in_dwItemType)
-{
-	SYSTEMTIME sysTime;
-	GetLocalTime(&sysTime);
-
-	if (!IsInSalePeriod(in_dwItemType, sysTime))
-	{
-		return 11;
-	}
-
-	IFF_ITEM_COMMON* pItem = FindCommonItem(in_dwItemType);
-	if (pItem)
-	{
-		return pItem->InStock ? 20 : 19;
-	}
-
-	return 19;
-}
-
-unsigned int CItemManager::GetItemSalePrice(unsigned long in_dwTid,
-	int in_iCount, unsigned long in_dwDayCount)
-{
-	unsigned long dwSalesPrice = (unsigned long)-1;
-
-	IFF_ITEM_COMMON* pItem = FindCommonItem(in_dwTid);
-	if (pItem)
-	{
-		unsigned long itemType = in_dwTid >> 26;
-
-		switch (in_dwTid >> 26)
-		{
-		case 6:
-		case 8:
-		case 14:
-		case 16:
-			break;
-
-		case 18:
-			if (IsLocalContent(S4_OFFLINE_SHOP))
-			{
-				IFF_STRUCT::sFurniture* pFurniture = FindFurniture(in_dwTid);
-				if (pFurniture && pFurniture->IsFunction == 4)
-					break;
-			}
-		default:
-			if (pItem->SalePrice > 0 && pItem->SalePrice < pItem->Price)
-				return pItem->SalePrice;
-
-			return pItem->Price;
-		}
-
-		unsigned long sPrice[5] = { 0, 0, 0, 0, 0 };
-
-		switch (itemType)
-		{
-		case 6:
-		{
-			unsigned int unitPrice;
-			if (pItem->SalePrice > 0 && pItem->SalePrice < pItem->Price)
-				unitPrice = pItem->SalePrice;
-			else
-				unitPrice = pItem->Price;
-
-			IFF_STRUCT::sItem* pItem2 = FindItem(in_dwTid);
-
-			int num;
-			if (pItem2->COM[0] > 0)
-				num = in_iCount / pItem2->COM[0];
-			else
-				num = in_iCount;
-
-			dwSalesPrice = num * unitPrice;
-		}
-		break;
-		case 14:
-		{
-			if (S5::ISCutinItem(in_dwTid))
-			{
-				if (pItem->SalePrice > 0 && pItem->SalePrice < pItem->Price)
-					return pItem->SalePrice;
-
-				return pItem->Price;
-			}
-
-			if ((in_dwTid & 0x3c00000) == 0x1800000)
-			{
-				if (pItem->SalePrice > 0 && pItem->SalePrice < pItem->Price)
-					return pItem->SalePrice;
-
-				return pItem->Price;
-			}
-
-			IFF_STRUCT::sSkin* pSkin = FindSkin(in_dwTid);
-			if (pSkin == NULL)
-				return (unsigned int)-1;
-
-			for (int i = 0; i < 5; i++)
-				sPrice[i] = pSkin->COM[i];
-		}
-		break;
-		case 8:
-		{
-			IFF_STRUCT::sCadItem* pCadItem = FindCadItem(in_dwTid);
-			if (pCadItem == NULL)
-				return (unsigned int)-1;
-
-			for (int i = 0; i < 5; i++)
-				sPrice[i] = pCadItem->COM[i];
-
-			sPrice[1] = -1;
-		}
-		break;
-		case 16:
-		{
-			IFF_STRUCT::sMascot* pMascot = FindMascot(in_dwTid);
-			if (pMascot == NULL)
-				return (unsigned int)-1;
-
-			for (int i = 0; i < 5; i++)
-				sPrice[i] = pMascot->COM[i];
-
-			sPrice[2] = -1;
-		}
-		break;
-		case 18:
-		{
-			if (IsLocalContent(S4_OFFLINE_SHOP))
-			{
-				IFF_STRUCT::sFurniture* pFurniture = FindFurniture(in_dwTid);
-				if (pFurniture == NULL)
-					return (unsigned int)-1;
-
-				for (int i = 0; i < 5; i++)
-					sPrice[i] = pFurniture->COM[i];
-			}
-		}
-		break;
-		}
-
-		switch (in_dwTid >> 26)
-		{
-		case 8:
-		case 14:
-		case 16:
-		case 18:
-			switch (in_dwDayCount)
-			{
-			case 1:
-				dwSalesPrice = sPrice[0];
-				break;
-			case 7:
-				dwSalesPrice = sPrice[1];
-				break;
-			case 15:
-				dwSalesPrice = sPrice[2];
-				break;
-			case 30:
-				dwSalesPrice = sPrice[3];
-				break;
-			case 365:
-				dwSalesPrice = sPrice[4];
-				break;
-			default:
-				dwSalesPrice = (unsigned int)-1;
-				break;
-			}
-			break;
-		}
-	}
-
-	return dwSalesPrice;
-}
-
-unsigned int CItemManager::GetChildItemPrice(unsigned long tid, int iIndex)
-{
-	IFF_STRUCT::sChildItem* pChildItem = FindChildItem(tid, iIndex);
-	if (pChildItem)
-	{
-		if (pChildItem->NumberFlag)
-			return pChildItem->NumberPrice;
-
-		if (pChildItem->TimeFlag)
-			return pChildItem->TimePrice;
-	}
-
-	return (unsigned int)-1;
-}
-
-bool CItemManager::IsCashItem(unsigned long tid)
-{
-	switch (tid >> 26)
-	{
-	case 1:
-	{
-		IFF_STRUCT::sChar* pChar = FindChar(tid);
-		if (pChar)
-			return pChar->c.IsCash;
-	}
-	break;
-	case 2:
-	{
-		IFF_STRUCT::sPart* pPart = FindPart(tid);
-		if (pPart)
-			return pPart->c.IsCash;
-	}
-	break;
-	case 3:
-	{
-		IFF_STRUCT::sClub* pClub = FindClub(tid);
-		if (pClub)
-			return pClub->c.IsCash;
-	}
-	break;
-	case 4:
-	{
-		IFF_STRUCT::sClubSet* pClubSet = FindClubSet(tid);
-		if (pClubSet)
-			return pClubSet->c.IsCash;
-	}
-	break;
-	case 5:
-	{
-		IFF_STRUCT::sBall* pBall = FindBall(tid);
-		if (pBall)
-			return pBall->c.IsCash;
-	}
-	break;
-	case 6:
-	{
-		IFF_STRUCT::sItem* pItem = FindItem(tid);
-		if (pItem)
-			return pItem->c.IsCash;
-	}
-	break;
-	case 7:
-	{
-		IFF_STRUCT::sCaddie* pCaddie = FindCaddie(tid);
-		if (pCaddie)
-			return pCaddie->c.IsCash;
-	}
-	break;
-	case 8:
-	{
-		IFF_STRUCT::sCadItem* pCadItem = FindCadItem(tid);
-		if (pCadItem)
-			return pCadItem->c.IsCash;
-	}
-	break;
-	case 9:
-	{
-		IFF_STRUCT::sSetItem* pSetItem = FindSetItem(tid);
-		if (pSetItem)
-			return pSetItem->c.IsCash;
-	}
-	break;
-	case 14:
-	{
-		IFF_STRUCT::sSkin* pSkin = FindSkin(tid);
-		if (pSkin)
-			return pSkin->c.IsCash;
-	}
-	break;
-	case 15:
-	{
-		IFF_STRUCT::sHairStyle* pHairStyle = FindHairStyle(tid);
-		if (pHairStyle)
-			return pHairStyle->c.IsCash;
-	}
-	break;
-	case 16:
-	{
-		IFF_STRUCT::sMascot* pMascot = FindMascot(tid);
-		if (pMascot)
-			return pMascot->c.IsCash;
-	}
-	break;
-	case 28:
-	{
-		IFF_STRUCT::sAuxPart* pAuxPart = FindAuxPart(tid);
-		if (pAuxPart)
-			return pAuxPart->c.IsCash;
-	}
-	break;
-	case 29:
-	{
-		IFF_STRUCT::sQuestDrop* pQuestDrop = FindQuestDrop(tid);
-		if (pQuestDrop)
-			return pQuestDrop->c.IsCash;
-	}
-	break;
-	case 31:
-	{
-		IFF_STRUCT::sCard* pCard = FindCard(tid);
-		if (pCard)
-			return pCard->c.IsCash;
-	}
-	break;
-	case 18:
-	{
-		if (IsLocalContent(S4_REAL_MYROOM))
-		{
-			IFF_STRUCT::sFurniture* pFurniture = FindFurniture(tid);
-			if (pFurniture)
-				return pFurniture->c.IsCash;
-		}
-	}
-	break;
-	case 19:
-	{
-		if (IsLocalContent(S4_OFFLINE_SHOP))
-		{
-			IFF_STRUCT::sOfflineShop* pOfflineShop = FindOfflineShop(tid);
-			if (pOfflineShop)
-				return pOfflineShop->c.IsCash;
-		}
-	}
-	break;
-	}
-
-	return true;
-}
-
-bool CItemManager::IsCashChildItem(unsigned long tid, int iIndex)
-{
-	IFF_STRUCT::sChildItem* pChildItem = FindChildItem(tid, iIndex);
-	if (pChildItem)
-		return pChildItem->IsCash;
-
-	return true;
-}
-
-bool CItemManager::IsTimeLimit(unsigned long tid)
-{
-	unsigned long group = tid >> 26;
-
-	switch (group)
-	{
-	case 6:
-	{
-		IFF_STRUCT::sItem* pItem = FindItem(tid);
-		if (pItem == NULL)
-			break;
-
-		if (pItem->c.TimeFlag)
-			return true;
-	}
-	break;
-	case 14:
-	{
-		IFF_STRUCT::sSkin* pSkin = FindSkin(tid);
-		if (pSkin == NULL)
-			break;
-
-		if (pSkin->c.TimeFlag == 1 || pSkin->c.TimeFlag == 2)
-			return true;
-	}
-	break;
-	}
-
-	return false;
-}
-
-const char* CItemManager::GetItemName(unsigned long tid)
-{
-	if (tid != 0)
-	{
-		switch (tid >> 26)
-		{
-		case 1:
-		{
-			IFF_STRUCT::sChar* pChar = FindChar(tid);
-			if (pChar)
-				return pChar->c.Name;
-		}
-		break;
-		case 2:
-		{
-			IFF_STRUCT::sPart* pPart = FindPart(tid);
-			if (pPart)
-				return pPart->c.Name;
-		}
-		break;
-		case 3:
-		{
-			IFF_STRUCT::sClub* pClub = FindClub(tid);
-			if (pClub)
-				return pClub->c.Name;
-		}
-		break;
-		case 4:
-		{
-			IFF_STRUCT::sClubSet* pClubSet = FindClubSet(tid);
-			if (pClubSet)
-				return pClubSet->c.Name;
-		}
-		break;
-		case 5:
-		{
-			IFF_STRUCT::sBall* pBall = FindBall(tid);
-			if (pBall)
-				return pBall->c.Name;
-		}
-		break;
-		case 6:
-		{
-			IFF_STRUCT::sItem* pItem = FindItem(tid);
-			if (pItem)
-				return pItem->c.Name;
-		}
-		break;
-		case 7:
-		{
-			IFF_STRUCT::sCaddie* pCaddie = FindCaddie(tid);
-			if (pCaddie)
-				return pCaddie->c.Name;
-		}
-		break;
-		case 8:
-		{
-			IFF_STRUCT::sCadItem* pCadItem = FindCadItem(tid);
-			if (pCadItem)
-				return pCadItem->c.Name;
-		}
-		break;
-		case 9:
-		{
-			IFF_STRUCT::sSetItem* pSetItem = FindSetItem(tid);
-			if (pSetItem)
-				return pSetItem->c.Name;
-		}
-		break;
-		case 10:
-		{
-			IFF_STRUCT::sCourse* pCourse = FindCourse(tid);
-			if (pCourse)
-				return pCourse->c.Name;
-		}
-		break;
-		case 11:
-		{
-			IFF_STRUCT::sMatch* pMatch = FindMatch(tid);
-			if (pMatch)
-				return pMatch->Name;
-		}
-		break;
-		case 12:
-		{
-			IFF_STRUCT::sTitle* pTitle = FindTitle(tid);
-			if (pTitle)
-				return pTitle->Name;
-		}
-		break;
-		case 14:
-		{
-			IFF_STRUCT::sSkin* pSkin = FindSkin(tid);
-			if (pSkin)
-				return pSkin->c.Name;
-		}
-		break;
-		case 15:
-		{
-			IFF_STRUCT::sHairStyle* pHairStyle = FindHairStyle(tid);
-			if (pHairStyle)
-				return pHairStyle->c.Name;
-		}
-		break;
-		case 16:
-		{
-			IFF_STRUCT::sMascot* pMascot = FindMascot(tid);
-			if (pMascot)
-				return pMascot->c.Name;
-		}
-		break;
-		case 28:
-		{
-			IFF_STRUCT::sAuxPart* pAuxPart = FindAuxPart(tid);
-			if (pAuxPart)
-				return pAuxPart->c.Name;
-		}
-		break;
-		case 29:
-		{
-			IFF_STRUCT::sQuestDrop* pQuestDrop = FindQuestDrop(tid);
-			if (pQuestDrop)
-				return pQuestDrop->c.Name;
-		}
-		break;
-		case 30:
-		{
-			IFF_STRUCT::sQuest* pQuest = FindQuest(tid);
-			if (pQuest)
-				return pQuest->Name;
-		}
-		break;
-		case 31:
-		{
-			IFF_STRUCT::sCard* pCard = FindCard(tid);
-			if (pCard)
-				return pCard->c.Name;
-		}
-		break;
-		case 18:
-		{
-			if (IsLocalContent(S4_REAL_MYROOM))
-			{
-				IFF_STRUCT::sFurniture* pFurniture = FindFurniture(tid);
-				if (pFurniture)
-					return pFurniture->c.Name;
-			}
-		}
-		break;
-		}
-	}
-
-	return "unknown";
-}
-
-bool CItemManager::HasSalePeriod(unsigned long tid, _SYSTEMTIME** pSaleS,
-	_SYSTEMTIME** pSaleE)
-{
-	*pSaleS = NULL;
-	*pSaleE = NULL;
-
-	IFF_ITEM_COMMON* pItem = FindCommonItem(tid);
-	if (pItem)
-	{
-		*pSaleS = &pItem->saleStart;
-		*pSaleE = &pItem->saleEnd;
-	}
-
-	return *pSaleS != NULL ? true : false;
-}
-
-bool CItemManager::IsInSalePeriod(unsigned long tid, _SYSTEMTIME& sysTime)
-{
-	_SYSTEMTIME* pStart;
-	_SYSTEMTIME* pEnd;
-
-	if (!HasSalePeriod(tid, &pStart, &pEnd))
-		return true;
-
-	return IsBetween(pStart, pEnd, sysTime);
-}
-
-int CItemManager::CompareSystemTime(_SYSTEMTIME& tm0, _SYSTEMTIME& tm1)
-{
-	if (tm0.wYear < tm1.wYear)
-		return -1;
-	if (tm0.wYear > tm1.wYear)
-		return 1;
-
-	if (tm0.wMonth < tm1.wMonth)
-		return -1;
-	if (tm0.wMonth > tm1.wMonth)
-		return 1;
-
-	if (tm0.wDay < tm1.wDay)
-		return -1;
-	if (tm0.wDay > tm1.wDay)
-		return 1;
-
-	if (tm0.wHour < tm1.wHour)
-		return -1;
-	if (tm0.wHour > tm1.wHour)
-		return 1;
-
-	if (tm0.wMinute < tm1.wMinute)
-		return -1;
-	if (tm0.wMinute > tm1.wMinute)
-		return 1;
-
-	if (tm0.wSecond < tm1.wSecond)
-		return -1;
-	if (tm0.wSecond > tm1.wSecond)
-		return 1;
-
-	if (tm0.wMilliseconds < tm1.wMilliseconds)
-		return -1;
-	if (tm0.wMilliseconds > tm1.wMilliseconds)
-		return 1;
-
-	return 0;
-}
-
-int CItemManager::GetCouponKind(unsigned long dwTid)
-{
-	int kind = 0;
-
-	if (dwTid & 0x2000000)
-	{
-		switch (dwTid & 0x1ffffff)
-		{
-		case 0x15:
-		case 0x16:
-		case 0x17:
-		case 0x1d:
-		case 0x1e:
-		case 0x2b:
-		case 0x2c:
-		case 0x2d:
-		case 0x2e:
-		case 0x3a:
-		case 0x3c:
-		case 0x4e:
-			kind = 1;
-			break;
-		case 0x3d:
-		case 0x3f:
-		case 0x53:
-			kind = 5;
-			break;
-		case 0x28:
-		case 0x29:
-		case 0x2a:
-			kind = 2;
-			break;
-		case 0x30:
-		case 0x33:
-		case 0x34:
-		case 0xa3:
-			kind = 3;
-			break;
-		case 0x36:
-		case 0x63:
-		case 0x64:
-		case 0x65:
-		case 0x66:
-		case 0x67:
-		case 0x68:
-		case 0x69:
-		case 0x6a:
-		case 0x6b:
-		case 0x6c:
-		case 0x6d:
-		case 0x6e:
-		case 0x6f:
-		case 0x70:
-		case 0x71:
-		case 0x72:
-		case 0x73:
-		case 0x74:
-		case 0x75:
-		case 0xd2:
-			kind = 4;
-			break;
-		default:
-			kind = 0;
-			break;
-		}
-	}
-
-	return kind;
-}
-
-bool CItemManager::IsDisableDuplicateItem(unsigned long dwTid)
-{
-	if (dwTid & 0x2000000)
-		return (dwTid & 0x1ffffff) == 0xf ? true : false;
-
-	return false;
-}
-
-bool CItemManager::IsDisplayItemNumber(unsigned long dwTid)
-{
-	bool bDisplay = false;
-
-	switch (dwTid >> 26)
-	{
-	case 6:
-		if ((dwTid & 0x2000000) && (dwTid & 0x1ffffff) == 6)
-			break;
-
-		bDisplay = true;
-		break;
-	case 5:
-		if (IsUnlimitAztec(dwTid))
-			break;
-
-		bDisplay = true;
-		break;
-	case 28:
-	{
-		IFF_STRUCT::sAuxPart* pAuxPart = FindAuxPart(dwTid);
-		if (pAuxPart == NULL)
-			break;
-
-		if (pAuxPart->COM[0] == 0)
-			break;
-
-		bDisplay = true;
-	}
-	break;
-	case 31:
-		bDisplay = true;
-		break;
-	}
-
-	return bDisplay;
-}
-
-unsigned long CItemManager::GetIndexAbilityItem(unsigned long dwTid)
-{
-	unsigned long index = 0;
-
-	switch (dwTid)
-	{
-	case 0x801a80a:
-		index = 1;
-		break;
-	case 0x70000005:
-		index = 8;
-		break;
-	case 0x821a801:
-		index = 1;
-		break;
-	case 0x821a810:
-	case 0x821a811:
-		index = 1;
-		break;
-	case 0x8016800:
-	case 0x8058800:
-	case 0x8098800:
-	case 0x80dc800:
-	case 0x8118800:
-	case 0x8160800:
-	case 0x8190800:
-	case 0x81e2800:
-	case 0x8214800:
-	case 0x8254800:
-		index = 8;
-		break;
-	case 0x801a80e:
-		index = 1;
-		break;
-	case 0x8050810:
-		index = 1;
-		break;
-	case 0x8064800:
-	case 0x8064801:
-	case 0x8064802:
-	case 0x8064803:
-		index = 13;
-		break;
-	case 0x8112017:
-		index = 1;
-		break;
-	case 0x81d8806:
-	case 0x81d8807:
-	case 0x81d8808:
-	case 0x81d8809:
-		index = 10;
-		break;
-	case 0x81d881b:
-		index = 1;
-		break;
-	case 0x816e801:
-	case 0x816e802:
-	case 0x816e803:
-		index = 13;
-		break;
-	case 0x81d881f:
-	case 0x81d8820:
-		index = 1;
-		break;
-	case 0x821a805:
-	case 0x821a806:
-		index = 10;
-		break;
-	case 0x8268800:
-		index = 13;
-		break;
-	case 0x809080d:
-	case 0x80d0839:
-	case 0x80d083a:
-	case 0x811a81e:
-	case 0x811a81f:
-	case 0x8180064:
-	case 0x821a807:
-	case 0x825200c:
-	case 0x825200d:
-	case 0x825a805:
-	case 0x825a806:
-	case 0x825a80c:
-		index = 1;
-		break;
-	case 0x800082d:
-	case 0x800082e:
-		index = 1;
-		break;
-	case 0x801a817:
-	case 0x801a818:
-		index = 1;
-		break;
-	case 0x8026800:
-	case 0x8026801:
-	case 0x8026802:
-		index = 13;
-		break;
-	case 0x8090810:
-		index = 1;
-		break;
-	case 0x809a822:
-	case 0x809a823:
-		index = 1;
-		break;
-	case 0x80d0819:
-	case 0x80d081a:
-		index = 10;
-		break;
-	case 0x811200f:
-		index = 1;
-		break;
-	case 0x8112012:
-		index = 1;
-		break;
-	case 0x816280a:
-		index = 1;
-		break;
-	case 0x818e04a:
-	case 0x818e04b:
-		index = 1;
-		break;
-	case 0x8196009:
-		index = 10;
-		break;
-	case 0x81da807:
-		index = 10;
-		break;
-	case 0x81da812:
-	case 0x81da813:
-		index = 10;
-		break;
-	case 0x821a802:
-		index = 10;
-		break;
-	case 0x8228800:
-	case 0x8228801:
-	case 0x8228802:
-	case 0x8228803:
-		index = 13;
-		break;
-	case 0x825a80d:
-		index = 10;
-		break;
-	case 0x8122800:
-	case 0x8122801:
-	case 0x8122802:
-		index = 13;
-		break;
-	case 0x8000884:
-		index = 1;
-		break;
-	case 0x80c0033:
-		index = 1;
-		break;
-	case 0x80d480e:
-		index = 1;
-		break;
-	case 0x80d4823:
-	case 0x80d4824:
-		index = 1;
-		break;
-	case 0x8162815:
-	case 0x8162816:
-		index = 1;
-		break;
-	case 0x8196010:
-	case 0x8196011:
-		index = 10;
-		break;
-	case 0x8196012:
-		index = 1;
-		break;
-	case 0x81a4800:
-	case 0x81a4801:
-		index = 13;
-		break;
-	case 0x81da808:
-		index = 1;
-		break;
-	case 0x81da80b:
-		index = 1;
-		break;
-	case 0x81ea800:
-		index = 13;
-		break;
-	case 0x8000828:
-	case 0x8000829:
-	case 0x800082a:
-	case 0x800082b:
-	case 0x801a806:
-	case 0x801a80c:
-	case 0x801a80d:
-	case 0x8050809:
-	case 0x805080e:
-	case 0x805080f:
-	case 0x805a809:
-	case 0x805a80a:
-	case 0x805a80b:
-	case 0x805a80c:
-	case 0x805a80f:
-	case 0x805a810:
-	case 0x809080c:
-	case 0x8090815:
-	case 0x8090816:
-	case 0x809a80c:
-	case 0x809a80d:
-	case 0x809a80e:
-	case 0x809a80f:
-	case 0x80d0813:
-	case 0x80d0814:
-	case 0x80d0815:
-	case 0x80d0816:
-	case 0x80d480b:
-	case 0x80d4817:
-	case 0x80d4818:
-	case 0x811200e:
-	case 0x8112015:
-	case 0x8112016:
-	case 0x811a00c:
-	case 0x811a00d:
-	case 0x811a00e:
-	case 0x811a00f:
-	case 0x815a018:
-	case 0x815a019:
-	case 0x815a01a:
-	case 0x815a01b:
-	case 0x815a01f:
-	case 0x815a020:
-	case 0x8162807:
-	case 0x816280c:
-	case 0x816280d:
-	case 0x818e01c:
-	case 0x818e01d:
-	case 0x818e01e:
-	case 0x818e01f:
-	case 0x818e026:
-	case 0x818e027:
-		index = 10;
-		break;
-	case 0x8000886:
-	case 0x8000887:
-		index = 1;
-		break;
-	case 0x80d0817:
-	case 0x80d0818:
-		index = 1;
-		break;
-	case 0x8140046:
-		index = 1;
-		break;
-	case 0x8196008:
-		index = 1;
-		break;
-	case 0x819600d:
-		index = 1;
-		break;
-	case 0x81d880a:
-	case 0x81d880b:
-		index = 1;
-		break;
-	case 0x81da814:
-		index = 1;
-		break;
-	case 0x801a807:
-	case 0x8050808:
-	case 0x805a80d:
-	case 0x805a80e:
-	case 0x805a823:
-	case 0x805a824:
-	case 0x8090817:
-	case 0x8090824:
-	case 0x8090825:
-	case 0x809a810:
-	case 0x809a811:
-	case 0x809a81f:
-	case 0x8100037:
-	case 0x8112020:
-	case 0x8112021:
-	case 0x811a010:
-	case 0x811a011:
-	case 0x816280e:
-	case 0x819601c:
-	case 0x819601d:
-	case 0x81da81c:
-	case 0x81da81d:
-	case 0x824001c:
-		index = 1;
-		break;
-	case 0x804086e:
-		index = 1;
-		break;
-	case 0x805080c:
-		index = 1;
-		break;
-	case 0x8050816:
-	case 0x8050817:
-		index = 1;
-		break;
-	case 0x80a2800:
-	case 0x80a2801:
-	case 0x80a2802:
-		index = 13;
-		break;
-	case 0x80d480a:
-		index = 1;
-		break;
-	case 0x80d4819:
-		index = 1;
-		break;
-	case 0x80e4800:
-	case 0x80e4801:
-	case 0x80e4802:
-		index = 13;
-		break;
-	case 0x815a01d:
-	case 0x815a01e:
-		index = 1;
-		break;
-	case 0x815a84f:
-	case 0x815a850:
-		index = 1;
-		break;
-	case 0x8162806:
-		index = 1;
-		break;
-	case 0x818e024:
-	case 0x818e025:
-		index = 1;
-		break;
-	case 0x821203f:
-		index = 1;
-		break;
-	case 0x8212043:
-	case 0x8212044:
-		index = 1;
-		break;
-	}
-
-	return index;
-}
-
-unsigned long CItemManager::GetMascotBonusPang(unsigned long dwTid,
-	bool bBestShot)
-{
-	unsigned long bonus = 0;
-
-	if ((dwTid & 0xfc000000) == 0x40000000)
-	{
-		switch (dwTid & 0x3ffffff)
-		{
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-			bonus = bBestShot ? 10 : 0;
-			break;
-		case 6:
-		case 0xe:
-		case 0x12:
-			bonus = bBestShot ? 10 : 5;
-			break;
-		case 4:
-		case 0xd:
-		case 0x10:
-		case 0x13:
-			bonus = bBestShot ? 15 : 5;
-			break;
-		case 9:
-		case 0xa:
-		case 0xb:
-		case 0xc:
-			bonus = bBestShot ? 15 : 0;
-			break;
-		}
-	}
-
-	return bonus;
-}
-
-bool CItemManager::IsBetween(_SYSTEMTIME* pStart, _SYSTEMTIME* pEnd,
-	_SYSTEMTIME& sysTime)
-{
-	if (pStart != NULL && pEnd != NULL)
-	{
-		if (pStart->wYear > 0 && pEnd->wYear > 0)
-		{
-			if (CompareSystemTime(*pStart, sysTime) <= 0 &&
-				CompareSystemTime(sysTime, *pEnd) <= 0)
-				return true;
-			else
-				return false;
-		}
-		else if (pStart->wYear > 0)
-		{
-			return CompareSystemTime(*pStart, sysTime) <= 0 ? true : false;
-		}
-		else if (pEnd->wYear > 0)
-		{
-			return CompareSystemTime(sysTime, *pEnd) <= 0 ? true : false;
-		}
-	}
-	else if (pStart != NULL)
-	{
-		return CompareSystemTime(*pStart, sysTime) <= 0 ? true : false;
-	}
-	else if (pEnd != NULL)
-	{
-		return CompareSystemTime(sysTime, *pEnd) <= 0 ? true : false;
-	}
-
-	return true;
-}
-
-int CItemManager::GetNumItems(PANGYA_ITEM_GROUP pig)
-{
-	int num = 0;
-
-	if (m_IsReloading)
-	{
-		_client::_private::CLock<_client::CCriticalSection> lock(m_cs);
-
-		switch (pig)
-		{
-		case PIG_CHAR:
-			num = m_CharMap.size();
-			break;
-		case PIG_PART:
-			num = m_PartMap.size();
-			break;
-		case PIG_CLUB:
-			num = m_ClubMap.size();
-			break;
-		case PIG_CLUBSET:
-			num = m_ClubSetMap.size();
-			break;
-		case PIG_BALL:
-			num = m_BallMap.size();
-			break;
-		case PIG_ITEM:
-			num = m_ItemMap.size();
-			break;
-		case PIG_CADDIE:
-			num = m_CaddieMap.size();
-			break;
-		case PIG_CADITEM:
-			num = m_CadItemMap.size();
-			break;
-		case PIG_SETITEM:
-			num = m_SetItemMap.size();
-			break;
-		case PIG_COURSE:
-			num = m_CourseMap.size();
-			break;
-		case PIG_MATCH:
-			num = m_MatchMap.size();
-			break;
-		case PIG_TITLE:
-			num = m_TitleMap.size();
-			break;
-		case PIG_SKIN:
-			num = m_SkinMap.size();
-			break;
-		case PIG_ENCHANT:
-			num = m_EnchantMap.size();
-			break;
-		case PIG_HAIR:
-			num = m_HairStyleMap.size();
-			break;
-		case PIG_MASCOT:
-			num = m_MascotMap.size();
-			break;
-		case PIG_CHILDITEM:
-			num = m_ChildItemMap.size();
-			break;
-		case PIG_AUXPART:
-			num = m_AuxPartMap.size();
-			break;
-		case PIG_QUESTDROP:
-			num = m_QuestDropMap.size();
-			break;
-		case PIG_QUEST:
-			num = m_QuestMap.size();
-			break;
-		case PIG_CARD:
-			num = m_CardMap.size();
-			break;
-		case PIG_FURNITURE:
-			if (IsLocalContent(S4_REAL_MYROOM))
-				num = m_FurnitureMap.size();
-			break;
-		case PIG_OFFLINESHOP:
-			if (IsLocalContent(S4_OFFLINE_SHOP))
-				num = m_OfflineShopMap.size();
-			break;
-		}
-	}
-	else
-	{
-		switch (pig)
-		{
-		case PIG_CHAR:
-			num = m_CharMap.size();
-			break;
-		case PIG_PART:
-			num = m_PartMap.size();
-			break;
-		case PIG_CLUB:
-			num = m_ClubMap.size();
-			break;
-		case PIG_CLUBSET:
-			num = m_ClubSetMap.size();
-			break;
-		case PIG_BALL:
-			num = m_BallMap.size();
-			break;
-		case PIG_ITEM:
-			num = m_ItemMap.size();
-			break;
-		case PIG_CADDIE:
-			num = m_CaddieMap.size();
-			break;
-		case PIG_CADITEM:
-			num = m_CadItemMap.size();
-			break;
-		case PIG_SETITEM:
-			num = m_SetItemMap.size();
-			break;
-		case PIG_COURSE:
-			num = m_CourseMap.size();
-			break;
-		case PIG_MATCH:
-			num = m_MatchMap.size();
-			break;
-		case PIG_TITLE:
-			num = m_TitleMap.size();
-			break;
-		case PIG_SKIN:
-			num = m_SkinMap.size();
-			break;
-		case PIG_ENCHANT:
-			num = m_EnchantMap.size();
-			break;
-		case PIG_HAIR:
-			num = m_HairStyleMap.size();
-			break;
-		case PIG_CHILDITEM:
-			num = m_ChildItemMap.size();
-			break;
-		case PIG_AUXPART:
-			num = m_AuxPartMap.size();
-			break;
-		case PIG_QUESTDROP:
-			num = m_QuestDropMap.size();
-			break;
-		case PIG_QUEST:
-			num = m_QuestMap.size();
-			break;
-		case PIG_CARD:
-			num = m_CardMap.size();
-			break;
-		case PIG_FURNITURE:
-			if (IsLocalContent(S4_REAL_MYROOM))
-				num = m_FurnitureMap.size();
-			break;
-		case PIG_OFFLINESHOP:
-			if (IsLocalContent(S4_OFFLINE_SHOP))
-				num = m_OfflineShopMap.size();
-			break;
-		}
-	}
-
-	return num;
-}
-
-int CItemManager::GetCourseNum()
-{
-	int num;
-
-	if (m_IsReloading)
-	{
-		_client::_private::CLock<_client::CCriticalSection> lock(m_cs);
-
-		num = m_CourseMap.size() - 3;
-	}
-	else
-	{
-		num = m_CourseMap.size() - 3;
-	}
-
-	return num;
-}
-
-unsigned char CItemManager::GetItemLevel(eLvlType eType,
-	const unsigned long* patidParts, const unsigned long* patidAuxParts)
-{
-	if (patidParts == NULL)
-		return 0;
-
-	unsigned char level = 0;
-
-	IFF_STRUCT::sPart* apParts[24];
-	for (int i = 0; i < 24; i++)
-	{
-		if (patidParts[i] == 0)
-			apParts[i] = NULL;
-		else
-			apParts[i] = FindPart(patidParts[i]);
-
-		if (apParts[i])
-			level += (unsigned char)apParts[i]->Attr[eType];
-	}
-
-	if (patidAuxParts && eType < 5)
-	{
-		IFF_STRUCT::sAuxPart* apAuxParts[5];
-		for (int i = 0; i < 5; i++)
-		{
-			if (patidAuxParts[i] == 0)
-				apAuxParts[i] = NULL;
-			else
-				apAuxParts[i] = FindAuxPart(patidAuxParts[i]);
-
-			if (apAuxParts[i] && apAuxParts[i]->Attr[eType] != 99)
-				level += apAuxParts[i]->Attr[eType];
-		}
-	}
-
-	return level;
-}
-
-unsigned char CItemManager::GetCharCapacity(eLvlType eType,
-	unsigned long tidChar, const unsigned long* patidParts,
-	const unsigned long* patidAuxParts, unsigned char level)
-{
-	unsigned char capacity;
-
-	if (tidChar)
-	{
-		IFF_STRUCT::sChar* pChar = FindChar(tidChar);
-		if (pChar)
-			capacity = (unsigned char)pChar->Attr[eType];
-		else
-			capacity = 0;
-	}
-	else
-	{
-		capacity = 0;
-	}
-
-	if (eType == 0 && level >= 6)
-		capacity += (level - 1) / 5;
-
-	if (patidParts)
-	{
-		IFF_STRUCT::sPart* apParts[24];
-		for (int i = 0; i < 24; i++)
-		{
-			if (patidParts[i] == 0)
-				apParts[i] = NULL;
-			else
-				apParts[i] = FindPart(patidParts[i]);
-			if (apParts[i])
-				capacity += (unsigned char)apParts[i]->Slot[eType];
-		}
-	}
-
-	if (patidAuxParts && eType < 5)
-	{
-		IFF_STRUCT::sAuxPart* apAuxParts[5];
-		for (int i = 0; i < 5; i++)
-		{
-			if (patidAuxParts[i] == 0)
-				apAuxParts[i] = NULL;
-			else
-				apAuxParts[i] = FindAuxPart(patidAuxParts[i]);
-			if (apAuxParts[i] && apAuxParts[i]->Slot[eType] != 99)
-				capacity += apAuxParts[i]->Slot[eType];
-		}
-	}
-
-	if (IsLocalContent(S4_CARD_SYSTEM))
-		capacity += CCardManager::Instance()->GetCardStatusSlot(eType);
-
-	return capacity;
-}
-
-unsigned char CItemManager::GetCharLevel(eLvlType eType, unsigned long tidChar,
-	const char* pCharPCL)
-{
-	if (tidChar == 0)
-		return 0;
-
-	IFF_STRUCT::sChar* pChar = FindChar(tidChar);
-	if (pChar == NULL)
-		return 0;
-
-	unsigned char level = pChar->PCL[eType];
-	if (pCharPCL)
-		level += pCharPCL[eType];
-
-	return level;
-}
-
-unsigned char CItemManager::GetCapacity(eLvlType type, unsigned long charTypeId,
-	const char* pStat, const unsigned long* pParts, unsigned long clubTypeId,
-	const short* pClubStat, unsigned long caddieTypeId, unsigned char upgrade)
-{
-	IFF_STRUCT::sChar* pChar = FindChar(charTypeId);
-	IFF_STRUCT::sClubSet* pClubSet = FindClubSet(clubTypeId);
-
-	unsigned char capacity;
-	if (pChar)
-	{
-		switch (type)
-		{
-		case 0:
-			capacity = (unsigned char)pChar->Attr[0];
-			if (upgrade >= 6)
-				capacity += (upgrade - 1) / 5;
-			break;
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-			capacity = (unsigned char)pChar->Attr[type];
-			break;
-		}
-	}
-	else
-	{
-		capacity = 0;
-	}
-
-	if (pParts)
-	{
-		IFF_STRUCT::sPart* parts[24];
-		for (int i = 0; i < 24; i++)
-		{
-			if (pParts[i] == 0)
-				parts[i] = NULL;
-			else
-				parts[i] = FindPart(pParts[i]);
-			if (parts[i])
-				capacity += (unsigned char)parts[i]->Slot[type] +
-					(unsigned char)parts[i]->Attr[type];
-		}
-	}
-
-	if (pClubSet)
-		capacity += (unsigned char)pClubSet->Slot[type];
-
-	IFF_STRUCT::sCaddie* pCaddie;
-	if ((caddieTypeId & 0xfc000000) == 0x20000000)
-		pCaddie = FindCaddie(((caddieTypeId >> 21) & 0x1f) | 0x1c000000);
-	else
-		pCaddie = FindCaddie(caddieTypeId);
-	unsigned char caddie;
-	if (pCaddie && pCaddie->c.Level <= upgrade)
-		caddie = (unsigned char)pCaddie->Attr[type];
-	else
-		caddie = 0;
-
-	capacity += caddie;
-
-	if (IsLocalContent(S4_CARD_SYSTEM))
-	{
-		capacity += CCardManager::Instance()->GetCardPeriodStatus(type);
-		capacity += CCardManager::Instance()->GetCardStatusSlot(type);
-	}
-
-	return capacity;
-}
-
-unsigned char CItemManager::GetLevel(eLvlType type, unsigned long charTypeId,
-	const char* pStat, const unsigned long* pParts,
-	const unsigned long* pAuxParts, unsigned long clubTypeId,
-	const short* pClubStat, unsigned long caddieTypeId, unsigned char upgrade)
-{
-	IFF_STRUCT::sChar* pChar = FindChar(charTypeId);
-	IFF_STRUCT::sClubSet* pClubSet = FindClubSet(clubTypeId);
-
-	unsigned char level;
-	unsigned char capacity;
-
-	if (pChar)
-	{
-		level = pChar->PCL[type];
-
-		switch (type)
-		{
-		case 0:
-			capacity = (unsigned char)pChar->Attr[0];
-			if (upgrade >= 6)
-				capacity += (upgrade - 1) / 5;
-			break;
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-			capacity = (unsigned char)pChar->Attr[type];
-			break;
-		}
-	}
-	else
-	{
-		level = 0;
-		capacity = 0;
-	}
-
-	if (pParts)
-	{
-		IFF_STRUCT::sPart* parts[24];
-		for (int i = 0; i < 24; i++)
-		{
-			if (pParts[i] == 0)
-				parts[i] = NULL;
-			else
-				parts[i] = FindPart(pParts[i]);
-
-			if (parts[i])
-			{
-				level += (unsigned char)parts[i]->Attr[type];
-				capacity += (unsigned char)parts[i]->Slot[type] +
-					(unsigned char)parts[i]->Attr[type];
-			}
-		}
-	}
-
-	if (pAuxParts && type < 5)
-	{
-		IFF_STRUCT::sAuxPart* auxParts[5];
-		for (int i = 0; i < 5; i++)
-		{
-			if (pAuxParts[i] == 0)
-				auxParts[i] = NULL;
-			else
-				auxParts[i] = FindAuxPart(pAuxParts[i]);
-
-			if (auxParts[i])
-			{
-				if (auxParts[i]->Attr[type] != 99)
-				{
-					level += auxParts[i]->Attr[type];
-					capacity += auxParts[i]->Attr[type];
-				}
-
-				if (auxParts[i]->Slot[type] != 99)
-					capacity += auxParts[i]->Slot[type];
-			}
-		}
-	}
-
-	if (IsLocalContent(S4_CARD_SYSTEM))
-	{
-		capacity += CCardManager::Instance()->GetCardStatusSlot(type) +
-			CCardManager::Instance()->GetCardPeriodStatus(type);
-	}
-
-	if (pStat)
-	{
-		level += pStat[type];
-		if (level > capacity)
-			level = capacity;
-	}
-	else
-	{
-		level = capacity;
-	}
-
-	unsigned char club = 0;
-	if (pClubSet)
-		club = (unsigned char)pClubSet->Attr[type];
-
-	if (pClubStat)
-		club += (unsigned char)pClubStat[type];
-
-	IFF_STRUCT::sCaddie* pCaddie;
-	if ((caddieTypeId & 0xfc000000) == 0x20000000)
-		pCaddie = FindCaddie(((caddieTypeId >> 21) & 0x1f) | 0x1c000000);
-	else
-		pCaddie = FindCaddie(caddieTypeId);
-
-	unsigned char caddie;
-	if (pCaddie && pCaddie->c.Level <= upgrade)
-		caddie = (unsigned char)pCaddie->Attr[type];
-	else
-		caddie = 0;
-
-	if (IsLocalContent(S4_CARD_SYSTEM))
-		return CCardManager::Instance()->GetCardPeriodStatus(type) + caddie +
-			club + level;
-
-	return caddie + club + level;
-}
-
-int CalcPowerPenalty(int upgrade)
-{
-	if (upgrade >= 66)
-		return 13;
-	if (upgrade >= 61)
-		return 12;
-	if (upgrade >= 56)
-		return 11;
-	if (upgrade >= 51)
-		return 10;
-	if (upgrade >= 46)
-		return 9;
-	if (upgrade >= 41)
-		return 8;
-	if (upgrade >= 36)
-		return 7;
-	if (upgrade >= 31)
-		return 6;
-	if (upgrade >= 26)
-		return 5;
-	if (upgrade >= 21)
-		return 4;
-	if (upgrade >= 16)
-		return 3;
-	if (upgrade >= 11)
-		return 2;
-	if (upgrade >= 6)
-		return 1;
-
-	return 0;
-}
-
-status_t CItemManager::GetLevelWithPenalty(eLvlType type,
-	unsigned long charTypeId, const char* pStat, const unsigned long* pParts,
-	const unsigned long* pAuxParts, unsigned long clubTypeId,
-	const short* pClubStat, unsigned long caddieTypeId, unsigned char upgrade)
-{
-	unsigned char penalty = 0;
-	unsigned char level = GetLevel(type, charTypeId, pStat, pParts, pAuxParts,
-		clubTypeId, pClubStat, caddieTypeId, upgrade);
-
-	if (type == 1 || type == 2)
-	{
-		unsigned char power = GetLevel((eLvlType)0, charTypeId, pStat, pParts,
-			pAuxParts, clubTypeId, pClubStat, caddieTypeId, upgrade);
-
-		penalty = Max(0, power - CalcPowerPenalty(upgrade) - 20);
-
-		if (level <= penalty)
-		{
-			level = 0;
-		}
-		else
-		{
-			level -= penalty;
-		}
-	}
-
-	status_t status;
-	status.level = level;
-	status.penalty = penalty;
-
-	return status;
-}
-
-bool CItemManager::isTrade(unsigned long typeId)
-{
-	IFF_ITEM_COMMON* pItem = FindCommonItem(typeId);
-	if (pItem == NULL)
-		return false;
-
-	return pItem->IsSalable == 1 ? true : false;
-}
-
-bool CItemManager::IsCanOverlapped(unsigned long dwTID,
-	unsigned char btCheckType, unsigned char exceptGroup)
-{
-	bool bResult = false;
-
-	IFF_ITEM_COMMON* pItem = FindCommonItem(dwTID);
-	if (pItem == NULL)
-		return false;
-
-	switch (dwTID >> 26)
-	{
-	case 1:
-		if (exceptGroup == 1)
-			bResult = true;
-		break;
-	case 7:
-		if (btCheckType == 1)
-		{
-			if (dwTID == 0x1c000001 || dwTID == 0x1c000002 ||
-				dwTID == 0x1c000003 || dwTID == 0x1c000007)
-				bResult = true;
-		}
-		break;
-	case 2:
-		if (pItem->IsSalable != 1 && pItem->IsSalable != 3)
-			bResult = false;
-		else
-			bResult = true;
-		break;
-	case 4:
-	case 8:
-	case 14:
-	case 15:
-		bResult = false;
-		break;
-	case 9:
-		if (((dwTID >> 21) & 0x1f) == 6 || ((dwTID >> 21) & 0x1f) == 5)
-			bResult = true;
-		else
-			bResult = false;
-		break;
-	case 28:
-		if ((dwTID & 0x1f0000) == 0)
-			bResult = true;
-		break;
-	default:
-		bResult = true;
-		break;
-	}
-
-	return bResult;
-}
-
-bool CItemManager::IsPartAttachCard(unsigned long dwCardTid,
-	unsigned long dwPartTid, int iSlotNum)
-{
-	unsigned long kind = (dwCardTid >> 22) & 0xf;
-	bool bAttach = false;
-
-	IFF_STRUCT::sPart* pPart = FindPart(dwPartTid);
-	if (pPart)
-	{
-		if (kind == 0)
-		{
-			if (pPart->CharacterSlot >= iSlotNum && iSlotNum > 0 &&
-				iSlotNum < 5)
-				bAttach = true;
-		}
-		else if (kind == 1)
-		{
-			iSlotNum -= 4;
-			if (pPart->CaddieSlot >= iSlotNum && iSlotNum > 0 && iSlotNum < 5)
-				bAttach = true;
-		}
-	}
-
-	return bAttach;
-}
-
-bool CItemManager::GetCardSlotNum(unsigned long in_TID,
-	unsigned short& out_LimitCharacterSlot, unsigned short& out_LimitCaddieSlot)
-{
-	out_LimitCharacterSlot = 0;
-	out_LimitCaddieSlot = 0;
-
-	switch (in_TID >> 26)
-	{
-	case 2:
-	{
-		IFF_STRUCT::sPart* pPart = FindPart(in_TID);
-		if (pPart)
-		{
-			out_LimitCharacterSlot = pPart->CharacterSlot;
-			out_LimitCaddieSlot = pPart->CaddieSlot;
-			return true;
-		}
-	}
-	break;
-	}
-
-	return false;
-}
-
-bool CItemManager::IsEquipCard(unsigned long in_CardTID)
-{
-	if ((in_CardTID & 0xfc000000) != 0x7c000000)
-		return false;
-
-	return (in_CardTID & 0x3c00000) <= 0x400000 ? true : false;
-}
-
-COUNTING_TYPE CItemManager::GetItemCountingType(unsigned long in_Tid,
-	unsigned char in_itemType)
-{
-	int type = 0;
-
-	switch (in_Tid >> 26)
-	{
-	case 5:
-	case 6:
-	case 28:
-		type = in_itemType ? 2 : 1;
-		break;
-	case 2:
-	case 4:
-		type = 3;
-		break;
-	case 7:
-		type = 4;
-		break;
-	case 31:
-		if (IsLocalContent(S4_CARD_SYSTEM))
-			type = 5;
-		break;
-	}
-
-	return (COUNTING_TYPE)type;
-}
-
-void CItemManager::MakeSpecialPrizeItemMap(char* Buf, int len)
-{
-	IFF_FILE_HEADER _hdr;
-	IFF_STRUCT::sSpecialPrizeItem item;
-
-	len = sizeof(IFF_FILE_HEADER);
-	memcpy(&_hdr, Buf, len);
-	char* p = Buf + len;
-
-	for (int i = 0; i < _hdr.nRecords; i++)
-	{
-		memcpy(&item, p, sizeof(IFF_STRUCT::sSpecialPrizeItem));
-		p += sizeof(IFF_STRUCT::sSpecialPrizeItem);
-
-		m_SPItemMap[item.ability].insert(
-			std::map<unsigned int, IFF_STRUCT::sSpecialPrizeItem>::value_type(
-				item.typeId, item));
-	}
-}
-
-IFF_STRUCT::sSpecialPrizeItem* CItemManager::FindSPItem(unsigned long typeId,
-	eSPAVILITYTYPE type)
-{
-	IFF_STRUCT::sSpecialPrizeItem* pItem = NULL;
-	std::map<unsigned int, IFF_STRUCT::sSpecialPrizeItem>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_SPItemMap[type].find(typeId);
-
-		if (it != m_SPItemMap[type].end())
-			pItem = &(*it).second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_SPItemMap[type].find(typeId);
-
-		if (it != m_SPItemMap[type].end())
-			pItem = &(*it).second;
-	}
-
-	return pItem;
-}
-
-void CItemManager::MakeItemBuffMap()
-{
-	sItemBuffHelper helper;
-	BuffMap_Itr it;
-
-	m_ItemBuff.clear();
-
-	m_ItemBuff.insert(std::make_pair(0x1a0000b3, helper));
-	it = m_ItemBuff.find(0x1a0000b3);
-	if (it != m_ItemBuff.end())
-	{
-		(*it).second.Accum = 1;
-		(*it).second.BuffType = SPECIAL_EXP_REAE_UP_TIME;
-		(*it).second.Duration = 120;
-		(*it).second.Value = 5;
-		std::set<unsigned long>& exclusiveSet = (*it).second.ExclusiveSet;
-		exclusiveSet.insert(0x1a0000b4);
-	}
-
-	m_ItemBuff.insert(std::make_pair(0x1a0000b4, helper));
-	it = m_ItemBuff.find(0x1a0000b4);
-	if (it != m_ItemBuff.end())
-	{
-		(*it).second.Accum = 1;
-		(*it).second.BuffType = SPECIAL_EXP_REAE_UP_TIME;
-		(*it).second.Duration = 120;
-		(*it).second.Value = 50;
-		std::set<unsigned long>& exclusiveSet = (*it).second.ExclusiveSet;
-		exclusiveSet.insert(0x1a0000b3);
-	}
-}
-
-bool CItemManager::IsItemBuff(unsigned long dwTID)
-{
-	BuffMap_Itr it = m_ItemBuff.find(dwTID);
-	if (it != m_ItemBuff.end())
-		return true;
-	return false;
-}
-
-bool CItemManager::IsCompatibleBuff(unsigned long dwBuffTID,
-	unsigned long dwWithTID)
-{
-	BuffMap_Itr it = m_ItemBuff.find(dwBuffTID);
-	if (it == m_ItemBuff.end())
-	{
-		return false;
-	}
-
-	const std::set<unsigned long>& exclusiveSet = (*it).second.ExclusiveSet;
-	std::set<unsigned long>::const_iterator check =
-		exclusiveSet.find(dwWithTID);
-	if (check == exclusiveSet.end())
-		return true;
-
-	return false;
-}
-
-bool CItemManager::GetBuffProperty(unsigned long dwTID,
-	specialcardavility& eType, int& Value, int& Duration, int& Accum)
-{
-	BuffMap_Itr it = m_ItemBuff.find(dwTID);
-	if (it == m_ItemBuff.end())
-		return false;
-
-	eType = (*it).second.BuffType;
-	Value = (*it).second.Value;
-	Duration = (*it).second.Duration;
-	Accum = (*it).second.Accum;
-	return true;
-}
-
-namespace S5
-{
-	bool ISCutinItem(unsigned long _typeId)
-	{
-		if ((_typeId & 0xfc000000) == 0x38000000 &&
-			(_typeId & 0x3c00000) == 0x1400000)
-			return true;
-
-		return false;
-	}
-}
-
-const char* CItemManager::GetIconName(unsigned long typeId)
-{
-	if ((typeId & 0xfc000000) != 0x2c000000)
-	{
-		IFF_ITEM_COMMON* pItem = FindCommonItem(typeId);
-		if (pItem)
-			return pItem->Icon;
-	}
-	else
-	{
-		IFF_STRUCT::sMatch* pMatch = FindMatch(typeId);
-		if (pMatch)
-			return pMatch->Icon[0];
-	}
-
-	return "";
-}
-
-bool CItemManager::IsUnlimitAztec(unsigned long typeId)
-{
-	if ((typeId & 0xfc000000) == 0x14000000)
-	{
-		IFF_STRUCT::sBall* pBall = FindBall(typeId);
-		if (pBall && pBall->COM[0] == 0)
-			return true;
-	}
-
-	return false;
-}
-
-bool CItemManager::IsBasicAztecFamily(unsigned long tid)
-{
-	if ((tid & 0xfc000000) == 0x14000000)
-	{
-		if (tid == 0x14000000)
-			return true;
-
-		IFF_STRUCT::sBall* pBall = FindBall(tid);
-		if (pBall && pBall->c.Price == 0 && pBall->COM[0] == 0)
-			return true;
-	}
-
-	return false;
-}
-
-const char* CItemManager::ChangePartsPosmask(unsigned long dwTypeID,
-	unsigned long dwPosMask)
-{
-	IFF_STRUCT::sPart* pPart = FindPart(dwTypeID);
-	if (pPart)
-	{
-		m_cs.lock();
-		pPart->PosMask = dwPosMask;
-		m_cs.unlock();
-		return "The posmask is changed";
-	}
-
-	return "No exist";
-}
-
-const char* CItemManager::ChangePartsPetName(unsigned long dwTypeID,
-	const char* pPetName)
-{
-	IFF_STRUCT::sPart* pPart = FindPart(dwTypeID);
-	if (pPart)
-	{
-		m_cs.lock();
-		char OldPetName[256];
-		strcpy(OldPetName, pPart->Data);
-		strcpy(pPart->Data, pPetName);
-		m_cs.unlock();
-		return "The petname is changed";
-	}
-
-	return "No exist";
-}
-
-const char* CItemManager::ChangePartsTexName(unsigned long dwTypeID,
-	unsigned long dwTexType, unsigned long dwTexNum, const char* pTexName)
-{
-	if (dwTexType != 0 && dwTexType != 1)
-		return "Invalid texture type.";
-
-	if (dwTexNum <= 2)
-	{
-		IFF_STRUCT::sPart* pPart = FindPart(dwTypeID);
-		if (pPart)
-		{
-			m_cs.lock();
-			if (dwTexType == 0)
-				strcpy(pPart->Tex[dwTexNum], pTexName);
-			else if (dwTexType == 1)
-				strcpy(pPart->OrgTex[dwTexNum], pTexName);
-			m_cs.unlock();
-
-			return "The texname is changed";
-		}
-
-		return "No exist";
-	}
-
-	return "Invalid texture.";
-}
-
-_private::sRandomBox* CItemManager::findRandomBox(unsigned long boxTypeId)
-{
-	_private::sRandomBox* pBox = NULL;
-	std::map<unsigned int, _private::sRandomBox>::iterator it;
-
-	if (m_IsReloading)
-	{
-		m_cs.lock();
-
-		it = m_RandomBoxMap.find(boxTypeId);
-
-		if (it != m_RandomBoxMap.end())
-			pBox = &it->second;
-		m_cs.unlock();
-	}
-	else
-	{
-		it = m_RandomBoxMap.find(boxTypeId);
-
-		if (it != m_RandomBoxMap.end())
-			return &it->second;
-	}
-
-	return pBox;
-}
-
-IFF_STRUCT::sRandomBox* CItemManager::GetRandomBoxInfo(unsigned long boxTypeId,
-	unsigned long typeId, unsigned long itemIndex)
-{
-	_private::sRandomBox* pBox = findRandomBox(boxTypeId);
-	if (pBox == NULL)
-		return NULL;
-
-	std::map<unsigned long, _private::sRandomBoxItem>::iterator it =
-		pBox->items.find(itemIndex);
-	if (it == pBox->items.end())
-		return NULL;
-
-	return &it->second.box;
-}
-
-bool CItemManager::GetEnumRandomBoxStuff(unsigned long boxTypeId,
-	std::vector<IFF_STRUCT::sRandomBox>& out)
-{
-	_private::sRandomBox* pBox = findRandomBox(boxTypeId);
-	if (pBox == NULL)
-		return false;
-
-	std::vector<_private::sRandomBoxStuff>::iterator it = pBox->stuffs.begin();
-	std::vector<_private::sRandomBoxStuff>::iterator itEnd = pBox->stuffs.end();
-
-	for (; it != itEnd; ++it)
-		out.push_back((*it).box);
-
-	return true;
-}
-
-bool CItemManager::GetEnumRandomBoxItem(unsigned long boxTypeId,
-	std::vector<std::pair<unsigned long, IFF_STRUCT::sRandomBox> >& out)
-{
-	_private::sRandomBox* pBox = findRandomBox(boxTypeId);
-	if (pBox == NULL)
-		return false;
-
-	std::map<unsigned long, _private::sRandomBoxItem>::iterator it =
-		pBox->items.begin();
-	std::map<unsigned long, _private::sRandomBoxItem>::iterator itEnd =
-		pBox->items.end();
-
-	for (; it != itEnd; ++it)
-		out.push_back(std::make_pair(it->first, it->second.box));
-
-	return true;
-}
-
-bool CItemManager::GetEnumRandomBoxCheckItem(unsigned long boxTypeId,
-	unsigned long typeId, unsigned long itemIndex,
-	std::vector<IFF_STRUCT::sRandomBox>& out)
-{
-	_private::sRandomBox* pBox = findRandomBox(boxTypeId);
-	if (pBox == NULL)
-		return false;
-
-	std::map<unsigned long, _private::sRandomBoxItem>::iterator it =
-		pBox->items.find(itemIndex);
-	if (it == pBox->items.end())
-		return false;
-
-	if (typeId != it->second.box.typeId)
-		return false;
-
-	std::vector<IFF_STRUCT::sRandomBox>::const_iterator itCheck =
-		it->second.checkItems.begin();
-	std::vector<IFF_STRUCT::sRandomBox>::const_iterator itCheckEnd =
-		it->second.checkItems.end();
-
-	for (; itCheck != itCheckEnd; ++itCheck)
-		out.push_back(*itCheck);
-
-	return true;
-}
-
-bool CItemManager::IsNonVisibleItem(unsigned long typeId)
-{
-	if (IsSubScriptionCoupon(typeId))
-		return true;
-
-	std::map<unsigned int, IFF_STRUCT::sNonVisibleItem>::const_iterator it =
-		m_NonVisibleItemMap.find(typeId);
-	if (it == m_NonVisibleItemMap.end())
-		return false;
-
-	if (it->second.type & 1)
-	{
-		return true;
-	}
-
-	return false;
-}
-
-bool CItemManager::IsSubScriptionCoupon(unsigned long typeId)
-{
-	std::map<unsigned int, IFF_STRUCT::sSubscriptionItem>::const_iterator it =
-		m_SubscriptionItemMap.find(typeId);
-	if (it == m_SubscriptionItemMap.end())
-		return false;
-
-	if (0 != (it->second.type & 1))
-		return true;
-
-	return false;
 }

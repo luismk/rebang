@@ -1,130 +1,108 @@
-#include "minatl.h"
-#include "rankunit.h"
-#include "networksystem.h"
-#include "projectg.h"
+// Original: d:\build\custom\temp\code\client\projectg\rankunit.cpp
+#include "RankUnit.h"
+#include "Packet.h"
+#include "SharedDoc.h"
+#include "ProjectG.h"
 
-RankUnit::RankUnit()
-{
+// rankunit.cpp:20
+RankUnit::RankUnit(void) {
 }
 
-RankUnit::~RankUnit()
-{
+// rankunit.cpp:25
+RankUnit::~RankUnit(void) {
 }
 
-bool RankUnit::Init()
-{
+// rankunit.cpp:30
+bool RankUnit::Init(void) {
 	NetworkUnit::Init();
 	return true;
 }
 
-void RankUnit::ShutDown()
-{
+// rankunit.cpp:36
+void RankUnit::ShutDown(void) {
 	Init();
 }
 
-bool RankUnit::OnLine()
-{
+// rankunit.cpp:41
+bool RankUnit::OnLine(void) {
 	WReceivedPacket packet;
 
-	if (m_socket.GetPacket(packet) == 3)
-	{
+	if (m_socket.GetPacket(packet) == 3) {
 		packet.Reset();
-
-		CProjectG::Instance()->OnPacket(packet);
+		WSingleton<CProjectG>::Instance()->OnPacket(packet);
 	}
-
 	return true;
 }
 
-bool RankUnit::OffLine()
-{
+// rankunit.cpp:61
+bool RankUnit::OffLine(void) {
 	return true;
 }
 
-bool RankUnit::Connect()
-{
-	if (m_socket.m_bConnected)
-	{
+// rankunit.cpp:66
+bool RankUnit::Connect(void) {
+	if (m_socket.m_bConnected) {
 		setForceTransition(0);
-	}
-	else
-	{
-		m_socket.SetEventMsg(WM_USER + 14);
-
-		if (m_socket.Connect(inet_addr(Doc()->m_rankServerAddr.c_str()),
-				htons((u_short)Doc()->m_rankServerPort)) == 0)
-		{
+	} else {
+		m_socket.m_asyncMessage = 0x40E;
+		CSharedDoc *doc = WSingleton<CSharedDoc>::Instance();
+		if (m_socket.Connect(inet_addr(doc->m_rankServerAddress.c_str()), htons(doc->m_rankServerPort)) == 0) {
 			setForceTransition(1);
-			m_bConnectionComplete = TRUE;
-
+			m_connectResult = 1;
 			return false;
 		}
-
-		m_connectTime = GetTickCount();
+		m_connectTick = GetTickCount();
 		setTransition(0);
 	}
-
 	return true;
 }
 
-bool RankUnit::Connecting()
-
-{
-	if (GetTickCount() - m_connectTime > 3000 || !m_socket.TryRead())
-	{
+// rankunit.cpp:104
+bool RankUnit::Connecting(void) {
+	if (GetTickCount() - m_connectTick > 3000 || m_socket.TryRead() == 0) {
 		setForceTransition(1);
-		m_socket.Close();
-		m_bConnectionComplete = TRUE;
+		GetSocket()->Close();
+		m_connectResult = 1;
 		return false;
 	}
 
 	WReceivedPacket packet;
-	if (m_socket.GetPacket(packet) == 3)
-	{
-		if (OnConnect(packet))
-		{
-			m_socket.AsyncSelect(FD_READ | FD_WRITE | FD_CLOSE);
+	if (m_socket.GetPacket(packet) == 3) {
+		if (OnConnect(packet)) {
+			m_socket.AsyncSelect(0x23);
 			setForceTransition(0);
-			m_bConnectionComplete = TRUE;
+			m_connectResult = 1;
 			return true;
 		}
-
 		return false;
 	}
-
 	return true;
 }
 
-bool RankUnit::Disconnecting()
-{
-	if (!m_socket.m_bConnected)
-	{
+// rankunit.cpp:140
+bool RankUnit::Disconnecting(void) {
+	if (m_socket.m_bConnected == 0) {
 		setForceTransition(1);
-	}
-	else
-	{
-		m_socket.Close();
+	} else {
+		GetSocket()->Close();
 	}
 	return true;
 }
 
-int RankUnit::OnConnect(WReceivedPacket& packet)
-{
+// rankunit.cpp:153
+int RankUnit::OnConnect(WReceivedPacket &packet) {
 	packet.Decode1();
-	if (packet.Decode2() != 500)
-	{
-		return FALSE;
+	unsigned short result = packet.Decode2();
+
+	if (result != 500) {
+		return 0;
 	}
 
 	m_socket.SetParseKey(packet.Decode4());
-
-	unsigned char result = packet.Decode1();
-	if (result != 5)
-	{
-		return FALSE;
+	if (packet.Decode1() != 5) {
+		return 0;
 	}
 
-	std::string version = packet.DecodeStr();
-
-	return TRUE;
+	std::string message = packet.DecodeStr();
+	return 1;
 }

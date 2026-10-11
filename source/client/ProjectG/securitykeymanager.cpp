@@ -1,99 +1,96 @@
-#include "minatl.h"
-#include "securitykeymanager.h"
+// Original: d:\build\custom\temp\code\client\projectg\securitykeymanager.cpp
+#include "SecurityKeyManager.h"
+#include "Packet.h"
+#include "SharedDoc.h"
+#include "TaskManager.h"
+#include "actor.h"
 
-CSecurityKeyManager* SecurityKeyManager()
-{
-	static CSecurityKeyManager manager;
-	return &manager;
+// securitykeymanager.cpp:9
+CSecurityKeyManager* SecurityKeyManager(void) {
+	static CSecurityKeyManager s_securityKeyManager;
+	return &s_securityKeyManager;
 }
 
-CSecurityKeyManager::CSecurityKeyManager()
-{
+// securitykeymanager.cpp:15
+CSecurityKeyManager::CSecurityKeyManager(void) {
 }
 
-CSecurityKeyManager::~CSecurityKeyManager()
-{
+// securitykeymanager.cpp:19
+CSecurityKeyManager::~CSecurityKeyManager(void) {
 }
 
-void CSecurityKeyManager::SetKey(eSKContent content, unsigned long index,
-	std::string key)
-{
-	std::list<sSKItem>::iterator it;
-	for (it = m_items.begin(); it != m_items.end(); it++)
-	{
-		if ((*it).content == content && (*it).index == index)
-		{
-			(*it).key = key;
-			return;
-		}
+// securitykeymanager.cpp:23
+void CSecurityKeyManager::SetKey(eSKContent content, unsigned long serial, std::string key) {
+	sSKItem* pItem = GetItem(content, serial);
+	if (pItem != NULL) {
+		pItem->key = key;
+		return;
 	}
 
 	sSKItem item;
 	item.content = content;
-	item.index = index;
+	item.serial = serial;
 	item.key = key;
+
 	m_items.push_back(item);
 }
 
-std::string CSecurityKeyManager::GetKey(eSKContent content, unsigned long index)
-{
-	sSKItem* pItem = GetItem(content, index);
-	if (pItem)
-		return pItem->key;
-	return "";
+// securitykeymanager.cpp:43
+std::string CSecurityKeyManager::GetKey(eSKContent content, unsigned long serial) {
+	sSKItem* pItem = GetItem(content, serial);
+	if (pItem == NULL) {
+		return "";
+	}
+	return pItem->key;
 }
 
-sSKItem* CSecurityKeyManager::GetItem(eSKContent content, unsigned long index)
-{
-	std::list<sSKItem>::iterator it;
-	for (it = m_items.begin(); it != m_items.end(); it++)
-	{
+// securitykeymanager.cpp:52
+sSKItem* CSecurityKeyManager::GetItem(eSKContent content, unsigned long serial) {
+	for (std::list<sSKItem>::iterator it = m_items.begin(); it != m_items.end(); ++it) {
 		sSKItem* pItem = &(*it);
-		if (pItem->content == content && pItem->index == index)
+		if (pItem->content == content && pItem->serial == serial) {
 			return pItem;
+		}
 	}
 	return NULL;
 }
 
-void CSecurityKeyManager::ReqCreateKey(eSKContent content, unsigned long index)
-{
-	WSendPacket send((enumClientPacket)0xc1);
-	send.Encode1(0);
-	send.Encode4(MyUID());
-	send.Encode1(content);
-	send.Encode4(index);
-	send.Send(TO_GAME);
+// securitykeymanager.cpp:68
+void CSecurityKeyManager::ReqCreateKey(eSKContent content, unsigned long serial) {
+	WSendPacket packet(0xC1);
+	packet.Encode1(0);
+	packet.Encode4(MyUID());
+	packet.Encode1(content);
+	packet.Encode4(serial);
+	packet.Send(SEND_TO_DEFAULT);
 }
 
-void CSecurityKeyManager::ResCreateKey(eSKContent content, unsigned long index,
-	std::string key, unsigned char result)
-{
-	if (result == 1)
-		SetKey(content, index, key);
+// securitykeymanager.cpp:78
+void CSecurityKeyManager::ResCreateKey(eSKContent content, unsigned long serial, std::string key, unsigned char result) {
+	if (result == 1) {
+		SetKey(content, serial, key);
+	}
 
-	switch (content)
-	{
-	case SK_UCC:
-		if (result == 1)
-			AfxGetTask()->GetActor("RealMyRoom")
-				<< MsgObject(NULL, 0x212, 0, 0, 0, 0, 0);
+	switch (content) {
+	case SK_CONTENT_UCC:
+		if (result == 1) {
+			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x212, 0, 0, 0, 0, 0);
+		}
 		break;
 	}
 }
 
-void CSecurityKeyManager::ReqCheckKey(eSKContent content, unsigned long index,
-	std::string key)
-{
-	WSendPacket send((enumClientPacket)0xc1);
-	send.Encode1(1);
-	send.Encode4(MyUID());
-	send.Encode1(content);
-	send.Encode4(index);
-	send.EncodeStr(key);
-	send.Send(TO_GAME);
+// securitykeymanager.cpp:110
+void CSecurityKeyManager::ReqCheckKey(eSKContent content, unsigned long serial, std::string key) {
+	WSendPacket packet(0xC1);
+	packet.Encode1(1);
+	packet.Encode4(MyUID());
+	packet.Encode1(content);
+	packet.Encode4(serial);
+	packet.EncodeStr(key);
+	packet.Send(SEND_TO_DEFAULT);
 }
 
-void CSecurityKeyManager::ResCheckKey(eSKContent content, unsigned long index,
-	std::string key, unsigned char result)
-{
+// securitykeymanager.cpp:121
+void CSecurityKeyManager::ResCheckKey(eSKContent content, unsigned long serial, std::string key, unsigned char result) {
 }

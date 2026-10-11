@@ -1,214 +1,204 @@
-#include "minatl.h"
-#include "onelineboard.h"
-#include "fresh.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
-#include "fremoticon.h"
-#include "golftask.h"
-#include "capturedbg.h"
+// Original: d:\build\custom\temp\code\client\projectg\onelineboard.cpp
+#include <windows.h>
 
-extern Fresh* g_pFresh;
-enum
-{
-	FADE_NONE,
-	FADE_OUT,
-	FADE_IN,
-};
-COneLineBoard::COneLineBoard()
-{
-	m_fadeMode = FADE_NONE;
+#include "onelineboard.h"
+
+#include "CapturedBg.h"
+#include "GolfTask.h"
+#include "TaskManager.h"
+#include "commonutil.h"
+#include "bitmap.h"
+#include "fresh.h"
+#include "frgraphicinterface.h"
+#include "frwnd.h"
+#include "frwndmanager.h"
+#include "fremoticon.h"
+#include <mmsystem.h>
+
+// onelineboard.cpp:23
+COneLineBoard::COneLineBoard(void) {
+	m_fadeState = 0;
 	m_waitMsgNum = 0;
 	m_waitMsgTime = 0;
-	m_pBgBitmap = NULL;
-	m_bShowBg = true;
+	m_bg = 0;
+	m_showBg = true;
 	m_fadeFactor = 1.0f;
-	m_bAnimate = true;
+	m_visible = true;
 }
 
-COneLineBoard::~COneLineBoard()
-{
+// onelineboard.cpp:35
+COneLineBoard::~COneLineBoard(void) {
 	Clear();
 }
 
-void COneLineBoard::Clear()
-{
+// onelineboard.cpp:40
+void COneLineBoard::Clear(void) {
 	sequence_delete(m_msgList.begin(), m_msgList.end());
 	m_msgList.clear();
 }
 
-void COneLineBoard::Process(float delta)
-{
-	if (m_fadeMode == FADE_OUT)
-	{
-		m_fadeFactor -= delta;
+// onelineboard.cpp:47
+void COneLineBoard::Process(float elapsed) {
+	static DWORD s_lastTick = 0;
 
-		if (m_fadeFactor < 0.0f)
+	if (m_fadeState == 1) {
+		m_fadeFactor -= elapsed;
+
+		if (m_fadeFactor < 0.0f) {
 			m_fadeFactor = 0.0f;
-	}
-	else if (m_fadeMode == FADE_IN)
-	{
-		m_fadeFactor += delta;
+		}
+	} else if (m_fadeState == 2) {
+		m_fadeFactor += elapsed;
 
-		if (m_fadeFactor > 1.0f)
-		{
+		if (m_fadeFactor > 1.0f) {
 			m_fadeFactor = 1.0f;
-			m_fadeMode = FADE_NONE;
+			m_fadeState = 0;
 		}
 	}
 
-	if (m_fadeMode != FADE_NONE)
-		return;
-	static DWORD lastTime = 0;
-	DWORD time = GetTickCount();
-	if (time - lastTime < 25)
-		return;
-
-	lastTime = time;
-
-	m_bAnimate = true;
-
-	if (CCapturedBg::Instance() && CCapturedBg::Instance()->IsCaptured())
-	{
-		m_bAnimate = false;
+	if (m_fadeState != 0) {
 		return;
 	}
 
-	for (m_it = m_msgList.begin(); m_it != m_msgList.end();)
-	{
-		sOnelineMsg* pMsg = *m_it;
+	DWORD tick = GetTickCount();
+	if (tick - s_lastTick < 25) {
+		return;
+	}
 
-		pMsg->x -= 0.5f;
+	s_lastTick = tick;
 
-		if (pMsg->x + pMsg->width < m_rect.x)
-		{
-			delete pMsg;
-			m_msgList.erase(m_it++);
-		}
-		else
-		{
-			++m_it;
+	m_visible = true;
+
+	CCapturedBg *capturedBg = WSingleton<CCapturedBg>::Instance();
+	if (capturedBg && capturedBg->IsCaptured()) {
+		m_visible = false;
+		return;
+	}
+
+	for (m_iter = m_msgList.begin(); m_iter != m_msgList.end(); ) {
+		sOnelineMsg *msg = *m_iter;
+
+		msg->x -= 0.5f;
+
+		if (msg->x + msg->width < m_rect.x) {
+			delete msg;
+			m_msgList.erase(m_iter++);
+		} else {
+			++m_iter;
 		}
 	}
 }
 
-void COneLineBoard::Display()
-{
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
+// onelineboard.cpp:109
+void COneLineBoard::Display(void) {
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
 		DrawBg();
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-
-	float alpha = pDevice->GetAlpha();
-
-	pDevice->SetAlpha(m_fadeFactor);
-
-	if (IS_EXACTKINDOF(CGolfTask, AfxGetTask()))
-	{
-		pDevice->SetTextStyle(4);
-		pDevice->SetTextColor(0xffffffff, 0xff000000);
-	}
-	else
-	{
-		pDevice->SetTextStyle(0);
-		pDevice->SetTextColor(0xff000000, 0xffffffff);
 	}
 
-	FrEmoticon* pEmoticon = g_pFresh->GetManager()->GetEmoticon();
+	FrGraphicInterface *gdi = g_pFresh->GetManager()->GetGDI();
+
+	float alpha = gdi->GetAlpha();
+
+	gdi->SetAlpha(m_fadeFactor);
+
+	if ((__rtti_obj = AfxGetTask()) != 0 ? ((IObject*)__rtti_obj)->IsExactKindOf(&CGolfTask::m_RTTI) : false) {
+		gdi->SetTextStyle(4);
+		gdi->SetTextColor(0xFFFFFFFF, 0xFF000000);
+	} else {
+		gdi->SetTextStyle(0);
+		gdi->SetTextColor(0xFF000000, 0xFFFFFFFF);
+	}
+
+	FrEmoticon *emoticon = g_pFresh->GetManager()->GetEmoticon();
 	WRect clip(m_rect.x, m_rect.y - 10.0f, m_rect.w, m_rect.h + 20.0f);
-	pEmoticon->SetClippingArea(&clip);
+	emoticon->SetClippingArea(&clip);
 
-	for (m_it = m_msgList.begin(); m_it != m_msgList.end(); ++m_it)
-	{
-		sOnelineMsg* pMsg = *m_it;
+	for (m_iter = m_msgList.begin(); m_iter != m_msgList.end(); ++m_iter) {
+		sOnelineMsg *msg = *m_iter;
 
-		if (m_bAnimate)
-			pEmoticon->SetAnim(true);
+		if (m_visible) {
+			emoticon->SetAnim(true);
+		}
 
-		pEmoticon->SetAnimTime(pMsg->time);
-		pEmoticon->PrintText(WPoint((float)(int)pMsg->x, m_rect.y + 5.0f), 0,
-			pMsg->msg.c_str(), 0xffffffff);
-		pEmoticon->SetAnim(false);
+		emoticon->SetAnimTime(msg->time);
+		emoticon->PrintText(WPoint((float)(int)msg->x, m_rect.y + 5.0f), 0, msg->text.c_str(), 0xFFFFFFFF);
+		emoticon->SetAnim(false);
 	}
 
-	pEmoticon->SetClippingArea(NULL);
+	emoticon->SetClippingArea(0);
 
-	pDevice->SetAlpha(alpha);
-	pDevice->SetTextColor(0xffffffff, 0xffffffff);
-	pDevice->SetTextStyle(0);
+	gdi->SetAlpha(alpha);
+	gdi->SetTextColor(0xFFFFFFFF, 0xFFFFFFFF);
+	gdi->SetTextStyle(0);
 }
 
-void COneLineBoard::AddOnelineMsg(const std::string& nick,
-	const std::string& msg)
-{
-	FrEmoticon* pEmoticon = g_pFresh->GetManager()->GetEmoticon();
-	std::list<sOnelineMsg*>::reverse_iterator it;
+// onelineboard.cpp:151
+void COneLineBoard::AddOnelineMsg(const std::string &name, const std::string &message) {
+	FrEmoticon *emoticon = g_pFresh->GetManager()->GetEmoticon();
 
-	sOnelineMsg* pMsg = new sOnelineMsg;
-	pMsg->msg = msg + "  <" + nick + ">";
-	pMsg->width = pEmoticon->GetTextWidth(pMsg->msg.c_str());
+	sOnelineMsg *msg = new sOnelineMsg;
+	msg->text = message + "  <" + name + ">";
+	msg->width = emoticon->GetTextWidth(msg->text.c_str());
 
-	if (!m_msgList.empty())
-	{
-		it = m_msgList.rbegin();
-		sOnelineMsg* pLast = *it;
+	float x = 0.0f;
+	if (m_msgList.size() != 0) {
+		sOnelineMsg *last = m_msgList.back();
 
-		pMsg->x = max(pLast->x + pLast->width + 50.0f, m_rect.Right());
-	}
-	else
-	{
-		pMsg->x = max(0.0f, m_rect.Right());
+		x = last->x + last->width + 50.0f;
 	}
 
-	pMsg->time = timeGetTime();
+	msg->x = x > m_rect.x + m_rect.w ? x : m_rect.x + m_rect.w;
 
-	m_msgList.push_back(pMsg);
+	msg->time = timeGetTime();
+
+	m_msgList.push_back(msg);
 }
 
-void COneLineBoard::LoadBg()
-{
-	if (m_pBgBitmap == NULL)
-		m_pBgBitmap = g_pFresh->GetBitmap("oneline_back");
+// onelineboard.cpp:177
+void COneLineBoard::LoadBg(void) {
+	if (!m_bg) {
+		m_bg = g_pFresh->GetBitmap("oneline_back");
+	}
 }
 
-void COneLineBoard::FadeOut()
-{
-	m_fadeMode = FADE_OUT;
+// onelineboard.cpp:183
+void COneLineBoard::FadeOut(void) {
+	m_fadeState = 1;
 }
 
-void COneLineBoard::FadeIn()
-{
-	m_fadeMode = FADE_IN;
+// onelineboard.cpp:189
+void COneLineBoard::FadeIn(void) {
+	m_fadeState = 2;
 }
 
-float COneLineBoard::GetFadeFactor()
-{
-	if (m_fadeMode == FADE_NONE)
+// onelineboard.cpp:195
+float COneLineBoard::GetFadeFactor(void) {
+	if (m_fadeState == 0) {
 		return 1.0f;
-
+	}
 	return m_fadeFactor;
 }
 
-void COneLineBoard::DrawBg()
-{
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
-	{
-		if (!m_bShowBg)
+// onelineboard.cpp:204
+void COneLineBoard::DrawBg(void) {
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
+		if (!m_showBg) {
 			return;
+		}
 
-		if (CCapturedBg::Instance()->IsCaptured())
+		if (WSingleton<CCapturedBg>::Instance()->IsCaptured()) {
 			return;
+		}
 	}
 
-	if (m_pBgBitmap == NULL)
+	if (!m_bg) {
 		return;
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
-		return;
+	}
 
-	pDevice->DrawTexture(m_pBgBitmap,
-		WRect(0.0f, 0.0f, (float)m_pBgBitmap->Width(),
-			(float)m_pBgBitmap->Height()),
-		WRect(m_rect.x - 2.0f, m_rect.y, (float)m_pBgBitmap->Width(),
-			(float)m_pBgBitmap->Height()),
-		0xffffffff, false);
+	FrGraphicInterface *gdi = g_pFresh->GetManager()->GetGDI();
+	if (!gdi) {
+		return;
+	}
+
+	gdi->DrawTexture(m_bg, WRect(0, 0, m_bg->Width(), m_bg->Height()), WRect(m_rect.x - 2.0f, m_rect.y, m_bg->Width(), m_bg->Height()), 0xFFFFFFFF, 0);
 }

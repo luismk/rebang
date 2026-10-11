@@ -1,267 +1,273 @@
-#include "minatl.h"
-#include "addfrienddlg.h"
-#include "emoticondlg.h"
-#include "fredit.h"
+// Original: d:\build\custom\temp\code\client\projectg\addfrienddlg.cpp
+#include <string.h>
+
+#include "AddFriendDlg.h"
+#include "ObjectFactory.h"
+#include "NetworkSystem.h"
+#include "Packet.h"
+#include "SharedDoc.h"
+#include "TaskManager.h"
+#include "GolfTask.h"
+
+#include "EmoticonDlg.h"
+#include "commonutil.h"
 #include "frbutton.h"
-#include "frwndmanager.h"
 #include "frdesktop.h"
+#include "fredit.h"
 #include "fresh.h"
-#include "golftask.h"
-#include "actor.h"
-#include "frwndinl.h"
+#include "frwndmanager.h"
 
-extern Fresh* g_pFresh;
+// addfrienddlg.cpp:22 (run-time type and factory registration of FrAddFriendDlg)
+const WRTTI FrAddFriendDlg::m_RTTI("FrAddFriendDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrAddFriendDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrAddFriendDlg, FrForm)
-
-ON_FRESH_VI("id", FRCMD_INIT, FrAddFriendDlg::OnEditNiclInit)
-ON_FRESH_BI("id", FRCMD_ENTERKEY, FrAddFriendDlg::OnEditNickEnterKey)
-ON_FRESH_VV("id", FRCMD_LBUTTONDOWN, FrAddFriendDlg::OnEditNickDown)
-ON_FRESH_VI("nick", FRCMD_INIT, FrAddFriendDlg::OnDispNickInit)
-ON_FRESH_VV("check", FRCMD_LBUTTONUP, FrAddFriendDlg::OnCheckBtnUp)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrAddFriendDlg::OnOKBtnUp)
-ON_FRESH_VI("emoticon", FRCMD_INIT, FrAddFriendDlg::OnEmoticonInit)
-ON_FRESH_VV("emoticon", FRCMD_LBUTTONUP, FrAddFriendDlg::OnEmoticonUp)
-
-END_FRESH_MSGMAP()
-
-void FrAddFriendDlg::OnEmoticonInit(int param)
-{
-	m_pEmoticon = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+IObject* FrAddFriendDlgMakeInstance(void) {
+	return new FrAddFriendDlg;
 }
 
-void FrAddFriendDlg::OnEmoticonUp()
-{
-	if (m_pEmoticon && m_pEmoticonDlg == NULL)
-	{
-		m_pEmoticonDlg = CreateForm<FrEmoticonDlg>(g_pFresh->GetManager(), this,
-			"emoticon", this);
-		if (m_pEmoticonDlg)
-		{
-			WPoint pos(0, 0);
-			const WRect& rect = m_pEmoticon->GetRect();
-			pos.x = rect.x - 200.0f;
-			pos.y = rect.y + 24.0f;
+struct __sFrAddFriendDlg {
+	__sFrAddFriendDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrAddFriendDlgMakeInstance, "FrAddFriendDlg");
+	}
+};
+static __sFrAddFriendDlg s_registerFrAddFriendDlg;
+
+// addfrienddlg.cpp:24
+const sFRESH_MSGMAP* FrAddFriendDlg::GetMessageMap(void) const {
+	return &FrAddFriendDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrAddFriendDlg::_MsgMap = { &FrForm::_MsgMap, &FrAddFriendDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrAddFriendDlg::_MsgEntries[] = {
+	// addfrienddlg.cpp:26
+	{ "id", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrAddFriendDlg::OnEditNiclInit },
+	// addfrienddlg.cpp:27
+	{ "id", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&FrAddFriendDlg::OnEditNickEnterKey },
+	// addfrienddlg.cpp:28
+	{ "id", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrAddFriendDlg::OnEditNickDown },
+	// addfrienddlg.cpp:29
+	{ "nick", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrAddFriendDlg::OnDispNickInit },
+	// addfrienddlg.cpp:30
+	{ "check", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrAddFriendDlg::OnCheckBtnUp },
+	// addfrienddlg.cpp:31
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrAddFriendDlg::OnOKBtnUp },
+	// addfrienddlg.cpp:32
+	{ "emoticon", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrAddFriendDlg::OnEmoticonInit },
+	// addfrienddlg.cpp:33
+	{ "emoticon", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrAddFriendDlg::OnEmoticonUp },
+
+	// addfrienddlg.cpp:35
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// addfrienddlg.cpp:39
+void FrAddFriendDlg::OnEmoticonInit(intptr_t param) {
+	m_pEmoticonBtn = DYNAMIC_CAST(FrButton, param);
+}
+
+// addfrienddlg.cpp:47
+void FrAddFriendDlg::OnEmoticonUp(void) {
+	if (m_pEmoticonBtn && !m_pEmoticonDlg) {
+		m_pEmoticonDlg = CreateForm<FrEmoticonDlg>(g_pFresh->GetManager(), this, "emoticon", this);
+		if (m_pEmoticonDlg) {
+			WPoint pt(0, 0);
+			const WRect& rect = m_pEmoticonBtn->GetRect();
+			pt.x = rect.x - 200.0f;
+			pt.y = rect.y + 24.0f;
+
 			m_pEmoticonDlg->SetFixed(true);
-			m_pEmoticonDlg->Open(
-				(FRESH_PFN_RESULT)&FrAddFriendDlg::OnEmoticonResult, pos, 0);
+			m_pEmoticonDlg->Open((FRESH_RESULT_CALLBACK)&FrAddFriendDlg::OnEmoticonResult, pt, 0);
 		}
 	}
 }
 
-bool FrAddFriendDlg::OnEmoticonResult(int result, FrForm* pForm)
-{
-	if (m_pEmoticonDlg && result == 1)
-	{
+// addfrienddlg.cpp:65
+bool FrAddFriendDlg::OnEmoticonResult(int ret, FrForm* pForm) {
+	if (m_pEmoticonDlg && ret == FrOK) {
 		FrEmoticonDlg* pDlg = DYNAMIC_CAST(FrEmoticonDlg, pForm);
-		if (pDlg)
-		{
+		if (pDlg) {
 			const char* icon = pDlg->GetSelectedIcon();
-			if (icon)
-			{
+			if (icon) {
 				FrEdit* pEdit = DYNAMIC_CAST(FrEdit, FindChildByName("id"));
-				if (m_pEditNick)
-				{
-					const char* front = m_pEditNick->GetEditText_Front();
-					const char* comp = m_pEditNick->GetEditText_Comp();
-					const char* end = m_pEditNick->GetEditText_End();
-					m_pEditNick->SetLine(1,
-						MakeStr("%s%s%s%s", front, comp, icon, end), 0, false,
-						0);
-					m_pEditNick->SetKeyFocus(true);
+				if (m_pIdEdit) {
+					const char* front = m_pIdEdit->GetEditText_Front();
+					const char* comp = m_pIdEdit->GetEditText_Comp();
+					const char* end = m_pIdEdit->GetEditText_End();
+					m_pIdEdit->SetLine(1, MakeStr("%s%s%s%s", front, comp, icon, end), 0, false, 0);
+					m_pIdEdit->SetKeyFocus(true);
 				}
 			}
 		}
-	}
-	else if (m_pEditNick)
-	{
-		m_pEditNick->SetKeyFocus(true);
+	} else {
+		if (m_pIdEdit) {
+			m_pIdEdit->SetKeyFocus(true);
+		}
 	}
 
-	m_pEmoticonDlg = NULL;
+	m_pEmoticonDlg = 0;
 	return true;
 }
 
-void FrAddFriendDlg::SetNick(const char* nick)
-{
-	if (m_pDispNick)
-		m_pDispNick->SetLine(1, nick, 0, false, 0);
-
-	if (m_pEditNick)
-		m_pEditNick->SetLine(1, nick, 0, false, 0);
+// addfrienddlg.cpp:97
+void FrAddFriendDlg::SetNick(const char* nick) {
+	if (m_pNickEdit) {
+		m_pNickEdit->SetLine(1, nick, 0, false, 0);
+	}
+	if (m_pIdEdit) {
+		m_pIdEdit->SetLine(1, nick, 0, false, 0);
+	}
 }
 
-void FrAddFriendDlg::SetTargetNick(const char* nick)
-{
-	if (m_pEditNick)
-		m_pEditNick->SetLine(1, nick, 0, false, 0);
+// addfrienddlg.cpp:106
+void FrAddFriendDlg::SetTargetNick(const char* nick) {
+	if (m_pIdEdit) {
+		m_pIdEdit->SetLine(1, nick, 0, false, 0);
+	}
 }
 
-void FrAddFriendDlg::SetFindUID(unsigned long uid)
-{
+// addfrienddlg.cpp:114
+void FrAddFriendDlg::SetFindUID(unsigned long uid) {
 	m_findUID = uid;
 }
 
-void FrAddFriendDlg::CheckRequestNickname(const char* nick)
-{
-	if (nick == NULL)
+// addfrienddlg.cpp:119
+void FrAddFriendDlg::CheckRequestNickname(const char* nick) {
+	if (nick == 0) {
 		return;
+	}
 
-	if (strlen(nick) < 1)
+	if (strlen(nick) < 1) {
 		return;
+	}
 
-	if (m_pEditNick)
-		m_pEditNick->SetLine(1, nick, 0, false, 0);
+	if (m_pIdEdit) {
+		m_pIdEdit->SetLine(1, nick, 0, false, 0);
+	}
 }
 
-void FrAddFriendDlg::OnEditNiclInit(int param)
-{
-	m_pEditNick = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	m_pEditNick->m_nFlags.Enable(0x1000);
+// addfrienddlg.cpp:137
+void FrAddFriendDlg::OnEditNiclInit(intptr_t param) {
+	m_pIdEdit = DYNAMIC_CAST(FrEdit, param);
 
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
+	m_pIdEdit->HidePrivacy(true);
+
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
 		g_pFresh->GetManager()->SetExclusiveKey(true);
+	}
 }
 
-void FrAddFriendDlg::OnEditNickDown()
-{
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
+// addfrienddlg.cpp:150
+void FrAddFriendDlg::OnEditNickDown(void) {
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
 		g_pFresh->GetManager()->SetExclusiveKey(true);
+	}
 }
 
-bool FrAddFriendDlg::OnEditNickEnterKey(int param)
-{
+// addfrienddlg.cpp:158
+bool FrAddFriendDlg::OnEditNickEnterKey(int param) {
 	OnCheckBtnUp();
 	return false;
 }
 
-void FrAddFriendDlg::OnDispNickInit(int param)
-{
-	m_pDispNick = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pDispNick)
-	{
-		m_pDispNick->m_nFlags.Enable(0x1000);
-		m_pDispNick->SetLine(1, "<\xc8\xae\xc0\xce \xbe\xc8\xb5\xca>", 0, false,
-			0);
+// addfrienddlg.cpp:164
+void FrAddFriendDlg::OnDispNickInit(intptr_t param) {
+	m_pNickEdit = DYNAMIC_CAST(FrEdit, param);
+
+	if (m_pNickEdit) {
+		m_pNickEdit->HidePrivacy(true);
+		m_pNickEdit->SetLine(1, "<\xC8\xAE\xC0\xCE \xBE\xC8\xB5\xCA>", 0, false, 0);
 	}
 }
 
-void FrAddFriendDlg::OnCheckBtnUp()
-{
-	if (m_pDispNick)
-		m_pDispNick->ClearLine();
+// addfrienddlg.cpp:174
+void FrAddFriendDlg::OnCheckBtnUp(void) {
+	if (m_pNickEdit) {
+		m_pNickEdit->ClearLine();
+	}
 
-	if (m_pEditNick)
-	{
-		const char* nick = m_pEditNick->GetLine(1, false);
+	if (m_pIdEdit) {
+		const char* nick = m_pIdEdit->GetLine(1, false);
 
-		if (strcmp(nick, MyNick()) == 0)
-		{
-			AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-				(int)"\xb4\xd9\xb8\xa5 \xbb\xe7\xb6\xf7\xc0\xc7 \xb4\xd0\xb3\xd7\xc0\xd3\xc0\xbb \xc0\xd4\xb7\xc2\xc7\xd8 \xc1\xd6\xbc\xbc\xbf\xe4.",
-				0, 0, 0, 0);
+		if (strcmp(nick, CSharedDoc::Instance()->GetPangyaUserInfo().nickname) == 0) {
+			AfxGetTask()->PassMsgToActor("Lobby", MsgObject(0, 0x23,
+				(intptr_t)"\xB4\xD9\xB8\xA5 \xBB\xE7\xB6\xF7\xC0\xC7 \xB4\xD0\xB3\xD7\xC0\xD3\xC0\xBB \xC0\xD4\xB7\xC2\xC7\xD8 \xC1\xD6\xBC\xBC\xBF\xE4.", 0, 0, 0, 0));
 			return;
 		}
 
 		int len = strlen(nick);
-		if (nick && len > 0 && len < 22)
-		{
-			if (WNetworkSystem::Instance()->IsConnected(
-					WNetworkSystem::NET_MSN))
-			{
+		if (nick && len > 0 && len < 0x16) {
+			if (WSingleton<WNetworkSystem>::Instance()->IsConnected((WNetworkSystem::eNetUnit)1)) {
 				WSendPacket packet(0x17);
 				packet.EncodeStr(std::string(nick));
-				packet.Send(TO_MSN);
-			}
-			else
-			{
+				packet.Send((eSendTo)1);
+			} else {
 				WSendPacket packet((enumClientPacket)7);
 				packet.Encode1(0);
 				packet.EncodeStr(std::string(nick));
-				packet.Send(TO_GAME);
+				packet.Send(SEND_TO_DEFAULT);
 
-				AfxGetTask()->GetActor("Lobby")
-					<< MsgObject(NULL, 1, 0, 0, 0, 0, 0);
+				AfxGetTask()->GetActor("Lobby") << MsgObject(0, 1, 0, 0, 0, 0, 0);
 			}
-		}
-		else
-		{
-			AfxGetTask()->GetMainActor() << MsgObject(NULL, 35,
-				(int)"\xc4\xa3\xb1\xb8\xc0\xc7 \xb4\xeb\xc8\xad\xb8\xed\xc0\xbb \xb3\xd6\xbe\xee\xc1\xd6\xbc\xbc\xbf\xe4",
-				0, 0, 0, 0);
+		} else {
+			AfxGetTask()->PassMsgToMainActor(MsgObject(0, 0x23,
+				(intptr_t)"\xC4\xA3\xB1\xB8\xC0\xC7 \xB4\xEB\xC8\xAD\xB8\xED\xC0\xBB \xB3\xD6\xBE\xEE\xC1\xD6\xBC\xBC\xBF\xE4", 0, 0, 0, 0));
 		}
 	}
 }
 
-void FrAddFriendDlg::OnOKBtnUp()
-{
-	if (m_pEditNick)
-	{
-		if (strlen(m_pEditNick->GetLine(1, false)) == 0)
-		{
-			AfxGetTask()->GetMainActor() << MsgObject(NULL, 35,
-				(int)"\xc4\xa3\xb1\xb8\xc0\xc7 \xb4\xeb\xc8\xad\xb8\xed\xc0\xbb \xb3\xd6\xbe\xee\xc1\xd6\xbc\xbc\xbf\xe4",
-				0, 0, 0, 0);
+// addfrienddlg.cpp:229
+void FrAddFriendDlg::OnOKBtnUp(void) {
+	if (m_pIdEdit) {
+		if (strlen(m_pIdEdit->GetLine(1, false)) == 0) {
+			AfxGetTask()->PassMsgToMainActor(MsgObject(0, 0x23,
+				(intptr_t)"\xC4\xA3\xB1\xB8\xC0\xC7 \xB4\xEB\xC8\xAD\xB8\xED\xC0\xBB \xB3\xD6\xBE\xEE\xC1\xD6\xBC\xBC\xBF\xE4", 0, 0, 0, 0));
 			return;
 		}
 
-		if (strcmp(m_pEditNick->GetLine(1, false),
-				m_pDispNick->GetLine(1, false)) != 0)
-		{
-			AfxGetTask()->GetMainActor() << MsgObject(NULL, 35,
-				(int)"\xba\xb8\xb3\xbb\xb1\xe2 \xc0\xfc\xbf\xa1 \xb9\xde\xb4\xc2 \xc0\xcc\xb0\xa1 \xc8\xae\xbd\xc7\xc8\xf7 \xb8\xc2\xb4\xc2\xc1\xf6\n\xb2\xc0 \\c0xffff0000\\c'\xc8\xae\xc0\xce'\\c0xff000000\\c \xb9\xf6\xc6\xb0\xc0\xbb \xb4\xad\xb7\xaf \xc8\xae\xc0\xce\xc7\xd8 \xc1\xd6\xbc\xbc\xbf\xe4",
-				0, 0, 0, 0);
+		if (strcmp(m_pIdEdit->GetLine(1, false), m_pNickEdit->GetLine(1, false)) != 0) {
+			AfxGetTask()->PassMsgToMainActor(MsgObject(0, 0x23,
+				(intptr_t)"\xBA\xB8\xB3\xBB\xB1\xE2 \xC0\xFC\xBF\xA1 \xB9\xDE\xB4\xC2 \xC0\xCC\xB0\xA1 \xC8\xAE\xBD\xC7\xC8\xF7 \xB8\xC2\xB4\xC2\xC1\xF6\n\xB2\xC0 \\c0xffff0000\\c'\xC8\xAE\xC0\xCE'\\c0xff000000\\c \xB9\xF6\xC6\xB0\xC0\xBB \xB4\xAD\xB7\xAF \xC8\xAE\xC0\xCE\xC7\xD8 \xC1\xD6\xBC\xBC\xBF\xE4", 0, 0, 0, 0));
 			return;
 		}
 
-		if (WNetworkSystem::Instance()->IsConnected(WNetworkSystem::NET_MSN))
-		{
+		if (WSingleton<WNetworkSystem>::Instance()->IsConnected((WNetworkSystem::eNetUnit)1)) {
 			WSendPacket packet(0x18);
 			packet.Encode4(m_findUID);
-			packet.EncodeStr(std::string(m_pEditNick->GetLine(1, false)));
-			packet.Send(TO_MSN);
-		}
-		else
-		{
-			AfxGetTask()->GetMainActor() << MsgObject(NULL, 35,
-				(int)"\xb8\xde\xbd\xc5\xc0\xfa \xbc\xad\xb9\xf6\xbf\xcd \xbf\xac\xb0\xe1\xc0\xcc \xb5\xc7\xc1\xf6 \xbe\xca\xbd\xc0\xb4\xcf\xb4\xd9. \xb4\xd9\xc0\xbd\xbf\xa1 \xb4\xd9\xbd\xc3 \xbd\xc3\xb5\xb5\xc7\xcf\xbc\xbc\xbf\xe4.",
-				0, 0, 0, 0);
+			packet.EncodeStr(std::string(m_pIdEdit->GetLine(1, false)));
+			packet.Send((eSendTo)1);
+		} else {
+			AfxGetTask()->PassMsgToMainActor(MsgObject(0, 0x23,
+				(intptr_t)"\xB8\xDE\xBD\xC5\xC0\xFA \xBC\xAD\xB9\xF6\xBF\xCD \xBF\xAC\xB0\xE1\xC0\xCC \xB5\xC7\xC1\xF6 \xBE\xCA\xBD\xC0\xB4\xCF\xB4\xD9. \xB4\xD9\xC0\xBD\xBF\xA1 \xB4\xD9\xBD\xC3 \xBD\xC3\xB5\xB5\xC7\xCF\xBC\xBC\xBF\xE4.", 0, 0, 0, 0));
 		}
 	}
 
 	OnFreshOkay();
 }
 
-bool FrAddFriendDlg::OnInit()
-{
-	SetMessage(
-		"\xc3\xa3\xc0\xbb \xc4\xa3\xb1\xb8 \xb4\xeb\xc8\xad\xb8\xed\xbf\xa1 \xc4\xa3\xb1\xb8\xb0\xa1 \xb5\xc7\xb0\xed \xbd\xcd\xc0\xba \xb4\xeb\xc8\xad\xb8\xed\xc0\xbb \xc0\xd4\xb7\xc2\xc7\xcf\xb8\xe9 \xc1\xa2\xbc\xd3\xc1\xdf\xc0\xcc\xc1\xf6 \xbe\xca\xc0\xba \xc0\xaf\xc0\xfa\xbf\xa1\xb0\xd4\xb5\xb5 \xc4\xa3\xb1\xb8 \xbf\xe4\xc3\xbb\xc0\xcc \xb0\xa1\xb4\xc9\xc7\xd5\xb4\xcf\xb4\xd9.",
-		false);
-	WndManager();
+// addfrienddlg.cpp:303
+bool FrAddFriendDlg::OnInit(void) {
+	SetMessage("\xC3\xA3\xC0\xBB \xC4\xA3\xB1\xB8 \xB4\xEB\xC8\xAD\xB8\xED\xBF\xA1 \xC4\xA3\xB1\xB8\xB0\xA1 \xB5\xC7\xB0\xED \xBD\xCD\xC0\xBA \xB4\xEB\xC8\xAD\xB8\xED\xC0\xBB \xC0\xD4\xB7\xC2\xC7\xCF\xB8\xE9 \xC1\xA2\xBC\xD3\xC1\xDF\xC0\xCC\xC1\xF6 \xBE\xCA\xC0\xBA \xC0\xAF\xC0\xFA\xBF\xA1\xB0\xD4\xB5\xB5 \xC4\xA3\xB1\xB8 \xBF\xE4\xC3\xBB\xC0\xCC \xB0\xA1\xB4\xC9\xC7\xD5\xB4\xCF\xB4\xD9.", false);
+
 	return FrForm::OnInit();
 }
 
-void FrAddFriendDlg::OnProc(const float delta)
-{
-	if (m_bFocused == false)
-	{
-		if (m_elapsed > 0.3f)
-		{
-			WndManager()->GetDesktop()->ResetKeyFocus();
-			m_pEditNick->SetKeyFocus(true);
+// addfrienddlg.cpp:322
+void FrAddFriendDlg::OnProc(const float dt) {
+	if (!m_bFocused) {
+		if (m_elapsed > 0.3f) {
+			m_pWndManager->GetDesktop()->ResetKeyFocus();
+			m_pIdEdit->SetKeyFocus(true);
 			m_bFocused = true;
 		}
-
-		m_elapsed += delta;
+		m_elapsed += dt;
 	}
 }
 
-void FrAddFriendDlg::OnCancel()
-{
-	if (m_pEmoticonDlg)
+// addfrienddlg.cpp:337
+void FrAddFriendDlg::OnCancel(void) {
+	if (m_pEmoticonDlg) {
 		m_pEmoticonDlg->Close(FrCANCEL, true);
+	}
 
 	FrForm::OnCancel();
 }

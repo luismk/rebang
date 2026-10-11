@@ -1,263 +1,328 @@
-#include "luautilitylib.h"
-#include "luascript.h"
-#include "luascriptmanager.h"
-#include "wresrcmng.h"
-#include "cfile.h"
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\shared\luasystem\luautilitylib.cpp
+extern "C" { 
+#include "Lua/src/lua.h"
+#include "Lua/src/lauxlib.h"
+}
 #include <windows.h>
-#include <time.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
+#include <string>
+#include "LuaUtilityLib.h"
+#include "lua_tinker/lua_tinker.h"
+#include "LuaScript.h"
+#include "LuaScriptManager.h"
+#include "wresrcmng.h"
+#include "westpak.h"
 
-namespace lua_system
-{
-	static bool debug_line_trace = false;
+// westpak.cpp
+void __cdecl CloseCFile(cFile *file);
 
-	int lua_dofile_for_projectG(lua_State* state);
-	static int WaitFrame(lua_State* state);
-	static int WaitSec(lua_State* state);
-	static lua_script* get_script(lua_State* state);
-	static bool is_debug_mode();
-	static const char* get_my_country();
-	static const char* get_current_dir(const char* suffix);
-	static void print_client(const char* text);
-	static int debug_line_trace_start(lua_State* state);
-	static int debug_line_trace_end(lua_State* state);
-	static int debug_local_value(lua_State* state);
-	static int print_value_info(lua_State* state);
-	static int random(int low, int high);
+// Set by debug_line_trace_start, cleared by debug_line_trace_end.
+static bool data_00b7b6ec;
 
-	static const luaL_Reg script_lib[] = {
-		{ "WaitFrame", WaitFrame },
-        { "WaitSec",   WaitSec   },
-        { 0,           0         }
-	};
+static int debug_line_trace_start(lua_State *L);
+static int debug_line_trace_end(lua_State *L);
+static int debug_local_value(lua_State *L);
+static int print_value_info(lua_State *L);
+static bool is_debug_mode();
+static const char *get_my_country();
+static const char *get_current_dir(const char *name);
+static void print_client(const char *text);
+static int random(int low, int high);
+static int wait_frame(lua_State *L);
+static int wait_time(lua_State *L);
+static lua_system::lua_script *get_lua_script(lua_State *L);
 
-	void LuaOpenUtilityLib(lua_State* state)
-	{
-		luaL_openlib(state, "Script", script_lib, 0);
-		lua_register(state, "dofile_ex", lua_dofile_for_projectG);
-		lua_register(state, "debug_line_trace_start", debug_line_trace_start);
-		lua_register(state, "debug_line_trace_end", debug_line_trace_end);
-		lua_register(state, "debug_local_value", debug_local_value);
-		lua_register(state, "print_value_info", print_value_info);
-		lua_tinker::def(state, "is_debug_mode", is_debug_mode);
-		lua_tinker::def(state, "get_my_country", get_my_country);
-		lua_tinker::def(state, "get_current_dir", get_current_dir);
-		lua_tinker::def(state, "print_client", print_client);
-		lua_tinker::def(state, "random", random);
+// The path get_current_dir returns.
+static char current_dir_buffer[1024];
+
+static const luaL_Reg script_lib[] = {
+	{ "WaitFrame", wait_frame },
+	{ "WaitSec", wait_time },
+	{ NULL, NULL }
+};
+
+namespace lua_system {
+
+// luautilitylib.cpp:45
+void LuaOpenUtilityLib(lua_State *L) {
+	luaL_openlib(L, "Script", script_lib, 0);
+
+	lua_register(L, "dofile_ex", lua_dofile_for_projectG);
+
+	lua_register(L, "debug_line_trace_start", debug_line_trace_start);
+	lua_register(L, "debug_line_trace_end", debug_line_trace_end);
+	lua_register(L, "debug_local_value", debug_local_value);
+	lua_register(L, "print_value_info", print_value_info);
+
+	lua_tinker::def(L, "is_debug_mode", is_debug_mode);
+	lua_tinker::def(L, "get_my_country", get_my_country);
+	lua_tinker::def(L, "get_current_dir", get_current_dir);
+	lua_tinker::def(L, "print_client", print_client);
+	lua_tinker::def(L, "random", random);
+}
+
+// luautilitylib.cpp:76
+void print_debug_local_value(lua_State *L, const lua_Debug *ar) {
+	if (ar->currentline <= 0) {
+		return;
+	}
+	if (strcmp(ar->source, "?") == 0) {
+		return;
 	}
 
-	void print_debug_local_value(lua_State* state, const lua_Debug* debug)
-	{
-		char text[256];
-		if (debug->currentline > 0 && strcmp(debug->source, "?"))
-		{
-			int index = 1;
-			sprintf(text, "\t\t\t---- Debug Line : %s [%d] -----",
-				debug->source, debug->currentline);
-			print_client(text);
-			const char* name = lua_getlocal(state, debug, index);
-			while (name && strcmp(name, "(*temporary)"))
-			{
-				const char* value = lua_tostring(state, -1);
-				++index;
-				sprintf(text, "\t\t\t\t%s = %s", name, value);
-				print_client(text);
-				name = lua_getlocal(state, debug, index);
+	char text[256];
+	int index = 1;
+	sprintf(text, "\t\t\t---- Debug Line : %s [%d] -----", ar->source, ar->currentline);
+
+	const char *name;
+	while ((name = lua_getlocal(L, ar, index)) != NULL) {
+		if (strcmp(name, "(*temporary)") == 0) {
+			break;
+		}
+
+		const char *value = lua_tostring(L, -1);
+
+		index++;
+
+		sprintf(text, "\t\t\t\t%s = %s", name, value);
+	}
+}
+
+// luautilitylib.cpp:105
+const char *lua_file_line_text_manager::get_line_text(const char *filename, int line) {
+	if (filename == NULL) {
+		return NULL;
+	}
+
+	std::map<std::string, std::vector<std::string> >::iterator it = m_files.find(filename);
+	if (it == m_files.end()) {
+		return NULL;
+	}
+
+	if (it->second.size() < (unsigned int)line) {
+		return NULL;
+	}
+
+	return it->second[line - 1].c_str();
+}
+
+// luautilitylib.cpp:123
+void lua_file_line_text_manager::road_lua_file(const char *filename) {
+	if (filename == NULL) {
+		return;
+	}
+
+	cFile *file = g_resrcmng->GetCFile(filename, 0xFFFF);
+	if (file == NULL) {
+		return;
+	}
+
+	char *buffer = new char[file->Length() + 1];
+	file->Read(buffer, file->Length());
+	buffer[file->Length()] = 0;
+	CloseCFile(file);
+
+	std::vector<std::string> lines;
+
+	std::map<std::string, std::vector<std::string> >::iterator it = m_files.find(filename);
+	if (it != m_files.end()) {
+		m_files.erase(it);
+	}
+
+	const char *p = buffer;
+
+	std::string text;
+
+	while (*p != '\0') {
+		if (*p == '\n') {
+			lines.push_back(text);
+			text.clear();
+
+			++p;
+			if (*p == '\0') {
+				break;
 			}
 		}
+
+		text += *p;
+
+		++p;
 	}
 
-	const char* lua_file_line_text_manager::get_line_text(const char* file,
-		int line)
-	{
-		if (!file)
-			return 0;
-		std::map<std::string, std::vector<std::string> >::iterator it;
-		it = lines_.find(file);
-		if (it == lines_.end())
-			return 0;
-		std::vector<std::string>& values = it->second;
-		if (values.size() >= line)
-			return values[line - 1].c_str();
-		return 0;
+	delete[] buffer;
+
+	if (text.size() != 0) {
+		lines.push_back(text);
 	}
 
-	void lua_file_line_text_manager::road_lua_file(const char* file)
-	{
-		if (!file)
-			return;
-		cFile* input = g_resrcmng->GetCFile(file, 65535);
-		if (!input)
-			return;
-		char* buffer = new char[input->Length() + 1];
-		input->Read(buffer, input->Length());
-		buffer[input->Length()] = 0;
-		CloseCFile(input);
-		std::vector<std::string> values;
-		std::map<std::string, std::vector<std::string> >::iterator it;
-		it = lines_.find(file);
-		if (it != lines_.end())
-			lines_.erase(it);
-		const char* cursor = buffer;
-		std::string line;
-		while (*cursor)
-		{
-			if (*cursor == '\n')
-			{
-				values.push_back(line);
-				line.clear();
-				++cursor;
-				if (!*cursor)
-					break;
+	m_files[filename] = lines;
+}
+
+// luautilitylib.cpp:177
+void lua_file_line_text_manager::road_lua_buffer(const char *filename, const char *buffer) {
+	if (filename == NULL || buffer == NULL) {
+		return;
+	}
+
+	std::vector<std::string> lines;
+
+	std::map<std::string, std::vector<std::string> >::iterator it = m_files.find(filename);
+	if (it != m_files.end()) {
+		m_files.erase(it);
+	}
+
+	const char *p = buffer;
+
+	std::string text;
+
+	while (*p != '\0') {
+		if (*p == '\n') {
+			lines.push_back(text);
+			text.clear();
+
+			++p;
+			if (*p == '\0') {
+				break;
 			}
-			line += *cursor++;
 		}
-		delete[] buffer;
-		if (line.size())
-			values.push_back(line);
-		lines_[file] = values;
+
+		text += *p;
+
+		++p;
 	}
 
-	void lua_file_line_text_manager::road_lua_buffer(const char* file,
-		const char* buffer)
-	{
-		if (!file || !buffer)
-			return;
-		std::vector<std::string> values;
-		std::map<std::string, std::vector<std::string> >::iterator it;
-		it = lines_.find(file);
-		if (it != lines_.end())
-			lines_.erase(it);
-		const char* cursor = buffer;
-		std::string line;
-		while (*cursor)
-		{
-			if (*cursor == '\n')
-			{
-				values.push_back(line);
-				line.clear();
-				++cursor;
-				if (!*cursor)
-					break;
-			}
-			line += *cursor++;
-		}
-		if (line.size())
-			values.push_back(line);
-		lines_[file] = values;
+	if (text.size() != 0) {
+		lines.push_back(text);
 	}
 
-	bool lua_file_line_text_manager::is_loaded_lua_file(const char* file)
-	{
-		if (!file)
-			return false;
-		std::map<std::string, std::vector<std::string> >::iterator it;
-		it = lines_.find(file);
-		if (it == lines_.end())
-			return false;
-		return true;
-	}
+	m_files[filename] = lines;
+}
 
-	lua_file_line_text_manager* lua_file_line_text_manager::get_instance()
-	{
-		static lua_file_line_text_manager instance;
-		return &instance;
-	}
-
-	int lua_dofile_for_projectG(lua_State* state)
-	{
-		const char* file = lua_tostring(state, -1);
-		lua_script* script =
-			lua_script_manger::GetInstance()->CreateScript(true);
-		script->RunFile(file);
-		return 0;
-	}
-
-	static int WaitFrame(lua_State* state)
-	{
-		lua_script* script = get_script(state);
-		script->WaitFrameScript((int)luaL_checknumber(state, 1));
-		return lua_yield(state, 1);
-	}
-
-	static int WaitSec(lua_State* state)
-	{
-		lua_script* script = get_script(state);
-		float seconds = (float)luaL_checknumber(state, 1);
-		script->WaitTimeScript(seconds);
-		return lua_yield(state, 1);
-	}
-
-	static lua_script* get_script(lua_State* state)
-	{
-		lua_pushlightuserdata(state, state);
-		lua_gettable(state, LUA_GLOBALSINDEX);
-		return (lua_script*)lua_touserdata(state, -1);
-	}
-
-	static bool is_debug_mode()
-	{
+// luautilitylib.cpp:222
+bool lua_file_line_text_manager::is_loaded_lua_file(const char *filename) {
+	if (filename == NULL) {
 		return false;
 	}
 
-	static const char* get_my_country()
-	{
-		return "KOREA";
+	std::map<std::string, std::vector<std::string> >::iterator it = m_files.find(filename);
+	return it != m_files.end();
+}
+
+// luautilitylib.cpp:237
+lua_file_line_text_manager *lua_file_line_text_manager::get_instance() {
+	static lua_file_line_text_manager instance;
+	return &instance;
+}
+
+// luautilitylib.cpp:245
+int lua_dofile_for_projectG(lua_State *L) {
+	const char *filename = lua_tostring(L, -1);
+
+	lua_script *script = lua_script_manger::GetInstance()->CreateScript(true);
+	script->RunFile(filename);
+
+	return 0;
+}
+
+}
+
+// luautilitylib.cpp:259
+static int wait_frame(lua_State *L) {
+	lua_system::lua_script *script = get_lua_script(L);
+
+	int frame = (int)luaL_checknumber(L, 1);
+
+	script->WaitFrameScript(frame);
+
+	return lua_yield(L, 1);
+}
+
+// luautilitylib.cpp:272
+static int wait_time(lua_State *L) {
+	lua_system::lua_script *script = get_lua_script(L);
+
+	float time = (float)luaL_checknumber(L, 1);
+
+	script->WaitTimeScript(time);
+
+	return lua_yield(L, 1);
+}
+
+// luautilitylib.cpp:287
+static lua_system::lua_script *get_lua_script(lua_State *L) {
+	lua_pushlightuserdata(L, L);
+	lua_gettable(L, LUA_GLOBALSINDEX);
+	return (lua_system::lua_script *)lua_touserdata(L, -1);
+}
+
+// luautilitylib.cpp:294
+static bool is_debug_mode() {
+	return false;
+}
+
+// luautilitylib.cpp:303
+static const char *get_my_country() {
+	return "KOREA";
+}
+
+// luautilitylib.cpp:317
+static const char *get_current_dir(const char *name) {
+	memset(current_dir_buffer, 0, sizeof(current_dir_buffer));
+	char current_dir[1024] = { 0 };
+	GetCurrentDirectoryA(sizeof(current_dir), current_dir);
+	std::string path(current_dir);
+
+	if (name != NULL && strcmp(name, "?") != 0) {
+		path += "\\";
+		path += name;
 	}
 
-	static const char* get_current_dir(const char* suffix)
-	{
-		static char result[1024];
-		memset(result, 0, sizeof(result));
-		char current[1024] = { 0 };
-		GetCurrentDirectory(sizeof(current), current);
-		std::string path(current);
-		if (suffix && strcmp(suffix, "?"))
-		{
-			path += "\\";
-			path += suffix;
-		}
-		strncpy(result, path.c_str(), sizeof(result) - 1);
-		return result;
+	strncpy(current_dir_buffer, path.c_str(), sizeof(current_dir_buffer) - 1);
+	return current_dir_buffer;
+}
+
+// luautilitylib.cpp:339
+static void print_client(const char *text) {
+}
+
+// luautilitylib.cpp:383
+static int debug_line_trace_start(lua_State *L) {
+	return 0;
+}
+
+// luautilitylib.cpp:392
+static int debug_line_trace_end(lua_State *L) {
+	data_00b7b6ec = false;
+
+	return 0;
+}
+
+// luautilitylib.cpp:399
+static int debug_local_value(lua_State *L) {
+	return 0;
+}
+
+// luautilitylib.cpp:408
+static int print_value_info(lua_State *L) {
+	return 0;
+}
+
+// luautilitylib.cpp:451
+static int random(int low, int high) {
+	if (low == high) {
+		return high;
 	}
 
-	static void print_client(const char* text)
-	{
+	srand((unsigned int)time(NULL));
+
+	if (low > high) {
+		int swap = high;
+		high = low;
+		low = swap;
 	}
 
-	static int debug_line_trace_start(lua_State* state)
-	{
-		return 0;
-	}
-
-	static int debug_line_trace_end(lua_State* state)
-	{
-		debug_line_trace = false;
-		return 0;
-	}
-
-	static int debug_local_value(lua_State* state)
-	{
-		return 0;
-	}
-
-	static int print_value_info(lua_State* state)
-	{
-		return 0;
-	}
-
-	static int random(int low, int high)
-	{
-		if (low == high)
-			return high;
-		srand((unsigned)time(0));
-		if (low > high)
-		{
-			int temp = high;
-			high = low;
-			low = temp;
-		}
-		return rand() % (high - low) + low;
-	}
+	return rand() % (high - low) + low;
 }

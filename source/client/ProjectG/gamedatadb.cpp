@@ -1,96 +1,102 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\gamedatadb.cpp
 #include "gamedatadb.h"
-#include "gdeventnotice.h"
 #include "gdtextbox.h"
 #include "gdbitmapbox.h"
+#include "gdeventnotice.h"
 #include "gdvoiceitem.h"
+#include "tinyxml.h"
 
-CGameDataDB::CGameDataDB()
-{
+template <> CGameDataDB* WSingleton<CGameDataDB>::m_pInstance = NULL;
+
+// gamedatadb.cpp:11
+CGameDataDB::CGameDataDB(void) {
 	RegisterGameData();
 	LoadGameData("gamedata.xml");
 }
 
-CGameDataDB::~CGameDataDB()
-{
+// gamedatadb.cpp:17
+CGameDataDB::~CGameDataDB(void) {
 	Destory();
 }
 
-void CGameDataDB::RegisterGameDataToDB(eGameDataDB type, std::string& name,
-	IGameData* pData)
-{
-	std::map<std::string, IGameData*>::iterator it =
-		m_gameData[type].dataMap.find(name);
-	if (it == m_gameData[type].dataMap.end())
-		m_gameData[type].dataMap.insert(
-			std::map<std::string, IGameData*>::value_type(name, pData));
+// gamedatadb.cpp:22
+void CGameDataDB::RegisterGameDataToDB(eGameDataDB eType, std::string& strName, IGameData* pGameData) {
+	std::map<std::string, IGameData*>::iterator it = m_GameData[eType].mapGameData.find(strName);
+	if (it == m_GameData[eType].mapGameData.end()) {
+		m_GameData[eType].mapGameData.insert(std::map<std::string, IGameData*>::value_type(strName, pGameData));
+	}
 }
 
-void CGameDataDB::LoadGameData(const char* filename)
-{
+// gamedatadb.cpp:34
+void CGameDataDB::LoadGameData(const char* szFileName) {
 	TiXmlDocument doc;
-	if (!doc.LoadFileEx(filename))
+
+	if (doc.LoadFileEx(szFileName) == false) {
+
 		return;
+	}
 	ParseGameData(doc);
 }
 
-void CGameDataDB::RegisterCreateFunction(eGameDataDB type,
-	IGameData*(__fastcall* pfnCreate)())
-{
-	m_gameData[type].pfnCreate = pfnCreate;
+// gamedatadb.cpp:48
+void CGameDataDB::RegisterCreateFunction(eGameDataDB eType, GAMEDATA_CREATE_FUNC pFunc) {
+	m_GameData[eType].pCreateFunc = pFunc;
 }
 
-void CGameDataDB::RegisterDestoryFunction(eGameDataDB type,
-	void(__fastcall* pfnDestory)(IGameData*))
-{
-	m_gameData[type].pfnDestory = pfnDestory;
+// gamedatadb.cpp:55
+void CGameDataDB::RegisterDestoryFunction(eGameDataDB eType, GAMEDATA_DESTORY_FUNC pFunc) {
+	m_GameData[eType].pDestoryFunc = pFunc;
 }
 
-void CGameDataDB::RegisterGameID(eGameDataDB type, const char* id)
-{
-	m_gameData[type].gameID = id;
+// gamedatadb.cpp:61
+void CGameDataDB::RegisterGameID(eGameDataDB eType, const char* szGameID) {
+	m_GameData[eType].strGameID = szGameID;
 }
 
-void CGameDataDB::RegisterGameData()
-{
+// gamedatadb.cpp:68
+void CGameDataDB::RegisterGameData(void) {
 	CGDTextBox::RegisterToGameDB();
 	CGDBitmapBox::RegisterToGameDB();
+
 	CGDEventNotice::RegisterToGameDB();
+
 	CGDVoiceItem::RegisterToGameDB();
 }
 
-void CGameDataDB::ParseGameData(TiXmlDocument& doc)
-{
-	for (int i = 0; i < GAMEDATA_MAX; ++i)
-	{
-		TiXmlNode* pNode = doc.FirstChild(m_gameData[i].gameID.c_str());
-		while (pNode)
-		{
-			IGameData* pData = m_gameData[i].pfnCreate();
-			std::string name = pNode->ToElement()->Attribute("name");
-			pData->Initialize(pNode);
-			RegisterGameDataToDB((eGameDataDB)i, name, pData);
-			pNode = pNode->NextSibling(m_gameData[i].gameID.c_str());
+// gamedatadb.cpp:80
+void CGameDataDB::ParseGameData(TiXmlDocument& doc) {
+	for (int i = 0; i < eGAMEDATADB_MAX; i++) {
+
+		TiXmlNode* pNode = doc.FirstChild(m_GameData[i].strGameID.c_str());
+		while (pNode) {
+			IGameData* pGameData = m_GameData[i].pCreateFunc();
+			std::string strName = pNode->ToElement()->Attribute("name");
+			pGameData->Initialize(pNode);
+			RegisterGameDataToDB((eGameDataDB)i, strName, pGameData);
+			pNode = pNode->NextSibling(m_GameData[i].strGameID.c_str());
 		}
 	}
 }
 
-void CGameDataDB::Destory()
-{
-	for (int i = 0; i < GAMEDATA_MAX; ++i)
-	{
-		std::map<std::string, IGameData*>::iterator it =
-			m_gameData[i].dataMap.begin();
-		for (; it != m_gameData[i].dataMap.end(); ++it)
-			m_gameData[i].pfnDestory((*it).second);
+// gamedatadb.cpp:96
+void CGameDataDB::Destory(void) {
+	for (int i = 0; i < eGAMEDATADB_MAX; i++) {
+
+		std::map<std::string, IGameData*>::iterator it = m_GameData[i].mapGameData.begin();
+		while (it != m_GameData[i].mapGameData.end()) {
+
+			m_GameData[i].pDestoryFunc(it->second);
+			++it;
+		}
 	}
 }
 
-IGameData* CGameDataDB::GetGameData(eGameDataDB type, const char* name)
-{
-	std::map<std::string, IGameData*>::iterator it =
-		m_gameData[type].dataMap.find(name);
-	if (it != m_gameData[type].dataMap.end())
-		return (*it).second;
+// gamedatadb.cpp:109
+IGameData* CGameDataDB::GetGameData(eGameDataDB eType, const char* szName) {
+	std::map<std::string, IGameData*>::iterator it = m_GameData[eType].mapGameData.find(szName);
+	if (it != m_GameData[eType].mapGameData.end()) {
+
+		return it->second;
+	}
 	return NULL;
 }

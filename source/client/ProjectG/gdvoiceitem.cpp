@@ -1,32 +1,34 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\gdvoiceitem.cpp
+#include <stdio.h>
+
 #include "gdvoiceitem.h"
+#include "tinyxml.h"
 
-CGDVoiceItem::CGDVoiceItem()
-
-{
+// gdvoiceitem.cpp:7
+CGDVoiceItem::CGDVoiceItem(void) {
 }
 
-CGDVoiceItem::~CGDVoiceItem()
-{
+// gdvoiceitem.cpp:12
+CGDVoiceItem::~CGDVoiceItem(void) {
 }
 
-void CGDVoiceItem::Initialize(TiXmlNode* pNode)
-{
-	TiXmlNode* pChild = pNode->FirstChild("row");
-	while (pChild)
-	{
+// gdvoiceitem.cpp:17
+void CGDVoiceItem::Initialize(TiXmlNode* pNode) {
+	TiXmlNode* pRow = pNode->FirstChild("row");
+	while (pRow) {
+
 		sGD_VOICEITEM item;
-		std::string typeID = pChild->ToElement()->Attribute("typeid");
-		item.name = pChild->ToElement()->Attribute("name");
-		std::string state = pChild->ToElement()->Attribute("state");
-		std::string numOfSounds = pChild->ToElement()->Attribute("numofsounds");
+		std::string strTypeID = pRow->ToElement()->Attribute("typeid");
+		item.strName = pRow->ToElement()->Attribute("name");
+		std::string strState = pRow->ToElement()->Attribute("state");
+		std::string strNumOfSounds = pRow->ToElement()->Attribute("numofsounds");
 
-		sscanf(typeID.c_str(), "%d", &item.typeID);
-		sscanf(state.c_str(), "%d", &item.state);
-		sscanf(numOfSounds.c_str(), "%d", &item.numOfSounds);
+		sscanf(strTypeID.c_str(), "%d", &item.nTypeID);
+		sscanf(strState.c_str(), "%d", &item.nState);
+		sscanf(strNumOfSounds.c_str(), "%d", &item.byNumOfSounds);
 
-		m_voiceList.push_back(item);
+		m_listVoiceItem.push_back(item);
 
-		pChild = pChild->NextSibling("row");
+		pRow = pRow->NextSibling("row");
 	}
 }

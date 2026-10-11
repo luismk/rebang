@@ -1,237 +1,280 @@
+// Original: d:\build\custom\temp\code\client\projectg\aviwriter.cpp
+#include <windows.h>
+#include <string.h>
 #include "aviwriter.h"
 
-namespace ntg
-{
-	AviWriter::AviWriter()
-		: m_quality(0),
-		  m_fps(0),
-		  m_fcc_handler(0),
-		  m_video_frames(0),
-		  m_video_max_size(0),
-		  m_audio_chunks(0),
-		  m_audio_max_size(0),
-		  m_hmmio(NULL)
-	{
-		memset(&m_bih, 0, sizeof(m_bih));
-		memset(&m_comp_format, 0, sizeof(m_comp_format));
-		memset(&m_wave_format, 0, sizeof(m_wave_format));
-	}
+namespace ntg {
 
-	AviWriter::~AviWriter()
-	{
-	}
+// aviwriter.cpp:27
+AviWriter::AviWriter(void)
+	: m_nQuality(0), m_nFps(0), m_fccHandler(0), m_nVideoFrames(0), m_nMaxVideoSize(0),
+	  m_nAudioChunks(0), m_nMaxAudioSize(0), m_hmmio(0) {
+	memset(&m_format, 0, sizeof(m_format));
+	memset(&m_compFormat, 0, sizeof(m_compFormat));
+	memset(&m_waveFormat, 0, sizeof(m_waveFormat));
+}
 
-	bool AviWriter::open(const char* filename, const BITMAPINFOHEADER* bih,
-		int quality, int fps)
-	{
-		m_hmmio = mmioOpen((char*)filename, NULL, MMIO_CREATE | MMIO_WRITE);
-		if (!m_hmmio)
-			return false;
-		mmioSeek(m_hmmio, 2048, SEEK_SET);
-		m_bih = *bih;
-		m_quality = quality;
-		m_fps = fps;
-		m_video_frames = 0;
-		m_video_max_size = 0;
-		m_audio_chunks = 0;
-		m_audio_max_size = 0;
-		reserve_idxcache();
-		return true;
-	}
+// aviwriter.cpp:34
+AviWriter::~AviWriter(void) {
+}
 
-	void AviWriter::close()
-	{
-		if (m_hmmio)
-		{
-			write_header();
-			m_index.clear();
-			mmioFlush(m_hmmio, 0);
-			mmioClose(m_hmmio, 0);
-			m_hmmio = NULL;
-		}
-	}
+// aviwriter.cpp:38
+bool AviWriter::open(char const *pszFileName, BITMAPINFOHEADER const *pFormat, int nQuality, int nFps) {
+	m_hmmio = mmioOpen((LPSTR)pszFileName, 0, MMIO_CREATE | MMIO_WRITE);
+	if (!m_hmmio)
+		return false;
 
-	void AviWriter::set_comp_format(const BITMAPINFO* format)
-	{
-		m_comp_format = *format;
-	}
+	mmioSeek(m_hmmio, 0x800, SEEK_SET);
 
-	void AviWriter::write_header()
-	{
-		MMCKINFO riff, movi, hdrl, avih, strl, header_chunk, format_chunk, junk;
-		LONG pos = mmioSeek(m_hmmio, 0, SEEK_CUR);
-		mmioSeek(m_hmmio, 0, SEEK_SET);
+	m_format = *pFormat;
+	m_nQuality = nQuality;
+	m_nFps = nFps;
+	m_nVideoFrames = 0;
+	m_nMaxVideoSize = 0;
+	m_nAudioChunks = 0;
+	m_nMaxAudioSize = 0;
 
-		memset(&riff, 0, sizeof(riff));
-		riff.fccType = mmioFOURCC('A', 'V', 'I', ' ');
-		mmioCreateChunk(m_hmmio, &riff, MMIO_CREATERIFF);
-		memset(&hdrl, 0, sizeof(hdrl));
-		hdrl.fccType = mmioFOURCC('h', 'd', 'r', 'l');
-		mmioCreateChunk(m_hmmio, &hdrl, MMIO_CREATELIST);
-		memset(&avih, 0, sizeof(avih));
-		avih.ckid = mmioFOURCC('a', 'v', 'i', 'h');
-		avih.cksize = sizeof(MainAVIHeader);
-		mmioCreateChunk(m_hmmio, &avih, 0);
-		MainAVIHeader header;
-		memset(&header, 0, sizeof(header));
-		header.dwMicroSecPerFrame = MulDiv(1000000, 1, m_fps);
-		header.dwMaxBytesPerSec = 0;
-		header.dwPaddingGranularity = 0;
-		header.dwFlags = AVIF_HASINDEX;
-		header.dwTotalFrames = m_video_frames;
-		header.dwStreams = 2;
-		header.dwSuggestedBufferSize = m_video_max_size;
-		header.dwWidth = m_bih.biWidth;
-		header.dwHeight = m_bih.biHeight;
-		mmioWrite(m_hmmio, (char*)&header, sizeof(header));
-		mmioAscend(m_hmmio, &avih, 0);
+	reserve_idxcache();
 
-		memset(&strl, 0, sizeof(strl));
-		strl.fccType = mmioFOURCC('s', 't', 'r', 'l');
-		mmioCreateChunk(m_hmmio, &strl, MMIO_CREATELIST);
-		memset(&header_chunk, 0, sizeof(header_chunk));
-		header_chunk.ckid = mmioFOURCC('s', 't', 'r', 'h');
-		header_chunk.cksize = 56;
-		mmioCreateChunk(m_hmmio, &header_chunk, 0);
-		AVIStreamHeader stream;
-		memset(&stream, 0, sizeof(stream));
-		stream.fccType = streamtypeVIDEO;
-		stream.fccHandler = m_fcc_handler;
-		stream.dwScale = 1;
-		stream.dwRate = m_fps;
-		stream.dwLength = 1;
-		stream.dwSuggestedBufferSize = m_video_max_size;
-		stream.dwQuality = m_quality * 100;
-		short rect[4] = { 0, 0, (short)m_bih.biWidth, (short)m_bih.biHeight };
-		mmioWrite(m_hmmio, (char*)&stream, 48);
-		mmioWrite(m_hmmio, (char*)rect, 8);
-		mmioAscend(m_hmmio, &header_chunk, 0);
-		memset(&format_chunk, 0, sizeof(format_chunk));
-		format_chunk.ckid = mmioFOURCC('s', 't', 'r', 'f');
-		format_chunk.cksize = sizeof(BITMAPINFOHEADER);
-		mmioCreateChunk(m_hmmio, &format_chunk, 0);
-		mmioWrite(m_hmmio, (char*)&m_comp_format, sizeof(BITMAPINFOHEADER));
-		mmioAscend(m_hmmio, &format_chunk, 0);
-		mmioAscend(m_hmmio, &strl, 0);
-		mmioAscend(m_hmmio, &hdrl, 0);
+	return true;
+}
 
-		memset(&strl, 0, sizeof(strl));
-		strl.fccType = mmioFOURCC('s', 't', 'r', 'l');
-		mmioCreateChunk(m_hmmio, &strl, MMIO_CREATELIST);
-		memset(&header_chunk, 0, sizeof(header_chunk));
-		header_chunk.ckid = mmioFOURCC('s', 't', 'r', 'h');
-		header_chunk.cksize = 56;
-		mmioCreateChunk(m_hmmio, &header_chunk, 0);
-		memset(&stream, 0, sizeof(stream));
-		stream.fccType = streamtypeAUDIO;
-		stream.dwScale = 4;
-		stream.dwRate = 176400;
-		stream.dwLength = m_audio_chunks * 22050;
-		stream.dwSampleSize = 4;
-		memset(rect, 0, sizeof(rect));
-		mmioWrite(m_hmmio, (char*)&stream, 48);
-		mmioWrite(m_hmmio, (char*)rect, 8);
-		mmioAscend(m_hmmio, &header_chunk, 0);
-		memset(&format_chunk, 0, sizeof(format_chunk));
-		format_chunk.ckid = mmioFOURCC('s', 't', 'r', 'f');
-		format_chunk.cksize = 16;
-		mmioCreateChunk(m_hmmio, &format_chunk, 0);
-		memset(&m_wave_format, 0, sizeof(m_wave_format));
-		m_wave_format.wFormatTag = WAVE_FORMAT_PCM;
-		m_wave_format.nChannels = 2;
-		m_wave_format.nSamplesPerSec = 44100;
-		m_wave_format.nAvgBytesPerSec = 176400;
-		m_wave_format.nBlockAlign = 4;
-		mmioWrite(m_hmmio, (char*)&m_wave_format, sizeof(m_wave_format));
-		int bits = format_chunk.cksize;
-		mmioWrite(m_hmmio, (char*)&bits, 2);
-		mmioAscend(m_hmmio, &format_chunk, 0);
-		mmioAscend(m_hmmio, &strl, 0);
-		mmioAscend(m_hmmio, &hdrl, 0);
+// aviwriter.cpp:59
+void AviWriter::close(void) {
+	if (m_hmmio) {
+		write_header();
 
-		memset(&junk, 0, sizeof(junk));
-		junk.ckid = mmioFOURCC('J', 'U', 'N', 'K');
-		mmioCreateChunk(m_hmmio, &junk, 0);
-		mmioSeek(m_hmmio, 2048 - 12, SEEK_SET);
-		mmioAscend(m_hmmio, &junk, 0);
-		memset(&movi, 0, sizeof(movi));
-		movi.fccType = mmioFOURCC('m', 'o', 'v', 'i');
-		mmioCreateChunk(m_hmmio, &movi, MMIO_CREATELIST);
-		mmioSeek(m_hmmio, pos, SEEK_SET);
-		mmioAscend(m_hmmio, &movi, 0);
-		write_indexes();
-		mmioAscend(m_hmmio, &riff, 0);
-	}
+		m_index.clear();
 
-	void AviWriter::write_indexes()
-	{
-		if (!m_index.empty())
-		{
-			MMCKINFO ck;
-			memset(&ck, 0, sizeof(ck));
-			ck.ckid = mmioFOURCC('i', 'd', 'x', '1');
-			ck.cksize = m_index.size() * sizeof(AVIINDEXENTRY);
-			mmioCreateChunk(m_hmmio, &ck, 0);
-			mmioWrite(m_hmmio, (char*)&m_index[0], ck.cksize);
-			mmioAscend(m_hmmio, &ck, 0);
-		}
-	}
-
-	void AviWriter::reserve_idxcache()
-	{
-		if (m_index.size() == m_index.capacity())
-			m_index.reserve(m_index.size() + m_fps * 60);
-	}
-
-	void AviWriter::index(MMCKINFO* ck, DWORD flags)
-	{
-		AVIINDEXENTRY entry;
-		entry.ckid = ck->ckid;
-		entry.dwChunkLength = ck->cksize;
-		entry.dwChunkOffset = ck->dwDataOffset - 8;
-		entry.dwFlags = flags;
-		reserve_idxcache();
-		m_index.push_back(entry);
-	}
-
-	void AviWriter::write_video(int frames, void* data, int size)
-	{
-		for (int i = 0; i < frames; ++i)
-		{
-			MMCKINFO ck;
-			memset(&ck, 0, sizeof(ck));
-			ck.ckid = mmioFOURCC('0', '0', 'd', 'c');
-			ck.cksize = size;
-			mmioCreateChunk(m_hmmio, &ck, 0);
-			mmioWrite(m_hmmio, (char*)data, size);
-			mmioAscend(m_hmmio, &ck, 0);
-			++m_video_frames;
-			if (m_video_max_size < size)
-				m_video_max_size = size;
-			index(&ck, AVIIF_KEYFRAME);
-		}
-	}
-
-	void AviWriter::write_audio(void* data, int size)
-	{
-		MMCKINFO ck;
-		memset(&ck, 0, sizeof(ck));
-		ck.ckid = mmioFOURCC('0', '1', 'w', 'b');
-		ck.cksize = size;
-		mmioCreateChunk(m_hmmio, &ck, 0);
-		mmioWrite(m_hmmio, (char*)data, size);
-		mmioAscend(m_hmmio, &ck, 0);
-		++m_audio_chunks;
-		if (m_audio_max_size < size)
-			m_audio_max_size = size;
-		index(&ck, 0);
-	}
-
-	void AviWriter::write_audio_sync(void* data, int size)
-	{
-		int video_time = (1000 / m_fps) * m_video_frames;
-		int audio_time = m_audio_chunks * 500;
-		if (video_time > audio_time)
-			write_audio(data, (video_time - audio_time) * 176400 / 1000);
+		mmioFlush(m_hmmio, 0);
+		mmioClose(m_hmmio, 0);
+		m_hmmio = 0;
 	}
 }
+
+// aviwriter.cpp:73
+void AviWriter::set_comp_format(BITMAPINFO const *pFormat) {
+	m_compFormat = *pFormat;
+}
+
+// aviwriter.cpp:78
+void AviWriter::write_video(int nFrameCount, void *pData, int nSize) {
+	for (int i = 0; i < nFrameCount; i++) {
+		MMCKINFO ck;
+		memset(&ck, 0, sizeof(ck));
+		ck.ckid = mmioFOURCC('0', '0', 'd', 'c');
+		ck.cksize = nSize;
+		mmioCreateChunk(m_hmmio, &ck, 0);
+		mmioWrite(m_hmmio, (char *)pData, nSize);
+		mmioAscend(m_hmmio, &ck, 0);
+
+		m_nVideoFrames++;
+
+		if (m_nMaxVideoSize < nSize)
+			m_nMaxVideoSize = nSize;
+
+		index(&ck, AVIIF_KEYFRAME);
+	}
+}
+
+// aviwriter.cpp:99
+void AviWriter::write_audio(void *pData, int nSize) {
+	MMCKINFO ck;
+
+	memset(&ck, 0, sizeof(ck));
+
+	ck.ckid = mmioFOURCC('0', '1', 'w', 'b');
+	ck.cksize = nSize;
+	mmioCreateChunk(m_hmmio, &ck, 0);
+	mmioWrite(m_hmmio, (char *)pData, nSize);
+	mmioAscend(m_hmmio, &ck, 0);
+
+	m_nAudioChunks++;
+
+	if (m_nMaxAudioSize < nSize)
+		m_nMaxAudioSize = nSize;
+
+	index(&ck, 0);
+}
+
+// aviwriter.cpp:120
+void AviWriter::write_audio_sync(void *pData, int nSize) {
+	int nVideoTime = 1000 / m_nFps * m_nVideoFrames;
+	int nAudioTime = m_nAudioChunks * 500;
+
+	if (nVideoTime > nAudioTime) {
+		write_audio(pData, (nVideoTime - nAudioTime) * 176400 / 1000);
+	}
+}
+
+// aviwriter.cpp:136
+void AviWriter::write_header(void) {
+	MMCKINFO ckRiff;
+	MMCKINFO ckHdrl;
+	MMCKINFO ckAvih;
+	MMCKINFO ckStrl;
+	MMCKINFO ckStrh;
+	MMCKINFO ckStrf;
+	MMCKINFO ckJunk;
+	MMCKINFO ckMovi;
+	MainAVIHeader avih;
+	AVIStreamHeader strh;
+	short rcFrame[4];
+	DWORD dwBitsPerSample;
+	LONG lMoviEnd;
+
+	lMoviEnd = mmioSeek(m_hmmio, 0, SEEK_CUR);
+	mmioSeek(m_hmmio, 0, SEEK_SET);
+
+	memset(&ckRiff, 0, sizeof(ckRiff));
+	ckRiff.fccType = mmioFOURCC('A', 'V', 'I', ' ');
+	mmioCreateChunk(m_hmmio, &ckRiff, MMIO_CREATERIFF);
+
+	memset(&ckHdrl, 0, sizeof(ckHdrl));
+	ckHdrl.fccType = mmioFOURCC('h', 'd', 'r', 'l');
+	mmioCreateChunk(m_hmmio, &ckHdrl, MMIO_CREATELIST);
+
+	memset(&ckAvih, 0, sizeof(ckAvih));
+	ckAvih.ckid = mmioFOURCC('a', 'v', 'i', 'h');
+	ckAvih.cksize = sizeof(MainAVIHeader);
+	mmioCreateChunk(m_hmmio, &ckAvih, 0);
+
+	memset(&avih, 0, sizeof(avih));
+	avih.dwMicroSecPerFrame = MulDiv(1000000, 1, m_nFps);
+	avih.dwMaxBytesPerSec = 0;
+	avih.dwPaddingGranularity = 0;
+	avih.dwFlags = AVIF_HASINDEX;
+	avih.dwTotalFrames = m_nVideoFrames;
+	avih.dwStreams = 2;
+	avih.dwSuggestedBufferSize = m_nMaxVideoSize;
+	avih.dwWidth = m_format.biWidth;
+	avih.dwHeight = m_format.biHeight;
+	mmioWrite(m_hmmio, (char *)&avih, sizeof(avih));
+	mmioAscend(m_hmmio, &ckAvih, 0);
+
+	memset(&ckStrl, 0, sizeof(ckStrl));
+	ckStrl.fccType = mmioFOURCC('s', 't', 'r', 'l');
+	mmioCreateChunk(m_hmmio, &ckStrl, MMIO_CREATELIST);
+
+	memset(&ckStrh, 0, sizeof(ckStrh));
+	ckStrh.ckid = mmioFOURCC('s', 't', 'r', 'h');
+	ckStrh.cksize = sizeof(AVIStreamHeader) - sizeof(RECT) + sizeof(rcFrame);
+	mmioCreateChunk(m_hmmio, &ckStrh, 0);
+
+	memset(&strh, 0, sizeof(strh));
+	strh.fccType = mmioFOURCC('v', 'i', 'd', 's');
+	strh.fccHandler = m_fccHandler;
+	strh.dwScale = 1;
+	strh.dwRate = m_nFps;
+	strh.dwLength = 1;
+	strh.dwSuggestedBufferSize = m_nMaxVideoSize;
+	strh.dwQuality = m_nQuality * 100;
+	rcFrame[0] = 0;
+	rcFrame[1] = 0;
+	rcFrame[2] = (short)m_format.biWidth;
+	rcFrame[3] = (short)m_format.biHeight;
+	mmioWrite(m_hmmio, (char *)&strh, sizeof(strh) - sizeof(RECT));
+	mmioWrite(m_hmmio, (char *)rcFrame, sizeof(rcFrame));
+	mmioAscend(m_hmmio, &ckStrh, 0);
+
+	memset(&ckStrf, 0, sizeof(ckStrf));
+	ckStrf.ckid = mmioFOURCC('s', 't', 'r', 'f');
+	ckStrf.cksize = sizeof(BITMAPINFOHEADER);
+	mmioCreateChunk(m_hmmio, &ckStrf, 0);
+	mmioWrite(m_hmmio, (char *)&m_compFormat, sizeof(BITMAPINFOHEADER));
+	mmioAscend(m_hmmio, &ckStrf, 0);
+
+	mmioAscend(m_hmmio, &ckStrl, 0);
+	mmioAscend(m_hmmio, &ckHdrl, 0);
+
+	memset(&ckStrl, 0, sizeof(ckStrl));
+	ckStrl.fccType = mmioFOURCC('s', 't', 'r', 'l');
+	mmioCreateChunk(m_hmmio, &ckStrl, MMIO_CREATELIST);
+
+	memset(&ckStrh, 0, sizeof(ckStrh));
+	ckStrh.ckid = mmioFOURCC('s', 't', 'r', 'h');
+	ckStrh.cksize = sizeof(AVIStreamHeader) - sizeof(RECT) + sizeof(rcFrame);
+	mmioCreateChunk(m_hmmio, &ckStrh, 0);
+
+	memset(&strh, 0, sizeof(strh));
+	strh.fccType = mmioFOURCC('a', 'u', 'd', 's');
+	strh.dwScale = 4;
+	strh.dwRate = 176400;
+	strh.dwLength = m_nAudioChunks * 22050;
+	strh.dwSampleSize = 4;
+	memset(rcFrame, 0, sizeof(rcFrame));
+	mmioWrite(m_hmmio, (char *)&strh, sizeof(strh) - sizeof(RECT));
+	mmioWrite(m_hmmio, (char *)rcFrame, sizeof(rcFrame));
+	mmioAscend(m_hmmio, &ckStrh, 0);
+
+	memset(&ckStrf, 0, sizeof(ckStrf));
+	ckStrf.ckid = mmioFOURCC('s', 't', 'r', 'f');
+	ckStrf.cksize = sizeof(WAVEFORMAT) + sizeof(WORD);
+	mmioCreateChunk(m_hmmio, &ckStrf, 0);
+
+	memset(&m_waveFormat, 0, sizeof(m_waveFormat));
+	m_waveFormat.wFormatTag = WAVE_FORMAT_PCM;
+	m_waveFormat.nChannels = 2;
+	m_waveFormat.nSamplesPerSec = 44100;
+	m_waveFormat.nAvgBytesPerSec = 176400;
+	m_waveFormat.nBlockAlign = 4;
+	mmioWrite(m_hmmio, (char *)&m_waveFormat, sizeof(m_waveFormat));
+	dwBitsPerSample = ckStrf.cksize;
+	mmioWrite(m_hmmio, (char *)&dwBitsPerSample, sizeof(WORD));
+	mmioAscend(m_hmmio, &ckStrf, 0);
+
+	mmioAscend(m_hmmio, &ckStrl, 0);
+	mmioAscend(m_hmmio, &ckHdrl, 0);
+
+	memset(&ckJunk, 0, sizeof(ckJunk));
+	ckJunk.ckid = mmioFOURCC('J', 'U', 'N', 'K');
+	mmioCreateChunk(m_hmmio, &ckJunk, 0);
+	mmioSeek(m_hmmio, 0x7F4, SEEK_SET);
+	mmioAscend(m_hmmio, &ckJunk, 0);
+
+	memset(&ckMovi, 0, sizeof(ckMovi));
+	ckMovi.fccType = mmioFOURCC('m', 'o', 'v', 'i');
+	mmioCreateChunk(m_hmmio, &ckMovi, MMIO_CREATELIST);
+	mmioSeek(m_hmmio, lMoviEnd, SEEK_SET);
+	mmioAscend(m_hmmio, &ckMovi, 0);
+
+	write_indexes();
+
+	mmioAscend(m_hmmio, &ckRiff, 0);
+}
+
+// aviwriter.cpp:295
+void AviWriter::reserve_idxcache(void) {
+	if (m_index.capacity() == m_index.size()) {
+		m_index.reserve(m_index.size() + m_nFps * 60);
+	}
+}
+
+// aviwriter.cpp:307
+void AviWriter::index(MMCKINFO *pChunk, unsigned long dwFlags) {
+	AVIINDEXENTRY entry;
+
+	entry.ckid = pChunk->ckid;
+	entry.dwFlags = dwFlags;
+	entry.dwChunkOffset = pChunk->dwDataOffset - 8;
+	entry.dwChunkLength = pChunk->cksize;
+
+	reserve_idxcache();
+	m_index.push_back(entry);
+}
+
+// aviwriter.cpp:320
+void AviWriter::write_indexes(void) {
+	if (m_index.size()) {
+		MMCKINFO ck;
+
+		memset(&ck, 0, sizeof(ck));
+		ck.ckid = mmioFOURCC('i', 'd', 'x', '1');
+		ck.cksize = m_index.size() * sizeof(AVIINDEXENTRY);
+		mmioCreateChunk(m_hmmio, &ck, 0);
+		mmioWrite(m_hmmio, (char *)&m_index[0], ck.cksize);
+		mmioAscend(m_hmmio, &ck, 0);
+	}
+}
+
+} // namespace ntg

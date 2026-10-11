@@ -90,11 +90,6 @@ ILFILL0
 #include "ucclibrary.h"
 #include "hackingmanager.h"
 #include "frwndmanager.h"
-// HACK: should be inline with class definition, but symbol ordering is tricky
-inline FrDesktop* Fresh::GetDesktop() const
-{
-	return manager->GetDesktop();
-}
 #include "inputmanager.h"
 #include "ccrc32.h"
 // HACK

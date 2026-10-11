@@ -1,148 +1,124 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\sequencestatemachine.cpp
+#include "SequenceStateMachine.h"
 
-#include "sequencestatemachine.h"
+#include <algorithm>
 
-void CStateUnit::OnPrintLog(const char* log)
-{
-	// Compiled out
+// sequencestatemachine.cpp:6
+void CStateUnit::OnPrintLog(char const* pszLog) {
 }
 
-CSequenceStateMachine::CSequenceStateMachine(const void* pOwner,
-	const char* name)
-	: m_lastOrder(0), m_pOwner(pOwner), m_name(name)
-{
-	m_current = m_states.end();
+// sequencestatemachine.cpp:17
+CSequenceStateMachine::CSequenceStateMachine(void const* pUser, char const* pszName)
+	: m_lastOrder(0), m_pUser(pUser), m_name(pszName) {
+	m_current = m_list.end();
 	m_unknown34 = 0;
 	m_unknown38 = 0;
 }
 
-CSequenceStateMachine::~CSequenceStateMachine()
-{
+// sequencestatemachine.cpp:28
+CSequenceStateMachine::~CSequenceStateMachine(void) {
 	Clear();
 }
 
-void CSequenceStateMachine::PrintLog(const CStateUnit* pUnit, const char* log)
-{
-	// Compiled out
+// sequencestatemachine.cpp:37
+void CSequenceStateMachine::PrintLog(CStateUnit const* pState, char const* pszLog) {
 }
 
-void CSequenceStateMachine::PrintLog(const char* format, ...)
-{
-	// Compiled out
+// sequencestatemachine.cpp:45
+void CSequenceStateMachine::PrintLog(char const*, ...) {
 }
 
-bool CSequenceStateMachine::Process(float delta)
-{
-	CStateUnit* pUnit = GetCurrentState();
-	if (pUnit)
-	{
-		pUnit->OnProcess(delta);
-		if (pUnit->OnFinished())
-		{
+// sequencestatemachine.cpp:58
+bool CSequenceStateMachine::Process(float fDelta) {
+	CStateUnit* pState = GetCurrentState();
+	if (pState) {
+		pState->OnProcess(fDelta);
+		if (pState->OnFinished()) {
 			++m_current;
-
-			PrintLog("%s -> %s", pUnit->GetClassName(),
-				GetCurrentState() ? GetCurrentState()->GetClassName() : "");
+			PrintLog("%s -> %s", pState->GetClassNameA(), GetCurrentState() ? GetCurrentState()->GetClassNameA() : "");
 		}
-
 		return true;
 	}
 	return false;
 }
 
-void CSequenceStateMachine::Render()
-{
-	CStateUnit* pUnit = GetCurrentState();
-	if (pUnit && !pUnit->OnFinished())
-		pUnit->OnRender();
+// sequencestatemachine.cpp:76
+void CSequenceStateMachine::Render(void) {
+	CStateUnit* pState = GetCurrentState();
+	if (pState && !pState->OnFinished())
+		pState->OnRender();
 }
 
-void CSequenceStateMachine::Clear()
-{
-	std::list<CStateUnit*>::iterator it = m_states.begin();
-	while (it != m_states.end())
-	{
+// sequencestatemachine.cpp:84
+void CSequenceStateMachine::Clear(void) {
+	std::list<CStateUnit*>::iterator it = m_list.begin();
+	for (; it != m_list.end(); ++it) {
 		delete *it;
-		++it;
 	}
-	m_states.clear();
+	m_list.clear();
 }
 
-void CSequenceStateMachine::Reset()
-{
-	m_current = m_states.begin();
+// sequencestatemachine.cpp:95
+void CSequenceStateMachine::Reset(void) {
+	m_current = m_list.begin();
 }
 
-void CSequenceStateMachine::Insert(int order, CStateUnit* pUnit)
-{
-	pUnit->m_order = order;
-
-	std::list<CStateUnit*>::iterator it =
-		std::upper_bound(m_states.begin(), m_states.end(), *pUnit);
-
-	pUnit->SetOwner(this);
-	m_states.insert(it, pUnit);
-
-	PrintLog("Insert %s", pUnit->GetClassName());
-
-	if (m_states.size() == 1)
-		m_current = m_states.begin();
+// sequencestatemachine.cpp:112
+void CSequenceStateMachine::Insert(int order, CStateUnit* pState) {
+	pState->m_order = order;
+	std::list<CStateUnit*>::iterator it = std::upper_bound(m_list.begin(), m_list.end(), *pState);
+	pState->SetOwner(this);
+	m_list.insert(it, pState);
+	PrintLog("insert %s", pState->GetClassNameA());
+	if (m_list.size() == 1)
+		m_current = m_list.begin();
 }
 
-void CSequenceStateMachine::BackInsert(CStateUnit* pUnit)
-{
-	pUnit->m_order = ++m_lastOrder;
-	pUnit->SetOwner(this);
-	m_states.push_back(pUnit);
-
-	PrintLog("BackInsert %s", pUnit->GetClassName());
-
-	if (m_states.size() == 1)
-		m_current = m_states.begin();
+// sequencestatemachine.cpp:137
+void CSequenceStateMachine::BackInsert(CStateUnit* pState) {
+	pState->m_order = ++m_lastOrder;
+	pState->SetOwner(this);
+	m_list.push_back(pState);
+	PrintLog("insert %s", pState->GetClassNameA());
+	if (m_list.size() == 1)
+		m_current = m_list.begin();
 }
 
-CStateUnit* CSequenceStateMachine::GetCurrentState()
-{
-	if (m_current != m_states.end())
+// sequencestatemachine.cpp:150
+CStateUnit* CSequenceStateMachine::GetCurrentState(void) {
+	if (m_current != m_list.end())
 		return *m_current;
-
 	return NULL;
 }
 
-CStateUnit* CSequenceStateMachine::GetPreviousState()
-{
-	CStateUnit* pUnit = NULL;
-	if (m_current != m_states.begin())
-	{
-		pUnit = *--m_current;
+// sequencestatemachine.cpp:158
+CStateUnit* CSequenceStateMachine::GetPreviousState(void) {
+	CStateUnit* pState = NULL;
+	if (m_current != m_list.begin()) {
+		pState = *--m_current;
 		++m_current;
 	}
-	return pUnit;
+	return pState;
 }
 
-CStateUnit* CSequenceStateMachine::GetNextState()
-{
-	CStateUnit* pUnit = NULL;
-	if (m_current != m_states.end())
-	{
-		if (++m_current != m_states.end())
-		{
-			pUnit = *m_current;
+// sequencestatemachine.cpp:169
+CStateUnit* CSequenceStateMachine::GetNextState(void) {
+	CStateUnit* pState = NULL;
+	if (m_current != m_list.end()) {
+		if (++m_current != m_list.end()) {
+			pState = *m_current;
 			--m_current;
 		}
 	}
-	return pUnit;
+	return pState;
 }
 
-bool CSequenceStateMachine::SkipCurrentState()
-{
-	if (GetCurrentState())
-	{
-		CStateUnit* pUnit = GetCurrentState();
+// sequencestatemachine.cpp:183
+bool CSequenceStateMachine::SkipCurrentState(void) {
+	if (GetCurrentState()) {
+		CStateUnit* pState = GetCurrentState();
 		++m_current;
-
-		PrintLog("%s -> %s", pUnit->GetClassName(),
-			GetCurrentState() ? GetCurrentState()->GetClassName() : "");
+		PrintLog("%s -> %s", pState->GetClassNameA(), GetCurrentState() ? GetCurrentState()->GetClassNameA() : "");
 	}
-	return m_current != m_states.end();
+	return m_current != m_list.end();
 }

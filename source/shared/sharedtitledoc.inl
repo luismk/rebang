@@ -1,173 +1,121 @@
-float RecalculatePercent(float Value);
+// Original: d:\build\custom\temp\code\shared\sharedtitledoc.inl
+// Title conditions shared with the server; included by the units that
+// define titles (Titles_Client).
 
-bool CheckLevel(unsigned long level, eLevel limitlevel)
-{
-	if (level >= limitlevel)
-		return true;
-	return false;
-}
+#include <math.h>
 
-bool CheckPangyaPercent(unsigned long pangya, unsigned long drive,
-	float limitpercent)
-{
-	float percent = (float)pangya / (float)drive * 100;
-	if (RecalculatePercent(percent) >= limitpercent)
-		return true;
-	return false;
-}
+// Player level thresholds (CheckLevel); the original header and names are not known.
+enum eLevel {
+};
 
-bool CheckFairawayPercent(unsigned long dwFair, unsigned long hole,
-	unsigned long matchhole, float limitpercent)
-{
-	float percent = (float)dwFair / ((float)hole - (float)matchhole) * 100;
-	if (RecalculatePercent(percent) >= limitpercent)
-		return true;
-	return false;
-}
+float RecalculatePercent(float percent);
 
-bool CheckPuttinPercent(unsigned long puttin, unsigned long putt,
-	float limitpercent)
-{
-	float percent = (float)puttin / (float)putt * 100;
-	if (RecalculatePercent(percent) >= limitpercent)
-		return true;
-	return false;
-}
-
-bool CheckNoMannerPercent(unsigned long nomannergamecount,
-	unsigned long gamecount, float limitpercent)
-{
-	float percent = (float)nomannergamecount / (float)gamecount * 100;
-	if (RecalculatePercent(percent) < limitpercent)
-		return true;
-	return false;
-}
-
-bool CheckGoldMedal(sTrophyStatistics& TrohpyStatics, unsigned long limitmedal)
-{
-	unsigned long medal = 0;
-	for (int i = 0; i < 13; i++)
-	{
-		medal += TrohpyStatics.Trophy[i][0];
-	}
-
-	if (medal >= limitmedal)
-	{
+// sharedtitledoc.inl:8
+bool CheckLevel(unsigned long level, eLevel required) {
+	if (level >= (unsigned long)required) {
 		return true;
 	}
 	return false;
 }
 
-bool CheckSilverMedal(sTrophyStatistics& TrohpyStatics,
-	unsigned long limitmedal)
-{
-	unsigned long medal = 0;
-	for (int i = 0; i < 13; i++)
+// sharedtitledoc.inl:18
+bool CheckPangyaPercent(unsigned long pangya, unsigned long shots, float required) {
+	float percent = (float)pangya / (float)shots;
+	if (RecalculatePercent(percent * 100.0f) >= required) {
+		return true;
+	}
+	return false;
+}
+
+// sharedtitledoc.inl:28
+bool CheckFairawayPercent(unsigned long fairway, unsigned long drives, unsigned long par3, float required) {
+	float percent = (float)fairway / ((float)drives - (float)par3);
+	if (RecalculatePercent(percent * 100.0f) >= required) {
+		return true;
+	}
+	return false;
+}
+
+// sharedtitledoc.inl:38
+bool CheckPuttinPercent(unsigned long putts, unsigned long attempts, float required) {
+	float percent = (float)putts / (float)attempts;
+
+	if (RecalculatePercent(percent * 100.0f) >= required) {
+		return true;
+	}
+	return false;
+}
+
+// sharedtitledoc.inl:48
+bool CheckNoMannerPercent(unsigned long noManner, unsigned long games, float required) {
+	float percent = (float)noManner / (float)games;
+	if (RecalculatePercent(percent * 100.0f) <= required) {
+		return true;
+	}
+	return false;
+}
+
+// sharedtitledoc.inl:58
+bool CheckGoldMedal(sTrophyStatistics &trophy, unsigned long required) {
+	unsigned long total = 0;
+	for (int course = 0; course < 13; ++course)
 	{
-		medal += TrohpyStatics.Trophy[i][1];
+		total += trophy.m_medals[course][0];
 	}
 
-	if (medal >= limitmedal)
+	if (total >= required)
 	{
 		return true;
 	}
 	return false;
 }
 
-bool CheckBronzeMedal(sTrophyStatistics& trohpystatics,
-	unsigned long limitmedal)
-{
-	unsigned long medal = 0;
-	for (int i = 0; i < 13; i++)
+// sharedtitledoc.inl:75
+bool CheckSilverMedal(sTrophyStatistics &trophy, unsigned long required) {
+	unsigned long total = 0;
+	for (int course = 0; course < 13; ++course)
 	{
-		medal += trohpystatics.Trophy[i][2];
+		total += trophy.m_medals[course][1];
 	}
 
-	if (medal >= limitmedal)
+	if (total >= required)
 	{
 		return true;
 	}
 	return false;
 }
 
-bool CheckCourseMaster(sMyInfo& myinfo,
-	std::map<unsigned char, sMapStatistics>& MapStatInSeason2,
-	std::map<unsigned char, sMapStatistics>& MapStatInSeason3)
-{
-	bool bCompleteMap[20];
-
-	for (int i = 0; i < 20; i++)
+// sharedtitledoc.inl:93
+bool CheckBronzeMedal(sTrophyStatistics &trophy, unsigned long required) {
+	unsigned long total = 0;
+	for (int course = 0; course < 13; ++course)
 	{
-		if (i == 12 || i == 17)
-		{
-			bCompleteMap[i] = true;
-			continue;
-		}
-
-		bCompleteMap[i] = false;
-		if (myinfo.mapStat[i].cBestScore != 127)
-			bCompleteMap[i] = true;
+		total += trophy.m_medals[course][2];
 	}
 
-	std::map<unsigned char, sMapStatistics>::iterator iter =
-		MapStatInSeason2.begin();
-	for (; iter != MapStatInSeason2.end(); ++iter)
-	{
-		if (bCompleteMap[(*iter).second.bMap] == false)
-		{
-			if ((*iter).second.cBestScore != 127)
-			{
-				bCompleteMap[(*iter).second.bMap] = true;
-			}
-		}
-	}
-
-	for (int i = 0; i < 20; i++)
-	{
-		if (myinfo.classicMapStat[i].cBestScore != 127)
-			bCompleteMap[i] = true;
-	}
-
-	iter = MapStatInSeason3.begin();
-	for (; iter != MapStatInSeason3.end(); ++iter)
-	{
-		if (bCompleteMap[(*iter).second.bMap] == false)
-		{
-			if ((*iter).second.cBestScore != 127)
-			{
-				bCompleteMap[(*iter).second.bMap] = true;
-			}
-		}
-	}
-
-	for (int i = 0; i < 20; i++)
-	{
-		if (bCompleteMap[i] == false)
-			return false;
-	}
-
-	return true;
-}
-
-float RecalculatePercent(float Value)
-{
-	float percent = floor((Value + 0.05f) * 10.0f) * 0.1f;
-	return percent;
-}
-
-bool CheckPang(__int64 pang, __int64 limitpang)
-{
-	if (pang >= limitpang)
+	if (total >= required)
 	{
 		return true;
 	}
 	return false;
 }
 
-bool CheckHoleinCount(unsigned long holein, unsigned long limitholein)
-{
-	if (holein >= limitholein)
-	{
+// sharedtitledoc.inl:204
+float RecalculatePercent(float percent) {
+	return (float)floor((percent + 0.05f) * 10.0f) * 0.1f;
+}
+
+// sharedtitledoc.inl:210
+bool CheckPang(__int64 pang, __int64 required) {
+	if (pang >= required) {
+		return true;
+	}
+	return false;
+}
+
+// sharedtitledoc.inl:219
+bool CheckHoleinCount(unsigned long holeIns, unsigned long required) {
+	if (holeIns >= required) {
 		return true;
 	}
 	return false;

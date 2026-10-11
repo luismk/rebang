@@ -1,141 +1,160 @@
-#pragma once
-#include "rtti.h"
-#include "frcmdtarget.h"
+// Original: d:\build\custom\temp\code\client\fresh\include\frform.h
+#ifndef PG_CLIENT_FRESH_INCLUDE_FRFORM_H
+#define PG_CLIENT_FRESH_INCLUDE_FRFORM_H
+
+#include "..\..\defines.h"
 #include "frelement.h"
 #include "frwnd.h"
-#include "frframe.h"
-#include "../../Wangreal/include/wtypes.h"
-
-enum eFormRet
-{
-	FrNONE,
-	FrOK,
-	FrCANCEL,
-	FrYES,
-	FrNO
-};
-
-class FrWndManager;
-
-template <class T>
-T* CreateForm(FrWndManager* pManager, FrCmdTarget* pCmdDest,
-	const char* lpszTemplateID, FrWnd* pParent = NULL)
-{
-	T* pForm = new T;
-
-	FrForm* pRet = pForm->_Init(pManager, pCmdDest, lpszTemplateID, pParent);
-	if (pRet)
-		return DYNAMIC_CAST(T, pRet);
-
-	delete pForm;
-	return NULL;
-}
 
 class FrEdit;
 class FrFrame;
 class FrGuiItem;
 class FrStatic;
+class FrWndManager;
 
-enum eFormFlags
-{
-	FrESCAPE = 0x1,
-	FrENTER = 0x2,
-	FrMODALESS = 0x4,
-	FrNOTAIL = 0x8,
-	FrICON = 0x10,
-	FrRET_NONE = 0x20,
-	FrRET_OK = 0x40,
-	FrRET_CANCEL = 0x80,
-	FrNOSOUND = 0x100,
-	FrEXCLUSIVE = 0x200,
-	FrRESIZABLE = 0x400
+// Result a form closes with (PDB enum).
+enum eFormRet {
+	FrNONE = 0,
+	FrOK = 1,
+	FrCANCEL = 2,
+	FrYES = 3,
+	FrNO = 4
 };
 
-class FrForm : public FrWnd
-{
-	friend class FrWndManager;
+class FrForm;
 
+// Creates the form `name` of the window manager's layout as a T owned by
+// pOwner (frform.h:23-32).
+template <class T>
+T* CreateForm(FrWndManager* pManager, FrCmdTarget* pOwner, const char* name, FrWnd* pParent)
+{
+	T* pForm = new T;
+	FrForm* pRet = pForm->_Init(pManager, pOwner, name, pParent);
+	if (pRet) {
+		return DYNAMIC_CAST(T, pRet);
+	}
+	delete pForm;
+	return 0;
+}
+
+// A dialog window. Layout, access and vtable from the PDB (size 0x110, base
+// FrWnd). The new virtuals are declared in slot order (23-36); cl places
+// overloaded virtuals in reverse declaration order, hence Open(cb, flag)
+// before Open(cb, pt, flag). The bodies written here are the inline ones of
+// frform.h whose COMDATs the line marks show.
+class FrForm : public FrWnd {
+	LAYOUT_CHECK_FRIEND;
+	// FrWndManager::ProcessHotKey calls OnOK / OnCancel.
+	friend class FrWndManager;
 public:
 	static const WRTTI m_RTTI;
-	virtual const WRTTI* GetRTTI() const { return &m_RTTI; }
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // frform.h:65
 
-	FrForm();
-	virtual ~FrForm();
-	void Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent);
-	FrForm* _Init(FrWndManager* pManager, FrCmdTarget* pCmdDest,
-		const char* lpszTemplateID, FrWnd* pParent);
-	virtual bool Open(FRESH_PFN_RESULT pFnResult, unsigned long flag);
-	virtual bool Open(FRESH_PFN_RESULT pFnResult, const WPoint& pos,
-		unsigned long flag);
-	virtual bool Close(eFormRet result, bool bFade);
-	virtual bool Close(bool bFade);
-	void SetResultCallback(FRESH_PFN_RESULT pFnResult);
+	FrForm(void);
+	virtual ~FrForm(void);
+
+	void Init(FrGuiItem& item, FrWndManager* pWndManager, FrWnd* pParent);
+	FrForm* _Init(FrWndManager* pWndManager, FrCmdTarget* pCmdDest, const char* name, FrWnd* pParent);
+
+	// vtable slots 23-31
+	virtual bool Open(FRESH_RESULT_CALLBACK pfnResult, unsigned long flag);
+	virtual bool Open(FRESH_RESULT_CALLBACK pfnResult, const WPoint& pt, unsigned long flag);
+	virtual bool Close(eFormRet ret, bool bDestroy);
+	virtual bool Close(bool bDestroy);   // FrWnd's slot 2
 	virtual void SetCaption(const char* caption);
 	virtual void SetDesc(const char* desc);
-	virtual void SetMessage(const char* msg, bool spaceAlign);
-	virtual void EnableDrag(bool drag);
-	virtual void SetTimeLimit(float limit)
-	{
-		m_timeLimit = limit;
-		m_dt = 0.0f;
+	virtual void SetMessage(const char* message, bool b);
+	virtual void EnableDrag(bool bEnable);
+	virtual void SetTimeLimit(float timeLimit) {                     // frform.h:85
+		m_timeLimit = timeLimit;
+		m_dt = 0;
 	}
-	void DescHidePrivacy() { m_pBaseFrm->HidePrivacy(true); }
-	bool GetFlag(unsigned long flag) { return (m_flag & flag) ? true : false; }
-	void SetFlag(unsigned long flag) { m_flag = flag; }
-	void EnableFlag(unsigned long flag) { m_flag |= flag; }
-	void DisableFlag(unsigned long flag) { m_flag &= ~flag; }
-	void SetCloseResult(eFormRet ret) { m_defaultRetCode = ret; }
-	void Adjust(WRect& rtRect);
-	void SetFrameCaptionFocus(bool bEnable);
-	void SetCaptionOffset(bool offset) { m_pBaseFrm->SetCaptionOffset(offset); }
+	virtual bool OnInit(void);
+
+	void SetResultCallback(FRESH_RESULT_CALLBACK pfnResult);
+	void DescHidePrivacy(void);
+	bool GetFlag(unsigned long flag) { return (m_flag & flag) ? true : false; }   // frform.h:87
+	void SetFlag(unsigned long flag) { m_flag = flag; }                 // frform.h:88
+	void EnableFlag(unsigned long flag) { m_flag |= flag; }             // frform.h:89
+	void DisableFlag(unsigned long flag) { m_flag &= ~flag; }           // frform.h:90
+	void SetCloseResult(eFormRet ret) { m_defaultRetCode = ret; }       // frform.h:91
+	void Adjust(WRect& rect);
+	void SetFrameCaptionFocus(bool bFocus);
+	void SetCaptionOffset(bool b);
 	void SetMessageControlByType(enumGuiType type, FrWnd* pChild);
-	virtual bool OnInit();
 
-protected:
-	virtual void OnDraw();
-	virtual void OnProc(const float deltaTime);
-	virtual void OnOK();
-	virtual void OnCancel();
+	void OnMouseMove(const WPoint& pt);
+	bool OnLButtonDown(const WPoint& pt);
+	bool OnLButtonUp(const WPoint& pt);
+	void OnSetCursor(bool b, const WPoint& pt);
+	void SetIconRect(const WRect& rect);
 
-public:
-	virtual void OnMouseMove(const WPoint& mousePos);
-	virtual bool OnLButtonDown(const WPoint& mousePos);
-	virtual bool OnLButtonUp(const WPoint& mousePos);
-	virtual void OnSetCursor(bool bInClient, const WPoint& mousePos);
-	virtual void SetRect(const WRect& rect);
-	virtual void SetIconRect(const WRect& rect);
-	virtual void SetClientRect(const WRect& rect);
+	static void EnableTail(bool bEnable) { ms_bHasTail = bEnable; }    // frform.h:159
 
-protected:
-	bool m_canDrag;
-	bool m_bCaptionDown;
-	bool m_bResizeBtnDown;
-	unsigned long m_flag;
-	eFormRet m_retCode;
-	FRESH_PFN_RESULT m_pFnResult;
-	FrCmdTarget* m_pCmdDest;
-	FrFrame* m_pBaseFrm;
-	FrStatic* m_pMsgStatic;
-	FrEdit* m_pMsgEdit;
-	float m_timeLimit;
-	float m_dt;
-	eFormRet m_defaultRetCode;
-
-private:
-	bool IsTitleBarArea(const WPoint& pos);
-	virtual bool IsResizeBtnArea(const WPoint& pos);
-	static WPoint ms_oldPos;
-
-protected:
-	void OnFreshOkay();
-	void OnFreshCancel();
-	void OnFreshYes();
-	void OnFreshNo();
-
-	DECLARE_FRESH_MSGMAP()
-
-public:
 	static bool ms_bHasTail;
 	static bool ms_bExclusive;
-	static void EnableTail(bool enable) { ms_bHasTail = enable; }
+
+protected:
+	// vtable slots 32-33
+	virtual void OnOK(void);
+	virtual void OnCancel(void);
+
+	void OnDraw(void);
+	void OnProc(const float dt);
+
+	void OnFreshOkay(void);
+	void OnFreshCancel(void);
+	void OnFreshYes(void);
+	void OnFreshNo(void);
+
+public:
+	// vtable slots 34-35
+	virtual void SetRect(const WRect& rect);
+	virtual void SetClientRect(const WRect& rect);
+
+private:
+	// vtable slot 36
+	virtual bool IsResizeBtnArea(const WPoint& pt);
+
+	bool IsTitleBarArea(const WPoint& pt);
+
+	static WPoint ms_oldPos;
+	static sFRESH_ENTRY _MsgEntries[];
+
+protected:
+	static sFRESH_MSGMAP _MsgMap;
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;
+
+	bool m_canDrag;                          // 0xd4
+	bool m_bCaptionDown;                     // 0xd5
+	bool m_bResizeBtnDown;                   // 0xd6
+	unsigned long m_flag;                    // 0xd8
+	eFormRet m_retCode;                      // 0xdc
+	FRESH_RESULT_CALLBACK m_pFnResult;       // 0xe0 (16-byte pointer to member)
+	FrCmdTarget* m_pCmdDest;                 // 0xf0
+	FrFrame* m_pBaseFrm;                     // 0xf4
+	FrStatic* m_pMsgStatic;                  // 0xf8
+	FrEdit* m_pMsgEdit;                      // 0xfc
+	float m_timeLimit;                       // 0x100
+	float m_dt;                              // 0x104
+	eFormRet m_defaultRetCode;               // 0x108
 };
+
+CHECK_SIZE(FrForm, 0x110);
+BEGIN_LAYOUT_CHECK(FrForm)
+	CHECK_FIELD(FrForm, m_canDrag, 0xd4);
+	CHECK_FIELD(FrForm, m_bCaptionDown, 0xd5);
+	CHECK_FIELD(FrForm, m_bResizeBtnDown, 0xd6);
+	CHECK_FIELD(FrForm, m_flag, 0xd8);
+	CHECK_FIELD(FrForm, m_retCode, 0xdc);
+	CHECK_FIELD(FrForm, m_pFnResult, 0xe0);
+	CHECK_FIELD(FrForm, m_pCmdDest, 0xf0);
+	CHECK_FIELD(FrForm, m_pBaseFrm, 0xf4);
+	CHECK_FIELD(FrForm, m_pMsgStatic, 0xf8);
+	CHECK_FIELD(FrForm, m_pMsgEdit, 0xfc);
+	CHECK_FIELD(FrForm, m_timeLimit, 0x100);
+	CHECK_FIELD(FrForm, m_dt, 0x104);
+	CHECK_FIELD(FrForm, m_defaultRetCode, 0x108);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_FRESH_INCLUDE_FRFORM_H

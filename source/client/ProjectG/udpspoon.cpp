@@ -1,126 +1,113 @@
-#include "minatl.h"
-#include "udpspoon.h"
+// Original: d:\build\custom\temp\code\client\projectg\udpspoon.cpp
+#include "UDPSpoon.h"
 
-unsigned int __stdcall SubSpoonThread(void* Param)
-{
-	UDPSpoon* pSpoon = (UDPSpoon*)Param;
-	pSpoon->Run();
+#include <string.h>
+
+static char data_b79e80[0x1000];
+
+// udpspoon.cpp:24
+unsigned int __stdcall SubSpoonThread(void* param) {
+	((UDPSpoon*)param)->Run();
 	return 0;
 }
 
-void MakeSpoon(const char* IP, int Port, sockaddr_in* Sa)
-{
-	memset(Sa, 0, sizeof(sockaddr_in));
-	Sa->sin_addr.s_addr = inet_addr(IP);
-	Sa->sin_family = AF_INET;
-	Sa->sin_port = htons(Port);
+// udpspoon.cpp:35
+void MakeSpoon(const char* address, int port, sockaddr_in* out) {
+	memset(out, 0, sizeof(sockaddr_in));
+	out->sin_addr.s_addr = inet_addr(address);
+	out->sin_family = AF_INET;
+	out->sin_port = htons(port);
 }
 
-UDPSpoon::UDPSpoon()
-{
-	WSADATA wsa;
-	memset(&wsa, 0, sizeof(wsa));
-	WSAStartup(2, &wsa);
-
-	m_bFinish = false;
+// udpspoon.cpp:49
+UDPSpoon::UDPSpoon(void) {
+	WSADATA wsaData;
+	memset(&wsaData, 0, sizeof(wsaData));
+	WSAStartup(MAKEWORD(2, 0), &wsaData);
+	m_stop = false;
 }
 
-UDPSpoon::~UDPSpoon()
-{
-	CloseHandle(m_hSignal);
+// udpspoon.cpp:60
+UDPSpoon::~UDPSpoon(void) {
+	CloseHandle(m_event);
 	WSACleanup();
 }
 
-void UDPSpoon::Error(const char* Msg)
-{
-	m_Param.ProcErr(Msg);
+// udpspoon.cpp:69
+void UDPSpoon::Error(const char* message) {
+	m_param.errorProc(message);
 }
 
-bool UDPSpoon::Open(SpoonParam& Param)
-{
-	m_Param = Param;
+// udpspoon.cpp:78
+bool UDPSpoon::Open(SpoonParam& param) {
+	m_param = param;
 
-	LPPROTOENT lpProtocol = getprotobyname("UDP");
+	protoent* protocol = getprotobyname("UDP");
 
-	if (lpProtocol == NULL)
-	{
+	if (protocol == NULL) {
 		Error("getprotobyname(UDP) Failed");
 		return false;
 	}
 
-	m_Socket = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, 0);
+	m_socket = WSASocket(AF_INET, SOCK_DGRAM, IPPROTO_UDP, NULL, 0, 0);
 
-	if (m_Socket == INVALID_SOCKET)
-	{
+	if (m_socket == INVALID_SOCKET) {
 		Error("WSASocket Faield");
 		return false;
 	}
 
-	sockaddr_in sin;
-	memset(&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = htonl(INADDR_ANY);
-	if (m_Param.bindPort != 0)
-	{
-		sin.sin_port = htons(Param.bindPort);
-	}
-	else
-	{
-		sin.sin_port = htons(0);
+	sockaddr_in address;
+	memset(&address, 0, sizeof(address));
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = htonl(INADDR_ANY);
+	if (m_param.port != 0) {
+		address.sin_port = htons(param.port);
+	} else {
+		address.sin_port = htons(0);
 	}
 
-	if (bind(m_Socket, (sockaddr*)&sin, sizeof(sin)) == SOCKET_ERROR)
-	{
+	if (bind(m_socket, (sockaddr*)&address, sizeof(address)) == SOCKET_ERROR) {
 		Error("bind Failed");
 		return false;
 	}
 
-	m_hSignal = CreateEvent(NULL, FALSE, FALSE, NULL);
+	m_event = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	return true;
 }
 
-void UDPSpoon::Close()
-{
-	m_bFinish = true;
-	WaitForSingleObject(m_hThread, INFINITE);
-	CloseHandle(m_hThread);
-	closesocket(m_Socket);
+// udpspoon.cpp:141
+void UDPSpoon::Close(void) {
+	m_stop = true;
+	WaitForSingleObject(m_thread, INFINITE);
+	CloseHandle(m_thread);
+	closesocket(m_socket);
 }
 
-void UDPSpoon::Run()
-{
-	static char Buffer[4096];
-	WSANETWORKEVENTS NetworkEvents;
-	sockaddr_in AddrFrom;
-	int iAddrSize;
+// udpspoon.cpp:152
+void UDPSpoon::Run(void) {
+	WSANETWORKEVENTS networkEvents;
 
-	while (!m_bFinish)
-	{
-		if (WSAWaitForMultipleEvents(1, &m_hSignal, FALSE, 10, FALSE) ==
-			WSA_WAIT_EVENT_0)
-		{
-			if (WSAEnumNetworkEvents(m_Socket, m_hSignal, &NetworkEvents) ==
-				SOCKET_ERROR)
-			{
-				return;
+	while (!m_stop) {
+		if (WSAWaitForMultipleEvents(1, &m_event, FALSE, 10, FALSE) == WAIT_OBJECT_0) {
+			if (WSAEnumNetworkEvents(m_socket, m_event, &networkEvents) == SOCKET_ERROR) {
+				break;
 			}
 
-			if (NetworkEvents.lNetworkEvents & FD_READ)
-			{
-				if (NetworkEvents.iErrorCode[FD_READ_BIT] == 0)
-				{
-					memset(Buffer, 0, 1024);
-					iAddrSize = sizeof(AddrFrom);
-					int nRead = recvfrom(m_Socket, Buffer, 4096, 0,
-						(sockaddr*)&AddrFrom, &iAddrSize);
-					if (nRead == SOCKET_ERROR)
-					{
+			if (networkEvents.lNetworkEvents & FD_READ) {
+				if (networkEvents.iErrorCode[FD_READ_BIT] == 0) {
+					sockaddr_in from;
+					int fromLength;
+
+					memset(data_b79e80, 0, 0x400);
+
+					fromLength = sizeof(from);
+					int length = recvfrom(m_socket, data_b79e80, sizeof(data_b79e80), 0, (sockaddr*)&from, &fromLength);
+
+					if (length == SOCKET_ERROR) {
 						GetLastError();
-					}
-					else
-					{
-						m_Param.ProcMsg(AddrFrom, Buffer, nRead);
+					} else {
+						m_param.recvProc(&from, data_b79e80, length);
 					}
 				}
 			}
@@ -130,8 +117,7 @@ void UDPSpoon::Run()
 	}
 }
 
-int UDPSpoon::Send(const char* Buffer, int Len, sockaddr_in* Addr)
-{
-	return sendto(m_Socket, Buffer, Len, 0, (sockaddr*)Addr,
-		sizeof(sockaddr_in));
+// udpspoon.cpp:206
+int UDPSpoon::Send(const char* data, int length, sockaddr_in* to) {
+	return sendto(m_socket, data, length, 0, (sockaddr*)to, sizeof(sockaddr_in));
 }

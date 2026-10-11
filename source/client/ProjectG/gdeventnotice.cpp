@@ -1,42 +1,47 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\gdeventnotice.cpp
+#include <stdlib.h>
+
 #include "gdeventnotice.h"
+#include "tinyxml.h"
+#include "commonutil.h"
 
-CGDEventNotice::CGDEventNotice()
-{
+// gdeventnotice.cpp:8
+CGDEventNotice::CGDEventNotice(void) {
 }
 
-CGDEventNotice::~CGDEventNotice()
-{
+// gdeventnotice.cpp:12
+CGDEventNotice::~CGDEventNotice(void) {
 }
 
-void CGDEventNotice::Initialize(TiXmlNode* pNode)
-{
-	TiXmlNode* pChild = pNode->FirstChild("row");
-	while (pChild)
-	{
-		std::string strKey = pChild->ToElement()->Attribute("key");
-		int key = atoi(strKey.c_str());
-		std::string text = pChild->ToElement()->Attribute("text");
+// gdeventnotice.cpp:16
+void CGDEventNotice::Initialize(TiXmlNode* pNode) {
+	TiXmlNode* pRow = pNode->FirstChild("row");
+	while (pRow) {
 
-		str_Replace(text, "\\n", "\n");
-		str_Replace(text, "\\\\", "\\");
+		std::string strKey = pRow->ToElement()->Attribute("key");
+		int nKey = atoi(strKey.c_str());
+		std::string strText = pRow->ToElement()->Attribute("text");
 
-		text = text.c_str();
+		str_Replace(strText, "\\n", "\n");
+		str_Replace(strText, "\\\\", "\\");
 
-		std::map<int, std::string>::iterator it = m_textMap.find(key);
-		if (it == m_textMap.end())
-		{
-			m_textMap.insert(std::map<int, std::string>::value_type(key, text));
+		strText = strText.c_str();
+
+		std::map<int, std::string>::iterator it = m_mapText.find(nKey);
+		if (it == m_mapText.end()) {
+
+			m_mapText.insert(std::map<int, std::string>::value_type(nKey, strText));
 		}
-		pChild = pChild->NextSibling("row");
+		pRow = pRow->NextSibling("row");
 	}
 }
-const char* CGDEventNotice::GetText(int key)
-{
-	std::map<int, std::string>::iterator it = m_textMap.find(key);
-	if (it != m_textMap.end())
-	{
-		return (*it).second.c_str();
+
+// gdeventnotice.cpp:40
+const char* CGDEventNotice::GetText(int nKey) {
+	std::map<int, std::string>::iterator it = m_mapText.find(nKey);
+	if (it != m_mapText.end()) {
+
+		return it->second.c_str();
 	}
 
 	return NULL;

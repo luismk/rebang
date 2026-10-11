@@ -1,159 +1,173 @@
-#include "minatl.h"
-#include "guilddlg.h"
-#include "frlistbox.h"
+// Original: d:\build\custom\temp\code\client\projectg\guilddlg.cpp
+#include <stdio.h>
+
+#include "GuildDlg.h"
+#include "ObjectFactory.h"
+#include "cHttp.h"
 #include "fredit.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
 #include "fresh.h"
-#include <WinInet.h>
+#include "frgraphicinterface.h"
+#include "frlistbox.h"
+#include "frwndmanager.h"
+#include "tinyxml.h"
 
-extern Fresh* g_pFresh;
+// guilddlg.cpp:24 (run-time type and factory registration of FrGuildDlg)
+const WRTTI FrGuildDlg::m_RTTI("FrGuildDlg", &FrForm::m_RTTI);
 
-struct sRSSItem
-{
-	char* title;
-	char* description;
-};
-
-IMPLEMENT_OBJECT(FrGuildDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrGuildDlg, FrForm)
-
-ON_FRESH_VI("board", FRCMD_INIT, FrGuildDlg::OnBoardInit)
-ON_FRESH_VV("board", FRCMD_LBUTTONUP, FrGuildDlg::OnBoardBtnUp)
-ON_FRESH_VV("board", FRCMD_LBUTTONDOWN, FrGuildDlg::OnBoardBtnDown)
-ON_FRESH_VI("board", FRCMD_OWNERDRAW, FrGuildDlg::OnBoardOwnerDraw)
-ON_FRESH_VI("view", FRCMD_INIT, FrGuildDlg::OnViewInit)
-ON_FRESH_VV("view", FRCMD_LBUTTONUP, FrGuildDlg::OnViewBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrGuildDlg::FrGuildDlg()
-{
-	m_pBoard = NULL;
-	m_pView = NULL;
+IObject* FrGuildDlgMakeInstance(void) {
+	return new FrGuildDlg;
 }
 
-FrGuildDlg::~FrGuildDlg()
-{
+struct __sFrGuildDlg {
+	__sFrGuildDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrGuildDlgMakeInstance, "FrGuildDlg");
+	}
+};
+static __sFrGuildDlg s_registerFrGuildDlg;
+
+// guilddlg.cpp:26
+const sFRESH_MSGMAP* FrGuildDlg::GetMessageMap(void) const {
+	return &FrGuildDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrGuildDlg::_MsgMap = { &FrForm::_MsgMap, &FrGuildDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrGuildDlg::_MsgEntries[] = {
+	// guilddlg.cpp:28
+	{ "board", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrGuildDlg::OnBoardInit },
+	// guilddlg.cpp:29
+	{ "board", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrGuildDlg::OnBoardBtnUp },
+	// guilddlg.cpp:30
+	{ "board", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrGuildDlg::OnBoardBtnDown },
+	// guilddlg.cpp:31
+	{ "board", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrGuildDlg::OnBoardOwnerDraw },
+	// guilddlg.cpp:32
+	{ "view", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrGuildDlg::OnViewInit },
+	// guilddlg.cpp:33
+	{ "view", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrGuildDlg::OnViewBtnUp },
+
+	// guilddlg.cpp:35
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// guilddlg.cpp:38
+FrGuildDlg::FrGuildDlg(void)
+	: m_pBoard(0),
+	  m_pView(0) {
+}
+
+// guilddlg.cpp:44
+FrGuildDlg::~FrGuildDlg(void) {
 	UnloadRSS();
 }
 
-bool FrGuildDlg::OnInit()
-{
-	if (m_pBoard == NULL)
+// guilddlg.cpp:49
+bool FrGuildDlg::OnInit(void) {
+	if (!m_pBoard) {
 		return FrForm::OnInit();
+	}
 
+	// "index2.xml": the RSS feed of the guild board
 	LoadRSS("index2.xml");
 
-	m_pBoard->SelectItem(*m_pBoard->m_itemList.begin(), true);
-	SelectTitle(*m_pBoard->m_itemList.begin());
+	// select the first entry and show its text
+	m_pBoard->SelectItem(m_pBoard->m_itemList.front(), true);
+	SelectTitle(m_pBoard->m_itemList.front());
 
 	return FrForm::OnInit();
 }
 
-void FrGuildDlg::OnBoardInit(int param)
-{
+// guilddlg.cpp:65
+void FrGuildDlg::OnBoardInit(intptr_t param) {
 	m_pBoard = DYNAMIC_CAST(FrListBox, param);
 }
 
-void FrGuildDlg::OnBoardBtnUp()
-{
+// guilddlg.cpp:70
+void FrGuildDlg::OnBoardBtnUp(void) {
 }
 
-void FrGuildDlg::OnBoardOwnerDraw(int param)
-{
-	if (param == 0)
+// guilddlg.cpp:74
+void FrGuildDlg::OnBoardOwnerDraw(intptr_t param) {
+	FrListItem* pItem = (FrListItem*)param;
+	if (!pItem)
 		return;
 
 	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
+	if (!pGDI)
 		return;
 
-	FrListItem* pItem = (FrListItem*)param;
-	sRSSItem* pData = (sRSSItem*)pItem->pData;
-	if (m_pBoard->GetSelected() == pItem)
-	{
+	sGuildRSSItem* pRSS = (sGuildRSSItem*)pItem->pData;
+	if (m_pBoard->GetSelected() == pItem) {
+		// highlight bar of the selected entry, as wide as the list
 		WRect rect;
-
 		m_pBoard->GetClientRect(rect);
-		pGDI->Box(WRect(pItem->pos.x + 4.0f, pItem->pos.y, rect.w, 16.0f),
-			0x999b9dff);
+		pGDI->Box(WRect(pItem->pos.x + 4.0f, pItem->pos.y, rect.w, 16.0f), 0x999B9DFF, 0, 0.0f);
 	}
 
-	if (pItem->underCursor)
-	{
-		pGDI->SetTextColor(0xffffffff, 0xff808080);
+	if (pItem->underCursor) {
+		pGDI->SetTextColor(0xFFFFFFFF, 0xFF808080);
 		pGDI->SetTextStyle(2);
-	}
-	else
-	{
-		pGDI->SetTextColor(0xff000000, 0xffffffff);
+	} else {
+		pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
 		pGDI->SetTextStyle(0);
 	}
-	pGDI->Print(pItem->pos, 0, pData->title);
+
+	pGDI->Print(pItem->pos, 0, pRSS->title);
 }
 
-void FrGuildDlg::OnBoardBtnDown()
-{
+// guilddlg.cpp:109
+void FrGuildDlg::OnBoardBtnDown(void) {
 	FrListItem* pItem = m_pBoard->GetItemUnderCursor();
-	if (pItem)
-	{
+	if (pItem) {
 		m_pBoard->SelectItem(pItem, true);
 		SelectTitle(pItem);
-	}
-	else
-	{
-		m_pBoard->SelectItem(NULL, true);
+	} else {
+		m_pBoard->SelectItem(0, true);
 	}
 }
 
-void FrGuildDlg::OnViewInit(int param)
-{
+// guilddlg.cpp:123
+void FrGuildDlg::OnViewInit(intptr_t param) {
 	m_pView = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrGuildDlg::OnViewBtnUp()
-{
+// guilddlg.cpp:128
+void FrGuildDlg::OnViewBtnUp(void) {
 }
 
-bool FrGuildDlg::DownLoad(const char* localFile, const char* remoteFile,
-	const char* localPath, const char* remotePath)
-{
-	char szUrl[MAX_PATH];
-	char szFile[MAX_PATH];
-	DWORD dwSize;
-	DWORD dwRead;
+// guilddlg.cpp:133
+bool FrGuildDlg::DownLoad(const char* fileName, const char* url, const char* localDir, const char* urlBase) {
+	char fullUrl[MAX_PATH];
+	char localPath[MAX_PATH];
+	DWORD available;
+	DWORD read;
 
-	sprintf(szUrl, "%s%s", remotePath, remoteFile);
-	sprintf(szFile, "%s%s", localPath, localFile);
+	sprintf(fullUrl, "%s%s", urlBase, url);
+	sprintf(localPath, "%s%s", localDir, fileName);
 
-	HINTERNET hInternet = InternetOpen("cHttp DownLoad",
-		INTERNET_OPEN_TYPE_PRECONFIG, NULL, NULL, 0);
+	HINTERNET hInternet = InternetOpenA("cHttp DownLoad", 0, NULL, NULL, 0);
 	if (hInternet == NULL)
 		return false;
 
-	HINTERNET hUrl = InternetOpenUrl(hInternet, szUrl, NULL, 0,
-		INTERNET_FLAG_NO_CACHE_WRITE, 0);
-	if (hUrl == NULL)
-	{
+	HINTERNET hUrl = InternetOpenUrlA(hInternet, fullUrl, NULL, 0, INTERNET_FLAG_NO_CACHE_WRITE, 0);
+	if (hUrl == NULL) {
 		InternetCloseHandle(hInternet);
 		return false;
 	}
 
-	FILE* fp = fopen(szFile, "wb");
+	FILE* fp = fopen(localPath, "wb");
 	if (fp == NULL)
 		return false;
 
-	InternetQueryDataAvailable(hUrl, &dwSize, 0, 0);
-	char* pBuf = new char[dwSize];
-	do
-	{
-		InternetReadFile(hUrl, pBuf, dwSize, &dwRead);
-		fwrite(pBuf, dwRead, 1, fp);
-	} while (dwRead);
+	InternetQueryDataAvailable(hUrl, &available, 0, 0);
+	char* buffer = new char[available];
 
-	delete[] pBuf;
+	do {
+		InternetReadFile(hUrl, buffer, available, &read);
+		fwrite(buffer, read, 1, fp);
+	} while (read != 0);
+
+	delete[] buffer;
 	fclose(fp);
 
 	InternetCloseHandle(hUrl);
@@ -162,79 +176,76 @@ bool FrGuildDlg::DownLoad(const char* localFile, const char* remoteFile,
 	return true;
 }
 
-void FrGuildDlg::UnloadRSS()
-{
-	for (std::list<FrListItem*>::iterator it = m_pBoard->m_itemList.begin();
-		it != m_pBoard->m_itemList.end(); ++it)
-	{
-		FrListItem* pListItem = *it;
-		sRSSItem* pItem = (sRSSItem*)pListItem->pData;
-		delete[] pItem->title;
-		delete[] pItem->description;
-		delete pItem;
+// guilddlg.cpp:176
+void FrGuildDlg::UnloadRSS(void) {
+	for (FrListBox::ITEM_LIST::iterator i = m_pBoard->m_itemList.begin(); i != m_pBoard->m_itemList.end(); ++i) {
+		FrListItem* pItem = *i;
+		sGuildRSSItem* pRSS = (sGuildRSSItem*)pItem->pData;
+		delete[] pRSS->title;
+		delete[] pRSS->description;
+		delete pRSS;
 	}
 }
 
-void FrGuildDlg::SelectTitle(FrListItem* pItem)
-{
+// guilddlg.cpp:191
+void FrGuildDlg::SelectTitle(FrListItem* pItem) {
 	m_pView->ClearLine();
 
-	m_pView->AddText(((sRSSItem*)pItem->pData)->description, false, true);
+	m_pView->AddText(((sGuildRSSItem*)pItem->pData)->description, false, true);
 }
 
-void FrGuildDlg::ParseRSS(TiXmlDocument& doc)
-{
-	TiXmlNode* pNode = doc.FirstChild("rss");
-	if (pNode == NULL)
+// guilddlg.cpp:198
+void FrGuildDlg::ParseRSS(TiXmlDocument& doc) {
+	TiXmlNode* pRss = doc.FirstChild("rss");
+	if (!pRss)
 		return;
 
-	pNode = pNode->FirstChild("channel");
-	if (pNode == NULL)
+	TiXmlNode* pChannel = pRss->FirstChild("channel");
+	if (!pChannel)
 		return;
 
-	pNode = pNode->FirstChild("item");
-	while (pNode)
-	{
-		sRSSItem* pItem = new sRSSItem;
+	TiXmlNode* pItem = pChannel->FirstChild("item");
+	while (pItem) {
+		sGuildRSSItem* pRSS = new sGuildRSSItem;
 
-		TiXmlNode* pTitle = pNode->FirstChild("title");
+		TiXmlNode* pTitle = pItem->FirstChild("title");
 		const char* title = pTitle->FirstChild()->Value();
 
 		int len = strlen(title);
-		pItem->title = new char[len + 1];
-		strcpy(pItem->title, title);
+		pRSS->title = new char[len + 1];
+		strcpy(pRSS->title, title);
 
-		TiXmlNode* pDesc = pNode->FirstChild("description");
-		const char* desc = pDesc->FirstChild()->Value();
+		TiXmlNode* pDescription = pItem->FirstChild("description");
+		const char* description = pDescription->FirstChild()->Value();
 
-		len = strlen(desc);
-		pItem->description = new char[len + 1];
-		strcpy(pItem->description, desc);
+		len = strlen(description);
+		pRSS->description = new char[len + 1];
+		strcpy(pRSS->description, description);
 
-		m_pBoard->AddItem(pItem);
+		m_pBoard->AddItem(pRSS);
 
-		pNode = pNode->NextSibling("item");
+		pItem = pItem->NextSibling("item");
 	}
 }
 
-void FrGuildDlg::LoadRSS(const char* filename)
-{
+// guilddlg.cpp:248
+void FrGuildDlg::LoadRSS(const char* fileName) {
 	TiXmlDocument doc;
 
 	DownLoad("index.xml", "http://kwanny.ntreev.net/tt/index.xml", "", "");
 
 	FILE* fp = fopen("index.xml", "rb");
-	if (fp == NULL)
+	if (!fp)
 		return;
 
 	fseek(fp, 0, SEEK_END);
-	long size = ftell(fp);
-	char* pBuf = new char[size + 1];
+	int size = ftell(fp);
+	char* buffer = new char[size + 1];
 	fseek(fp, 0, SEEK_SET);
-	fread(pBuf, size, 1, fp);
+	fread(buffer, size, 1, fp);
 
-	if (doc.LoadFileFromMemoryEx(pBuf))
+	if (doc.LoadFileFromMemoryEx(buffer))
 		ParseRSS(doc);
 
-	delete[] pBuf;
+	delete[] buffer;
 }

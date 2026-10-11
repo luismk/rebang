@@ -1,24 +1,30 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\lobbytask.h
+#ifndef PG_CLIENT_PROJECTG_LOBBYTASK_H
+#define PG_CLIENT_PROJECTG_LOBBYTASK_H
 
-#include "taskmanager.h"
+#include "..\..\defines.h"
+#include "RTTI.h"
+#include "TaskManager.h"
 
-class WReceivedPacket;
-
-class CLobbyTask : public CTask
-{
-	DECLARE_OBJECT(CLobbyTask)
-
-protected:
-	CLobbyTask();
+// The lobby screen. Adds no member to CTask (operator new 0x1FC).
+class CLobbyTask : public CTask {
+	friend IObject* CLobbyTaskMakeInstance(void);
 
 public:
-	virtual ~CLobbyTask();
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // lobbytask.h:14
+
+	virtual ~CLobbyTask(void);
 
 protected:
-	virtual void Init(const char* wallPaper);
-	virtual void Register();
-	virtual void Load();
-	virtual void Process(float delta);
-	virtual void Display();
-	virtual int OnPacket(WReceivedPacket& packet);
+	CLobbyTask(void);
+
+	virtual void Register(void);
+	virtual void Init(const char *backGround);
+	virtual void Process(float dt);
+	virtual void Display(void);
+	virtual int OnPacket(WReceivedPacket &packet);
+	virtual void Load(void);
 };
+
+#endif // PG_CLIENT_PROJECTG_LOBBYTASK_H

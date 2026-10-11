@@ -1,20 +1,17 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\webicons.h
+#ifndef PG_CLIENT_PROJECTG_WEBICONS_H
+#define PG_CLIENT_PROJECTG_WEBICONS_H
 
-#include "topiconinterface.h"
-#include "topiconmanager.h"
+#include "TopIconInterface.h"
+#include "TopIconManager.h"
 
-class CWebIcons_WebEvent1 : public CWebIcon
-{
-	DECLARE_TOPICON(CWebIcons_WebEvent1, "WebEvent1")
+// webicons.h:10
+DECLARE_WEB_ICON(WebEvent1);
 
-	virtual void OnInit(FrButton& button);
-	virtual void OnButtonDown();
-};
 
-class CWebIcons_WebEvent2 : public CWebIcon
-{
-	DECLARE_TOPICON(CWebIcons_WebEvent2, "WebEvent2")
 
-	virtual void OnInit(FrButton& button);
-	virtual void OnButtonDown();
-};
+
+// webicons.h:15
+DECLARE_WEB_ICON(WebEvent2);
+
+#endif // PG_CLIENT_PROJECTG_WEBICONS_H

@@ -1,517 +1,264 @@
-#include "minatl.h"
-#include "giftalarmdlg.h"
-#include "shareddoc.h"
-#include "treasure.h"
-#include "../../shared/localize.h"
+// Original: d:\build\custom\temp\code\client\projectg\giftalarmdlg.cpp
+#include <windows.h>
+#include <string.h>
+#include "GiftAlarmDlg.h"
+#include "ObjectFactory.h"
+#include "frlistbox.h"
+#include "frstatic.h"
+#include "commonutil.h"
+#include "fresh.h"
+#include "SharedDoc.h"
 
-extern Fresh* g_pFresh;
-
-IMPLEMENT_OBJECT(FrGiftAlarmDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrGiftAlarmDlg, FrForm)
-
-ON_FRESH_VI("giftlist", FRCMD_INIT, FrGiftAlarmDlg::OnGiftListInit)
-ON_FRESH_VI("giftlist", FRCMD_OWNERDRAW, FrGiftAlarmDlg::OnGiftListOwnerDraw)
-ON_FRESH_VI("infomsg", FRCMD_INIT, FrGiftAlarmDlg::OnInfoMsgInit)
-
-END_FRESH_MSGMAP()
-
-struct GiftMessage
-{
-	void* gift;
-	char* lines[2];
+// Item data of a gift-list row: the received gift and the sender message
+// split over two lines (new char[0x50] each).
+struct sGiftAlarmItem {
+	void* pGift;       // 0x0, element of the shared doc's gift list
+	char* pLines[2];   // 0x4
 };
-struct TreasureMessage
-{
-	unsigned long typeId;
-	unsigned short count;
-	char sender[64];
-	char message[128];
+CHECK_SIZE(sGiftAlarmItem, 0xC);
+
+// Item data of a treasure-gift row (new 0xC8).
+struct sTreasureAlarmItem {
+	unsigned long typeId;    // 0x0
+	unsigned short count;    // 0x4
+	char name[0x40];         // 0x6
+	char desc[0x80];         // 0x46
+};
+CHECK_SIZE(sTreasureAlarmItem, 0xC8);
+
+// Blink state of a dialog's caption (OnProc): set when the caption must be
+// rewritten, and whether it is shown.
+struct sCaptionBlink {
+	bool update;   // 0x0
+	bool show;     // 0x1
 };
 
-FrGiftAlarmDlg::FrGiftAlarmDlg()
-{
-	m_pGiftList = NULL;
-	m_drawIndex = 0;
-	m_giftNum = 0;
-	m_blinkTime = 0;
-	CSharedDoc::Instance()->m_bRefreshCamera = false;
-	m_pArrivalMail = g_pFresh->RegisterBitmap("rmr_Arrival_mail");
-	m_pOpenMail = g_pFresh->RegisterBitmap("rmr_Open_mail");
+// The OnProc blink states (no symbol): FrGiftAlarmDlg's, CTreasureAlarmDlg's.
+extern "C" {
+sCaptionBlink data_af7531;
+sCaptionBlink data_af7533;
 }
 
-FrGiftAlarmDlg::~FrGiftAlarmDlg()
-{
+// giftalarmdlg.cpp:19 (run-time type and factory registration of FrGiftAlarmDlg)
+const WRTTI FrGiftAlarmDlg::m_RTTI("FrGiftAlarmDlg", &FrForm::m_RTTI);
+
+IObject* FrGiftAlarmDlgMakeInstance(void) {
+	return new FrGiftAlarmDlg;
+}
+
+struct __sFrGiftAlarmDlg {
+	__sFrGiftAlarmDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrGiftAlarmDlgMakeInstance, "FrGiftAlarmDlg");
+	}
+};
+static __sFrGiftAlarmDlg s_registerFrGiftAlarmDlg;
+
+// giftalarmdlg.cpp:21
+const sFRESH_MSGMAP* FrGiftAlarmDlg::GetMessageMap(void) const {
+	return &FrGiftAlarmDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrGiftAlarmDlg::_MsgMap = { &FrForm::_MsgMap, &FrGiftAlarmDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrGiftAlarmDlg::_MsgEntries[] = {
+	// giftalarmdlg.cpp:23
+	{ "giftlist", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrGiftAlarmDlg::OnGiftListInit },
+	{ "giftlist", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrGiftAlarmDlg::OnGiftListOwnerDraw },
+	{ "infomsg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrGiftAlarmDlg::OnInfoMsgInit },
+
+	// giftalarmdlg.cpp:27
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// giftalarmdlg.cpp:32
+FrGiftAlarmDlg::FrGiftAlarmDlg(void) {
+	m_pGiftList = 0;
+	m_curGift = 0;
+	m_giftCount = 0;
+	m_blinkTime = 0.0f;
+
+	WSingleton<CSharedDoc>::Instance()->m_tutorialFinish = 0;
+	m_pArrivalMailImage = g_pFresh->RegisterBitmap("rmr_Arrival_mail");
+	m_pOpenMailImage = g_pFresh->RegisterBitmap("rmr_Open_mail");
+}
+
+// giftalarmdlg.cpp:44
+FrGiftAlarmDlg::~FrGiftAlarmDlg(void) {
 	for (FrListBox::ITEM_LIST::iterator it = m_pGiftList->m_itemList.begin();
-		it != m_pGiftList->m_itemList.end(); ++it)
-	{
-		FrListItem* item = *it;
-		GiftMessage* gift = (GiftMessage*)item->pData;
-		if (gift)
-		{
-			delete[] gift->lines[0];
-			delete[] gift->lines[1];
+			it != m_pGiftList->m_itemList.end(); ++it) {
+		FrListItem* pItem = *it;
+		sGiftAlarmItem* pData = (sGiftAlarmItem*)pItem->pData;
+
+		if (pData) {
+
+			delete[] pData->pLines[0];
+			delete[] pData->pLines[1];
 		}
-		delete gift;
+
+		delete pData;
 	}
 }
 
-void FrGiftAlarmDlg::OnInfoMsgInit(int param)
-{
-	m_pInfoMsg = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// giftalarmdlg.cpp:64
+void FrGiftAlarmDlg::OnInfoMsgInit(intptr_t param) {
+	m_pInfoMsg = DYNAMIC_CAST(FrStatic, param);
+
+
 }
 
-void FrGiftAlarmDlg::MakeSenderMsg(const char* msg, char** const lines)
-{
-	int length = strlen(msg);
-	if (length > 20)
-	{
-		int lead = 0, other = 0;
-		for (int i = length - 1; i >= 20; --i)
-		{
-			if (IsDBCSLeadByte(msg[i]))
-				++lead;
-			else
-				++other;
+// giftalarmdlg.cpp:72
+void FrGiftAlarmDlg::MakeSenderMsg(const char* pSender, char* pLines[]) {
+	int len = (int)strlen(pSender);
+	if (len > 20) {
+
+		int dbcsCount = 0, sbcsCount = 0;
+		for (int i = len - 1; i >= 20; i--) {
+
+			if (IsDBCSLeadByte(pSender[i])) {
+				dbcsCount++;
+			} else {
+				sbcsCount++;
+			}
 		}
-		if (lead % 2)
-			++lead;
-		int split = length - other - lead;
-		memcpy(lines[0], msg, split);
-		lines[0][split] = 0;
-		for (int i = 0; i < 20; ++i)
-		{
-			if (msg[split] != ' ')
+
+		if (dbcsCount % 2) {
+			dbcsCount++;
+		}
+		int cut = len - sbcsCount - dbcsCount;
+
+		memcpy(pLines[0], pSender, cut);
+		pLines[0][cut] = 0;
+
+
+		for (int j = 0; j < 20; j++) {
+
+			if (pSender[cut] != ' ') {
 				break;
-			++split;
+			}
+			cut++;
 		}
-		strcpy(lines[1], msg + split);
-	}
-	else
-	{
-		strcpy(lines[0], msg);
-		lines[1][0] = 0;
+
+
+		strcpy(pLines[1], pSender + cut);
+	} else {
+
+
+		strcpy(pLines[0], pSender);
+		pLines[1][0] = 0;
 	}
 }
 
-void FrGiftAlarmDlg::OnGiftListInit(int param)
-{
-	char message[128] = "\0";
-	m_pGiftList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pGiftList)
-	{
-		if (IsLocalContent(S4_MAILBOX_FOR_REAL_MYROOM))
-		{
-			for (std::list<sMailInfoBrief>::iterator it =
-					 CSharedDoc::Instance()->m_mailList.begin();
-				it != CSharedDoc::Instance()->m_mailList.end(); ++it)
-			{
-				GiftMessage* gift = new GiftMessage;
-				gift->gift = &*it;
-				gift->lines[0] = new char[80];
-				gift->lines[1] = new char[80];
-				MakeSenderMsg(message, gift->lines);
-				m_pGiftList->AddItem(gift);
-			}
-			m_giftNum = CSharedDoc::Instance()->m_mailList.size();
-			return;
-		}
-		{
-			for (std::list<sGiftInfo>::iterator it =
-					 CSharedDoc::Instance()->m_sendGiftList.begin();
-				it != CSharedDoc::Instance()->m_sendGiftList.end(); ++it)
-			{
-				GiftMessage* gift = new GiftMessage;
-				sGiftInfo* info = &*it;
-				gift->gift = info;
-				gift->lines[0] = new char[80];
-				gift->lines[1] = new char[80];
-				MakeSenderMsg(info->sMsg, gift->lines);
-				m_pGiftList->AddItem(gift);
-			}
-			m_giftNum = CSharedDoc::Instance()->m_sendGiftList.size();
-		}
-	}
-}
-
-void FrGiftAlarmDlg::OnGiftListOwnerDraw(int param)
-{
-	FrListItem* item = (FrListItem*)param;
-	if (!item)
-		return;
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (!gdi)
-		return;
-	char sender[128] = "\0";
-	char line1[80] = "\0";
-	char line2[80] = "\0";
-	unsigned long typeId;
-	int type, count;
-	if (IsLocalContent(S4_MAILBOX_FOR_REAL_MYROOM))
-	{
-		GiftMessage* gift = (GiftMessage*)item->pData;
-		if (!gift)
-			return;
-		sMailInfoBrief* mail = (sMailInfoBrief*)gift->gift;
-		wsprintf(sender, "%s", mail->sender);
-		wsprintf(line1, "%s", gift->lines[0]);
-		wsprintf(line2, "%s", gift->lines[1]);
-		typeId = mail->item.dwTID;
-		if (mail->item.iTimeCount > 0)
-		{
-			type = 2;
-			count = mail->item.iTimeCount;
-		}
-		else
-		{
-			type = 0;
-			count = mail->item.iCount;
-		}
-	}
-	else
-	{
-		GiftMessage* gift = (GiftMessage*)item->pData;
-		if (!gift)
-			return;
-		sGiftInfo* info = (sGiftInfo*)gift->gift;
-		wsprintf(sender, "%s", info->sFromID);
-		wsprintf(line1, "%s", gift->lines[0]);
-		wsprintf(line2, "%s", gift->lines[1]);
-		typeId = info->tid;
-		type = info->ItemType;
-		count = info->Arg0;
-	}
-	m_drawIndex = item->idx;
-	gdi->SetTextColor(0xff000000, 0xffffffff);
-	gdi->SetTextStyle(0);
-	g_pFresh->GetManager()->PrintText(WPoint(item->pos.x + 10, item->pos.y + 5),
-		0, sender, -1, 0xffffffff);
-	const Bitmap* message =
-		g_pFresh->GetManager()->GetBitmap("FRAMES8", "text_message");
-	if (message)
-	{
-		gdi->DrawTexture(message,
-			WRect(item->pos.x + 24, item->pos.y + 27, (float)message->Width(),
-				(float)message->Height()),
-			0xffffffff, 0);
-	}
-	gdi->SetTextColor(0xffffffff, 0xffffffff);
-	g_pFresh->GetManager()->PrintText(
-		WPoint(item->pos.x + 28, item->pos.y + 56), 0, line1, -1, 0xffffffff);
-	g_pFresh->GetManager()->PrintText(
-		WPoint(item->pos.x + 28, item->pos.y + 74), 0, line2, -1, 0xffffffff);
-	char name[80] = "\0";
-	IFF_ITEM_COMMON* common = ItemManager()->FindCommonItem(typeId);
-	const Bitmap* icon;
-	if (!common)
-	{
-		icon = m_pArrivalMail;
-		wsprintf(name, "\306\355\301\366");
-	}
-	else
-	{
-		icon = g_pFresh->GetBitmap(common->Icon);
-		wsprintf(name, "%s", common->Name);
-	}
-	if (icon)
-	{
-		float x, y;
-		switch (typeId >> 26)
-		{
-		case 2:
-		case 28:
-			x = -10;
-			y = -27;
-			break;
-		case 6:
-			x = 0;
-			y = 0;
-			break;
-		case 5:
-			x = -10;
-			y = -8;
-			break;
-		default:
-			x = -10;
-			y = -27;
-			break;
-		}
-		{
-			gdi->DrawTexture(icon,
-				WRect(x + item->pos.x + 36, y + item->pos.y + 121,
-					(float)icon->Width(), (float)icon->Height()),
-				0xffffffff, 0);
-		}
-	}
-	gdi->SetTextColor(0xff000000, 0xffffffff);
-	gdi->SetTextStyle(1);
-	gdi->Print(WPoint(item->pos.x + 181, item->pos.y + 96), 2, "%s", name);
-	gdi->SetTextStyle(0);
-	const char* text = NULL;
-	if (type >= 3 && type <= 5)
-	{
-		if (type == 3)
-			text = MakeStr("%d\275\303\260\243", count);
-		else if (type == 4)
-			text = MakeStr("%d\300\317", count);
-		else
-			text = MakeStr("%d\260\263\277\371", count);
-	}
-	else
-	{
-		if ((typeId >> 26) == 28)
-		{
-			if (count > 0)
-				text = MakeStr("%d\260\263", count);
-			else
-			{
-				IFF_STRUCT::sAuxPart* part = ItemManager()->FindAuxPart(typeId);
-				if (part && part->COM[0] > 0)
-					text = MakeStr("%d\260\263", part->COM[0]);
-			}
-		}
-		else if ((typeId >> 26) == 5)
-		{
-			if (count > 0)
-				text = MakeStr("%d\260\263", count);
-			else
-			{
-				IFF_STRUCT::sBall* ball = ItemManager()->FindBall(typeId);
-				if (ball && ball->COM[0] > 0)
-					text = MakeStr("%d\260\263", ball->COM[0]);
-			}
-		}
-		else if ((typeId >> 26) == 6)
-		{
-			if (typeId == 436207632)
-				text = MakeStr("%d\306\316", count);
-			else
-				text = MakeStr("%d\260\263", count);
-		}
-		else if ((typeId >> 26) == 14)
-		{
-			text = MakeStr("%d\300\317", count);
-		}
-		else if ((typeId >> 26) == 2)
-		{
-			text = MakeStr("%d\260\263", 1);
-		}
-	}
-	if (text)
-		gdi->Print(WPoint(item->pos.x + 181, item->pos.y + 116), 2, text);
-}
-
-void FrGiftAlarmDlg::OnProc(const float dt)
-{
-	static bool changed = false;
-	static bool visible = false;
+// giftalarmdlg.cpp:446
+void FrGiftAlarmDlg::OnProc(const float dt) {
 	m_blinkTime += dt;
-	if (m_blinkTime > 1.0f)
-	{
-		visible ^= true;
-		m_blinkTime = 0;
-		changed = true;
+
+	if (m_blinkTime > 1.0f) {
+
+		data_af7531.show ^= true;
+
+		m_blinkTime = 0; data_af7531.update = true;
 	}
-	if (visible)
-	{
-		if (!changed)
-			return;
-		m_pInfoMsg->SetCaption(MakeStr(
-			"\277\354\306\355\307\324\300\273 \310\256\300\316\307\317\274\274\277\344   (%d/%d)",
-			m_drawIndex + 1, m_giftNum));
+
+	if (data_af7531.show) {
+
+		if (data_af7531.update) {
+
+			m_pInfoMsg->SetCaption(MakeStr("\xbf\xec\xc6\xed\xc7\xd4\xc0\xbb \xc8\xae\xc0\xce\xc7\xcf\xbc\xbc\xbf\xe4   (%d/%d)", m_curGift + 1, m_giftCount));
+
+			data_af7531.update = false;
+		}
+	} else {
+
+		if (data_af7531.update) {
+
+			m_pInfoMsg->SetCaption("");
+			data_af7531.update = false;
+		}
 	}
-	else
-	{
-		if (!changed)
-			return;
-		m_pInfoMsg->SetCaption("");
-	}
-	changed = false;
 }
 
-IMPLEMENT_OBJECT(CTreasureAlarmDlg, FrForm)
+// giftalarmdlg.cpp:485 (run-time type and factory registration of CTreasureAlarmDlg)
+const WRTTI CTreasureAlarmDlg::m_RTTI("CTreasureAlarmDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(CTreasureAlarmDlg, FrForm)
-
-ON_FRESH_VI("giftlist", FRCMD_INIT, CTreasureAlarmDlg::OnListBox_Gift_Init)
-ON_FRESH_VI("giftlist", FRCMD_OWNERDRAW,
-	CTreasureAlarmDlg::OnListBox_Gift_OwnerDraw)
-ON_FRESH_VI("infomsg", FRCMD_INIT, CTreasureAlarmDlg::OnStatic_Msg_Init)
-
-END_FRESH_MSGMAP()
-
-CTreasureAlarmDlg::CTreasureAlarmDlg()
-{
-	m_pGiftList = NULL;
-	m_pMsg = NULL;
+IObject* CTreasureAlarmDlgMakeInstance(void) {
+	return new CTreasureAlarmDlg;
 }
 
-CTreasureAlarmDlg::~CTreasureAlarmDlg()
-{
+struct __sCTreasureAlarmDlg {
+	__sCTreasureAlarmDlg(void) {
+		ObjectFactory().AddObjectFunctor(CTreasureAlarmDlgMakeInstance, "CTreasureAlarmDlg");
+	}
+};
+static __sCTreasureAlarmDlg s_registerCTreasureAlarmDlg;
+
+// giftalarmdlg.cpp:487
+const sFRESH_MSGMAP* CTreasureAlarmDlg::GetMessageMap(void) const {
+	return &CTreasureAlarmDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP CTreasureAlarmDlg::_MsgMap = { &FrForm::_MsgMap, &CTreasureAlarmDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY CTreasureAlarmDlg::_MsgEntries[] = {
+	// giftalarmdlg.cpp:489
+	{ "giftlist", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTreasureAlarmDlg::OnListBox_Gift_Init },
+	{ "giftlist", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTreasureAlarmDlg::OnListBox_Gift_OwnerDraw },
+	{ "infomsg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTreasureAlarmDlg::OnStatic_Msg_Init },
+
+	// giftalarmdlg.cpp:493
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// giftalarmdlg.cpp:498
+CTreasureAlarmDlg::CTreasureAlarmDlg(void) {
+	m_pGiftList = 0;
+	m_pMsg = 0;
+}
+
+// giftalarmdlg.cpp:504
+CTreasureAlarmDlg::~CTreasureAlarmDlg(void) {
+
+
 	for (FrListBox::ITEM_LIST::iterator it = m_pGiftList->m_itemList.begin();
-		it != m_pGiftList->m_itemList.end(); ++it)
-		delete (TreasureMessage*)(*it)->pData;
-}
+			it != m_pGiftList->m_itemList.end(); ++it) {
+		FrListItem* pItem = *it;
 
-void CTreasureAlarmDlg::OnListBox_Gift_Init(int param)
-{
-	m_pGiftList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pGiftList)
-	{
-		CTHunter::Instance()->ReAdjustRepository();
-		unsigned char count = CTHunter::Instance()->GetRepositorySize();
-		for (unsigned char i = 0; i < count; ++i)
-		{
-			sTreasureHunt info;
-			info = CTHunter::Instance()->GetGiftInfo(i);
-			unsigned long typeId = info.dwTid;
-			unsigned short quantity = info.wCount;
-			TreasureMessage* gift = new TreasureMessage;
-			gift->typeId = typeId;
-			gift->count = quantity;
-			strncpy(gift->sender, "\306\256\267\271\301\256 \274\261\271\260",
-				64);
-			strncpy(gift->message, "", 128);
-			m_pGiftList->AddItem(gift);
-		}
-		m_giftNum = count;
+
+		delete (sTreasureAlarmItem*)pItem->pData;
 	}
 }
 
-void CTreasureAlarmDlg::OnListBox_Gift_OwnerDraw(int param)
-{
-	FrListItem* item = (FrListItem*)param;
-	if (!item)
-		return;
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (!gdi)
-		return;
-	TreasureMessage* gift = (TreasureMessage*)item->pData;
-	if (!gift)
-		return;
-	IFF_ITEM_COMMON* common = ItemManager()->FindCommonItem(gift->typeId);
-	if (!common)
-		return;
-	m_drawIndex = item->idx;
-	gdi->SetTextColor(0xff000000, 0xffffffff);
-	gdi->SetTextStyle(0);
-	g_pFresh->GetManager()->PrintText(WPoint(item->pos.x + 10, item->pos.y + 5),
-		0, gift->sender, -1, 0xffffffff);
-	const Bitmap* message = g_pFresh->RegisterBitmap("text_message_treasure");
-	if (message)
-	{
-		gdi->DrawTexture(message,
-			WRect(item->pos.x + 24, item->pos.y + 27, (float)message->Width(),
-				(float)message->Height()),
-			0xffffffff, 0);
-	}
-	gdi->SetTextColor(0xffffffff, 0xffffffff);
-	g_pFresh->GetManager()->PrintText(
-		WPoint(item->pos.x + 28, item->pos.y + 56), 0, gift->message, -1,
-		0xffffffff);
-	const Bitmap* icon = g_pFresh->GetBitmap(common->Icon);
-	if (icon)
-	{
-		float x, y;
-		switch (common->TypeId >> 26)
-		{
-		case 6:
-			x = 0;
-			y = 0;
-			break;
-		case 5:
-			x = -10;
-			y = -8;
-			break;
-		default:
-			x = -10;
-			y = -27;
-			break;
-		}
-		{
-			gdi->DrawTexture(icon,
-				WRect(x + item->pos.x + 36, y + item->pos.y + 121,
-					(float)icon->Width(), (float)icon->Height()),
-				0xffffffff, 0);
-		}
-	}
-	gdi->SetTextColor(0xff000000, 0xffffffff);
-	gdi->SetTextStyle(1);
-	gdi->Print(WPoint(item->pos.x + 181, item->pos.y + 96), 2, "%s",
-		common->Name);
-	gdi->SetTextStyle(0);
-	const char* text = NULL;
-	unsigned long typeId = common->TypeId;
-	if ((typeId >> 26) == 28)
-	{
-		if (gift->count > 0)
-			text = MakeStr("%d\260\263", gift->count);
-		else
-		{
-			IFF_STRUCT::sAuxPart* part = ItemManager()->FindAuxPart(typeId);
-			if (part && part->COM[0] > 0)
-				text = MakeStr("%d\260\263", part->COM[0]);
-		}
-	}
-	else if ((typeId >> 26) == 5)
-	{
-		if (gift->count > 0)
-			text = MakeStr("%d\260\263", gift->count);
-		else
-		{
-			IFF_STRUCT::sBall* ball = ItemManager()->FindBall(typeId);
-			if (ball && ball->COM[0] > 0)
-				text = MakeStr("%d\260\263", ball->COM[0]);
-		}
-	}
-	else if ((typeId >> 26) == 6)
-	{
-		if (typeId == 436207632)
-			text = MakeStr("%d\306\316", gift->count);
-		else
-			text = MakeStr("%d\260\263", gift->count);
-	}
-	else if ((typeId >> 26) == 14)
-	{
-		text = MakeStr("%d\300\317", gift->count);
-	}
-	else
-	{
-		text = MakeStr("%d\260\263", 1);
-	}
+// giftalarmdlg.cpp:676
+void CTreasureAlarmDlg::OnStatic_Msg_Init(intptr_t param) {
+	m_pMsg = DYNAMIC_CAST(FrStatic, param);
 
-	if (text)
-		gdi->Print(WPoint(item->pos.x + 181, item->pos.y + 116), 2, text);
+
 }
 
-void CTreasureAlarmDlg::OnStatic_Msg_Init(int param)
-{
-	m_pMsg = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-}
-
-void CTreasureAlarmDlg::OnProc(const float dt)
-{
-	static bool changed = false;
-	static bool visible = false;
+// giftalarmdlg.cpp:683
+void CTreasureAlarmDlg::OnProc(const float dt) {
 	m_blinkTime += dt;
-	if (m_blinkTime > 1.0f)
-	{
-		visible ^= true;
+
+	if (m_blinkTime > 1.0f) {
+
+		data_af7533.show ^= true;
 		m_blinkTime = 0;
-		changed = true;
+		data_af7533.update = true;
 	}
-	if (visible)
-	{
-		if (!changed)
-			return;
-		m_pMsg->SetCaption(
-			"\270\266\300\314\267\353\277\241\274\255 \310\256\300\316\307\317\274\274\277\344");
+
+	if (data_af7533.show) {
+
+		if (data_af7533.update) {
+
+			m_pMsg->SetCaption("\xb8\xb6\xc0\xcc\xb7\xeb\xbf\xa1\xbc\xad \xc8\xae\xc0\xce\xc7\xcf\xbc\xbc\xbf\xe4");
+
+			data_af7533.update = false;
+		}
+	} else {
+
+		if (data_af7533.update) {
+
+			m_pMsg->SetCaption("");
+			data_af7533.update = false;
+		}
 	}
-	else
-	{
-		if (!changed)
-			return;
-		m_pMsg->SetCaption("");
-	}
-	changed = false;
 }

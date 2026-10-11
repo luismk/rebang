@@ -1,232 +1,274 @@
-#include "minatl.h"
-#include "finalrankdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\finalrankdlg.cpp
+#include "FinalRankDlg.h"
+#include "ObjectFactory.h"
 #include "frlistbox.h"
+#include "SharedDoc.h"
+#include "fresh.h"
 #include "frwndmanager.h"
 #include "frgraphicinterface.h"
-#include "fresh.h"
-#include "projectg.h"
-#include "netresourcemanager.h"
-extern Fresh* g_pFresh;
+#include "bitmap.h"
+#include "NetResourceManager.h"
+#include "ProjectG.h"
+
 bool FinalRankCompare(const void* a, const void* b);
 
-IMPLEMENT_OBJECT(FrFinalRankDlg, FrForm)
+// finalrankdlg.cpp:18 (run-time type and factory registration of FrFinalRankDlg)
+const WRTTI FrFinalRankDlg::m_RTTI("FrFinalRankDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrFinalRankDlg, FrForm)
+IObject* FrFinalRankDlgMakeInstance(void) {
+	return new FrFinalRankDlg;
+}
 
-ON_FRESH_VI("list_left", FRCMD_INIT, FrFinalRankDlg::OnRankLeftInit)
-ON_FRESH_VI("list_left", FRCMD_OWNERDRAW, FrFinalRankDlg::OnRankLeftOwnerDraw)
-ON_FRESH_VI("list_right", FRCMD_INIT, FrFinalRankDlg::OnRankRightInit)
-ON_FRESH_VI("list_right", FRCMD_OWNERDRAW, FrFinalRankDlg::OnRankRightOwnerDraw)
+struct __sFrFinalRankDlg {
+	__sFrFinalRankDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrFinalRankDlgMakeInstance, "FrFinalRankDlg");
+	}
+};
+static __sFrFinalRankDlg s_registerFrFinalRankDlg;
 
-END_FRESH_MSGMAP()
-FrFinalRankDlg::FrFinalRankDlg()
-	: m_pRankLeft(NULL), m_pRankRight(NULL)
+// finalrankdlg.cpp:20
+const sFRESH_MSGMAP* FrFinalRankDlg::GetMessageMap(void) const {
+	return &FrFinalRankDlg::_MsgMap;
+}
 
-{
-	std::vector<sRivalData>::iterator it;
+sFRESH_MSGMAP FrFinalRankDlg::_MsgMap = { &FrForm::_MsgMap, &FrFinalRankDlg::_MsgEntries[0] };
 
-	for (it = Doc()->m_rivalList.begin(); it != Doc()->m_rivalList.end(); ++it)
-	{
-		if ((*it).state == 3)
-		{
-			(*it).rank = 0xFF;
+sFRESH_ENTRY FrFinalRankDlg::_MsgEntries[] = {
+	// finalrankdlg.cpp:22
+	{ "list_left", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFinalRankDlg::OnRankLeftInit },
+	// finalrankdlg.cpp:23
+	{ "list_left", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFinalRankDlg::OnRankLeftOwnerDraw },
+	// finalrankdlg.cpp:24
+	{ "list_right", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFinalRankDlg::OnRankRightInit },
+	// finalrankdlg.cpp:25
+	{ "list_right", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFinalRankDlg::OnRankRightOwnerDraw },
+
+	// finalrankdlg.cpp:27
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// finalrankdlg.cpp:32
+FrFinalRankDlg::FrFinalRankDlg(void)
+	: m_pListLeft(0), m_pListRight(0) {
+	for (std::vector<sGameResultInfo>::iterator it = WSingleton<CSharedDoc>::Instance()->m_gameResultList.begin();
+		 it != WSingleton<CSharedDoc>::Instance()->m_gameResultList.end(); ++it) {
+		if (it->m_state == 3) {
+			it->m_rank = 0xFF;
 			continue;
 		}
 
-		(*it).rank = 1;
-		std::vector<sRivalData>::iterator it2;
-		for (it2 = Doc()->m_rivalList.begin(); it2 != Doc()->m_rivalList.end();
-			++it2)
-		{
-			if (it == it2 || (*it2).state == 3)
+		it->m_rank = 1;
+		for (std::vector<sGameResultInfo>::iterator other = WSingleton<CSharedDoc>::Instance()->m_gameResultList.begin();
+			 other != WSingleton<CSharedDoc>::Instance()->m_gameResultList.end(); ++other) {
+			if (it == other || other->m_state == 3) {
 				continue;
+			}
 
-			if ((*it).totalScore > (*it2).totalScore ||
-				((*it).totalScore == (*it2).totalScore &&
-					(*it).totalPang < (*it2).totalPang))
-				(*it).rank++;
+			if (it->m_score > other->m_score || (it->m_score == other->m_score && it->m_pang < other->m_pang)) {
+				it->m_rank++;
+			}
 		}
 	}
 }
-void FrFinalRankDlg::OnRankLeftInit(int param)
 
-{
-	m_pRankLeft = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	std::vector<sRivalData>::iterator it;
+// finalrankdlg.cpp:56
+void FrFinalRankDlg::OnRankLeftInit(intptr_t param) {
+	m_pListLeft = DYNAMIC_CAST(FrListBox, param);
 
-	for (it = Doc()->m_rivalList.begin(); it != Doc()->m_rivalList.end(); ++it)
-	{
-		if ((*it).rank < 16)
-			m_pRankLeft->AddItem(&(*it));
+	for (std::vector<sGameResultInfo>::iterator it = WSingleton<CSharedDoc>::Instance()->m_gameResultList.begin();
+		 it != WSingleton<CSharedDoc>::Instance()->m_gameResultList.end(); ++it) {
+		if (it->m_rank < 0x10) {
+			m_pListLeft->AddItem(&*it);
+		}
 	}
 
-	m_pRankLeft->SortItem(FinalRankCompare);
+	m_pListLeft->SortItem(FinalRankCompare);
 }
-void FrFinalRankDlg::OnRankLeftOwnerDraw(int param)
 
-{
-	if (param == NULL)
-		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-
-	int space = pGDI->SetSpace(0);
+// finalrankdlg.cpp:71
+void FrFinalRankDlg::OnRankLeftOwnerDraw(intptr_t param) {
 	FrListItem* pItem = (FrListItem*)param;
-	sRivalData* pRival = (sRivalData*)pItem->pData;
-	Doc()->m_rivalList.end();
 
-	if (pRival->oid == MyGuid(false))
-		pGDI->SetTextColor(0xFFFF0000, 0xFFFFFFFF);
-	else if (pRival->state == 3)
-		pGDI->SetTextColor(0xFF808080, 0xFFFFFFFF);
-	else
-		pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
+	if (pItem) {
 
-	pGDI->SetTextStyle(0);
-	if (pRival->state == 3)
 
-		pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "-");
-	else
-		pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "%d",
-			pRival->rank);
-	float nickX = 95.0f;
+		FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
 
-	if (pRival->guildUID)
-	{
-		const Bitmap* pEmblem =
-			NetResourceManager::Instance()->GetEmblemByName(pRival->guildMark);
 
-		if (pEmblem)
-		{
-			pGDI->DrawTexture(pEmblem,
-				WRect(pItem->pos.x + 95.0f, pItem->pos.y + 3.0f - 6.0f,
-					(float)pEmblem->Width(), (float)pEmblem->Height()),
-				0xFFFFFFFF, 0);
-			nickX = 122.0f;
+
+		int oldSpace = pGDI->SetSpace(0);
+
+		sGameResultInfo* pInfo = (sGameResultInfo*)pItem->pData;
+
+		if (pInfo->m_uid == WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().guid)
+			pGDI->SetTextColor(0xFFFF0000, 0xFFFFFFFF);
+		else if (pInfo->m_state == 3)
+			pGDI->SetTextColor(0xFF808080, 0xFFFFFFFF);
+		else
+			pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
+
+		pGDI->SetTextStyle(0);
+
+
+
+		if (pInfo->m_state == 3)
+			pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "-");
+		else
+			pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "%d", pInfo->m_rank);
+
+
+
+
+
+		float offset = 95.0f;
+		if (pInfo->m_hasEmblem) {
+
+
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(pInfo->m_emblemName);
+
+
+
+
+			if (emblem) {
+
+				pGDI->DrawTexture(emblem, WRect(pItem->pos.x + 95.0f, pItem->pos.y + 3.0f - 6.0f, emblem->Width(), emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 122.0f;
+			}
+		}
+
+
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy())
+			g_pFresh->GetManager()->PrintText(WPoint(offset + pItem->pos.x, pItem->pos.y + 3.0f), 0, pInfo->m_nickname, 120.0f, 0xFFFFFFFF);
+
+
+		pGDI->Print(WPoint(pItem->pos.x + 186.0f, pItem->pos.y + 3.0f), 2, "%d", pInfo->m_score);
+
+
+		pGDI->Print(WPoint(pItem->pos.x + 230.0f, pItem->pos.y + 3.0f), 2, "%I64d", pInfo->m_pang);
+
+
+
+		if (pInfo->m_state == 2 || GetHoleIndex(pInfo->m_hole) == 0x13)
+			pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2, "End");
+		else
+			pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2, "%d\xC8\xA6", GetHoleIndex(pInfo->m_hole));
+
+
+		pGDI->SetSpace(oldSpace);
+	}
+}
+
+// finalrankdlg.cpp:138
+void FrFinalRankDlg::OnRankRightInit(intptr_t param) {
+	m_pListRight = DYNAMIC_CAST(FrListBox, param);
+
+	for (std::vector<sGameResultInfo>::iterator it = WSingleton<CSharedDoc>::Instance()->m_gameResultList.begin();
+		 it != WSingleton<CSharedDoc>::Instance()->m_gameResultList.end(); ++it) {
+		if (it->m_rank > 0xF) {
+			m_pListRight->AddItem(&*it);
 		}
 	}
 
-	if (CProjectG::Instance()->HidePrivacy() == false)
-		g_pFresh->GetManager()->PrintText(
-			WPoint(nickX + pItem->pos.x, pItem->pos.y + 3.0f), 0,
-			pRival->nickname, 120.0f, 0xFFFFFFFF);
-
-	pGDI->Print(WPoint(pItem->pos.x + 186.0f, pItem->pos.y + 3.0f), 2, "%d",
-		pRival->totalScore);
-
-	pGDI->Print(WPoint(pItem->pos.x + 230.0f, pItem->pos.y + 3.0f), 2, "%I64d",
-		pRival->totalPang);
-
-	if (pRival->state == 2 || GetHoleIndex(pRival->hole) == 19)
-		pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2,
-			"End");
-	else
-		pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2,
-			"%d\xc8\xa6", GetHoleIndex(pRival->hole));
-
-	pGDI->SetSpace(space);
+	m_pListRight->SortItem(FinalRankCompare);
 }
-void FrFinalRankDlg::OnRankRightInit(int param)
 
-{
-	m_pRankRight = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	std::vector<sRivalData>::iterator it;
-
-	for (it = Doc()->m_rivalList.begin(); it != Doc()->m_rivalList.end(); ++it)
-	{
-		if ((*it).rank > 15)
-			m_pRankRight->AddItem(&(*it));
-	}
-
-	m_pRankRight->SortItem(FinalRankCompare);
-}
-void FrFinalRankDlg::OnRankRightOwnerDraw(int param)
-
-{
-	if (param == NULL)
-		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-
-	int space = pGDI->SetSpace(0);
+// finalrankdlg.cpp:153
+void FrFinalRankDlg::OnRankRightOwnerDraw(intptr_t param) {
 	FrListItem* pItem = (FrListItem*)param;
-	sRivalData* pRival = (sRivalData*)pItem->pData;
-	Doc()->m_rivalList.end();
 
-	if (pRival->oid == MyGuid(false))
-		pGDI->SetTextColor(0xFFFF0000, 0xFFFFFFFF);
-	else if (pRival->state == 3)
-		pGDI->SetTextColor(0xFF808080, 0xFFFFFFFF);
-	else
-		pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
+	if (pItem) {
 
-	pGDI->SetTextStyle(0);
-	if (pRival->state == 3)
 
-		pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "-");
-	else
-		pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "%d",
-			pRival->rank);
-	float nickX = 95.0f;
+		FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
 
-	if (pRival->guildUID)
-	{
-		const Bitmap* pEmblem =
-			NetResourceManager::Instance()->GetEmblemByName(pRival->guildMark);
 
-		if (pEmblem)
-		{
-			pGDI->DrawTexture(pEmblem,
-				WRect(pItem->pos.x + 95.0f, pItem->pos.y + 3.0f - 6.0f,
-					(float)pEmblem->Width(), (float)pEmblem->Height()),
-				0xFFFFFFFF, 0);
-			nickX = 122.0f;
+
+		int oldSpace = pGDI->SetSpace(0);
+
+		sGameResultInfo* pInfo = (sGameResultInfo*)pItem->pData;
+
+		if (pInfo->m_uid == WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().guid)
+			pGDI->SetTextColor(0xFFFF0000, 0xFFFFFFFF);
+		else if (pInfo->m_state == 3)
+			pGDI->SetTextColor(0xFF808080, 0xFFFFFFFF);
+		else
+			pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
+
+		pGDI->SetTextStyle(0);
+
+
+
+		if (pInfo->m_state == 3)
+			pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "-");
+		else
+			pGDI->Print(WPoint(pItem->pos.x + 21.0f, pItem->pos.y + 3.0f), 1, "%d", pInfo->m_rank);
+
+
+
+
+
+		float offset = 95.0f;
+		if (pInfo->m_hasEmblem) {
+
+
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(pInfo->m_emblemName);
+
+
+
+
+			if (emblem) {
+
+				pGDI->DrawTexture(emblem, WRect(pItem->pos.x + 95.0f, pItem->pos.y + 3.0f - 6.0f, emblem->Width(), emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 122.0f;
+			}
 		}
+
+
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy())
+			g_pFresh->GetManager()->PrintText(WPoint(offset + pItem->pos.x, pItem->pos.y + 3.0f), 0, pInfo->m_nickname, 120.0f, 0xFFFFFFFF);
+
+
+		pGDI->Print(WPoint(pItem->pos.x + 186.0f, pItem->pos.y + 3.0f), 2, "%d", pInfo->m_score);
+
+
+		pGDI->Print(WPoint(pItem->pos.x + 230.0f, pItem->pos.y + 3.0f), 2, "%I64d", pInfo->m_pang);
+
+
+
+		if (pInfo->m_state == 2 || GetHoleIndex(pInfo->m_hole) == 0x13)
+			pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2, "End");
+		else
+			pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2, "%d\xC8\xA6", GetHoleIndex(pInfo->m_hole));
+
+
+		pGDI->SetSpace(oldSpace);
+	}
+}
+
+// finalrankdlg.cpp:219
+bool FinalRankCompare(const void* a, const void* b) {
+	const sGameResultInfo* pA = (const sGameResultInfo*)a;
+	const sGameResultInfo* pB = (const sGameResultInfo*)b;
+
+	if (pA->m_sortGroup > pB->m_sortGroup) {
+		return true;
+	} else if (pA->m_sortGroup < pB->m_sortGroup) {
+		return false;
 	}
 
-	if (CProjectG::Instance()->HidePrivacy() == false)
-		g_pFresh->GetManager()->PrintText(
-			WPoint(nickX + pItem->pos.x, pItem->pos.y + 3.0f), 0,
-			pRival->nickname, 120.0f, 0xFFFFFFFF);
-
-	pGDI->Print(WPoint(pItem->pos.x + 186.0f, pItem->pos.y + 3.0f), 2, "%d",
-		pRival->totalScore);
-
-	pGDI->Print(WPoint(pItem->pos.x + 230.0f, pItem->pos.y + 3.0f), 2, "%I64d",
-		pRival->totalPang);
-
-	if (pRival->state == 2 || GetHoleIndex(pRival->hole) == 19)
-		pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2,
-			"End");
-	else
-		pGDI->Print(WPoint(pItem->pos.x + 268.0f, pItem->pos.y + 3.0f), 2,
-			"%d\xc8\xa6", GetHoleIndex(pRival->hole));
-
-	pGDI->SetSpace(space);
-}
-bool FinalRankCompare(const void* a, const void* b)
-
-{
-	const sRivalData* p1 = (const sRivalData*)a;
-	const sRivalData* p2 = (const sRivalData*)b;
-
-	if (p1->quitOrder > p2->quitOrder)
+	if (pA->m_score < pB->m_score) {
 		return true;
-	if (p1->quitOrder < p2->quitOrder)
-
+	} else if (pA->m_score > pB->m_score) {
 		return false;
+	}
 
-	if (p1->totalScore < p2->totalScore)
+	if (pA->m_pang > pB->m_pang) {
 		return true;
-
-	if (p1->totalScore > p2->totalScore)
+	} else if (pA->m_pang < pB->m_pang) {
 		return false;
+	}
 
-	if (p1->totalPang > p2->totalPang)
-		return true;
-
-	if (p1->totalPang < p2->totalPang)
-		return false;
-
-	return p1->order < p2->order;
+	return pA->m_value13F < pB->m_value13F;
 }

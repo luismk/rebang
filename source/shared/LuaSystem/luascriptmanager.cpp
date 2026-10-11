@@ -1,114 +1,129 @@
-#include "luascriptmanager.h"
-#include "luascript.h"
-#include "luatablehelper.h"
-#include "wresrcmng.h"
-#include "cfile.h"
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\shared\luasystem\luascriptmanager.cpp
 #include <algorithm>
-extern "C"
-{
-#include "Lua/src/lualib.h"
+
+#include "LuaScriptManager.h"
+#include "LuaScript.h"
+#include "LuaUtilityLib.h"
+#include "luatablehelper.h"
+#include "lua_tinker/lua_tinker.h"
+#include "wresrcmng.h"
+#include "westpak.h"
+
+// westpak.cpp
+void __cdecl CloseCFile(cFile *file);
+
+namespace lua_system {
+
+// luascriptmanager.cpp:14
+lua_script_manger *lua_script_manger::GetInstance() {
+	static lua_script_manger instance;
+	return &instance;
 }
 
-namespace lua_system
-{
-	void LuaOpenUtilityLib(lua_State* state);
+// luascriptmanager.cpp:20
+lua_script_manger::lua_script_manger() {
+	m_masterLuaState = luaL_newstate();
 
-	lua_script_manger* lua_script_manger::GetInstance()
-	{
-		static lua_script_manger manager;
-		return &manager;
+	if (m_masterLuaState == NULL) {
+		return;
 	}
 
-	lua_script_manger::lua_script_manger()
-	{
-		master = luaL_newstate();
-		if (master)
-		{
-			luaL_openlibs(master);
-			LuaOpenUtilityLib(master);
-			cFile* file = g_resrcmng->GetCFile("root.lua", 65535);
-			if (file)
-			{
-				char* buffer = new char[file->Length() + 1];
-				file->Read(buffer, file->Length());
-				buffer[file->Length()] = 0;
-				CloseCFile(file);
-				lua_tinker::dostring(master, buffer, "root.lua");
-				delete[] buffer;
-			}
+	luaL_openlibs(m_masterLuaState);
+
+	LuaOpenUtilityLib(m_masterLuaState);
+
+	cFile *file = g_resrcmng->GetCFile("root.lua", 0xFFFF);
+	if (file) {
+		char *buffer = new char[file->Length() + 1];
+		file->Read(buffer, file->Length());
+		buffer[file->Length()] = 0;
+		CloseCFile(file);
+
+		lua_tinker::dostring(m_masterLuaState, buffer, "root.lua");
+
+		delete[] buffer;
+	}
+}
+
+// luascriptmanager.cpp:53
+lua_script_manger::~lua_script_manger() {
+	std::list<lua_script *>::iterator it;
+	for (it = m_scripts.begin(); it != m_scripts.end(); ++it) {
+		if (*it) {
+			delete *it;
+		}
+		*it = NULL;
+	}
+
+	m_scripts.clear();
+
+	lua_close(m_masterLuaState);
+}
+
+// luascriptmanager.cpp:69
+lua_script *lua_script_manger::CreateScript(bool master) {
+	lua_script *script = new lua_script(this, master);
+
+	if (script == NULL) {
+		return NULL;
+	}
+
+	m_scripts.push_back(script);
+
+	return script;
+}
+
+// luascriptmanager.cpp:85
+void lua_script_manger::ReleaseScript(lua_script *script) {
+	script->ReserveDelete();
+}
+
+// luascriptmanager.cpp:90
+void lua_script_manger::DeleteScript(lua_script *script) {
+	std::list<lua_script *>::iterator it = std::find(m_scripts.begin(), m_scripts.end(), script);
+
+	if (it != m_scripts.end()) {
+		if (*it) {
+			delete *it;
+		}
+		*it = NULL;
+		m_scripts.erase(it);
+	}
+}
+
+// luascriptmanager.cpp:104
+void lua_script_manger::ReloadAll() {
+	std::list<lua_script *>::iterator it = m_scripts.begin();
+	for (; it != m_scripts.end(); ++it) {
+		(*it)->Reload();
+	}
+}
+
+// luascriptmanager.cpp:111
+void lua_script_manger::Update(float elapsed) {
+	std::list<lua_script *>::iterator it = m_scripts.begin();
+
+	for (; it != m_scripts.end(); ++it) {
+		if ((*it)->Update(elapsed) == lua_script::STATE_DELETE) {
+			std::list<lua_script *>::iterator next = it;
+			++next;
+
+			DeleteScript(*it);
+			it = next;
 		}
 	}
+}
 
-	lua_script_manger::~lua_script_manger()
-	{
-		for (std::list<lua_script*>::iterator i = scripts.begin();
-			i != scripts.end(); ++i)
-		{
-			delete *i;
-			*i = 0;
-		}
-		scripts.clear();
-		lua_close(master);
-	}
+// luascriptmanager.cpp:127
+bool lua_script_manger::RunString(const char *str) {
+	return lua_tinker::dostring(m_masterLuaState, str, 0);
+}
 
-	lua_script* lua_script_manger::CreateScript(bool option)
-	{
-		lua_script* value = new lua_script(this, option);
-		if (!value)
-			return 0;
-		scripts.push_back(value);
-		return value;
-	}
+// luascriptmanager.cpp:132
+lua_table_helper lua_script_manger::GetTable(const char *name) {
+	lua_tinker::table table = lua_tinker::get<lua_tinker::table>(m_masterLuaState, name);
 
-	void lua_script_manger::ReleaseScript(lua_script* value)
-	{
-		value->ReserveDelete();
-	}
+	return lua_table_helper(table);
+}
 
-	void lua_script_manger::DeleteScript(lua_script* value)
-	{
-		std::list<lua_script*>::iterator i;
-		i = std::find(scripts.begin(), scripts.end(), value);
-		if (i != scripts.end())
-		{
-			delete *i;
-			*i = 0;
-			scripts.erase(i);
-		}
-	}
-
-	void lua_script_manger::ReloadAll()
-	{
-		for (std::list<lua_script*>::iterator i = scripts.begin();
-			i != scripts.end(); ++i)
-			(*i)->Reload();
-	}
-
-	void lua_script_manger::Update(float delta)
-	{
-		for (std::list<lua_script*>::iterator i = scripts.begin();
-			i != scripts.end(); ++i)
-		{
-			if ((*i)->Update(delta) == 4)
-			{
-				std::list<lua_script*>::iterator next = i;
-				++next;
-				DeleteScript(*i);
-				i = next;
-			}
-		}
-	}
-
-	bool lua_script_manger::RunString(const char* text)
-	{
-		return lua_tinker::dostring(master, text, 0);
-	}
-
-	lua_table_helper lua_script_manger::GetTable(const char* name)
-	{
-		lua_tinker::table value =
-			lua_tinker::get<lua_tinker::table>(master, name);
-		return lua_table_helper(value);
-	}
 }

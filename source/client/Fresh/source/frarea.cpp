@@ -1,31 +1,39 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frarea.cpp
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "bitmap.h"
+
 #include "frarea.h"
-#include "frwndmanager.h"
 #include "frelement.h"
 #include "frgraphicinterface.h"
+#include "frwndmanager.h"
+#include "ObjectFactory.h"
+#include "../client/Wangreal/include/bitmap.h"
 
-IObject* FrAreaMakeInstance()
-{
+#ifndef max
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#endif
+
+// frarea.cpp:15 (run-time type and factory registration of FrArea)
+const WRTTI FrArea::m_RTTI("FrArea", &FrWnd::m_RTTI);
+
+IObject* FrAreaMakeInstance(void) {
 	return new FrArea;
 }
 
-struct __sFrArea
-{
-	__sFrArea()
-	{
+struct __sFrArea {
+	__sFrArea(void) {
 		ObjectFactory().AddObjectFunctor(FrAreaMakeInstance, "FrArea");
 	}
 };
+static __sFrArea s_registerFrArea;
 
-const WRTTI FrArea::m_RTTI("FrArea", &FrWnd::m_RTTI);
-static __sFrArea __implFrArea;
-
-FrArea::FrArea()
-	: m_pBitmap(NULL)
-{
+// frarea.cpp:18
+FrArea::FrArea(void)
+	: m_pBitmap(0) {
 	m_center = false;
 	m_stretch = false;
 	m_mouseEvent = false;
@@ -33,23 +41,22 @@ FrArea::FrArea()
 	m_imgName = "";
 
 	m_isClipping = false;
-	m_rcClipArea = WRect(0, 0, 0, 0);
+	m_rcClipArea = WRect(0.0f, 0.0f, 0, 0);
 }
 
-FrArea::~FrArea()
-{
+// frarea.cpp:32
+FrArea::~FrArea(void) {
 }
 
-void FrArea::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
-{
+// frarea.cpp:36
+void FrArea::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
 	FrElementDoc* pDoc = pManager->GetDocument();
 
 	bool bVisible = true;
 
 	std::map<std::string, std::string>& param = item.m_param;
 
-	if (param.find("bgimg") != param.end())
-	{
+	if (param.find("bgimg") != param.end()) {
 		m_imgName = param["bgimg"];
 		m_pBitmap = pDoc->GetBitmap(m_imgName);
 	}
@@ -75,18 +82,15 @@ void FrArea::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 		(short)(item.m_rect.right - item.m_rect.left),
 		(short)(item.m_rect.bottom - item.m_rect.top));
 	unsigned long style = (m_mouseEvent ? 0 : 0x40) | (bVisible ? 1 : 0);
-	Create(item.m_caption.c_str(), item.m_name.c_str(), pManager, style, rect,
-		pParent);
+	Create(item.m_caption.c_str(), item.m_name.c_str(), pManager, style, rect, pParent);
 
 	if (param.find("enable_clip") != param.end())
 		m_isClipping = atoi(param["enable_clip"].c_str()) == 1;
 
 	m_rcClipArea = m_rect;
-	if (param.find("clip_area") != param.end())
-	{
+	if (param.find("clip_area") != param.end()) {
 		int v[4];
-		sscanf(param["clip_area"].c_str(), "%d %d %d %d", &v[0], &v[1], &v[2],
-			&v[3]);
+		sscanf(param["clip_area"].c_str(), "%d %d %d %d", &v[0], &v[1], &v[2], &v[3]);
 
 		m_rcClipArea.x = (float)v[0];
 		m_rcClipArea.y = (float)v[1];
@@ -95,22 +99,20 @@ void FrArea::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 	}
 }
 
-bool FrArea::SetBgImg(const char* name)
-{
-	if (!name)
-	{
-		m_pBitmap = NULL;
+// frarea.cpp:93
+bool FrArea::SetBgImg(const char* name) {
+	if (name == 0) {
+		m_pBitmap = 0;
 		return true;
 	}
 
-	if (!strcmpi(m_imgName.c_str(), name))
+	if (strcmpi(m_imgName.c_str(), name) == 0)
 		return true;
 
 	m_imgName = name;
 
 	FrElementDoc* pDoc = WndManager()->GetDocument();
-	if (pDoc)
-	{
+	if (pDoc) {
 		m_pBitmap = pDoc->GetBitmap(name);
 		if (m_pBitmap)
 			return true;
@@ -119,10 +121,9 @@ bool FrArea::SetBgImg(const char* name)
 	return false;
 }
 
-bool FrArea::SetBgImg(const Bitmap* pBitmap)
-{
-	if (pBitmap)
-	{
+// frarea.cpp:117
+bool FrArea::SetBgImg(const Bitmap* pBitmap) {
+	if (pBitmap) {
 		m_pBitmap = pBitmap;
 		return true;
 	}
@@ -130,65 +131,60 @@ bool FrArea::SetBgImg(const Bitmap* pBitmap)
 	return false;
 }
 
-void FrArea::OnDraw()
-{
+// frarea.cpp:130
+void FrArea::OnDraw(void) {
 	FrWnd::OnDraw();
 
 	WRect src, dst;
-	if (ClippingArea(src, dst))
-	{
-		GDI()->DrawTexture(m_pBitmap, src, dst,
-			FrALPHA(m_color, m_wndAlpha2 * m_wndAlpha), 0);
+	if (ClippingArea(src, dst)) {
+		GDI()->DrawTexture(m_pBitmap, src, dst, FrALPHA(m_color, m_wndAlpha2 * m_wndAlpha), 0);
 	}
 
 	SendCmdToOwnerTarget(FRCMD_OWNERDRAW, 0, 0);
 }
 
-void FrArea::OnSetCursor(bool bInClient, const WPoint& mousePos)
-{
-	if (bInClient && m_mouseEvent)
+// frarea.cpp:148
+void FrArea::OnSetCursor(bool b, const WPoint& pt) {
+	if (b && m_mouseEvent)
 		SetCursor(1);
 }
 
-void FrArea::SetMouseEvent(bool active)
-{
-	m_mouseEvent = active;
+// frarea.cpp:154
+void FrArea::SetMouseEvent(bool mouseEvent) {
+	m_mouseEvent = mouseEvent;
 
-	if (active)
+	if (m_mouseEvent)
 		m_dwStyle.Disable(0x40);
 	else
 		m_dwStyle.Enable(0x40);
 }
 
-bool FrArea::OnLButtonDown(const WPoint& mousePos)
-{
+// frarea.cpp:164
+bool FrArea::OnLButtonDown(const WPoint& pt) {
 	SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, 0, 0);
 	return false;
 }
 
-bool FrArea::OnLButtonUp(const WPoint& mousePos)
-{
+// frarea.cpp:170
+bool FrArea::OnLButtonUp(const WPoint& pt) {
 	SendCmdToOwnerTarget(FRCMD_LBUTTONUP, 0, 0);
 	return false;
 }
 
-bool FrArea::ClippingArea(WRect& src, WRect& dst)
-{
+// frarea.cpp:177
+bool FrArea::ClippingArea(WRect& src, WRect& dst) {
 	if (!m_pBitmap)
 		return false;
 
 	WRect re_src(0, 0, m_pBitmap->Width(), m_pBitmap->Height());
 	WRect re_dst(m_rect.x, m_rect.y, m_rect.w, m_rect.h);
 
-	if (m_center)
-	{
+	if (m_center) {
 		re_dst.w = (float)m_pBitmap->Width();
 		re_dst.h = (float)m_pBitmap->Height();
 		re_dst.x += (int)(((m_rect.w - re_dst.w) + 1) * 0.5f);
 		re_dst.y += (int)(((m_rect.h - re_dst.h) + 1) * 0.5f);
-	}
-	else if (!m_stretch)
-	{
+	} else if (!m_stretch) {
 		re_dst.w = (float)m_pBitmap->Width();
 		re_dst.h = (float)m_pBitmap->Height();
 	}

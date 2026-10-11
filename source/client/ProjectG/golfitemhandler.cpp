@@ -1,291 +1,281 @@
-#include "minatl.h"
-#include "golfitemhandler.h"
-#include "golftask.h"
-#include "noticedlg.h"
-#include "messagemanager.h"
-#include "chatmsg.h"
+// Original: d:\build\custom\temp\code\client\projectg\golfitemhandler.cpp
+#include "GolfItemHandler.h"
+#include "GatewayDoc.h"
+#include "actor.h"
+#include "SharedDoc.h"
 #include "fresh.h"
-#include "gatewayactor.h"
-static const float WARNING_RATE = 80.0f;
+#include "frform.h"
+#include "noticedlg.h"
+#include "TaskManager.h"
+#include "GolfTask.h"
+#include "ItemManager.h"
+#include "UccManager.h"
+#include "MessageManager.h"
+#include "ChatMsg.h"
+#include "commonutil.h"
+#include <vector>
 
-extern Fresh* g_pFresh;
-unsigned char GetCurMap();
+namespace _gateway {
 
-using namespace _gateway;
-
-CGolfItemHandler::CGolfItemHandler()
-	: m_pWizCityNoticeDlg(NULL)
-{
+// golfitemhandler.cpp:33
+CGolfItemHandler::CGolfItemHandler(void)
+	: m_pNoticeDlg(0) {
 }
 
-CGolfItemHandler::~CGolfItemHandler()
-{
+// golfitemhandler.cpp:38
+CGolfItemHandler::~CGolfItemHandler(void) {
 }
 
-bool CGolfItemHandler::Initialize()
-{
-	AddFunctionType(0, FUNCTIONTYPE_VOID,
-		(void (FunctionMapper::*)())&CGolfItemHandler::OnRequestResetCalipers);
-	AddFunctionType(1, FUNCTIONTYPE_ARG,
-		(void (FunctionMapper::*)())(
-			void (CGolfItemHandler::*)())&CGolfItemHandler::OnGetFlagCalipers);
-	AddFunctionType(2, FUNCTIONTYPE_VOID,
-		(void (FunctionMapper::*)())&CGolfItemHandler::OnSetFlagCalipersEnable);
-	AddFunctionType(3, FUNCTIONTYPE_VOID,
-		(void (
-			FunctionMapper::*)())&CGolfItemHandler::OnSetFlagCalipersDisable);
-	AddFunctionType(5, FUNCTIONTYPE_ARG,
-		(void (FunctionMapper::*)())(
-			void (CGolfItemHandler::*)())&CGolfItemHandler::OnSetCountCalipers);
-	AddFunctionType(4, FUNCTIONTYPE_ARG,
-		(void (FunctionMapper::*)())(
-			void (CGolfItemHandler::*)())&CGolfItemHandler::OnGetCountCalipers);
-	AddFunctionType(6, FUNCTIONTYPE_VOID,
-		(void (FunctionMapper::*)())&CGolfItemHandler::OnDecreaseCalipers);
+// golfitemhandler.cpp:43
+bool CGolfItemHandler::Initialize(void) {
+	AddFunctionType(0, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnRequestResetCalipers);
+	AddFunctionType(1, FUNCTION_TYPE_VP, (FUNCTION_MAPPER_PFN)(void (CGolfItemHandler::*)(void))&CGolfItemHandler::OnGetFlagCalipers);
+	AddFunctionType(2, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnSetFlagCalipersEnable);
+	AddFunctionType(3, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnSetFlagCalipersDisable);
+	AddFunctionType(5, FUNCTION_TYPE_VP, (FUNCTION_MAPPER_PFN)(void (CGolfItemHandler::*)(void))&CGolfItemHandler::OnSetCountCalipers);
+	AddFunctionType(4, FUNCTION_TYPE_VP, (FUNCTION_MAPPER_PFN)(void (CGolfItemHandler::*)(void))&CGolfItemHandler::OnGetCountCalipers);
+	AddFunctionType(6, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnDecreaseCalipers);
 
-	AddFunctionType(7, FUNCTIONTYPE_ARG,
-		(void (FunctionMapper::*)())(
-			void (CGolfItemHandler::*)())&CGolfItemHandler::OnSetEnableItemTID);
-	AddFunctionType(8, FUNCTIONTYPE_ARG,
-		(void (FunctionMapper::*)())(void (
-			CGolfItemHandler::*)())&CGolfItemHandler::OnGetEnableTimeBooster);
+	AddFunctionType(7, FUNCTION_TYPE_VP, (FUNCTION_MAPPER_PFN)(void (CGolfItemHandler::*)(void))&CGolfItemHandler::OnSetEnableItemTID);
+	AddFunctionType(8, FUNCTION_TYPE_VP, (FUNCTION_MAPPER_PFN)(void (CGolfItemHandler::*)(void))&CGolfItemHandler::OnGetEnableTimeBooster);
 
-	AddFunctionType(9, FUNCTIONTYPE_VOID,
-		(void (FunctionMapper::*)())&CGolfItemHandler::OnIncSpecialBox);
-	AddFunctionType(10, FUNCTIONTYPE_VOID,
-		(void (FunctionMapper::*)())&CGolfItemHandler::OnResetSpecialBox);
-	AddFunctionType(11, FUNCTIONTYPE_ARG,
-		(void (FunctionMapper::*)())(
-			void (CGolfItemHandler::*)())&CGolfItemHandler::OnGetSpecialBox);
-	AddFunctionType(12, FUNCTIONTYPE_VOID,
-		(void (FunctionMapper::*)())&CGolfItemHandler::
-			OnCheckSomeMoreGetSpecialBox);
+	AddFunctionType(9, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnIncSpecialBox);
+	AddFunctionType(10, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnResetSpecialBox);
+	AddFunctionType(11, FUNCTION_TYPE_VP, (FUNCTION_MAPPER_PFN)(void (CGolfItemHandler::*)(void))&CGolfItemHandler::OnGetSpecialBox);
+	AddFunctionType(12, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnCheckSomeMoreGetSpecialBox);
 
-	AddFunctionType(13, FUNCTIONTYPE_VOID,
-		(void (
-			FunctionMapper::*)())&CGolfItemHandler::OnRequestWizCityNoticeDlg);
+	AddFunctionType(13, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CGolfItemHandler::OnRequestWizCityNoticeDlg);
 
 	return true;
 }
 
-bool CGolfItemHandler::Execute(const MsgObject& msg)
-{
-	SetFunctionType(msg.param1);
-	return Exec(this, (int)&msg);
+// golfitemhandler.cpp:69
+bool CGolfItemHandler::Execute(const MsgObject& msg) {
+	SetFunctionType(msg.m_param1);
+	// The message travels through Exec's int parameter (the original's
+	// 32-bit pointer-in-int; not portable to 64-bit).
+	return Exec(this, (intptr_t)&msg);
 }
 
-void CGolfItemHandler::OnRequestResetCalipers()
-{
+// golfitemhandler.cpp:76
+void CGolfItemHandler::OnRequestResetCalipers(void) {
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
 	pDoc->ResetCalipersVariable();
 }
 
-void CGolfItemHandler::OnGetFlagCalipers(int param)
-{
+// golfitemhandler.cpp:88
+// param is the MsgObject's address; m_param2 the address of the bool result
+// (pointers in ints, as the original: not portable to 64-bit).
+void CGolfItemHandler::OnGetFlagCalipers(intptr_t param) {
 	const MsgObject* pMsg = (const MsgObject*)param;
 
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
-	*(bool*)pMsg->param2 = pDoc->GetEnableCalipers();
+	*(bool*)pMsg->m_param2 = pDoc->GetEnableCalipers();
 }
 
-void CGolfItemHandler::OnSetFlagCalipersEnable()
-{
+// golfitemhandler.cpp:103
+void CGolfItemHandler::OnSetFlagCalipersEnable(void) {
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
 	pDoc->EnableCalipers(true);
 }
 
-void CGolfItemHandler::OnSetFlagCalipersDisable()
-{
+// golfitemhandler.cpp:115
+void CGolfItemHandler::OnSetFlagCalipersDisable(void) {
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
 	pDoc->EnableCalipers(false);
 }
 
-void CGolfItemHandler::OnGetCountCalipers(int param)
-{
+// golfitemhandler.cpp:127
+// param is the MsgObject's address; m_param2 the address of the int result
+// (pointers in ints, as the original: not portable to 64-bit).
+void CGolfItemHandler::OnGetCountCalipers(intptr_t param) {
 	const MsgObject* pMsg = (const MsgObject*)param;
 
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
-	*(int*)pMsg->param2 = pDoc->GetCalipersCount();
+	*(int*)pMsg->m_param2 = pDoc->GetCalipersCount();
 }
 
-void CGolfItemHandler::OnSetCountCalipers(int param)
-{
+// golfitemhandler.cpp:142
+// param is the MsgObject's address (pointer in an int: not portable to 64-bit).
+void CGolfItemHandler::OnSetCountCalipers(intptr_t param) {
 	const MsgObject* pMsg = (const MsgObject*)param;
-
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
-	pDoc->SetCalipersCount(pMsg->param2);
+	pDoc->SetCalipersCount(pMsg->m_param2);
 }
 
-void CGolfItemHandler::OnDecreaseCalipers()
-{
+// golfitemhandler.cpp:156
+void CGolfItemHandler::OnDecreaseCalipers(void) {
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
 	pDoc->DeceaseCalipersCount();
 }
 
-void CGolfItemHandler::OnSetEnableItemTID(int param)
-{
-	std::vector<unsigned long>* pList =
-		(std::vector<unsigned long>*)((const MsgObject*)param)->param2;
+// golfitemhandler.cpp:168
+// param is the MsgObject's address; m_param2 the address of the list of
+// usable item type ids (pointers in ints, as the original: not portable to
+// 64-bit).
+void CGolfItemHandler::OnSetEnableItemTID(intptr_t param) {
+	const MsgObject* pMsg = (const MsgObject*)param;
+	std::vector<unsigned long>* pItemList = (std::vector<unsigned long>*)pMsg->m_param2;
 
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
 	pDoc->ResetUsableItemList();
 
-	int size = pList->size();
-	for (int i = 0; i < size; ++i)
-	{
-		switch (pList->at(i))
-		{
-		case 0x1a000011:
-
-			pDoc->EnableTimeBooster(true);
+	int count = pItemList->size();
+	for (int i = 0; i < count; i++) {
+		switch (pItemList->at(i)) {
+		case 0x1A000011:
+			pDoc->m_usableItemList[0] = 1;
 			break;
-		case 0x1a000040:
-			pDoc->EnableCalipers(true);
+		case 0x1A000040:
+			pDoc->m_usableItemList[1] = 1;
 			break;
 		}
 	}
 }
 
-void CGolfItemHandler::OnGetEnableTimeBooster(int param)
-{
+// golfitemhandler.cpp:200
+// param is the MsgObject's address; m_param2 the address of the bool result
+// (pointers in ints, as the original: not portable to 64-bit).
+void CGolfItemHandler::OnGetEnableTimeBooster(intptr_t param) {
 	const MsgObject* pMsg = (const MsgObject*)param;
 
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-	if (pDoc == NULL)
+	if (pDoc == 0) {
 		return;
+	}
 
-	*(bool*)pMsg->param2 = pDoc->GetEnableTimeBooster();
+	*(bool*)pMsg->m_param2 = pDoc->GetEnableTimeBooster();
 }
 
-void CGolfItemHandler::OnIncSpecialBox()
-{
+// golfitemhandler.cpp:216
+void CGolfItemHandler::OnIncSpecialBox(void) {
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
 
 	pDoc->IncreaseSpecialBoxCount();
 }
 
-void CGolfItemHandler::OnResetSpecialBox()
-{
+// golfitemhandler.cpp:224
+void CGolfItemHandler::OnResetSpecialBox(void) {
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
 
 	pDoc->ResetSpecialBoxCount();
 
-	const std::list<sItemInfo>& itemList = Doc()->GetConstMyItemList();
-	std::list<sItemInfo>::const_iterator it;
-	for (it = itemList.begin(); it != itemList.end(); ++it)
-	{
-		if ((*it).tid == 0x1a00015b)
-			break;
-	}
-	if (it == Doc()->GetConstMyItemList().end())
-
+	CSharedDoc* pShared = WSingleton<CSharedDoc>::Instance();
+	std::list<sItemInfo>::iterator it = pShared->m_itemInfoList.begin();
+	while (it != pShared->m_itemInfoList.end() && (*it).m_typeId != 0x1A00015B) ++it;
+	if (it == pShared->m_itemInfoList.end()) {
 		pDoc->SetOwnSpecialBoxCount(0);
-	else
-
-		pDoc->SetOwnSpecialBoxCount((*it).Common[0]);
+	} else {
+		pDoc->SetOwnSpecialBoxCount((*it).m_count);
+	}
 }
 
-void CGolfItemHandler::OnGetSpecialBox(int param)
-{
+// golfitemhandler.cpp:244
+// param is the MsgObject's address; m_param2 the address of the int result
+// (pointers in ints, as the original: not portable to 64-bit).
+void CGolfItemHandler::OnGetSpecialBox(intptr_t param) {
 	const MsgObject* pMsg = (const MsgObject*)param;
 
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
-
-	*(int*)pMsg->param2 = pDoc->GetSpecialBoxCount();
+	*(int*)pMsg->m_param2 = pDoc->GetSpecialBoxCount();
 }
 
-bool _gateway::IsSpecialBoxArea()
-{
-	bool b = GetCurMap() == 19;
-	return b;
+// golfitemhandler.cpp:259
+bool IsSpecialBoxArea(void) {
+	unsigned char curMap = GetCurMap();
+	if (curMap == 19) {
+		return true;
+	}
+	return false;
 }
 
-void CGolfItemHandler::OnCheckSomeMoreGetSpecialBox()
-{
-	CGolfTask* pTask =
-		(CGolfTask*)AfxGetTask()->DynamicCast(&CGolfTask::m_RTTI);
-	if (pTask == NULL)
+// golfitemhandler.cpp:272
+void CGolfItemHandler::OnCheckSomeMoreGetSpecialBox(void) {
+	CTask* pTask = AfxGetTask();
+	CGolfTask* pGolfTask = pTask->IsKindOf(&CGolfTask::m_RTTI) ? (CGolfTask*)pTask : 0;
+	if (pGolfTask == 0) {
 		return;
+	}
 
-	if (!pTask->DetermineWhetherToAddActor_GroundItemMan())
+	if (!pGolfTask->DetermineWhetherToAddActor_GroundItemMan()) {
 		return;
+	}
 
-	if (GetCurMap() != 19)
+	if (GetCurMap() != 19) {
 		return;
+	}
 
 	CGolfItemDoc* pDoc = GetDocument<CGolfItemDoc*>();
 
 	int count = pDoc->GetOwnSpecialBoxCount() + pDoc->GetSpecialBoxCount();
 
 	int remain = CalcRemainMoreGetSpecialBoxCount(count);
-	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(0x1a00015b);
+	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(0x1A00015B);
 
-	const char* str = MakeStr(_systemmsg::CMessageManager::Instance()->GetMsg(
-								  (_systemmsg::eMsgIdentifier)300),
-		pItem->Name, 50);
-	CChatMsg::Instance()->AddChatMsg(str, 0xffff3030, true, false);
+	char* msg = MakeStr(WSingleton<_systemmsg::CMessageManager>::Instance()->GetMsg((_systemmsg::eMsgIdentifier)0x12C), pItem->m_name, 50);
+	WSingleton<CChatMsg>::Instance()->AddChatMsg(msg, 0xFFFF3030, true, false);
 
-	if (remain < 1)
-	{
-		str = MakeStr(_systemmsg::CMessageManager::Instance()->GetMsg(
-						  (_systemmsg::eMsgIdentifier)301),
-			pItem->Name);
-		CChatMsg::Instance()->AddChatMsg(str, 0xffff3030, true, false);
-	}
-	else
-	{
-		float rate = remain * 2.0f;
-		if (WARNING_RATE <= rate)
-		{
-			str = MakeStr(_systemmsg::CMessageManager::Instance()->GetMsg(
-							  (_systemmsg::eMsgIdentifier)302),
-				pDoc->GetOwnSpecialBoxCount(), remain);
-			CChatMsg::Instance()->AddChatMsg(str, 0xffff3030, true, false);
+	if (remain < 1) {
+		msg = MakeStr(WSingleton<_systemmsg::CMessageManager>::Instance()->GetMsg((_systemmsg::eMsgIdentifier)0x12D), pItem->m_name);
+		WSingleton<CChatMsg>::Instance()->AddChatMsg(msg, 0xFFFF3030, true, false);
+	} else {
+		float percent = (float)remain * 2.0f;
+		if (80.0f <= percent) {
+			msg = MakeStr(WSingleton<_systemmsg::CMessageManager>::Instance()->GetMsg((_systemmsg::eMsgIdentifier)0x12E), pDoc->GetOwnSpecialBoxCount(), remain);
+			WSingleton<CChatMsg>::Instance()->AddChatMsg(msg, 0xFFFF3030, true, false);
 		}
 	}
 }
 
-void CGolfItemHandler::OnRequestWizCityNoticeDlg()
-{
-	m_pWizCityNoticeDlg = CreateForm<FrNoticeDlg>(g_pFresh->GetManager(), this,
-		"notice_popup", NULL);
-	m_pWizCityNoticeDlg->LoadOnly("hat_event_explanation.jpg");
-	m_pWizCityNoticeDlg->Open(
-		(FRESH_PFN_RESULT)&CGolfItemHandler::OnCloseWizCityNoticeResult, 17);
+// golfitemhandler.cpp:325
+void CGolfItemHandler::OnRequestWizCityNoticeDlg(void) {
+	m_pNoticeDlg = CreateForm<FrNoticeDlg>(g_pFresh->GetManager(), this, "notice_popup", 0);
+	m_pNoticeDlg->LoadOnly("hat_event_explanation.jpg");
+	m_pNoticeDlg->Open((FRESH_RESULT_CALLBACK)&CGolfItemHandler::OnCloseWizCityNoticeResult, 0x11);
 }
 
-int CGolfItemHandler::CalcRemainMoreGetSpecialBoxCount(int count)
-{
+// golfitemhandler.cpp:333
+int CGolfItemHandler::CalcRemainMoreGetSpecialBoxCount(int count) {
 	return 50 - count;
 }
 
-bool CGolfItemHandler::OnCloseWizCityNoticeResult(int result, FrForm* pForm)
-{
-	m_pWizCityNoticeDlg = NULL;
+// golfitemhandler.cpp:340
+bool CGolfItemHandler::OnCloseWizCityNoticeResult(int result, FrForm* pForm) {
+	m_pNoticeDlg = 0;
 
 	return true;
+}
+
 }

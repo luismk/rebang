@@ -1,121 +1,104 @@
-#include "minatl.h"
-#include "projectg.h"
-#include "icesnow.h"
-#include "w3danispr.h"
+// Original: d:\build\custom\temp\code\client\projectg\icesnow.cpp
+#include "weather.h"
 #include "wind.h"
+#include "w3danispr.h"
+#include "wresrcmng.h"
+#include "wview.h"
+#include "woverlay.h"
+#include "SharedDoc.h"
+#include <stdlib.h>
+#include <math.h>
+
+// TEMP: the dot product has no out-of-line copy in the binary to place it in wmath.inl
+inline float operator%(const WVector& a, const WVector& b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+
+float Random(float min, float max, int seed);
 
 extern WMatrix g_camera;
 
-ntIceSnow::ntIceSnow(int num, const char* sprName, int sprIndex)
-	: m_frag(NULL), m_spr(NULL)
-{
-	m_spr = g_resrcmng->Get3DAniSpr(sprName, 0, 8.0f, 8.0f);
+// icesnow.cpp:24
+ntIceSnow::ntIceSnow(int count, const char* name, int spriteIndex) : m_frags(0), m_spr(0) {
+	m_spr = g_resrcmng->Get3DAniSpr(name, 0, 8.0f, 8.0f);
 
-	m_sprIndex = sprIndex;
+	m_spriteIndex = spriteIndex;
 
 	m_area.min = WVector(-160.0f, -112.0f, -160.0f);
 	m_area.max = WVector(160.0f, 48.0f, 160.0f);
 
-	Reset(num, 1.0f);
+	Reset(count, 1.0f);
 }
 
-ntIceSnow::~ntIceSnow()
-{
-	if (m_frag)
-	{
-		delete[] m_frag;
-		m_frag = NULL;
-	}
-	if (g_resrcmng && m_spr)
-	{
-		g_resrcmng->Release(m_spr);
-		m_spr = NULL;
-	}
+// icesnow.cpp:38
+ntIceSnow::~ntIceSnow(void) {
+	if (m_frags) { delete[] m_frags; m_frags = 0; }
+	if (g_resrcmng && m_spr) { g_resrcmng->Release(m_spr); m_spr = 0; }
 }
 
-void ntIceSnow::Reset(int num, float size)
-{
-	m_num = num;
+// icesnow.cpp:45
+void ntIceSnow::Reset(int nType, float fValue) {
+	m_count = nType;
 
-	if (m_frag)
-	{
-		delete[] m_frag;
-		m_frag = NULL;
-	}
-	m_frag = new sFrag[m_num];
-	m_size = size;
+	if (m_frags) { delete[] m_frags; m_frags = 0; }
+	m_frags = new sFrag[m_count];
 
-	m_spr->SetRect(size, size, size * 0.5f, size * 0.5f);
+	m_size = fValue;
+	m_spr->SetRect(m_size, m_size, m_size * 0.5f, m_size * 0.5f);
 
-	for (int i = 0; i < m_num; i++)
-	{
-		m_frag[i].sprIndex =
-			(m_sprIndex < 0) ? rand() % m_spr->GetSpriteNum() : m_sprIndex;
-		m_frag[i].angle = Random(0.0f, g_PI * 2.0f);
-		m_frag[i].phase = Random(0.0f, g_PI);
+	for (int i = 0; i < m_count; i++) {
+		m_frags[i].spriteIndex = m_spriteIndex >= 0 ? m_spriteIndex : rand() % m_spr->GetSpriteNum();
+		m_frags[i].yaw = Random(0.0f, 6.2831855f, -1);
+		m_frags[i].pitch = Random(0.0f, 3.1415927f, -1);
 
-		for (int j = 0; j < 3; j++)
-			m_frag[i].origin.p[j] =
-				Random(-1.0f, 1.0f) * 160.0f + g_camera.pivot.p[j];
+		for (int j = 0; j < 3; j++) m_frags[i].center.p[j] = g_camera.pivot.p[j] + Random(-1.0f, 1.0f, -1) * 160.0f;
 
-		m_frag[i].pos = m_frag[i].origin + m_frag[i].sway;
+		m_frags[i].pos = WVector(m_frags[i].offset.x + m_frags[i].center.x, m_frags[i].offset.y + m_frags[i].center.y, m_frags[i].offset.z + m_frags[i].center.z);
 	}
 }
 
-void ntIceSnow::Process(float dt)
-{
-	Waabb box = m_area;
-	box.min += g_camera.pivot;
-	box.max += g_camera.pivot;
+// icesnow.cpp:71
+void ntIceSnow::Process(float fDelta) {
+	WSphere sphere;
+
+	Waabb area = m_area;
+	area.min += g_camera.pivot;
+	area.max += g_camera.pivot;
 
 	WVector size = m_area.max - m_area.min;
 
-	for (int i = 0; i < m_num; i++)
-	{
-		m_frag[i].origin += Wind().GetWind(m_frag[i].origin) * dt;
-		m_frag[i].origin.y -= dt * m_gravity * 34.295296f;
+	for (int i = 0; i < m_count; i++) {
+		m_frags[i].center += fDelta * Wind().GetWind(m_frags[i].center);
+		m_frags[i].center.y -= fDelta * m_gravity * 34.295296f;
 
-		m_frag[i].phase += dt * (g_PI / 2.0f);
-		m_frag[i].sway =
-			WVector(cosf(m_frag[i].angle), 0.0f, sinf(m_frag[i].angle)) * 4.0f *
-			sinf(m_frag[i].phase);
+		m_frags[i].pitch += fDelta * 1.5707964f;
+		float s = sin(m_frags[i].pitch);
 
-		for (int j = 0; j < 3; j++)
-		{
-			if (m_frag[i].origin.p[j] > box.max.p[j])
-				m_frag[i].origin.p[j] -=
-					ceilf((m_frag[i].origin.p[j] - box.max.p[j]) / size.p[j]) *
-					size.p[j];
-			else if (m_frag[i].origin.p[j] < box.min.p[j])
-				m_frag[i].origin.p[j] +=
-					ceilf((box.min.p[j] - m_frag[i].origin.p[j]) / size.p[j]) *
-					size.p[j];
+		m_frags[i].offset = s * WVector(cos(m_frags[i].yaw) * 4.0f, 0.0f, sin(m_frags[i].yaw) * 4.0f);
+		for (int j = 0; j < 3; j++) {
+			if (m_frags[i].center.p[j] > area.max.p[j]) {
+				m_frags[i].center.p[j] -= ceil((m_frags[i].center.p[j] - area.max.p[j]) / size.p[j]) * size.p[j];
+			} else if (m_frags[i].center.p[j] < area.min.p[j]) {
+				m_frags[i].center.p[j] += ceil((area.min.p[j] - m_frags[i].center.p[j]) / size.p[j]) * size.p[j];
+			}
 		}
 
-		m_frag[i].pos = m_frag[i].origin + m_frag[i].sway;
-		m_frag[i].bVisible =
-			(m_frag[i].pos - g_camera.pivot) * g_camera.za > 0.0f;
+		m_frags[i].pos = m_frags[i].center + m_frags[i].offset;
+		m_frags[i].visible = (m_frags[i].pos - g_camera.pivot) % g_camera.za > 0.0f;
 	}
 }
 
-void ntIceSnow::Display()
-{
-	WSphere sphere;
-
-	for (int i = 0; i < m_num; i++)
-	{
-		if (m_frag[i].bVisible)
-		{
-			m_spr->SetPos(m_frag[i].pos);
-			m_spr->Render(g_view, 0.0f, 0x20800000, m_frag[i].sprIndex);
+// icesnow.cpp:102
+void ntIceSnow::Display(void) {
+	for (int i = 0; i < m_count; i++) {
+		if (m_frags[i].visible) {
+			m_spr->SetPos(m_frags[i].pos);
+			m_spr->Render(g_view, 0.0f, 0x20800000, m_frags[i].spriteIndex);
 		}
 	}
 }
 
-void ntIceSnow::DisplayFullScreenOverlay()
-{
-	if (Doc()->m_golfGame.weather)
-		WOverlay::DrawBox(g_view,
-			WRect(0, 0, g_view->GetWidth(), g_view->GetHeight()), 0, 0x4c3c3c3c,
-			0.001f);
+// icesnow.cpp:117
+void ntIceSnow::DisplayFullScreenOverlay(void) {
+	if (GetWeather()) {
+		WOverlay::DrawBox(g_view, WRect(0, 0, g_view->GetWidth(), g_view->GetHeight()), 0, 0x4C3C3C3C, 0.001f);
+	}
 }

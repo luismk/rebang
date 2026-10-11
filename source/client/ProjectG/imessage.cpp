@@ -1,243 +1,218 @@
-#include "minatl.h"
-#include "imessage.h"
+// Original: d:\build\custom\temp\code\client\projectg\imessage.cpp
+#include <string.h>
+#include <string>
+#include "IMessage.h"
 
-MemBlock::MemBlock()
-{
-	m_pBuffer = m_Buffer;
-	m_uSize = MAX_MSG_SIZE;
-	m_offset = 0;
+// imessage.cpp:20
+MemBlock::MemBlock() {
+	m_pBuffer = m_buffer;
+	m_bufferSize = 0x2000;
+	m_length = 0;
 }
 
-MemBlock::MemBlock(unsigned int uSize)
-{
-	m_pBuffer = m_Buffer;
-	m_uSize = MAX_MSG_SIZE;
-	m_offset = 0;
+// imessage.cpp:28
+MemBlock::MemBlock(unsigned int size) {
+	m_pBuffer = m_buffer;
+	m_bufferSize = 0x2000;
+	m_length = 0;
 }
 
-void MemBlock::Reset()
-{
-	m_pBuffer = m_Buffer;
-	memset(m_Buffer, 0, sizeof(m_Buffer));
-	m_offset = 0;
-	m_uSize = MAX_MSG_SIZE;
+// imessage.cpp:35
+void MemBlock::Reset() {
+	m_pBuffer = m_buffer;
+	memset(m_buffer, 0, sizeof(m_buffer));
+	m_length = 0;
+	m_bufferSize = 0x2000;
 }
 
-MemBlock::~MemBlock()
-{
+// imessage.cpp:43
+MemBlock::~MemBlock() {
 }
 
-int MemBlock::Alloc(unsigned int uSize)
-{
+// imessage.cpp:48
+int MemBlock::Alloc(unsigned int size) {
 	return 1;
 }
 
-int MemBlock::ReAlloc(unsigned int uSize)
-{
+// imessage.cpp:66
+int MemBlock::ReAlloc(unsigned int size) {
 	return 1;
 }
 
-int MemBlock::Free()
-{
+// imessage.cpp:94
+int MemBlock::Free() {
 	return 1;
 }
 
-ISendMsg::ISendMsg()
-{
-	m_nPacketType = 0;
-	m_offset = 0;
+// imessage.cpp:111
+ISendMsg::ISendMsg() {
+	m_msgId = 0;
+	m_length = 0;
 }
 
-ISendMsg::~ISendMsg()
-{
+// imessage.cpp:118
+ISendMsg::~ISendMsg() {
 }
 
-ISendMsg::ISendMsg(unsigned short nPaketType)
-{
-	m_offset = 0;
-
+// imessage.cpp:126
+ISendMsg::ISendMsg(unsigned short msgId) {
+	m_length = 0;
 	Encode2(0);
-	m_nPacketType = nPaketType;
-	Encode2(nPaketType);
+	m_msgId = msgId;
+	Encode2(msgId);
 }
 
-void ISendMsg::MakeCheckSum()
-{
+// imessage.cpp:138
+void ISendMsg::MakeCheckSum() {
 	unsigned char sum = 0;
-	for (unsigned int i = 4; i < m_offset; i++)
+	for (unsigned int i = 4; i < m_length; i++)
 		sum += m_pBuffer[i];
-
-	Encode1(sum);
+	m_pBuffer[m_length] = sum;
+	m_length += 1;
 }
 
-void ISendMsg::MakePacketComplete()
-{
-	unsigned short len = m_offset - 2;
-
-	m_Buffer[0] = (unsigned char)len;
-	m_Buffer[1] = (unsigned char)(len >> 8);
+// imessage.cpp:150
+void ISendMsg::MakePacketComplete() {
+	unsigned short size = (unsigned short)(m_length - 2);
+	m_buffer[0] = (unsigned char)size;
+	m_buffer[1] = (unsigned char)(size >> 8);
 }
 
-void ISendMsg::Encode1(unsigned char in)
-{
-	m_pBuffer[m_offset++] = in;
+// imessage.cpp:163
+void ISendMsg::Encode1(unsigned char value) {
+	m_pBuffer[m_length] = value;
+	m_length += 1;
 }
 
-void ISendMsg::Encode2(unsigned short in)
-{
-	m_pBuffer[m_offset++] = (unsigned char)in;
-	m_pBuffer[m_offset++] = (unsigned char)(in >> 8);
+// imessage.cpp:173
+void ISendMsg::Encode2(unsigned short value) {
+	m_pBuffer[m_length] = (unsigned char)value;
+	m_length += 1;
+	m_pBuffer[m_length] = (unsigned char)(value >> 8);
+	m_length += 1;
 }
 
-void ISendMsg::Encode4(unsigned long in)
-{
-	m_pBuffer[m_offset++] = (unsigned char)in;
-	m_pBuffer[m_offset++] = (unsigned char)(in >> 8);
-	m_pBuffer[m_offset++] = (unsigned char)(in >> 16);
-	m_pBuffer[m_offset++] = (unsigned char)(in >> 24);
+// imessage.cpp:182
+void ISendMsg::Encode4(unsigned long value) {
+	m_pBuffer[m_length] = (unsigned char)value;
+	m_length += 1;
+	m_pBuffer[m_length] = (unsigned char)(value >> 8);
+	m_length += 1;
+	m_pBuffer[m_length] = (unsigned char)(value >> 16);
+	m_length += 1;
+	m_pBuffer[m_length] = (unsigned char)(value >> 24);
+	m_length += 1;
 }
 
-void ISendMsg::EncodeBuffer(const void* src, unsigned short len)
-{
-	memcpy(&m_pBuffer[m_offset], src, len);
-	m_offset += len;
+// imessage.cpp:193
+void ISendMsg::EncodeBuffer(const void* data, unsigned short size) {
+	memcpy(m_pBuffer + m_length, data, size);
+	m_length += size;
 }
 
-void ISendMsg::EncodeStr(const char* data)
-{
-	unsigned short len = strlen(data);
-
-	if (len == 0)
-		return;
-
-	Encode2(len);
-
-	memcpy(&m_pBuffer[m_offset], data, len);
-
-	m_offset += len;
+// imessage.cpp:207
+void ISendMsg::EncodeStr(const char* str) {
+	unsigned short length = (unsigned short)strlen(str);
+	if (length != 0) {
+		Encode2(length);
+		memcpy(m_pBuffer + m_length, str, length);
+		m_length += length;
+	}
 }
 
-void ISendMsg::FixData(int OffSet, char* Buffer, int Len)
-{
-	LockBuffer(OffSet);
-	memcpy(&m_pBuffer[OffSet + 4], Buffer, Len);
+// imessage.cpp:226
+void ISendMsg::FixData(int offset, char* data, int size) {
+	memcpy(m_pBuffer + 4 + offset, data, size);
 }
 
-IRecvMsg::IRecvMsg()
-{
+// imessage.cpp:236
+IRecvMsg::IRecvMsg() {
 }
 
-IRecvMsg::~IRecvMsg()
-{
+// imessage.cpp:243
+IRecvMsg::~IRecvMsg() {
 }
 
-unsigned char IRecvMsg::Decode1()
-{
-	if (m_offset + 1 > m_nLength)
-	{
-		m_offset = m_nLength;
-
+// imessage.cpp:250
+unsigned char IRecvMsg::Decode1() {
+	if (m_length + 1 > m_packetSize) {
+		m_length = m_packetSize;
 		return 0;
 	}
-
-	return m_pBuffer[m_offset++];
-}
-
-unsigned short IRecvMsg::Decode2()
-{
-	if (m_offset + 2 > m_nLength)
-	{
-		m_offset = m_nLength;
-
-		return 0;
-	}
-
-	unsigned short value = (m_pBuffer[m_offset + 1] << 8) | m_pBuffer[m_offset];
-	m_offset += 2;
-
+	unsigned char value = m_pBuffer[m_length];
+	m_length += 1;
 	return value;
 }
 
-unsigned long IRecvMsg::Decode4()
-{
-	if (m_offset + 4 > m_nLength)
-	{
-		m_offset = m_nLength;
+// imessage.cpp:266
+unsigned short IRecvMsg::Decode2() {
+	if (m_length + 2 > m_packetSize) {
+		m_length = m_packetSize;
 		return 0;
 	}
-
-	unsigned long value =
-		(((((m_pBuffer[m_offset + 3] << 8) | m_pBuffer[m_offset + 2]) << 8) |
-			 m_pBuffer[m_offset + 1])
-			<< 8) |
-		m_pBuffer[m_offset];
-	m_offset += 4;
-
+	unsigned short value = (unsigned short)(m_pBuffer[m_length] | (m_pBuffer[m_length + 1] << 8));
+	m_length += 2;
 	return value;
 }
 
-std::string IRecvMsg::DecodeStr()
-{
-	unsigned short len = Decode2();
+// imessage.cpp:284
+unsigned long IRecvMsg::Decode4() {
+	if (m_length + 4 > m_packetSize) {
+		m_length = m_packetSize;
+		return 0;
+	}
+	unsigned long value = m_pBuffer[m_length] | (m_pBuffer[m_length + 1] << 8) | (m_pBuffer[m_length + 2] << 16) | (m_pBuffer[m_length + 3] << 24);
+	m_length += 4;
+	return value;
+}
 
-	if (len == 0)
+// imessage.cpp:301
+std::string IRecvMsg::DecodeStr() {
+	unsigned short length = Decode2();
+	if (length == 0)
 		return "";
-
-	if (m_offset + len > m_nLength)
-	{
-		m_offset = m_nLength;
+	if (m_length + length > m_packetSize) {
+		m_length = m_packetSize;
 		return "";
 	}
-
 	std::string str("");
-	str.append((const char*)&m_pBuffer[m_offset], len);
-	m_offset += len;
-
+	str.append((const char*)m_pBuffer + m_length, length);
+	m_length += length;
 	return str;
 }
 
-void IRecvMsg::DecodeBuffer(void* pBuffer, int len)
-{
-	if (m_offset + len > m_nLength)
-	{
-		m_offset = m_nLength;
-		memset(pBuffer, 0, len);
+// imessage.cpp:326
+void IRecvMsg::DecodeBuffer(void* data, int size) {
+	if (m_length + size > m_packetSize) {
+		m_length = m_packetSize;
+		memset(data, 0, size);
 		return;
 	}
-
-	memcpy(pBuffer, &m_pBuffer[m_offset], len);
-	m_offset += len;
+	memcpy(data, m_pBuffer + m_length, size);
+	m_length += size;
 }
 
-bool IRecvMsg::DecodeCheckSum()
-{
-	unsigned char sum = m_pBuffer[m_offset++];
-
-	for (unsigned int i = 0; i < m_nLength - 1; i++)
+// imessage.cpp:344
+bool IRecvMsg::DecodeCheckSum() {
+	unsigned char sum = m_pBuffer[m_length];
+	m_length += 1;
+	for (unsigned int i = 0; i < m_packetSize - 1; i++)
 		sum -= m_pBuffer[i];
+	return sum == 0 ? true : false;
+}
 
-	if (sum != 0)
-	{
-		return false;
-	}
-
+// imessage.cpp:363
+bool IRecvMsg::IsValid(bool check) {
 	return true;
 }
 
-bool IRecvMsg::IsValid(bool rawpacket)
-{
-	return true;
-}
-
-void IRecvMsg::SetRcvPacket(const char* pBuf, int Len)
-{
-	memset(m_Buffer, 0, sizeof(m_Buffer));
-	m_pBuffer = m_Buffer;
-	m_nLength = Len;
-	m_uSize = MAX_MSG_SIZE;
-	m_offset = 0;
-
-	memcpy(m_Buffer, pBuf, Len);
-
-	m_nLength = Len;
+// imessage.cpp:372
+void IRecvMsg::SetRcvPacket(const char* data, int size) {
+	memset(m_buffer, 0, sizeof(m_buffer));
+	m_pBuffer = m_buffer;
+	m_packetSize = size;
+	m_bufferSize = 0x2000;
+	m_length = 0;
+	memcpy(m_buffer, data, size);
+	m_packetSize = size;
 }

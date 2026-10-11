@@ -1,140 +1,210 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\netresourcemanager.h
+#ifndef PG_CLIENT_PROJECTG_NETRESOURCEMANAGER_H
+#define PG_CLIENT_PROJECTG_NETRESOURCEMANAGER_H
 
-#include <string>
+#include <windows.h>
+
 #include <list>
 #include <map>
-#include "rssmanager.h"
+#include <string>
 
-enum eResourceType
-{
-	RESOURCE_UCC_CLOTHES,
-	RESOURCE_UCC_AZTEC,
-	RESOURCE_GUILD_EMBLEM,
-	RESOURCE_GHOST,
-	RESOURCE_UCC_TEMP_CLOTHES,
-	RESOURCE_BUG_REPORT,
-	RESOURCE_NUM
+#include "..\..\defines.h"
+#include "..\..\padding.h"
+#include "singleton.h"
+#include "RSSManager.h"
+
+class Bitmap;
+
+// Kind of a network resource; it also indexes the per-type upload address
+// table (NetResourceManager::GetUploadAddress). Values from the code that
+// fills sResource::type; the enumerator names are not in the PDB.
+enum eResourceType {
+	RESOURCE_TYPE_UCC_CLOTHES = 0,      // DownloadUccClothes
+	RESOURCE_TYPE_1 = 1,
+	RESOURCE_TYPE_EMBLEM = 2,           // GetEmblemByName
+	RESOURCE_TYPE_3 = 3,
+	RESOURCE_TYPE_UCC_TEMP_CLOTHES = 4, // DownloadUccTempClothes, UploadUccTempClothes
+	RESOURCE_TYPE_5 = 5,
+	RESOURCE_TYPE_COUNT = 6             // Upload rejects types >= this
 };
 
-struct sResource
-{
-	eResourceType type;
-	std::string filename;
-	unsigned long id;
-	char key[9];
-	unsigned short flag;
-	char arg[64];
-
-	sResource()
+// One resource to download or upload. Layout from the constructor
+// (netresourcemanager.h:57) and the implicit copy constructor.
+struct sResource {
+	// netresourcemanager.h:57
+	sResource(void)
 	{
 		id = 0;
-		flag = 0;
-		memset(arg, 0, sizeof(arg));
+		slot = 0;
+		memset(data, 0, sizeof(data));
 		memset(key, 0, sizeof(key));
 	}
+
+	eResourceType type;     // 0x0
+	std::string path;       // 0x4
+	unsigned long id;       // 0x20 (type id)
+	char key[9];            // 0x24 (UCC key)
+	unsigned short slot;    // 0x2e
+	char data[64];          // 0x30
 };
+CHECK_SIZE(sResource, 0x70);
+BEGIN_LAYOUT_CHECK(sResource)
+	CHECK_FIELD(sResource, type, 0x0);
+	CHECK_FIELD(sResource, path, 0x4);
+	CHECK_FIELD(sResource, id, 0x20);
+	CHECK_FIELD(sResource, key, 0x24);
+	CHECK_FIELD(sResource, slot, 0x2e);
+	CHECK_FIELD(sResource, data, 0x30);
+END_LAYOUT_CHECK
 
-struct sUploadStatus
-{
-	unsigned long id;
-	char key[9];
-	eResourceType type;
-	unsigned char count;
-
-	sUploadStatus()
+// Upload result of one resource (SetUploadStatus, IsFailedToUpload).
+// Layout from the constructor (netresourcemanager.h:73).
+struct sUploadStatus {
+	// netresourcemanager.h:73
+	sUploadStatus(void)
 	{
 		id = 0;
-		type = RESOURCE_UCC_CLOTHES;
-		count = 0;
+		type = (eResourceType)0;
+		failCount = 0;
 		memset(key, 0, sizeof(key));
 	}
-};
 
-class NetResourceManager : public WSingleton<NetResourceManager>
-{
-	friend unsigned int __stdcall CreateDownloadThreadFunc(void* param);
-	friend unsigned int __stdcall CreateUploadThreadFunc(void* param);
+	unsigned long id;           // 0x0
+	char key[9];                // 0x4
+	eResourceType type;         // 0x10
+	unsigned char failCount;    // 0x14 (SetUploadStatus increments it)
+};
+CHECK_SIZE(sUploadStatus, 0x18);
+BEGIN_LAYOUT_CHECK(sUploadStatus)
+	CHECK_FIELD(sUploadStatus, id, 0x0);
+	CHECK_FIELD(sUploadStatus, key, 0x4);
+	CHECK_FIELD(sUploadStatus, type, 0x10);
+	CHECK_FIELD(sUploadStatus, failCount, 0x14);
+END_LAYOUT_CHECK
+
+// Where one resource type is downloaded from and saved to (Init, Download).
+struct sDownloadInfo {
+	char directory[0x400];  // 0x0 (local save directory, "emblem", "./ntsaved/")
+	char address[0x400];    // 0x400 (download URL)
+	int option;             // 0x800 (0x20 for emblems, 0 after Download)
+};
+CHECK_SIZE(sDownloadInfo, 0x804);
+BEGIN_LAYOUT_CHECK(sDownloadInfo)
+	CHECK_FIELD(sDownloadInfo, directory, 0x0);
+	CHECK_FIELD(sDownloadInfo, address, 0x400);
+	CHECK_FIELD(sDownloadInfo, option, 0x800);
+END_LAYOUT_CHECK
+
+unsigned __stdcall CreateDownloadThreadFunc(void *param);
+unsigned __stdcall CreateUploadThreadFunc(void *param);
+
+// The network resource (UCC texture, guild emblem) downloader and uploader
+// singleton. Layout from the constructor, the destructor and Init
+// (netresourcemanager.cpp:78-135).
+class NetResourceManager : public WSingleton<NetResourceManager> {
+	LAYOUT_CHECK_FRIEND;
 
 public:
-	struct sPostArgument
-	{
-		std::string name;
-		std::string value;
-		bool bBinary;
+	// A name/value pair of an HTTP POST (implicit constructor/destructor).
+	struct sPostArgument {
+		std::string name;   // 0x0
+		std::string value;  // 0x1c
+		bool binary;        // 0x38 (AddPostArguments' bBinary in WorkUploadThread)
 	};
 
-	NetResourceManager();
-	virtual ~NetResourceManager();
+	NetResourceManager(void);
+	virtual ~NetResourceManager(void);
 
-	void Init();
-	void Close();
+	void Init(void);
+	void Close(void);
 
-	const Bitmap* GetEmblemByName(const char* name);
-	void DownloadUccClothes(unsigned long id, const char* key,
-		unsigned short flag, bool bFront);
-	void DownloadUccTempClothes(unsigned long id, const char* key,
-		unsigned short flag, bool bFront);
-	void Download(const sResource& res, const char* url);
-	bool IsDownloadRequested(eResourceType type, unsigned long id,
-		const char* key);
-	void UploadUccClothes(unsigned long id, const char* key, const char* arg);
-	void UploadUccTempClothes(unsigned long id, const char* key);
-	bool SetUploadStatus(unsigned long id, const char* key, eResourceType type);
-	bool IsFailedToUpload(unsigned long id, const char* key,
-		eResourceType type);
-	bool Upload(const sResource& res, const char* url);
-	void RequestGuildRSS(unsigned long guildId,
-		void(__fastcall* callback)(int));
-	void RequestGuildRSS_JP(unsigned long guildId,
-		void(__fastcall* callback)(int), const char* arg1, const char* arg2);
-	void UploadBugReportData(const char* filename, int mainType, int subType,
-		bool bAttachFile);
+	void RequestGuildRSS(unsigned long guildIdx, void (__fastcall *callBack)(int));
+	void RequestGuildRSS_JP(unsigned long guildIdx, void (__fastcall *callBack)(int), const char *param1, const char *param2);
 
-	bool IsRSSDownLoadComplete() { return m_rss.IsComplete(); }
+	// netresourcemanager.h:131
+	bool IsRSSDownLoadComplete(void)
+	{
+		return m_rssManager.IsComplete();
+	}
 
-	void ResetGuildRSS() { m_rss.ResetVars(); }
+	// netresourcemanager.h:137
+	void ResetGuildRSS(void)
+	{
+		m_rssManager.ResetVars();
+	}
 
-	void SetClearGarbage() { m_bClearGarbage = true; }
-	char* GetUploadAddress(eResourceType type) { return m_uploadAddress[type]; }
+	// netresourcemanager.h:142
+	void SetClearGarbage(void)
+	{
+		m_bClearGarbage = true;
+	}
+
+	// netresourcemanager.h:143
+	char *GetUploadAddress(eResourceType type)
+	{
+		return m_uploadAddress[type];
+	}
+
+	bool IsDownloadRequested(eResourceType type, unsigned long id, const char *key);
+	bool IsFailedToUpload(unsigned long id, const char *key, eResourceType type);
+	void UploadUccClothes(unsigned long typeId, const char *uccKey, const char *data);
+	void UploadUccTempClothes(unsigned long typeId, const char *uccKey);
+	bool SetUploadStatus(unsigned long id, const char *key, eResourceType type);
+	bool Upload(const sResource &res, const char *address);
+	const Bitmap *GetEmblemByName(const char *name);
+	void DownloadUccClothes(unsigned long typeId, const char *uccKey, unsigned short slot, bool force);
+	void DownloadUccTempClothes(unsigned long typeId, const char *uccKey, unsigned short slot, bool force);
+	void Download(const sResource &res, const char *address);
+	void UploadBugReportData(const char *fileName, int mainType, int subType, bool attach);
 
 protected:
-	int WorkDownloadThread();
-	int WorkUploadThread();
-	bool _RealDownLoad(const sResource& res);
-	bool LoadBitmapA(const sResource& res);
-	const Bitmap* AddToDownloadList(const sResource& res, int bLoad,
-		bool bFront);
-	void AddToUploadList(const sResource& res);
-	bool IsDownloadRequested(const sResource& res);
-	bool IsUploadRequested(const sResource& res);
-	void ClearGarbage();
+	friend unsigned __stdcall CreateDownloadThreadFunc(void *param);
+	friend unsigned __stdcall CreateUploadThreadFunc(void *param);
 
-private:
-	struct sDownloadInfo
-	{
-		char dir[1024];
-		char url[1024];
-		int reserved;
-	};
+	bool IsDownloadRequested(const sResource &res);
+	bool IsUploadRequested(const sResource &res);
+	bool _RealDownLoad(const sResource &res);
+	void AddToUploadList(const sResource &res);
+	bool LoadBitmap(const sResource &res);
+	const Bitmap *AddToDownloadList(const sResource &res, int request, bool first);
+	void ClearGarbage(void);
+	int WorkDownloadThread(void);
+	int WorkUploadThread(void);
 
-	RSSManager m_rss;
-	std::list<sResource> m_downloadList;
-	std::list<sResource> m_uploadList;
-	void* m_hDownloadThread;
-	void* m_hUploadThread;
-	_RTL_CRITICAL_SECTION m_csDownload;
-	_RTL_CRITICAL_SECTION m_csUpload;
-	bool m_bRunning;
-	char m_rootDir[512];
-	std::map<std::string, Bitmap*> m_emblem;
-	sDownloadInfo m_download[RESOURCE_NUM];
-	char m_uploadAddress[RESOURCE_NUM][1024];
-	std::list<sUploadStatus> m_uploadStatus;
-	bool m_bClearGarbage;
-	std::map<std::string, std::list<sPostArgument> > m_postArgument;
+	RSSManager m_rssManager;                    // 0x28
+	UNKNOWN(0x70, 0x74);
+	std::list<sResource> m_downloadList;        // 0x74
+	std::list<sResource> m_uploadList;          // 0x80
+	HANDLE m_hDownloadThread;                   // 0x8c
+	HANDLE m_hUploadThread;                     // 0x90
+	CRITICAL_SECTION m_downloadLock;            // 0x94
+	CRITICAL_SECTION m_uploadLock;              // 0xac
+	bool m_bRunning;                            // 0xc4 (Init sets it)
+	char m_localDirectory[0x200];               // 0xc5 (g_executeDirectory + "\\...")
+	std::map<std::string, Bitmap *> m_bitmaps;  // 0x2c8
+	sDownloadInfo m_downloadInfo[RESOURCE_TYPE_COUNT];  // 0x2d4
+	char m_uploadAddress[RESOURCE_TYPE_COUNT][0x400];   // 0x32ec
+	std::list<sUploadStatus> m_uploadStatusList;        // 0x4aec
+	bool m_bClearGarbage;                               // 0x4af8 (SetClearGarbage)
+	std::map<std::string, std::list<sPostArgument> > m_postArguments;  // 0x4afc
 };
+CHECK_SIZE(NetResourceManager, 0x4b08);
+BEGIN_LAYOUT_CHECK(NetResourceManager)
+	CHECK_FIELD(NetResourceManager, m_rssManager, 0x28);
+	CHECK_FIELD(NetResourceManager, m_downloadList, 0x74);
+	CHECK_FIELD(NetResourceManager, m_uploadList, 0x80);
+	CHECK_FIELD(NetResourceManager, m_hDownloadThread, 0x8c);
+	CHECK_FIELD(NetResourceManager, m_hUploadThread, 0x90);
+	CHECK_FIELD(NetResourceManager, m_downloadLock, 0x94);
+	CHECK_FIELD(NetResourceManager, m_uploadLock, 0xac);
+	CHECK_FIELD(NetResourceManager, m_bRunning, 0xc4);
+	CHECK_FIELD(NetResourceManager, m_localDirectory, 0xc5);
+	CHECK_FIELD(NetResourceManager, m_bitmaps, 0x2c8);
+	CHECK_FIELD(NetResourceManager, m_downloadInfo, 0x2d4);
+	CHECK_FIELD(NetResourceManager, m_uploadAddress, 0x32ec);
+	CHECK_FIELD(NetResourceManager, m_uploadStatusList, 0x4aec);
+	CHECK_FIELD(NetResourceManager, m_bClearGarbage, 0x4af8);
+	CHECK_FIELD(NetResourceManager, m_postArguments, 0x4afc);
+END_LAYOUT_CHECK
 
-inline NetResourceManager* NetResManager()
-{
-	return NetResourceManager::Instance();
-}
+#endif // PG_CLIENT_PROJECTG_NETRESOURCEMANAGER_H

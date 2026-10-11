@@ -1,80 +1,103 @@
-#include "minatl.h"
-#include "fortunedlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\fortunedlg.cpp
+#include <windows.h>
+#include <atlbase.h>
+#include "FortuneDlg.h"
+#include "ObjectFactory.h"
+#include "UccManager.h"
+#include "commonutil.h"
 #include "frarea.h"
 #include "frstatic.h"
 
-IMPLEMENT_OBJECT(FrFortuneDlg, FrForm)
+// fortunedlg.cpp:19 (run-time type and factory registration of FrFortuneDlg)
+const WRTTI FrFortuneDlg::m_RTTI("FrFortuneDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrFortuneDlg, FrForm)
+IObject* FrFortuneDlgMakeInstance(void) {
+	return new FrFortuneDlg;
+}
 
-ON_FRESH_VI("portrait", FRCMD_INIT, FrFortuneDlg::OnPortraitInit)
-ON_FRESH_VI("desc_name", FRCMD_INIT, FrFortuneDlg::OnDescNameInit)
-ON_FRESH_VI("desc_level", FRCMD_INIT, FrFortuneDlg::OnDescLevelInit)
-ON_FRESH_VI("desc_desc", FRCMD_INIT, FrFortuneDlg::OnDescDescInit)
+struct __sFrFortuneDlg {
+	__sFrFortuneDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrFortuneDlgMakeInstance, "FrFortuneDlg");
+	}
+};
+static __sFrFortuneDlg s_registerFrFortuneDlg;
 
-END_FRESH_MSGMAP()
+// fortunedlg.cpp:21
+const sFRESH_MSGMAP* FrFortuneDlg::GetMessageMap(void) const {
+	return &FrFortuneDlg::_MsgMap;
+}
 
-void FrFortuneDlg::OnPortraitInit(int param)
-{
+sFRESH_MSGMAP FrFortuneDlg::_MsgMap = { &FrForm::_MsgMap, &FrFortuneDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrFortuneDlg::_MsgEntries[] = {
+	// fortunedlg.cpp:23
+	{ "portrait", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneDlg::OnPortraitInit },
+	{ "desc_name", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneDlg::OnDescNameInit },
+	{ "desc_level", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneDlg::OnDescLevelInit },
+	{ "desc_desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneDlg::OnDescDescInit },
+
+	// fortunedlg.cpp:28
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// fortunedlg.cpp:31
+void FrFortuneDlg::OnPortraitInit(intptr_t param) {
 	m_pPortrait = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrFortuneDlg::OnDescNameInit(int param)
-{
+// fortunedlg.cpp:36
+void FrFortuneDlg::OnDescNameInit(intptr_t param) {
 	m_pDescName = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrFortuneDlg::OnDescLevelInit(int param)
-{
+// fortunedlg.cpp:41
+void FrFortuneDlg::OnDescLevelInit(intptr_t param) {
 	m_pDescLevel = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrFortuneDlg::OnDescDescInit(int param)
-{
+// fortunedlg.cpp:46
+void FrFortuneDlg::OnDescDescInit(intptr_t param) {
 	m_pDescDesc = DYNAMIC_CAST(FrStatic, param);
 }
 
-FrFortuneDlg::FrFortuneDlg()
-{
+// fortunedlg.cpp:51
+FrFortuneDlg::FrFortuneDlg(void) {
 	m_typeId = 0;
 
-	m_pPortrait = NULL;
-	m_pDescName = NULL;
-	m_pDescLevel = NULL;
-	m_pDescDesc = NULL;
+	m_pPortrait = 0;
+	m_pDescName = 0;
+	m_pDescLevel = 0;
+	m_pDescDesc = 0;
 }
 
-FrFortuneDlg::~FrFortuneDlg()
-{
+// fortunedlg.cpp:61
+FrFortuneDlg::~FrFortuneDlg(void) {
 }
 
-void FrFortuneDlg::SetTypeId(unsigned long typeId, IFF_ITEM_COMMON* item)
-{
+// fortunedlg.cpp:65
+void FrFortuneDlg::SetTypeId(unsigned long typeId, IFF_ITEM_COMMON* pItem) {
 	m_typeId = typeId;
 
-	if (item == NULL)
+	if (pItem == 0) {
 		return;
-
-	if (m_pPortrait)
-	{
-		m_pPortrait->SetBgImg(item->Icon);
 	}
 
-	if (m_pDescName)
-	{
-		m_pDescName->SetCaption(MakeStr("\xc0\xcc\xb8\xa7 : %s", item->Name));
+	if (m_pPortrait) {
+		m_pPortrait->SetBgImg(pItem->m_icon);
 	}
 
-	if (m_pDescLevel)
-	{
-		m_pDescLevel->SetCaption(
-			"\xb7\xb9\xba\xa7 : \xb4\xa9\xb1\xb8\xb3\xaa \xbb\xe7\xbf\xeb \xb0\xa1\xb4\xc9");
+	if (m_pDescName) {
+		// "Name : %s"
+		m_pDescName->SetCaption(MakeStr("\xC0\xCC\xB8\xA7 : %s", pItem->m_name));
 	}
 
-	if (m_pDescDesc)
-	{
-		m_pDescDesc->SetCaption(MakeStr(
-			"\xbc\xd2\xc0\xaf\xc7\xcf\xb0\xed \xc0\xd6\xb4\xc2 %s\xc0\xbb \xbf\xad\xbe\xee\xba\xb8\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-			item->Name));
+	if (m_pDescLevel) {
+		// "Level : usable by anyone"
+		m_pDescLevel->SetCaption("\xB7\xB9\xBA\xA7 : \xB4\xA9\xB1\xB8\xB3\xAA \xBB\xE7\xBF\xEB \xB0\xA1\xB4\xC9");
+	}
+
+	if (m_pDescDesc) {
+		// "Do you want to open the %s you own?"
+		m_pDescDesc->SetCaption(MakeStr("\xBC\xD2\xC0\xAF\xC7\xCF\xB0\xED \xC0\xD6\xB4\xC2 %s\xC0\xBB \xBF\xAD\xBE\xEE\xBA\xB8\xBD\xC3\xB0\xDA\xBD\xC0\xB4\xCF\xB1\xEE?", pItem->m_name));
 	}
 }

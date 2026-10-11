@@ -1,10 +1,10 @@
-#include "minatl.h"
-#include "networkstate.h"
+// Original: d:\build\custom\temp\code\client\projectg\networkstate.cpp
+#include "NetworkState.h"
 
-NetworkState::NetworkState()
-{
+// networkstate.cpp:22
+NetworkState::NetworkState(void) {
 }
 
-NetworkState::~NetworkState()
-{
+// networkstate.cpp:27
+NetworkState::~NetworkState(void) {
 }

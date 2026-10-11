@@ -1,163 +1,214 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\uccmanager.h
+#ifndef PG_CLIENT_PROJECTG_UCCMANAGER_H
+#define PG_CLIENT_PROJECTG_UCCMANAGER_H
 
+#include <windows.h>
 #include <string.h>
-#include <string>
 #include <list>
 #include <map>
+#include <string>
 
-#include "../../shared/classdefine.h"
+#include "..\..\defines.h"
 
-struct IFF_ITEM_COMMON;
+class Bitmap;
 
-struct sUccItem
-{
-	unsigned long id;
-	char uccIndex[9];
-	unsigned long typeId;
-	char uccName[41];
-	unsigned long unused40;
-	unsigned long unused44;
-	unsigned long unused48;
-	_SYSTEMTIME date;
-	Bitmap* icon;
-	unsigned char downloadCount;
+// The common head of every IFF item record. Its original header is not
+// identified yet and only the members this project's code uses are named.
+// The size is the span the UCC display record clears (uccmanager.h:114).
+struct IFF_ITEM_COMMON {
+	unsigned char m_active;     // 0x00
+	PADDING(0x01, 0x04);
+	unsigned long m_typeId;     // 0x04
+	char m_name[0x28];          // 0x08
+	unsigned char m_level;      // 0x30, & 0x7F the level, bit 7 a flag
+	char m_icon[0x28];          // 0x31
+	PADDING(0x59, 0x5C);
+	unsigned long m_price;      // 0x5C
+	unsigned long m_discountPrice; // 0x60, replaces m_price in the fortune list when non-zero
+	unsigned long m_refundPrice; // 0x64, "refund price" of FrRepayDlg (cookies or pang by m_flags0 & 1)
+	unsigned char m_flags0;     // 0x68
+	unsigned char m_flags1;     // 0x69
+	unsigned char m_timeType;   // 0x6A
+	UNKNOWN(0x6B, 0x90);
+};
+CHECK_SIZE(IFF_ITEM_COMMON, 0x90);
+CHECK_FIELD(IFF_ITEM_COMMON, m_active, 0x00);
+CHECK_FIELD(IFF_ITEM_COMMON, m_typeId, 0x04);
+CHECK_FIELD(IFF_ITEM_COMMON, m_name, 0x08);
+CHECK_FIELD(IFF_ITEM_COMMON, m_level, 0x30);
+CHECK_FIELD(IFF_ITEM_COMMON, m_icon, 0x31);
+CHECK_FIELD(IFF_ITEM_COMMON, m_price, 0x5C);
+CHECK_FIELD(IFF_ITEM_COMMON, m_discountPrice, 0x60);
+CHECK_FIELD(IFF_ITEM_COMMON, m_refundPrice, 0x64);
+CHECK_FIELD(IFF_ITEM_COMMON, m_flags0, 0x68);
+CHECK_FIELD(IFF_ITEM_COMMON, m_flags1, 0x69);
+CHECK_FIELD(IFF_ITEM_COMMON, m_timeType, 0x6A);
 
-	sUccItem()
-	{
-		typeId = 0;
-		unused40 = 0;
-		unused44 = 0;
-		unused48 = 0;
-		downloadCount = 0;
-		icon = NULL;
-		uccIndex[0] = 0;
-		uccName[0] = 0;
+// A UCC (user-created) clothes texture set owned by an item.
+struct sUccClothes {
+	// uccmanager.h:47
+	sUccClothes() {
+		m_typeId = 0; m_texture[0] = 0; m_texture[1] = 0; m_texture[2] = 0; m_downloadCount = 0; m_pIcon = 0; m_uccKey[0] = 0; m_uccName[0] = 0;
 	}
+
+	unsigned long m_serial;         // 0x00, item serial (-1: none)
+	char m_uccKey[9];               // 0x04
+	PADDING(0x0D, 0x10);
+	unsigned long m_typeId;         // 0x10
+	char m_uccName[0x29];           // 0x14
+	PADDING(0x3D, 0x40);
+	unsigned long m_texture[3];     // 0x40, cleared by the constructor; use not seen yet
+	unsigned long m_period[4];      // 0x4C, copied from sItemInfo 0x18 (CTask::OnPacketCommon 0x71)
+	const Bitmap* m_pIcon;          // 0x5C, the icon GetUccItemIcon returns
+	unsigned char m_downloadCount;  // 0x60
+	PADDING(0x61, 0x64);
 };
-struct sUccClothes : public sUccItem
-{
-	sUccClothes() { }
+CHECK_SIZE(sUccClothes, 0x64);
+CHECK_FIELD(sUccClothes, m_serial, 0x00);
+CHECK_FIELD(sUccClothes, m_uccKey, 0x04);
+CHECK_FIELD(sUccClothes, m_typeId, 0x10);
+CHECK_FIELD(sUccClothes, m_uccName, 0x14);
+CHECK_FIELD(sUccClothes, m_texture, 0x40);
+CHECK_FIELD(sUccClothes, m_period, 0x4C);
+CHECK_FIELD(sUccClothes, m_pIcon, 0x5C);
+CHECK_FIELD(sUccClothes, m_downloadCount, 0x60);
+
+// A UCC aztec (ball/accessory) texture, same shape as sUccClothes.
+struct sUccAztec {
+	unsigned long m_serial;         // 0x00
+	char m_uccKey[9];               // 0x04
+	PADDING(0x0D, 0x10);
+	unsigned long m_typeId;         // 0x10
+	UNKNOWN(0x14, 0x5C);
+	const Bitmap* m_pIcon;          // 0x5C, the icon _RealDownLoad attaches
+	unsigned char m_downloadCount;  // 0x60
+	PADDING(0x61, 0x64);
 };
+CHECK_SIZE(sUccAztec, 0x64);
+CHECK_FIELD(sUccAztec, m_serial, 0x00);
+CHECK_FIELD(sUccAztec, m_uccKey, 0x04);
+CHECK_FIELD(sUccAztec, m_typeId, 0x10);
+CHECK_FIELD(sUccAztec, m_pIcon, 0x5C);
+CHECK_FIELD(sUccAztec, m_downloadCount, 0x60);
 
-struct sUccAztec : public sUccItem
-{
+// A UCC texture previewed before it is saved (two bitmaps).
+struct sUccTempClothes {
+	sUccTempClothes();
+
+	unsigned long m_typeId;         // 0x00
+	char m_uccKey[9];               // 0x04
+	PADDING(0x0D, 0x10);
+	Bitmap *m_pFront;               // 0x10
+	Bitmap *m_pBack;                // 0x14
 };
+CHECK_SIZE(sUccTempClothes, 0x18);
+CHECK_FIELD(sUccTempClothes, m_typeId, 0x00);
+CHECK_FIELD(sUccTempClothes, m_uccKey, 0x04);
+CHECK_FIELD(sUccTempClothes, m_pFront, 0x10);
+CHECK_FIELD(sUccTempClothes, m_pBack, 0x14);
 
-struct sUccRefreshItem
-{
-	unsigned long typeId;
-	char uccIndex[9];
-
-	sUccRefreshItem()
-	{
-		typeId = 0;
-		memset(uccIndex, 0, sizeof(uccIndex));
-	}
+// A UCC clothes shown on a display (ranking) character.
+struct sDisplayUccClothes {
+	UNKNOWN(0x000, 0x204);          // IFF part record
+	unsigned long m_typeId;         // 0x204
+	unsigned long m_serial;         // 0x208
+	std::string m_uccKey;           // 0x20C
+	int m_rank;                     // 0x228
 };
+CHECK_SIZE(sDisplayUccClothes, 0x22C);
+CHECK_FIELD(sDisplayUccClothes, m_typeId, 0x204);
+CHECK_FIELD(sDisplayUccClothes, m_serial, 0x208);
+CHECK_FIELD(sDisplayUccClothes, m_uccKey, 0x20C);
+CHECK_FIELD(sDisplayUccClothes, m_rank, 0x228);
 
-struct sUccTempClothes
-{
-	unsigned long typeId;
-	char uccIndex[9];
-	Bitmap* front;
-	Bitmap* back;
+// An item whose UCC texture must be refreshed.
+struct sUccRefreshItem {
+	sUccRefreshItem(void);          // uccmanager.h:70
 
-	sUccTempClothes()
-	{
-		typeId = 0;
-		memset(uccIndex, 0, sizeof(uccIndex));
-		front = new Bitmap;
-		back = new Bitmap;
-	}
+	unsigned long m_typeId;         // 0x00
+	char m_uccKey[9];               // 0x04
+	PADDING(0x0D, 0x10);
 };
+CHECK_SIZE(sUccRefreshItem, 0x10);
+CHECK_FIELD(sUccRefreshItem, m_typeId, 0x00);
+CHECK_FIELD(sUccRefreshItem, m_uccKey, 0x04);
 
-struct sDisplayUccClothes
-{
-	IFF_STRUCT::sPart part;
-	unsigned long partTypeId;
-	unsigned long itemId;
-	std::string name;
-	int rank;
+// golfplayer.obj emits the sUccRefreshItem constructor out of line:
+// golfplayer.cpp defines GOLFPLAYER_UCCMANAGER_INLINE empty before its
+// includes and gets the out-of-line copy from here; every other unit inlines it.
+#ifndef GOLFPLAYER_UCCMANAGER_INLINE
+#define GOLFPLAYER_UCCMANAGER_INLINE inline
+#endif
 
-	sDisplayUccClothes()
-	{
-		partTypeId = 0;
-		itemId = 0;
-		rank = 0;
+// uccmanager.h:70
+GOLFPLAYER_UCCMANAGER_INLINE sUccRefreshItem::sUccRefreshItem(void) {
+	m_typeId = 0;
+	memset(m_uccKey, 0, sizeof(m_uccKey));
+}
 
-		part.Category = 2;
-		part.PosMask = 0;
-		part.HideMask = 0;
-		part.CharacterSlot = 0;
-		part.CaddieSlot = 0;
-		memset(part.Attr, 0, sizeof(part.Attr));
-		memset(part.Slot, 0, sizeof(part.Slot));
-
-		memset(&part, 0, sizeof(IFF_ITEM_COMMON));
-		strcpy(part.c.Icon, "UCCDISPLAY");
-		part.c.Final = true;
-		part.c.TypeId = 0;
-		part.c.IsCash = 1;
-		part.c.InStock = 4;
-		part.c.Price = 1000000;
-		part.c.New = 0;
-		part.c.Hit = 0;
-	}
-};
-
-class CUccManager
-{
+class CUccManager {
+	friend class NetResourceManager; // _RealDownLoad fills m_iconMap
 public:
-	CUccManager();
-	~CUccManager();
-	void Clear();
-	void ClearTexture();
-	void ClearIcon();
-	void ClearTempClothes();
-	void AddClothes(unsigned char slot, unsigned long id, unsigned long typeId,
-		const char* uccIndex, bool bSend, bool bForce);
-	void AddClothes(unsigned char slot, sUccClothes& clothes, bool bSend,
-		bool bForce);
-	void AddAztec(sUccAztec& aztec, bool bForce);
-	sUccClothes* FindClothes(unsigned long id);
-	sUccClothes* FindClothes(unsigned long typeId, const char* uccIndex);
-	sUccAztec* FindAztec(unsigned long id);
-	sUccAztec* FindAztec(unsigned long typeId, const char* uccIndex);
-	void ClearClothes() { m_clothes.clear(); }
-	void ClearAztec() { m_aztec.clear(); }
-	bool IsDownloadComplete(unsigned long typeId, const char* uccIndex);
-	bool IsDownloadComplete(sUccClothes* clothes);
-	bool IsDownloadComplete(sUccAztec* aztec);
-	bool SetDownloadComplete(unsigned long typeId, const char* uccIndex);
-	bool SetDownloadComplete(sUccClothes* clothes);
-	bool SetDownloadComplete(sUccAztec* aztec);
-	void AddRefreshItem(unsigned long typeId, const char* uccIndex);
-	bool GetRefreshItem(sUccRefreshItem& item);
-	void SetUccTempClothes(unsigned long typeId, const char* uccIndex,
-		Bitmap* front, Bitmap* back);
-	bool GetUccTempClothes(unsigned long typeId, const char* uccIndex,
-		Bitmap& front, Bitmap& back);
-	void AddDisplayClothes(unsigned long partTypeId, unsigned long itemId,
-		std::string name, int rank);
-	void BuildDisplayClothesSet();
-	bool IsDisplayUccClothes(const IFF_ITEM_COMMON* item);
-	unsigned long GetWinnerCharacterTypeId();
+	CUccManager(void);
+	~CUccManager(void);
+
+	void AddClothes(unsigned char slot, unsigned long serial, unsigned long typeId, const char *uccKey, bool send, bool request);
+	void AddClothes(unsigned char slot, sUccClothes &clothes, bool send, bool request);
+	void AddAztec(sUccAztec &aztec, bool request);
+	sUccClothes *FindClothes(unsigned long typeId, const char *uccKey);
+	sUccAztec *FindAztec(unsigned long typeId, const char *uccKey);
+	sUccClothes *FindClothes(unsigned long serial);
+	sUccAztec *FindAztec(unsigned long serial);
+	bool IsDownloadComplete(unsigned long typeId, const char *uccKey);
+	bool SetDownloadComplete(unsigned long typeId, const char *uccKey);
+	bool IsDownloadComplete(sUccClothes *clothes);
+	bool IsDownloadComplete(sUccAztec *aztec);
+	bool SetDownloadComplete(sUccClothes *clothes);
+	bool SetDownloadComplete(sUccAztec *aztec);
+	void Clear(void);
+	void ClearTexture(void);
+	void ClearIcon(void);
+	void ClearTempClothes(void);
+	void AddRefreshItem(unsigned long typeId, const char *uccKey);
+	bool GetRefreshItem(sUccRefreshItem &item);
+	void SetUccTempClothes(unsigned long typeId, const char *uccKey, Bitmap *front, Bitmap *back);
+	bool GetUccTempClothes(unsigned long typeId, const char *uccKey, Bitmap &front, Bitmap &back);
+	void AddDisplayClothes(unsigned long typeId, unsigned long serial, std::string uccKey, int rank);
+	void BuildDisplayClothesSet(void);
+	bool IsDisplayUccClothes(const IFF_ITEM_COMMON *item);
+	unsigned long GetWinnerCharacterTypeId(void);
+
+	// uccmanager.h:142
+	void ClearClothes(void) { m_clothesList.clear(); }
+	// uccmanager.h:143
+	void ClearAztec(void) { m_aztecList.clear(); }
 
 private:
-	void RequestClothes(unsigned long typeId, const char* uccIndex,
-		bool bForce);
-	void RequestAztec(unsigned long typeId, const char* uccIndex, bool bForce);
-	sUccClothes* _GetClothes(unsigned long id);
-	sUccAztec* _GetAztec(unsigned long id);
+	sUccClothes *_GetClothes(unsigned long serial);
+	sUccAztec *_GetAztec(unsigned long serial);
+	void RequestClothes(unsigned long typeId, const char *uccKey, bool force);
+	void RequestAztec(unsigned long typeId, const char *uccKey, bool force);
 
-public:
-	std::list<sUccClothes> m_clothes;
-	std::list<sUccAztec> m_aztec;
-	std::map<std::string, Bitmap*> m_icon;
-	std::list<sUccTempClothes> m_tempClothes;
-	std::list<sDisplayUccClothes> m_displayClothes;
-	std::list<sUccRefreshItem> m_refreshItem;
-	_RTL_CRITICAL_SECTION m_csRefresh;
+	LAYOUT_CHECK_FRIEND;
+	std::list<sUccClothes> m_clothesList;               // 0x00
+	std::list<sUccAztec> m_aztecList;                   // 0x0C
+	std::map<std::string, Bitmap *> m_iconMap;          // 0x18
+	std::list<sUccTempClothes> m_tempClothesList;       // 0x24
+	std::list<sDisplayUccClothes> m_displayClothesList; // 0x30
+	std::list<sUccRefreshItem> m_refreshList;           // 0x3C
+	CRITICAL_SECTION m_refreshLock;                     // 0x48
 };
+CHECK_SIZE(CUccManager, 0x60);
+BEGIN_LAYOUT_CHECK(CUccManager)
+	CHECK_FIELD(CUccManager, m_clothesList, 0x00);
+	CHECK_FIELD(CUccManager, m_aztecList, 0x0C);
+	CHECK_FIELD(CUccManager, m_iconMap, 0x18);
+	CHECK_FIELD(CUccManager, m_tempClothesList, 0x24);
+	CHECK_FIELD(CUccManager, m_displayClothesList, 0x30);
+	CHECK_FIELD(CUccManager, m_refreshList, 0x3C);
+	CHECK_FIELD(CUccManager, m_refreshLock, 0x48);
+END_LAYOUT_CHECK
 
-CUccManager* UccManager();
+CUccManager *UccManager(void);
+
+#endif // PG_CLIENT_PROJECTG_UCCMANAGER_H

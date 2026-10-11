@@ -1,190 +1,179 @@
-#include "wmemblock.inl"
-#include "wdevmng.h"
-#include "wvideo.h"
+// Original: d:\build\custom\temp\code\client\wangreal\source\wdevmng.cpp
 #include <stdlib.h>
 #include <string.h>
 
-typedef void*(__cdecl* WEnumDeviceProc)(int);
+#include "../include/wdevmng.h"
+#include "../include/wvideo.h"
+#include "../include/winput.h"
 
-bool WDeviceManager::ResetVideoDevice(bool windowed, int width, int height,
-	int bpp, long refresh, int flags)
-{
-	for (WVideoDev* video = vidList.Start(); video; video = vidList.Next())
-	{
-		for (WDevice* device = devList.Start(); device; device = devList.Next())
-		{
-			if (strstr(device->GetDeviceName(), video->GetDeviceName()) ||
-				strstr(video->GetDeviceName(), device->GetDeviceName()))
-				return ((WVideoDev*)device)
-					->Reset(windowed, width, height, bpp, refresh, flags);
-		}
-	}
-	return false;
+// Entry points a Wangreal device module exports (GetProcAddress).
+typedef WVideoDev *(__cdecl *WEnumVideoDevicesProc)(int);
+typedef WInputDev *(__cdecl *WEnumInputDevicesProc)(int);
+
+// wdevmng.cpp:25
+WDeviceManager::WDeviceManager(const char *directory, int loadtype)
+	: vidList(8, 0), audList(8, 0), inpList(8, 0), dllList(8, 0), devList(8, 0) {
+	LoadModule(directory, loadtype);
 }
 
-char* WDeviceManager::EnumVideoDevice(void)
-{
-	static char text[512];
-
-	int offset;
-	WVideoDev* video;
-	for (video = vidList.Start(), offset = 0; video; video = vidList.Next())
-	{
-		strcpy(text + offset, video->GetDeviceName());
-		offset += (int)strlen(video->GetDeviceName()) + 1;
+// wdevmng.cpp:30
+WDeviceManager::~WDeviceManager(void) {
+	WDevice *dev;
+	while ((dev = devList.Start()) != NULL) {
+		Release(dev);
 	}
-	text[offset] = '\0';
-	return text;
+	for (HINSTANCE module = dllList.Start(); module != NULL; module = dllList.Next()) {
+		FreeLibrary(module);
+	}
 }
 
-char* WDeviceManager::EnumVideoMode(char* name)
-{
-	for (WVideoDev* video = vidList.Start(); video; video = vidList.Next())
-	{
-		if (!strcmpi(video->GetDeviceName(), name))
-			return video->EnumModeName();
-	}
-	return 0;
-}
-
-void WDeviceManager::LoadModule(const char* name, int flags)
-{
-	char drive[4];
-	WIN32_FIND_DATAA find;
-	char dir[260];
+// wdevmng.cpp:42
+void WDeviceManager::LoadModule(const char *directory, int loadtype) {
+	WIN32_FIND_DATAA fd;
+	char filename[128];
 	char path[260];
-	char fname[128];
-	char module[128];
-	char temp[64];
-	char search[128];
+	HANDLE find;
+	char drive[4];
+	char szModulePath[260];
 	char ext[8];
+	HINSTANCE module;
+	char name[128];
+	WEnumVideoDevicesProc WEnumVideoDevices;
+	WEnumInputDevicesProc WEnumInputDevices;
+	char filter[128];
+	char configuration[64];
+	char *suffix;
+	WVideoDev *video;
+	WInputDev *input;
+	int i;
 
-	GetModuleFileNameA(0, path, 260);
-	_splitpath(path, drive, dir, fname, ext);
-	strcpy(search, "wangreal");
-	char* mark = strrchr(fname, '_');
-	if (mark)
-	{
-		strcpy(temp, mark);
-		strcat(search, temp);
+	GetModuleFileNameA(NULL, szModulePath, 260);
+
+	_splitpath(szModulePath, drive, path, name, ext);
+
+	strcpy(filter, "wangreal");
+	suffix = strrchr(name, '_');
+	if (suffix != NULL) {
+
+
+		strcpy(configuration, suffix);
+		strcat(filter, configuration);
 	}
-	strcat(search, ".dll");
 
-	HANDLE handle = FindFirstFileA(search, &find);
-	if (handle != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			if (strstr(find.cFileName, "wang"))
-			{
-				module[0] = '\0';
-				strcat(module, find.cFileName);
-				HINSTANCE library = LoadLibraryA(module);
-				if (library)
-				{
-					WEnumDeviceProc enum_video = (flags & 1)
-						? (WEnumDeviceProc)GetProcAddress(library,
-							  "WEnumVideoDevices")
-						: 0;
-					WEnumDeviceProc enum_input = (flags & 8)
-						? (WEnumDeviceProc)GetProcAddress(library,
-							  "WEnumInputDevices")
-						: 0;
-					GetProcAddress(library, "WVersion");
-					if (!enum_video && !enum_input)
-						FreeLibrary(library);
-					else
-					{
-						int index = 0;
-						if (enum_video)
-						{
-							WVideoDev* video;
-							do
-							{
-								video = (WVideoDev*)enum_video(index);
-								if (video)
-								{
-									vidList += video;
-									++index;
-								}
-							} while (video);
+	strcat(filter, ".dll");
+
+	find = FindFirstFileA(filter, &fd);
+	if (find != INVALID_HANDLE_VALUE) {
+		do {
+			if (strstr(fd.cFileName, "wang") != NULL) {
+				filename[0] = '\0'; strcat(filename, fd.cFileName);
+				module = LoadLibraryA(filename);
+				if (module != NULL) {
+					WEnumVideoDevices = (loadtype & 1) ? (WEnumVideoDevicesProc)GetProcAddress(module, "WEnumVideoDevices") : NULL;
+					WEnumInputDevices = (loadtype & 8) ? (WEnumInputDevicesProc)GetProcAddress(module, "WEnumInputDevices") : NULL;
+					GetProcAddress(module, "WVersion");
+					if (WEnumVideoDevices != NULL || WEnumInputDevices != NULL) {
+						for (i = 0; WEnumVideoDevices != NULL && (video = WEnumVideoDevices(i)) != NULL; i++) {
+							vidList += video;
 						}
-						index = 0;
-						if (enum_input)
-						{
-							WInputDev* input;
-							do
-							{
-								input = (WInputDev*)enum_input(index);
-								if (input)
-								{
-									inpList += input;
-									++index;
-								}
-							} while (input);
+						for (i = 0; WEnumInputDevices != NULL && (input = WEnumInputDevices(i)) != NULL; i++) {
+							inpList += input;
 						}
-						dllList += library;
+						dllList += module;
+					} else {
+						FreeLibrary(module);
 					}
 				}
 			}
-		} while (FindNextFileA(handle, &find));
+		} while (FindNextFileA(find, &fd));
 	}
-	FindClose(handle);
+
+
+	FindClose(find);
 }
 
-WVideoDev* WDeviceManager::CreateVideoDevice(char* name, char* mode, int flags)
-{
-	WVideoDev* created = 0;
-	for (WVideoDev* video = vidList.Start(); video; video = vidList.Next())
-	{
-		if (created)
-			break;
-		if (name && strcmpi(video->GetDeviceName(), name))
-			continue;
-		created = video->MakeClone(mode, hwnd, flags);
+// wdevmng.cpp:170
+WVideoDev *WDeviceManager::CreateVideoDevice(char *deviceName, char *modeName, int iTnL) {
+	WVideoDev *ret = NULL;
+
+	for (WVideoDev *dev = vidList.Start(); dev != NULL && ret == NULL; dev = vidList.Next()) {
+		if (deviceName == NULL || _strcmpi(dev->GetDeviceName(), deviceName) == 0) {
+			ret = dev->MakeClone(modeName, hwnd, iTnL);
+		}
 	}
-	if (created)
-		devList += (WDevice*)created;
-	return created;
+	if (ret != NULL) {
+		devList += ret;
+	}
+	return ret;
 }
 
-WInputDev* WDeviceManager::CreateInputDevice(char* name, char* mode)
-{
-	WInputDev* created = 0;
-	for (WInputDev* input = inpList.Start(); input; input = inpList.Next())
-	{
-		if (created)
-			break;
-		if (name && strcmpi(input->GetDeviceName(), name))
-			continue;
-		created = input->MakeClone(mode, hwnd);
+// wdevmng.cpp:191
+bool WDeviceManager::ResetVideoDevice(bool bWindowed, int iWidth, int iHeight, int iColor, long lWndStyle, int fillMode) {
+	WDevice *dev;
+	for (WVideoDev *video = vidList.Start(); video != NULL; video = vidList.Next()) {
+		for (dev = devList.Start(); dev != NULL; dev = devList.Next()) {
+			if (strstr(dev->GetDeviceName(), video->GetDeviceName()) != NULL || strstr(video->GetDeviceName(), dev->GetDeviceName()) != NULL) {
+				goto found;
+			}
+		}
 	}
-	if (created)
-		devList += (WDevice*)created;
-	return created;
+	return false;
+found:
+
+	return ((WVideoDev *)dev)->Reset(bWindowed, iWidth, iHeight, iColor, lWndStyle, fillMode);
 }
 
-void WDeviceManager::Release(WDevice* device)
-{
+// wdevmng.cpp:282
+WInputDev *WDeviceManager::CreateInputDevice(char *devName, char *modeName) {
+	WInputDev *ret = NULL;
+
+	for (WInputDev *dev = inpList.Start(); dev != NULL && ret == NULL; dev = inpList.Next()) {
+		if (devName == NULL || _strcmpi(dev->GetDeviceName(), devName) == 0) {
+			ret = dev->MakeClone(modeName, hwnd);
+		}
+	}
+
+	if (ret != NULL) {
+		devList += ret;
+	}
+
+	return ret;
+}
+
+// wdevmng.cpp:296
+void WDeviceManager::Release(WDevice *device) {
 	devList -= device;
 	delete device;
 }
 
-WDeviceManager::WDeviceManager(const char* name, int flags)
-{
-	LoadModule(name, flags);
-}
+// wdevmng.cpp:302
+char *WDeviceManager::EnumVideoDevice(void) {
+	// The device names, each NUL terminated, the list closed by an empty name.
+	static char devices[1024];
+	WVideoDev *dev;
+	int len;
 
-WDeviceManager::~WDeviceManager()
-{
-	for (;;)
-	{
-		WDevice* device = devList.Start();
-		if (!device)
-			break;
-		Release(device);
+
+	for (dev = vidList.Start(), len = 0; dev != NULL; dev = vidList.Next()) {
+
+		strcpy(&devices[len], dev->GetDeviceName());
+		len += strlen(dev->GetDeviceName()) + 1;
 	}
 
-	for (HINSTANCE library = dllList.Start(); library; library = dllList.Next())
-		FreeLibrary(library);
+
+	devices[len] = '\0';
+
+	return devices;
+}
+
+// wdevmng.cpp:338
+char *WDeviceManager::EnumVideoMode(char *deviceName) {
+
+
+	for (WVideoDev *dev = vidList.Start(); dev != NULL; dev = vidList.Next()) {
+		if (_strcmpi(dev->GetDeviceName(), deviceName) == 0) {
+			return dev->EnumModeName();
+		}
+	}
+	return NULL;
 }

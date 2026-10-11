@@ -1,192 +1,232 @@
-#include "minatl.h"
-#include "newmapeventdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\newmapeventdlg.cpp
+#include "NewMapEventDlg.h"
+#include "ObjectFactory.h"
 #include "frarea.h"
+#include "SharedDoc.h"
+#include "bitmap.h"
+#include "fresh.h"
 #include "frwndmanager.h"
 #include "frgraphicinterface.h"
-#include "fresh.h"
-#include "../../shared/sharedtables.h"
 
-extern Fresh* g_pFresh;
+// newmapeventdlg.cpp:18 (run-time type and factory registration of FrNewMapEventDlg)
+const WRTTI FrNewMapEventDlg::m_RTTI("FrNewMapEventDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrNewMapEventDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrNewMapEventDlg, FrForm)
-
-ON_FRESH_VI("caption", FRCMD_INIT, FrNewMapEventDlg::OnCaptionInit)
-ON_FRESH_VI("info1", FRCMD_INIT, FrNewMapEventDlg::OnInfo1Init)
-ON_FRESH_VI("score0", FRCMD_INIT, FrNewMapEventDlg::OnScore0Init)
-ON_FRESH_VI("score1", FRCMD_INIT, FrNewMapEventDlg::OnScore1Init)
-ON_FRESH_VI("score2", FRCMD_INIT, FrNewMapEventDlg::OnScore2Init)
-ON_FRESH_VI("score3", FRCMD_INIT, FrNewMapEventDlg::OnScore3Init)
-ON_FRESH_VI("score4", FRCMD_INIT, FrNewMapEventDlg::OnScore4Init)
-ON_FRESH_VI("score5", FRCMD_INIT, FrNewMapEventDlg::OnScore5Init)
-ON_FRESH_VV("score0", FRCMD_OWNERDRAW, FrNewMapEventDlg::OnScore0OwnerDraw)
-ON_FRESH_VV("score1", FRCMD_OWNERDRAW, FrNewMapEventDlg::OnScore1OwnerDraw)
-ON_FRESH_VV("score2", FRCMD_OWNERDRAW, FrNewMapEventDlg::OnScore2OwnerDraw)
-ON_FRESH_VV("score3", FRCMD_OWNERDRAW, FrNewMapEventDlg::OnScore3OwnerDraw)
-ON_FRESH_VV("score4", FRCMD_OWNERDRAW, FrNewMapEventDlg::OnScore4OwnerDraw)
-ON_FRESH_VV("score5", FRCMD_OWNERDRAW, FrNewMapEventDlg::OnScore5OwnerDraw)
-
-END_FRESH_MSGMAP()
-
-FrNewMapEventDlg::FrNewMapEventDlg()
-{
+IObject* FrNewMapEventDlgMakeInstance(void) {
+	return new FrNewMapEventDlg;
 }
 
-FrNewMapEventDlg::~FrNewMapEventDlg()
-{
+struct __sFrNewMapEventDlg {
+	__sFrNewMapEventDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrNewMapEventDlgMakeInstance, "FrNewMapEventDlg");
+	}
+};
+static __sFrNewMapEventDlg s_registerFrNewMapEventDlg;
+
+// newmapeventdlg.cpp:20
+const sFRESH_MSGMAP* FrNewMapEventDlg::GetMessageMap(void) const {
+	return &FrNewMapEventDlg::_MsgMap;
 }
 
-void FrNewMapEventDlg::OnCaptionInit(int param)
-{
-	FrArea* pCaption = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+sFRESH_MSGMAP FrNewMapEventDlg::_MsgMap = { &FrForm::_MsgMap, &FrNewMapEventDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrNewMapEventDlg::_MsgEntries[] = {
+	// newmapeventdlg.cpp:22
+	{ "caption", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnCaptionInit },
+	// newmapeventdlg.cpp:23
+	{ "info1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnInfo1Init },
+	// newmapeventdlg.cpp:24
+	{ "score0", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnScore0Init },
+	// newmapeventdlg.cpp:25
+	{ "score1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnScore1Init },
+	// newmapeventdlg.cpp:26
+	{ "score2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnScore2Init },
+	// newmapeventdlg.cpp:27
+	{ "score3", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnScore3Init },
+	// newmapeventdlg.cpp:28
+	{ "score4", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnScore4Init },
+	// newmapeventdlg.cpp:29
+	{ "score5", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewMapEventDlg::OnScore5Init },
+	// newmapeventdlg.cpp:30
+	{ "score0", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrNewMapEventDlg::OnScore0OwnerDraw },
+	// newmapeventdlg.cpp:31
+	{ "score1", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrNewMapEventDlg::OnScore1OwnerDraw },
+	// newmapeventdlg.cpp:32
+	{ "score2", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrNewMapEventDlg::OnScore2OwnerDraw },
+	// newmapeventdlg.cpp:33
+	{ "score3", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrNewMapEventDlg::OnScore3OwnerDraw },
+	// newmapeventdlg.cpp:34
+	{ "score4", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrNewMapEventDlg::OnScore4OwnerDraw },
+	// newmapeventdlg.cpp:35
+	{ "score5", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrNewMapEventDlg::OnScore5OwnerDraw },
+
+	// newmapeventdlg.cpp:37
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// newmapeventdlg.cpp:40
+FrNewMapEventDlg::FrNewMapEventDlg(void) {
 }
 
-void FrNewMapEventDlg::OnInfo1Init(int param)
-{
-	FrArea* pInfo = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// newmapeventdlg.cpp:44
+FrNewMapEventDlg::~FrNewMapEventDlg(void) {
 }
 
-void FrNewMapEventDlg::OnScore0Init(int param)
-{
-	m_pScore[0] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// newmapeventdlg.cpp:49
+void FrNewMapEventDlg::OnCaptionInit(intptr_t param) {
+	DYNAMIC_CAST(FrArea, param);
 }
 
-void FrNewMapEventDlg::OnScore1Init(int param)
-{
-	m_pScore[1] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// newmapeventdlg.cpp:56
+void FrNewMapEventDlg::OnInfo1Init(intptr_t param) {
+	DYNAMIC_CAST(FrArea, param);
 }
 
-void FrNewMapEventDlg::OnScore2Init(int param)
-{
-	m_pScore[2] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// newmapeventdlg.cpp:64
+void FrNewMapEventDlg::OnScore0Init(intptr_t param) {
+	m_pScore[0] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrNewMapEventDlg::OnScore3Init(int param)
-{
-	m_pScore[3] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// newmapeventdlg.cpp:69
+void FrNewMapEventDlg::OnScore1Init(intptr_t param) {
+	m_pScore[1] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrNewMapEventDlg::OnScore4Init(int param)
-{
-	m_pScore[4] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// newmapeventdlg.cpp:74
+void FrNewMapEventDlg::OnScore2Init(intptr_t param) {
+	m_pScore[2] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrNewMapEventDlg::OnScore5Init(int param)
-{
-	m_pScore[5] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// newmapeventdlg.cpp:79
+void FrNewMapEventDlg::OnScore3Init(intptr_t param) {
+	m_pScore[3] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrNewMapEventDlg::OnScore0OwnerDraw()
-{
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-	if (pGDI == NULL)
+// newmapeventdlg.cpp:84
+void FrNewMapEventDlg::OnScore4Init(intptr_t param) {
+	m_pScore[4] = DYNAMIC_CAST(FrArea, param);
+}
+
+// newmapeventdlg.cpp:89
+void FrNewMapEventDlg::OnScore5Init(intptr_t param) {
+	m_pScore[5] = DYNAMIC_CAST(FrArea, param);
+}
+
+// newmapeventdlg.cpp:94
+void FrNewMapEventDlg::OnScore0OwnerDraw(void) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+
+	if (pGDI == NULL) {
 		return;
+	}
 
-	const Bitmap* pBitmap;
-	if (Doc()->m_newMapEventMask & 1)
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "5under_01");
-	else
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "5under_00");
+	const Bitmap* pBmp;
+	if (WSingleton<CSharedDoc>::Instance()->m_newMapEventFlags & 0x1) {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "5under_01");
+	} else {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "5under_00");
+	}
 
-	const WRect& rect = m_pScore[0]->GetRect();
-	WRect src(0, 0, pBitmap->Width(), pBitmap->Height());
-	WRect dst(rect.x, rect.y, src.w, src.h);
-	pGDI->DrawTexture(pBitmap, src, dst, 0xffffffff, 0);
+	const WRect& rc = m_pScore[0]->GetRect();
+	WRect src(0, 0, pBmp->Width(), pBmp->Height());
+	pGDI->DrawTexture(pBmp, src, WRect(rc.x, rc.y, src.w, src.h), 0xffffffff, 0);
 }
 
-void FrNewMapEventDlg::OnScore1OwnerDraw()
-{
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-	if (pGDI == NULL)
+// newmapeventdlg.cpp:122
+void FrNewMapEventDlg::OnScore1OwnerDraw(void) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+
+	if (pGDI == NULL) {
 		return;
+	}
 
-	const Bitmap* pBitmap;
-	if (Doc()->m_newMapEventMask & 2)
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "10under_01");
-	else
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "10under_00");
+	const Bitmap* pBmp;
+	if (WSingleton<CSharedDoc>::Instance()->m_newMapEventFlags & 0x2) {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "10under_01");
+	} else {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "10under_00");
+	}
 
-	const WRect& rect = m_pScore[1]->GetRect();
-	WRect src(0, 0, pBitmap->Width(), pBitmap->Height());
-	WRect dst(rect.x, rect.y, src.w, src.h);
-	pGDI->DrawTexture(pBitmap, src, dst, 0xffffffff, 0);
+	const WRect& rc = m_pScore[1]->GetRect();
+	WRect src(0, 0, pBmp->Width(), pBmp->Height());
+	pGDI->DrawTexture(pBmp, src, WRect(rc.x, rc.y, src.w, src.h), 0xffffffff, 0);
 }
 
-void FrNewMapEventDlg::OnScore2OwnerDraw()
-{
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-	if (pGDI == NULL)
+// newmapeventdlg.cpp:150
+void FrNewMapEventDlg::OnScore2OwnerDraw(void) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+
+	if (pGDI == NULL) {
 		return;
+	}
 
-	const Bitmap* pBitmap;
-	if (Doc()->m_newMapEventMask & 4)
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "15under_01");
-	else
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "15under_00");
+	const Bitmap* pBmp;
+	if (WSingleton<CSharedDoc>::Instance()->m_newMapEventFlags & 0x4) {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "15under_01");
+	} else {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "15under_00");
+	}
 
-	const WRect& rect = m_pScore[2]->GetRect();
-	WRect src(0, 0, pBitmap->Width(), pBitmap->Height());
-	WRect dst(rect.x, rect.y, src.w, src.h);
-	pGDI->DrawTexture(pBitmap, src, dst, 0xffffffff, 0);
+	const WRect& rc = m_pScore[2]->GetRect();
+	WRect src(0, 0, pBmp->Width(), pBmp->Height());
+	pGDI->DrawTexture(pBmp, src, WRect(rc.x, rc.y, src.w, src.h), 0xffffffff, 0);
 }
 
-void FrNewMapEventDlg::OnScore3OwnerDraw()
-{
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-	if (pGDI == NULL)
+// newmapeventdlg.cpp:178
+void FrNewMapEventDlg::OnScore3OwnerDraw(void) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+
+	if (pGDI == NULL) {
 		return;
+	}
 
-	const Bitmap* pBitmap;
-	if (Doc()->m_newMapEventMask & 8)
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "20under_01");
-	else
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "20under_00");
+	const Bitmap* pBmp;
+	if (WSingleton<CSharedDoc>::Instance()->m_newMapEventFlags & 0x8) {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "20under_01");
+	} else {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "20under_00");
+	}
 
-	const WRect& rect = m_pScore[3]->GetRect();
-	WRect src(0, 0, pBitmap->Width(), pBitmap->Height());
-	WRect dst(rect.x, rect.y, src.w, src.h);
-	pGDI->DrawTexture(pBitmap, src, dst, 0xffffffff, 0);
+	const WRect& rc = m_pScore[3]->GetRect();
+	WRect src(0, 0, pBmp->Width(), pBmp->Height());
+	pGDI->DrawTexture(pBmp, src, WRect(rc.x, rc.y, src.w, src.h), 0xffffffff, 0);
 }
 
-void FrNewMapEventDlg::OnScore4OwnerDraw()
-{
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-	if (pGDI == NULL)
+// newmapeventdlg.cpp:206
+void FrNewMapEventDlg::OnScore4OwnerDraw(void) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+
+	if (pGDI == NULL) {
 		return;
+	}
 
-	const Bitmap* pBitmap;
-	if (Doc()->m_newMapEventMask & 16)
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "25under_01");
-	else
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "25under_00");
+	const Bitmap* pBmp;
+	if (WSingleton<CSharedDoc>::Instance()->m_newMapEventFlags & 0x10) {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "25under_01");
+	} else {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "25under_00");
+	}
 
-	const WRect& rect = m_pScore[4]->GetRect();
-	WRect src(0, 0, pBitmap->Width(), pBitmap->Height());
-	WRect dst(rect.x, rect.y, src.w, src.h);
-	pGDI->DrawTexture(pBitmap, src, dst, 0xffffffff, 0);
+	const WRect& rc = m_pScore[4]->GetRect();
+	WRect src(0, 0, pBmp->Width(), pBmp->Height());
+	pGDI->DrawTexture(pBmp, src, WRect(rc.x, rc.y, src.w, src.h), 0xffffffff, 0);
 }
 
-void FrNewMapEventDlg::OnScore5OwnerDraw()
-{
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-	if (pGDI == NULL)
+// newmapeventdlg.cpp:234
+void FrNewMapEventDlg::OnScore5OwnerDraw(void) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+
+	if (pGDI == NULL) {
 		return;
+	}
 
-	const Bitmap* pBitmap;
-	if (Doc()->m_newMapEventMask & 32)
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "30under_01");
-	else
-		pBitmap = pManager->GetBitmap("NEWMAP_EVENT", "30under_00");
+	const Bitmap* pBmp;
+	if (WSingleton<CSharedDoc>::Instance()->m_newMapEventFlags & 0x20) {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "30under_01");
+	} else {
+		pBmp = g_pFresh->GetManager()->GetBitmap("NEWMAP_EVENT", "30under_00");
+	}
 
-	const WRect& rect = m_pScore[5]->GetRect();
-	WRect src(0, 0, pBitmap->Width(), pBitmap->Height());
-	WRect dst(rect.x, rect.y, src.w, src.h);
-	pGDI->DrawTexture(pBitmap, src, dst, 0xffffffff, 0);
+	const WRect& rc = m_pScore[5]->GetRect();
+	WRect src(0, 0, pBmp->Width(), pBmp->Height());
+	pGDI->DrawTexture(pBmp, src, WRect(rc.x, rc.y, src.w, src.h), 0xffffffff, 0);
 }

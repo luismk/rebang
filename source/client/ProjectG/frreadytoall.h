@@ -1,34 +1,53 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\frreadytoall.h
+#ifndef PG_CLIENT_PROJECTG_FRREADYTOALL_H
+#define PG_CLIENT_PROJECTG_FRREADYTOALL_H
+
+#include "..\..\defines.h"
 #include "frform.h"
 
-class FrReadyToAll : public FrForm
-{
+// The ready form of a room member ("ReadyStart" / "WaitCancel" buttons); no
+// members of its own: FrReadyToAllMakeInstance news FrForm's size (0x110).
+class FrReadyToAll : public FrForm {
 public:
-	DECLARE_OBJECT(FrReadyToAll)
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // frreadytoall.h:7
 
-	FrReadyToAll();
-	virtual ~FrReadyToAll();
+	FrReadyToAll(void);
+	virtual ~FrReadyToAll(void);
+
+private:
+	static sFRESH_ENTRY _MsgEntries[];
 
 protected:
-	void OnReadyBtnUp();
-	void OnWaitBtnUp();
+	static sFRESH_MSGMAP _MsgMap;
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;
 
-	DECLARE_FRESH_MSGMAP()
+	void OnReadyBtnUp(void);
+	void OnWaitBtnUp(void);
 };
+CHECK_SIZE(FrReadyToAll, 0x110);
 
-class FrReadyToMaster : public FrForm
-{
+// The room master's ready form (start / exit buttons); no members of its
+// own: FrReadyToMasterMakeInstance news FrForm's size (0x110).
+class FrReadyToMaster : public FrForm {
 public:
-	DECLARE_OBJECT(FrReadyToMaster)
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // frreadytoall.h:23
 
-	FrReadyToMaster();
-	virtual ~FrReadyToMaster();
+	FrReadyToMaster(void);
+	virtual ~FrReadyToMaster(void);
+
+private:
+	static sFRESH_ENTRY _MsgEntries[];
 
 protected:
+	static sFRESH_MSGMAP _MsgMap;
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;
+
+	void OnStartBtnUp(void);
+	void OnExitBtnUp(void);
 	virtual void OnProc(const float dt);
-
-	void OnStartBtnUp();
-	void OnExitBtnUp();
-
-	DECLARE_FRESH_MSGMAP()
 };
+CHECK_SIZE(FrReadyToMaster, 0x110);
+
+#endif // PG_CLIENT_PROJECTG_FRREADYTOALL_H

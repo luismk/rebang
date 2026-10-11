@@ -1,39 +1,66 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\talkbox.h
+#ifndef PG_CLIENT_PROJECTG_TALKBOX_H
+#define PG_CLIENT_PROJECTG_TALKBOX_H
 
 #include <list>
 
+#include "..\..\defines.h"
+#include "..\..\padding.h"
+
+class WView;
 class WFont;
 class WOverlay;
 
-class CTalkBox
-{
+// A speech balloon. Its members are transcribed only as far as the functions
+// decompiled so far need them.
+class CTalkBox {
+	LAYOUT_CHECK_FRIEND;
 public:
-	CTalkBox();
-	~CTalkBox();
+	CTalkBox(void);
+	~CTalkBox(void);
 
-	void SetText(const char* text, float time);
-	bool IsActive() { return m_time > 0.0f ? true : false; }
-	void Process(float elapsed);
-	void Render(WView* view, float x, float y, int align);
+	void Process(float fDelta);
+	void Render(WView* pView, float x, float y, int align);
+	void SetText(const char* text, float showTime);
 
-	void SetTransparency(float alpha) { m_transparency = alpha; }
+	bool IsActive(void);                    // talkbox.h:15
+	void SetTransparency(float alpha);      // talkbox.h:19
 
-private:
-	struct sLine
-	{
-		char text[32];
-		float width;
-		unsigned long color;
-		int newLine;
+	// One line of the balloon (size 0x2C from SetText's local and Render).
+	struct sLine {
+		char text[32];          // 0x0
+		float width;            // 0x20
+		unsigned long color;    // 0x24
+		int lineBreak;          // 0x28, the next line starts below this one
 	};
 
-	WFont* m_pFont;
-	WOverlay* m_pOverlay;
-	std::list<sLine> m_lines;
-	int m_lineNum;
-	float m_transparency;
-	float m_time;
-	WPoint m_pos;
-	char m_text[512];
-	unsigned char m_maxLineLen;
+protected:
+	WFont* m_pFont;             // 0x0
+	WOverlay* m_pOverlay;       // 0x4
+	std::list<sLine> m_lines;   // 0x8
+	int m_lineCount;            // 0x14
+	float m_transparency;       // 0x18
+	float m_remainTime;         // 0x1c
+	float m_boxX;               // 0x20
+	float m_boxY;               // 0x24
+	char m_text[0x200];         // 0x28
+	unsigned char m_maxLineLength; // 0x228
+	PADDING(0x229, 0x22C);
 };
+
+CHECK_SIZE(CTalkBox::sLine, 0x2C);
+CHECK_SIZE(CTalkBox, 0x22C);
+BEGIN_LAYOUT_CHECK(CTalkBox)
+	CHECK_FIELD(CTalkBox, m_pFont, 0x0);
+	CHECK_FIELD(CTalkBox, m_pOverlay, 0x4);
+	CHECK_FIELD(CTalkBox, m_lines, 0x8);
+	CHECK_FIELD(CTalkBox, m_lineCount, 0x14);
+	CHECK_FIELD(CTalkBox, m_transparency, 0x18);
+	CHECK_FIELD(CTalkBox, m_remainTime, 0x1c);
+	CHECK_FIELD(CTalkBox, m_boxX, 0x20);
+	CHECK_FIELD(CTalkBox, m_boxY, 0x24);
+	CHECK_FIELD(CTalkBox, m_text, 0x28);
+	CHECK_FIELD(CTalkBox, m_maxLineLength, 0x228);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_TALKBOX_H

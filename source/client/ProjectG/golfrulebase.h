@@ -1,162 +1,38 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\golfrulebase.h
+#ifndef PG_CLIENT_PROJECTG_GOLFRULEBASE_H
+#define PG_CLIENT_PROJECTG_GOLFRULEBASE_H
+
+#include "..\..\defines.h"
 
 class CGolfRule;
 
-class CGolfRuleBase
-{
+// Rule strategy base. The vtable order is read from ??_7CGolfRuleBase@@6B@
+// (0x9EB0B0); the members from the constructor (golfrulebase.cpp:24-30).
+class CGolfRuleBase {
+	LAYOUT_CHECK_FRIEND;
 public:
-	CGolfRuleBase();
+	CGolfRuleBase(void);
+	virtual void SetPlayer(void);                       // vtable slot 0
+	virtual void SetGrade(void);                        // vtable slot 1
+	virtual void SetReady(void);                        // vtable slot 2
+	virtual void AddPlayer(unsigned char, char const *, unsigned long, unsigned long, unsigned long); // 3
+	virtual void AddPlayerOffline(unsigned char, char const *, unsigned long, unsigned long);          // 4
+	virtual int GetNumTimeout(void);                    // vtable slot 5
+	virtual bool CheckGiveUp(void);                     // vtable slot 6
+	virtual ~CGolfRuleBase(void);                       // vtable slot 7
 
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-	virtual void AddPlayer(unsigned char index, const char* name,
-		unsigned long uid, unsigned long oid, unsigned long caddie);
-	virtual void AddPlayerOffline(unsigned char index, const char* name,
-		unsigned long oid, unsigned long caddie);
-	virtual int GetNumTimeout();
-	virtual bool CheckGiveUp();
-	virtual ~CGolfRuleBase();
-
-	void CheckCalipersCount();
+	void CheckCalipersCount(void);
 
 protected:
-	CGolfRule* m_pGolfRule;
-	unsigned long m_playerColor[4];
+	CGolfRule *m_pRule;                                 // 0x4, the owning rule task
+	// 0x8: four 0x00RRGGBB colours set by the constructor (red, magenta,
+	// green, blue)
+	unsigned long m_colors[4];
 };
+CHECK_SIZE(CGolfRuleBase, 0x18);
+BEGIN_LAYOUT_CHECK(CGolfRuleBase)
+	CHECK_FIELD(CGolfRuleBase, m_pRule, 0x4);
+	CHECK_FIELD(CGolfRuleBase, m_colors, 0x8);
+END_LAYOUT_CHECK
 
-class CGolfRuleStroke : public CGolfRuleBase
-{
-public:
-	CGolfRuleStroke(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleStroke();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-};
-
-class CGolfRuleTeam : public CGolfRuleBase
-{
-public:
-	CGolfRuleTeam(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleTeam();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-	virtual void AddPlayer(unsigned char index, const char* name,
-		unsigned long uid, unsigned long oid, unsigned long caddie);
-	virtual int GetNumTimeout();
-	virtual bool CheckGiveUp();
-};
-
-class CGolfRuleGuildMatch : public CGolfRuleBase
-{
-public:
-	CGolfRuleGuildMatch(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleGuildMatch();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-};
-
-class CGolfRuleSkins : public CGolfRuleBase
-{
-public:
-	CGolfRuleSkins(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleSkins();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-};
-
-class CGolfRuleApproach : public CGolfRuleBase
-{
-public:
-	CGolfRuleApproach(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleApproach();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-
-private:
-	WVector GetRandomStartPos(unsigned long oid);
-};
-
-class CGolfRuleNewApproach : public CGolfRuleBase
-{
-public:
-	CGolfRuleNewApproach(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleNewApproach();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-
-private:
-	WVector GetRandomStartPos(unsigned long oid);
-};
-
-class CGolfRuleMatch : public CGolfRuleBase
-{
-public:
-	CGolfRuleMatch(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleMatch();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-	virtual void AddPlayer(unsigned char index, const char* name,
-		unsigned long uid, unsigned long oid, unsigned long caddie);
-};
-
-class CGolfRuleTimeattack : public CGolfRuleBase
-{
-public:
-	CGolfRuleTimeattack(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleTimeattack();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-};
-
-class CGolfRuleQuickrace : public CGolfRuleBase
-{
-public:
-	CGolfRuleQuickrace(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleQuickrace();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-};
-
-class CGolfRuleTutorial : public CGolfRuleBase
-{
-public:
-	CGolfRuleTutorial(CGolfRule* pGolfRule);
-	virtual ~CGolfRuleTutorial();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-
-protected:
-	void SetEquipCharCaddieInfoForTutorial();
-};
-
-class CGolfRule30Battle : public CGolfRuleBase
-{
-public:
-	CGolfRule30Battle(CGolfRule* pGolfRule);
-	virtual ~CGolfRule30Battle();
-
-	virtual void SetPlayer();
-	virtual void SetGrade();
-	virtual void SetReady();
-};
+#endif // PG_CLIENT_PROJECTG_GOLFRULEBASE_H

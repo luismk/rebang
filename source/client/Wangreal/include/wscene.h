@@ -1,73 +1,47 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\wangreal\include\wscene.h
+#ifndef PG_CLIENT_WANGREAL_INCLUDE_WSCENE_H
+#define PG_CLIENT_WANGREAL_INCLUDE_WSCENE_H
+
+#include <string.h>
+
+#include "..\..\defines.h"
 #include "wmath.h"
 
-struct LightSet
-{
-	unsigned long type;
-	WVector nearOne;
-	unsigned long diffuse;
-	unsigned long ambient;
-	unsigned long ambient2;
+// One light of a scene (PDB layout, size 0x1c).
+struct LightSet {
+	enum {
+		W_LIGHT_NOT_INITIALIZED = 0,
+		W_LIGHT_POINT = 1,
+		W_LIGHT_DIRECTIONAL = 2
+	};
 
-	LightSet()
-	{
-		type = 0;
-		diffuse = 0;
-		ambient = 0;
-		ambient2 = 0xffffff;
-		nearOne.x = nearOne.y = nearOne.z = 0.0f;
+	LightSet() : type(W_LIGHT_NOT_INITIALIZED), diffuse(0), ambient(0), ambient2(0xffffff) {   // wscene.h:21
+		nearone.Reset();
 	}
-#ifdef WANGREAL_DEVICE
-	void operator=(const LightSet& other)
-	{
-		memcpy(this, &other, sizeof(LightSet));
+
+	void operator=(const LightSet& l) {   // wscene.h:26
+		memcpy(this, &l, sizeof(LightSet));
 	}
-#endif
+
+	unsigned long type;         // 0x0
+	WVector nearone;            // 0x4
+	unsigned long diffuse;      // 0x10
+	unsigned long ambient;      // 0x14
+	unsigned long ambient2;     // 0x18
 };
+CHECK_SIZE(LightSet, 0x1c);
+CHECK_FIELD(LightSet, type, 0x0);
+CHECK_FIELD(LightSet, nearone, 0x4);
+CHECK_FIELD(LightSet, diffuse, 0x10);
+CHECK_FIELD(LightSet, ambient, 0x14);
+CHECK_FIELD(LightSet, ambient2, 0x18);
 
-struct WxBatchState
-{
-	int xiFlag0;
-	int xiFlag1;
-	int xiBaseVtxIdx;
-	int xnVtxs;
-	int xiBaseIdxIdx;
-	int xnIdxs;
-	ulong xdwDiffuse;
-	WMatrix xmW;
-	float xfDepth;
-	int xnmTransfs;
-	const WMatrix* const* xpapmW;
-	const WMatrix* const* xpapmO;
-
-	WxBatchState()
-	{
-		xiFlag0 = 0;
-		xiFlag1 = 0;
-		xiBaseVtxIdx = 0;
-		xnVtxs = 0;
-		xiBaseIdxIdx = 0;
-		xnIdxs = 0;
-		xdwDiffuse = 0xffffffff;
-		xfDepth = g_HUGE;
-		xnmTransfs = 0;
-		xpapmW = 0;
-		xpapmO = 0;
-		xmW.Reset();
-	}
-};
-
-struct WxViewState
-{
-	LightSet xLight;
-	WMatrix4 xmView;
-	WMatrix4 xmProj;
-};
-
-class WScene
-{
+class WScene {
 public:
-	virtual ~WScene();
-	virtual LightSet* GetLightSet(const WVector& pos);
-	virtual float CollTest(const WVector&, const WVector&, WPlane*, float);
+	virtual ~WScene() {}
+	virtual LightSet* GetLightSet(const WVector&) = 0;                          // slot 1
+	virtual float CollTest(const WVector&, const WVector&, WPlane*, float) = 0;  // slot 2
 };
+CHECK_SIZE(WScene, 0x4);
+
+#endif // PG_CLIENT_WANGREAL_INCLUDE_WSCENE_H

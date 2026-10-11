@@ -1,88 +1,85 @@
-#include "minatl.h"
-#include "projectg.h"
+// Original: d:\build\custom\temp\code\client\projectg\sea.cpp
+#include <windows.h>
+#include <math.h>
+
 #include "sea.h"
+
+#include "commonutil.h"
 #include "quadtree.h"
+#include "../client/Wangreal/include/wview.h"
+#include "../client/Wangreal/include/wvideo.h"
 
-CSea::CSea()
-	: m_pPoint(NULL), m_pointNum(0), m_layerNum(0), m_scale(1.0f)
+extern LightSet g_lightset;
+
+// sea.cpp:22
+CSea::CSea(void)
+	: m_points(0), m_pointCount(0), m_layerCount(0), m_scale(1.0f)
 {
-	m_pLayer = new sLayer[3];
+	m_layers = new sLayer[3];
 }
 
-CSea::~CSea()
+// sea.cpp:32
+CSea::~CSea(void)
 {
-	for (int i = 0; i < m_layerNum; i++)
-	{
-		if (g_resrcmng && m_pLayer[i].texHandle)
-		{
-			g_resrcmng->Release(m_pLayer[i].texHandle);
-			m_pLayer[i].texHandle = 0;
-		}
+	for (int i = 0; i < m_layerCount; i++) {
+		if (g_resrcmng && m_layers[i].m_texture) { g_resrcmng->Release(m_layers[i].m_texture); m_layers[i].m_texture = 0; }
 	}
 
-	if (m_pLayer)
-	{
-		delete[] m_pLayer;
-		m_pLayer = NULL;
-	}
-	if (m_pPoint)
-	{
-		delete[] m_pPoint;
-		m_pPoint = NULL;
-	}
+	if (m_layers) { delete[] m_layers; m_layers = 0; }
+	if (m_points) { delete[] m_points; m_points = 0; }
 }
 
-void CSea::LoadTexture()
+// sea.cpp:43
+void CSea::LoadTexture(void)
 {
-	for (int i = 0; i < m_layerNum; i++)
-	{
-		if (g_resrcmng && m_pLayer[i].texHandle)
-		{
-			g_resrcmng->Release(m_pLayer[i].texHandle);
-			m_pLayer[i].texHandle = 0;
-		}
-		m_pLayer[i].texHandle =
-			g_resrcmng->LoadTexture(MakeStr("[sea_0%d.jpg", i + 1), 0, 0, 0);
+	for (int i = 0; i < m_layerCount; i++) {
+		if (g_resrcmng && m_layers[i].m_texture) { g_resrcmng->Release(m_layers[i].m_texture); m_layers[i].m_texture = 0; }
+		m_layers[i].m_texture = g_resrcmng->LoadTexture(MakeStr("[sea_0%d.jpg", i + 1), 0, 0, 0);
 	}
 }
 
-void CSea::SetArea(const std::vector<WVector>& area)
+// sea.cpp:53
+void CSea::SetArea(const std::vector<WVector>& points)
 {
-	m_pointNum = area.size();
-	m_pPoint = new WVector[m_pointNum];
+	m_pointCount = points.size();
+	m_points = new WVector[m_pointCount];
 
-	m_area = Waabb(WVector::ONE * 10000.0f, WVector::ONE * -10000.0f);
+	m_aabb = Waabb(WVector::ONE * 10000.0f,
+		WVector::ONE * -10000.0f);
 
-	for (int i = 0; i < m_pointNum; i++)
-	{
-		m_pPoint[i] = area[i];
-		m_pPoint[i].y = area[0].y;
+	for (int i = 0; i < m_pointCount; i++) {
+		m_points[i] = points[i];
+		m_points[i].y = points[0].y;
 
-		for (int k = 0; k < 3; k++)
-		{
-			m_area.min.p[k] = Min(m_area.min.p[k], m_pPoint[i].p[k]);
-			m_area.max.p[k] = Max(m_area.max.p[k], m_pPoint[i].p[k]);
-		}
+		// Grow the bounding box over the outline.
+		m_aabb.min.x = min(m_points[i].x, m_aabb.min.x);
+		m_aabb.max.x = max(m_points[i].x, m_aabb.max.x);
+		m_aabb.min.y = min(m_points[i].y, m_aabb.min.y);
+		m_aabb.max.y = max(m_points[i].y, m_aabb.max.y);
+		m_aabb.min.z = min(m_points[i].z, m_aabb.min.z);
+		m_aabb.max.z = max(m_points[i].z, m_aabb.max.z);
 	}
 
-	m_area.max.y -= 1.0f;
-	m_area.min.y = m_area.max.y - 1.0f;
+	m_aabb.max.y -= 1.0f;
+	m_aabb.min.y = m_aabb.max.y - 1.0f;
 
-	int last = m_pointNum - 1;
-	for (int j = 0; j < m_pointNum / 2; j++)
-	{
-		WVector a = area[j];
-		WVector b = area[last - j];
-		WVector c = area[j + 1];
-		WVector d = area[last - j - 1];
+	int last = m_pointCount - 1;
+	for (int j = 0; j < m_pointCount / 2; j++) {
+		WVector v0 = points[j];
+		WVector v1 = points[last - j];
+		WVector v2 = points[j + 1];
+		WVector v3 = points[last - j - 1];
 
+		// The quad between two opposite edges of the outline is one water
+		// area of the course.
 		Waabb box;
-		box.max.x = max(max(a.x, b.x), max(c.x, d.x));
-		box.max.y = m_area.max.y;
-		box.max.z = max(max(a.z, b.z), max(c.z, d.z));
-		box.min.x = min(min(a.x, b.x), min(c.x, d.x));
-		box.min.y = m_area.min.y;
-		box.min.z = min(min(a.z, b.z), min(c.z, d.z));
+		box.max.x = max(max(v0.x, v1.x), max(v2.x, v3.x));
+		box.max.y = m_aabb.max.y;
+		box.max.z = max(max(v0.z, v1.z), max(v2.z, v3.z));
+
+		box.min.x = min(min(v0.x, v1.x), min(v2.x, v3.x));
+		box.min.y = m_aabb.min.y;
+		box.min.z = min(min(v0.z, v1.z), min(v2.z, v3.z));
 
 		GetPVS().AddWater(box, 1);
 	}
@@ -90,71 +87,70 @@ void CSea::SetArea(const std::vector<WVector>& area)
 	Init();
 }
 
-void CSea::Init()
+// sea.cpp:108
+void CSea::Init(void)
 {
-	float rad = 30.0f * g_DEGTORAD;
-	float speedV = sinf(rad) * -0.02f;
-	float speedU = cosf(rad) * 0.02f;
+	float angle = 30.0f * (3.141592654f / 180.0f);
+	float flowY = sinf(angle) * -0.02f;
+	float flowX = cosf(angle) * 0.02f;
 
-	AddLayer(-speedU, speedV, 200.0f, 255);
-	AddLayer(speedU, speedV, 100.0f, 255);
+	AddLayer(-flowX, flowY, 200.0f, 255);
+	AddLayer(flowX, flowY, 100.0f, 255);
 	AddLayer(0.0f, 0.02f, 150.0f, 255);
 }
 
-void CSea::AddLayer(float speedU, float speedV, float scale,
-	unsigned char alpha)
+// sea.cpp:119
+void CSea::AddLayer(float speedX, float speedY, float uvSize, unsigned char alpha)
 {
-	sLayer& layer = m_pLayer[m_layerNum++];
+	sLayer* layer = &m_layers[m_layerCount++];
 
-	layer.speed.x = speedU;
-	layer.speed.y = speedV;
-	layer.color = g_lightset.ambient2 | (alpha << 24);
-	layer.pUV = new WVector2D[m_pointNum];
-	layer.ppVertex = new WTVertex*[m_pointNum + 1];
-	layer.pVertex = new WTVertex[m_pointNum];
-	layer.texHandle = g_resrcmng->LoadTexture(
-		MakeStr("[sea_0%d.jpg", Min(m_layerNum, 2)), 0, 0, 0);
+	layer->m_speed.x = speedX;
+	layer->m_speed.y = speedY;
+	layer->m_color = (alpha << 24) | g_lightset.ambient2;
+	layer->m_uv = new WVector2D[m_pointCount];
+	layer->m_fan = new WTVertex*[m_pointCount + 1];
+	layer->m_vertices = new WTVertex[m_pointCount];
+	layer->m_texture = g_resrcmng->LoadTexture(MakeStr("[sea_0%d.jpg", min(2, m_layerCount)), 0, 0, 0);
 
 	int i;
-	for (i = 0; i < m_pointNum; i++)
-	{
-		layer.pUV[i].x = (m_pPoint[i].x - m_area.min.x) * (1.0f / scale);
-		layer.pUV[i].y = (m_pPoint[i].z - m_area.min.z) * (1.0f / scale);
-		layer.ppVertex[i] = &layer.pVertex[i];
-		layer.pVertex[i].diffuse = layer.color;
+	for (i = 0; i < m_pointCount; i++) {
+		layer->m_uv[i].x = (m_points[i].x - m_aabb.min.x) * (1.0f / uvSize);
+		layer->m_uv[i].y = (m_points[i].z - m_aabb.min.z) * (1.0f / uvSize);
+		layer->m_fan[i] = &layer->m_vertices[i];
+		layer->m_vertices[i].diffuse = layer->m_color;
 	}
-	layer.ppVertex[i] = NULL;
+
+	layer->m_fan[i] = 0;
 }
 
-void CSea::Process(float delta)
+// sea.cpp:144
+void CSea::Process(float dt)
 {
-	for (int i = 0; i < m_layerNum; i++)
-	{
-		for (int j = 0; j < m_pointNum; j++)
-			m_pLayer[i].pUV[j] += WVector2D(delta * m_pLayer[i].speed.x,
-				delta * m_pLayer[i].speed.y);
+	for (int i = 0; i < m_layerCount; i++) {
+		for (int j = 0; j < m_pointCount; j++) {
+			m_layers[i].m_uv[j] += WVector2D(dt * m_layers[i].m_speed.x, dt * m_layers[i].m_speed.y);
+		}
 	}
 }
 
-void CSea::Render()
+// sea.cpp:156
+void CSea::Render(void)
 {
-	if (!g_view->InFrustum(m_area))
+	if (!g_view->InFrustum(m_aabb)) {
 		return;
+	}
 
-	for (int i = 0; i < m_layerNum; i++)
-	{
-		sLayer& layer = m_pLayer[i];
+	for (int i = 0; i < m_layerCount; i++) {
+		sLayer& layer = m_layers[i];
 
-		for (int j = 0; j < m_pointNum; j++)
-		{
-			WVector pos = m_pPoint[j];
-			pos.y = m_area.max.y;
-			layer.pVertex[j].SetPosition(pos);
-			layer.pVertex[j].tu = layer.pUV[j].x;
-			layer.pVertex[j].tv = layer.pUV[j].y;
+		for (int j = 0; j < m_pointCount; j++) {
+			WVector pos = m_points[j];
+			pos.y = m_aabb.max.y;
+			layer.m_vertices[j].SetPosition(pos);
+			layer.m_vertices[j].tu = layer.m_uv[j].x;
+			layer.m_vertices[j].tv = layer.m_uv[j].y;
 		}
 
-		g_view->DrawPolygonFan(layer.ppVertex,
-			(layer.texHandle & 0x7ff) | 0x20800000, 0x400, false);
+		g_view->DrawPolygonFan(layer.m_fan, (layer.m_texture & 0x7FF) | 0x20800000, 0x400, false);
 	}
 }

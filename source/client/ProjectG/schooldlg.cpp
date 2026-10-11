@@ -1,351 +1,499 @@
-#include "minatl.h"
-#include "schooldlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\schooldlg.cpp
+#include "SchoolDlg.h"
+#include "ObjectFactory.h"
+#include "frbutton.h"
 #include "frcombobox.h"
+#include "fredit.h"
+#include "frlistbox.h"
+#include "frstatic.h"
+#include "binstr.h"
+#include "westpak.h"
 #include "wresrcmng.h"
-#include "../../shared/token.h"
 
-extern Fresh* g_pFresh;
+// westpak.cpp (not declared in westpak.h yet)
+void __cdecl CloseCFile(cFile* file);
 
-std::string szJpSchoolType[] = { "\301\337\307\320", "\260\355\261\263",
-	"\264\334\264\353", "\264\353\307\320" };
+// schooldlg.cpp:21
+std::string szJpSchoolType[4] = {
+	"\xC1\xDF\xC7\xD0",
+	"\xB0\xED\xB1\xB3",
+	"\xB4\xDC\xB4\xEB",
+	"\xB4\xEB\xC7\xD0"
+};
 
-IMPLEMENT_OBJECT(FrSchoolDlg, FrForm)
+// schooldlg.cpp:28 (run-time type and factory registration of FrSchoolDlg)
+const WRTTI FrSchoolDlg::m_RTTI("FrSchoolDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrSchoolDlg, FrForm)
-
-ON_FRESH_VI("like", FRCMD_INIT, FrSchoolDlg::OnLikeInit)
-ON_FRESH_BI("like", FRCMD_ENTERKEY, FrSchoolDlg::OnLikeEnterKey)
-ON_FRESH_VI("school", FRCMD_INIT, FrSchoolDlg::OnSchoolInit)
-ON_FRESH_VI("school", FRCMD_LBUTTONDOWN, FrSchoolDlg::OnSchoolBtnDown)
-ON_FRESH_VV("search", FRCMD_LBUTTONUP, FrSchoolDlg::OnSearchBtnUp)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrSchoolDlg::OnOkBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrSchoolDlg::FrSchoolDlg()
-{
-	m_schoolCode = 0;
-	m_pType = NULL;
-	m_pDist0 = NULL;
-	m_pDist1 = NULL;
-	m_pStaticDist1 = NULL;
-	m_type = 0;
-	m_dist0 = 0;
-	m_dist1 = 0;
+IObject* FrSchoolDlgMakeInstance(void) {
+	return new FrSchoolDlg;
 }
 
-FrSchoolDlg::~FrSchoolDlg()
-{
+struct __sFrSchoolDlg {
+	__sFrSchoolDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrSchoolDlgMakeInstance, "FrSchoolDlg");
+	}
+};
+static __sFrSchoolDlg s_registerFrSchoolDlg;
+
+// schooldlg.cpp:30
+const sFRESH_MSGMAP* FrSchoolDlg::GetMessageMap(void) const {
+	return &FrSchoolDlg::_MsgMap;
 }
 
-void FrSchoolDlg::OnLikeInit(int param)
-{
-	m_pLike = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pLike)
-		m_pLike->SetKeyFocus(true);
+sFRESH_MSGMAP FrSchoolDlg::_MsgMap = { &FrForm::_MsgMap, &FrSchoolDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrSchoolDlg::_MsgEntries[] = {
+	// schooldlg.cpp:32
+	{ "like", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrSchoolDlg::OnLikeInit },
+	// schooldlg.cpp:33
+	{ "like", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&FrSchoolDlg::OnLikeEnterKey },
+	// schooldlg.cpp:34
+	{ "school", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrSchoolDlg::OnSchoolInit },
+	// schooldlg.cpp:35
+	{ "school", FRCMD_LBUTTONDOWN, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrSchoolDlg::OnSchoolBtnDown },
+	// schooldlg.cpp:36
+	{ "search", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrSchoolDlg::OnSearchBtnUp },
+	// schooldlg.cpp:37
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrSchoolDlg::OnOkBtnUp },
+
+	// schooldlg.cpp:39
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// schooldlg.cpp:45
+FrSchoolDlg::FrSchoolDlg(void) {
+	m_schoolNo = 0;
+	m_pTypeCombo = 0;
+	m_pDist0Combo = 0;
+	m_pDist1Combo = 0;
+	m_pDist1Static = 0;
+	m_typeNo = 0;
+	m_dist0No = 0;
+	m_dist1No = 0;
 }
 
-bool FrSchoolDlg::OnLikeEnterKey(int param)
-{
+// schooldlg.cpp:57
+FrSchoolDlg::~FrSchoolDlg(void) {
+}
+
+// schooldlg.cpp:63
+void FrSchoolDlg::OnLikeInit(intptr_t param) {
+	m_pLikeEdit = DYNAMIC_CAST(FrEdit, param);
+	if (m_pLikeEdit) {
+		m_pLikeEdit->SetKeyFocus(true);
+	}
+}
+
+// schooldlg.cpp:76
+bool FrSchoolDlg::OnLikeEnterKey(int param) {
 	OnSearchBtnUp();
 	return false;
 }
 
-void FrSchoolDlg::OnSchoolInit(int param)
-{
-	m_pSchool = DYNAMIC_CAST(FrComboBox, (FrWnd*)param);
+// schooldlg.cpp:83
+void FrSchoolDlg::OnSchoolInit(intptr_t param) {
+	m_pSchoolCombo = DYNAMIC_CAST(FrComboBox, param);
 }
 
-void FrSchoolDlg::OnSchoolBtnDown(int param)
-{
-	FrListItem* item = (FrListItem*)param;
-	std::string* name = (std::string*)item->pData;
-	m_schoolCode = m_searchCode[item->no];
-	m_schoolName = *name;
+// schooldlg.cpp:89
+void FrSchoolDlg::OnSchoolBtnDown(intptr_t param) {
+	FrListItem* pItem = (FrListItem*)param;
+	std::string* pName = (std::string*)pItem->pData;
+	m_schoolNo = m_schoolNos[pItem->no];
+	m_schoolName = *pName;
 }
 
-void FrSchoolDlg::OnSearchBtnUp()
-{
-	// HACK
-	if (0)
-		OnSchoolInit(0);
-	if (!m_pLike || !m_pSchool)
-		return;
-	const char* like = m_pLike->GetLine(1, false);
-	if (strlen(like) < 4)
-		return;
-	m_pSchool->ClearList();
-	m_pSchool->ClearLine();
-	cFile* file = g_resrcmng->GetCFile("school.txt", 0xffff);
-	if (!file)
-	{
-		m_pSchool->AddString(like);
-		m_pSchool->SetLine(1, like, 0, false, 0);
+// schooldlg.cpp:98
+void FrSchoolDlg::OnSearchBtnUp(void) {
+	if (m_pLikeEdit == 0 || m_pSchoolCombo == 0) {
 		return;
 	}
-	{
-		char line[8192];
-		char code[64];
-		char name[128];
-		int count = 0;
-		while (file->Scan("%n", line))
-		{
-			int length = strlen(line);
-			cTokenV token;
-			token.Init(line, length);
-			token.GetToken(code, " ", 1);
-			token.GetToken(name, "\r\n", 2);
-			if (strstr(name, like))
-			{
-				if (count < 10)
-				{
-					m_searchCode[count++] = atoi(code);
-					m_pSchool->AddString(name);
-					if (!m_pSchool->GetLineNum())
-					{
-						m_schoolCode = atoi(code);
-						m_schoolName = name;
-						m_pSchool->SetLine(1, name, 0, false, 0);
-					}
-				}
-				else
-				{
-					m_schoolCode = 0;
-					m_schoolName = "";
-					m_pSchool->ClearList();
-					m_pSchool->SetLine(1,
-						"\301\273\264\365 \300\332\274\274\307\317\260\324 \263\326\276\356\301\326\274\274\277\344",
-						0, false, 0);
-					break;
-				}
+
+	const char* like = m_pLikeEdit->GetLine(1, false);
+	if (strlen(like) < 4) {
+		return;
+	}
+
+	m_pSchoolCombo->ClearList();
+	m_pSchoolCombo->ClearLine();
+
+
+
+
+	cFile* pFile = g_resrcmng->GetCFile("school.txt", 0xffff);
+
+	if (pFile == 0) {
+
+		m_pSchoolCombo->AddString(like);
+		m_pSchoolCombo->SetLine(1, like, 0, false, 0);
+		return;
+	}
+
+	char line[0x2000];
+	int count = 0;
+	char number[64];
+	char name[128];
+	while (pFile->Scan("%n", line)) {
+
+		int len = strlen(line);
+		cTokenV token;
+		token.Init(line, len);
+
+
+		token.GetToken(number, " ", 1);
+
+
+		token.GetToken(name, "\r\n", 2);
+
+		if (strstr(name, like)) {
+
+			if (count >= 10) {
+
+				m_schoolNo = 0;
+				m_schoolName = "";
+				m_pSchoolCombo->ClearList();
+				m_pSchoolCombo->SetLine(1, "\xC1\xBB\xB4\xF5 \xC0\xDA\xBC\xBC\xC7\xCF\xB0\xD4 \xB3\xD6\xBE\xEE\xC1\xD6\xBC\xBC\xBF\xE4", 0, false, 0);
+				break;
+			}
+
+
+
+			m_schoolNos[count++] = atoi(number);
+
+			m_pSchoolCombo->AddString(name);
+			if (m_pSchoolCombo->GetLineNum() == 0) {
+
+				m_schoolNo = atoi(number);
+				m_schoolName = name;
+				m_pSchoolCombo->SetLine(1, name, 0, false, 0);
 			}
 		}
-		CloseCFile(file);
-		if (!m_pSchool->GetLineNum())
-			m_pSchool->SetLine(1,
-				"\270\361\267\317\277\241\274\255 \303\243\300\273 \274\366 \276\370\275\300\264\317\264\331",
-				0, false, 0);
+	}
+
+	CloseCFile(pFile);
+
+
+	if (m_pSchoolCombo->GetLineNum() == 0) {
+		m_pSchoolCombo->SetLine(1, "\xB8\xF1\xB7\xCF\xBF\xA1\xBC\xAD \xC3\xA3\xC0\xBB \xBC\xF6 \xBE\xF8\xBD\xC0\xB4\xCF\xB4\xD9", 0, false, 0);
 	}
 }
 
-void FrSchoolDlg::OnOkBtnUp()
-{
-	if (!m_schoolCode)
-	{
+// schooldlg.cpp:170
+void FrSchoolDlg::OnOkBtnUp(void) {
+	if (m_schoolNo == 0) {
+
 		m_schoolName = "";
-		m_pSchool->ClearList();
+		m_pSchoolCombo->ClearList();
 	}
+
+
+
+
 	OnFreshOkay();
 }
 
-void FrSchoolDlg::OnExampleInit(int param)
-{
-	FrStatic* control = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-	if (control)
-		control->SetVisible(false);
+// schooldlg.cpp:183
+void FrSchoolDlg::OnExampleInit(int param) {
+	FrStatic* pExample = DYNAMIC_CAST(FrStatic, param);
+
+	if (pExample) {
+		pExample->SetVisible(false);
+	}
 }
 
-void FrSchoolDlg::OnTypeInit(int param)
-{
-	m_pType = DYNAMIC_CAST(FrComboBox, (FrWnd*)param);
+// schooldlg.cpp:192
+void FrSchoolDlg::OnTypeInit(int param) {
+	m_pTypeCombo = DYNAMIC_CAST(FrComboBox, param);
 }
 
-void FrSchoolDlg::OnTypeListLBtnDown(int param)
-{
-	const char* name = m_pType->GetLine(1, false);
-	if (!strcmp(name, m_typeName.c_str()))
+// schooldlg.cpp:198
+void FrSchoolDlg::OnTypeListLBtnDown(int param) {
+	const char* text = m_pTypeCombo->GetLine(1, false);
+
+	if (strcmp(text, m_typeName.c_str()) == 0) {
 		return;
-	m_type = 5;
-	for (unsigned int i = 0; i < 4; ++i)
-	{
-		if (!strcmp(name, szJpSchoolType[i].c_str()))
-		{
-			m_type = i + 1;
-			m_typeName = name;
+	}
+
+
+
+
+	m_typeNo = 5;
+
+	for (int i = 0; i < 4; ++i) {
+
+		if (strcmp(text, szJpSchoolType[i].c_str()) == 0) {
+
+			m_typeNo = i + 1;
+			m_typeName = text;
 			break;
 		}
 	}
-	if (m_type > 4)
+
+	if (m_typeNo > 4) {
 		return;
+	}
+
+
 	m_dist0Name = "";
 	m_dist1Name = "";
 	m_schoolName = "";
-	m_dist0 = 0;
-	m_dist1 = 0;
-	m_schoolCode = 0;
-	if (m_pDist0)
-	{
-		m_pDist0->SetLine(1, "", 0, false, 0);
-		m_pDist0->ClearList();
-		for (std::list<sJpSchool>::iterator it = m_dist0List.begin();
-			it != m_dist0List.end(); ++it)
-			if ((((*it).code >> 28) & 7) == m_type)
-				m_pDist0->AddString((*it).name.c_str());
+
+	m_dist0No = 0;
+	m_dist1No = 0;
+	m_schoolNo = 0;
+	if (m_pDist0Combo) {
+
+		m_pDist0Combo->SetLine(1, "", 0, false, 0);
+		m_pDist0Combo->ClearList();
+
+
+
+		for (std::list<sJpSchool>::iterator it = m_schoolListA.begin(); it != m_schoolListA.end(); ++it) {
+
+			if (((*it).no >> 28 & 7) == m_typeNo) {
+				m_pDist0Combo->AddString((*it).name.c_str());
+			}
+		}
 	}
-	if (m_pDist1)
-	{
-		m_pDist1->SetLine(1, "", 0, false, 0);
-		m_pDist1->ClearList();
+
+	if (m_pDist1Combo) {
+
+		m_pDist1Combo->SetLine(1, "", 0, false, 0);
+		m_pDist1Combo->ClearList();
 	}
-	if (m_pSchool)
-	{
-		m_pSchool->SetLine(1, "", 0, false, 0);
-		m_pSchool->ClearList();
+
+	if (m_pSchoolCombo) {
+
+		m_pSchoolCombo->SetLine(1, "", 0, false, 0);
+		m_pSchoolCombo->ClearList();
 	}
+
 	m_dist1Name = "";
 	m_schoolName = "";
-	m_dist1 = 0;
-	m_schoolCode = 0;
-	if (m_type - 1 == 3 || m_type - 1 == 2)
-	{
-		if (m_pDist1)
-			m_pDist1->SetVisible(false);
-		if (m_pStaticDist1)
-			m_pStaticDist1->SetVisible(false);
-	}
-	else
-	{
-		if (m_pDist1)
-			m_pDist1->SetVisible(true);
-		if (m_pStaticDist1)
-			m_pStaticDist1->SetVisible(true);
+
+	m_dist1No = 0;
+	m_schoolNo = 0;
+
+	switch (m_typeNo) {
+	case 3:
+	case 4:
+		if (m_pDist1Combo) {
+			m_pDist1Combo->SetVisible(false);
+		}
+		if (m_pDist1Static) {
+			m_pDist1Static->SetVisible(false);
+		}
+		break;
+
+	default:
+		if (m_pDist1Combo) {
+			m_pDist1Combo->SetVisible(true);
+		}
+		if (m_pDist1Static) {
+			m_pDist1Static->SetVisible(true);
+		}
+		break;
 	}
 }
 
-void FrSchoolDlg::OnDist0Init(int param)
-{
-	m_pDist0 = DYNAMIC_CAST(FrComboBox, (FrWnd*)param);
+// schooldlg.cpp:279
+void FrSchoolDlg::OnDist0Init(int param) {
+	m_pDist0Combo = DYNAMIC_CAST(FrComboBox, param);
 }
 
-void FrSchoolDlg::OnDist0ListLBtnDown(int param)
-{
-	const char* name = m_pDist0->GetLine(1, false);
-	if (!strcmp(name, m_dist0Name.c_str()))
+// schooldlg.cpp:285
+void FrSchoolDlg::OnDist0ListLBtnDown(int param) {
+	const char* text = m_pDist0Combo->GetLine(1, false);
+
+	if (strcmp(text, m_dist0Name.c_str()) == 0) {
 		return;
+	}
+
+
+
+
 	std::list<sJpSchool>::iterator it;
-	for (it = m_dist0List.begin(); it != m_dist0List.end(); ++it)
-	{
-		if ((((*it).code >> 28) & 7) == m_type &&
-			!strcmp(name, (*it).name.c_str()))
-		{
-			m_dist0 = (*it).code;
-			m_dist0Name = name;
+	for (it = m_schoolListA.begin(); it != m_schoolListA.end(); ++it) {
+
+
+
+
+		if (((*it).no >> 28 & 7) == m_typeNo && strcmp(text, (*it).name.c_str()) == 0) {
+
+			m_dist0No = (*it).no;
+			m_dist0Name = text;
 			break;
 		}
 	}
-	if (it == m_dist0List.end())
+
+	if (it == m_schoolListA.end()) {
 		return;
-	if (m_type - 1 == 3 || m_type - 1 == 2)
-	{
-		m_schoolName = "";
-		m_schoolCode = 0;
-		if (m_pSchool)
-		{
-			m_pSchool->SetLine(1, "", 0, false, 0);
-			m_pSchool->ClearList();
-			for (it = m_schoolList.begin(); it != m_schoolList.end(); ++it)
-				if ((((*it).code >> 28) & 7) == m_type &&
-					((*it).code & 0xfe00000) == (m_dist0 & 0xfe00000))
-					m_pSchool->AddString((*it).name.c_str());
-		}
 	}
-	else
-	{
+
+
+	switch (m_typeNo) {
+	case 3:
+	case 4:
+		m_schoolName = "";
+		m_schoolNo = 0;
+
+		if (m_pSchoolCombo) {
+
+			m_pSchoolCombo->SetLine(1, "", 0, false, 0);
+			m_pSchoolCombo->ClearList();
+
+			for (it = m_schoolListC.begin(); it != m_schoolListC.end(); ++it) {
+
+
+				if (((*it).no >> 28 & 7) == m_typeNo && (((*it).no ^ m_dist0No) & 0xfe00000) == 0) {
+
+					m_pSchoolCombo->AddString((*it).name.c_str());
+				}
+			}
+		}
+		break;
+
+	default:
 		m_dist1Name = "";
 		m_schoolName = "";
-		m_dist1 = 0;
-		m_schoolCode = 0;
-		if (m_pDist1)
-		{
-			m_pDist1->SetLine(1, "", 0, false, 0);
-			m_pDist1->ClearList();
-			for (it = m_dist1List.begin(); it != m_dist1List.end(); ++it)
-				if ((((*it).code >> 28) & 7) == m_type &&
-					((*it).code & 0xfe00000) == (m_dist0 & 0xfe00000))
-					m_pDist1->AddString((*it).name.c_str());
+
+		m_dist1No = 0;
+		m_schoolNo = 0;
+		if (m_pDist1Combo) {
+
+			m_pDist1Combo->SetLine(1, "", 0, false, 0);
+			m_pDist1Combo->ClearList();
+
+			for (it = m_schoolListB.begin(); it != m_schoolListB.end(); ++it) {
+
+
+				if (((*it).no >> 28 & 7) == m_typeNo && (((*it).no ^ m_dist0No) & 0xfe00000) == 0) {
+
+					m_pDist1Combo->AddString((*it).name.c_str());
+				}
+			}
 		}
-		if (m_pSchool)
-		{
-			m_pSchool->SetLine(1, "", 0, false, 0);
-			m_pSchool->ClearList();
+
+		if (m_pSchoolCombo) {
+
+			m_pSchoolCombo->SetLine(1, "", 0, false, 0);
+			m_pSchoolCombo->ClearList();
 		}
+		break;
 	}
 }
 
-void FrSchoolDlg::OnDist1Init(int param)
-{
-	m_pDist1 = DYNAMIC_CAST(FrComboBox, (FrWnd*)param);
+// schooldlg.cpp:364
+void FrSchoolDlg::OnDist1Init(int param) {
+	m_pDist1Combo = DYNAMIC_CAST(FrComboBox, param);
 }
 
-void FrSchoolDlg::OnDist1ListLBtnDown(int param)
-{
-	const char* name = m_pDist1->GetLine(1, false);
-	if (!strcmp(name, m_dist1Name.c_str()))
+// schooldlg.cpp:370
+void FrSchoolDlg::OnDist1ListLBtnDown(int param) {
+	const char* text = m_pDist1Combo->GetLine(1, false);
+
+	if (strcmp(text, m_dist1Name.c_str()) == 0) {
 		return;
+	}
+
+
+
+
 	std::list<sJpSchool>::iterator it;
-	for (it = m_dist1List.begin(); it != m_dist1List.end(); ++it)
-	{
-		if ((((*it).code >> 28) & 7) == m_type &&
-			((*it).code & 0xfe00000) == (m_dist0 & 0xfe00000) &&
-			!strcmp(name, (*it).name.c_str()))
-		{
-			m_dist1 = (*it).code;
-			m_dist1Name = name;
+	for (it = m_schoolListB.begin(); it != m_schoolListB.end(); ++it) {
+
+
+
+
+
+		if (((*it).no >> 28 & 7) == m_typeNo && (((*it).no ^ m_dist0No) & 0xfe00000) == 0
+			&& strcmp(text, (*it).name.c_str()) == 0) {
+
+			m_dist1No = (*it).no;
+			m_dist1Name = text;
 			break;
 		}
 	}
-	if (it == m_dist0List.end())
+
+	// The original tests the end of m_schoolListA, not of the list searched.
+	if (it == m_schoolListA.end()) {
 		return;
+	}
+
+
 	m_schoolName = "";
-	m_schoolCode = 0;
-	if (m_pSchool)
-	{
-		m_pSchool->SetLine(1, "", 0, false, 0);
-		m_pSchool->ClearList();
-		for (it = m_schoolList.begin(); it != m_schoolList.end(); ++it)
-			if ((((*it).code >> 28) & 7) == m_type &&
-				((*it).code & 0xfe00000) == (m_dist0 & 0xfe00000) &&
-				((*it).code & 0x1fe000) == (m_dist1 & 0x1fe000))
-				m_pSchool->AddString((*it).name.c_str());
-	}
-}
+	m_schoolNo = 0;
 
-void FrSchoolDlg::OnStaticDist1Init(int param)
-{
-	m_pStaticDist1 = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-}
+	if (m_pSchoolCombo) {
 
-void FrSchoolDlg::OnSearchInit(int param)
-{
-	FrButton* control = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (control)
-		control->SetVisible(false);
-}
+		m_pSchoolCombo->SetLine(1, "", 0, false, 0);
+		m_pSchoolCombo->ClearList();
 
-bool FrSchoolDlg::OnInit()
-{
-	if (m_pType)
-		for (int i = 0; i < 4; ++i)
-			m_pType->AddString(szJpSchoolType[i].c_str());
-	cFile* file = g_resrcmng->GetCFile("school.txt", 0xffff);
-	if (file)
-	{
-		int code;
-		char name[1024];
-		sJpSchool school;
-		m_dist0List.clear();
-		while (file->Scan("%d %s", &code, name))
-		{
-			school.code = code;
-			school.name = name;
-			if (code & 0x1fff)
-				m_schoolList.push_back(school);
-			else if (code & 0x1fe000)
-				m_dist1List.push_back(school);
-			else if (code & 0xfe00000)
-				m_dist0List.push_back(school);
+		for (it = m_schoolListC.begin(); it != m_schoolListC.end(); ++it) {
+
+			if (((*it).no >> 28 & 7) == m_typeNo && (((*it).no ^ m_dist0No) & 0xfe00000) == 0
+				&& (((*it).no ^ m_dist1No) & 0x1fe000) == 0) {
+
+				m_pSchoolCombo->AddString((*it).name.c_str());
+			}
 		}
-		CloseCFile(file);
 	}
+}
+
+// schooldlg.cpp:421
+void FrSchoolDlg::OnStaticDist1Init(int param) {
+	m_pDist1Static = DYNAMIC_CAST(FrStatic, param);
+}
+
+// schooldlg.cpp:427
+void FrSchoolDlg::OnSearchInit(int param) {
+	FrButton* pSearch = DYNAMIC_CAST(FrButton, param);
+
+	if (pSearch) {
+		pSearch->SetVisible(false);
+	}
+}
+
+// schooldlg.cpp:436
+bool FrSchoolDlg::OnInit(void) {
+
+
+	if (m_pTypeCombo) {
+
+		for (int i = 0; i < 4; ++i) {
+			m_pTypeCombo->AddString(szJpSchoolType[i].c_str());
+		}
+	}
+
+	cFile* pFile = g_resrcmng->GetCFile("school.txt", 0xffff);
+	if (pFile == 0) {
+		return true;
+	}
+
+
+
+
+	sJpSchool school;
+
+	m_schoolListA.clear();
+
+	int no;
+	char name[1024];
+	while (pFile->Scan("%d %s", &no, name)) {
+
+		school.no = no;
+		school.name = name;
+
+		if (no & 0x1fff) {
+			m_schoolListC.push_back(school);
+		} else if (no & 0x1fe000) {
+			m_schoolListB.push_back(school);
+		} else if (no & 0xfe00000) {
+			m_schoolListA.push_back(school);
+		}
+	}
+
+	CloseCFile(pFile);
+
 	return true;
 }

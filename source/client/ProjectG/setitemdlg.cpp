@@ -1,187 +1,123 @@
-#include "minatl.h"
-#include "setitemdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\setitemdlg.cpp
+#include "SetItemDlg.h"
+#include "ObjectFactory.h"
 #include "frarea.h"
 #include "fredit.h"
 #include "frlistbox.h"
+#include "SharedDoc.h"
+#include "UccManager.h"
+#include "bitmap.h"
+#include "commonutil.h"
 #include "fresh.h"
-#include "frwndmanager.h"
 #include "frgraphicinterface.h"
+#include "frwndmanager.h"
 
-extern Fresh* g_pFresh;
+// setitemdlg.cpp:17 (run-time type and factory registration of FrSetItemDlg)
+const WRTTI FrSetItemDlg::m_RTTI("FrSetItemDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrSetItemDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrSetItemDlg, FrForm)
-
-ON_FRESH_VI("portrait", FRCMD_INIT, FrSetItemDlg::OnPortraitInit)
-ON_FRESH_VI("name", FRCMD_INIT, FrSetItemDlg::OnNameInit)
-ON_FRESH_VI("component", FRCMD_INIT, FrSetItemDlg::OnComponentInit)
-ON_FRESH_VI("component", FRCMD_OWNERDRAW, FrSetItemDlg::OnComponentOwnerDraw)
-
-END_FRESH_MSGMAP()
-
-FrSetItemDlg::FrSetItemDlg()
-{
-	m_pPortrait = NULL;
-	m_pName = NULL;
-	m_pComponent = NULL;
-	m_pSetItem = NULL;
+IObject* FrSetItemDlgMakeInstance(void) {
+	return new FrSetItemDlg;
 }
 
-void FrSetItemDlg::SetSetItem(unsigned long typeId)
-{
-	if ((typeId & 0xFC000000) == 0x24000000)
-	{
-		m_pSetItem = ItemManager()->FindSetItem(typeId);
-
-		if (m_pPortrait)
-		{
-			if (m_pSetItem)
-				m_pPortrait->SetBgImg(m_pSetItem->c.Icon);
-			else
-				m_pPortrait->SetBgImg("hide");
-		}
-
-		if (m_pSetItem)
-		{
-			if (m_pName)
-			{
-				const char* szType = "";
-
-				switch (m_pSetItem->c.InStock)
-				{
-				case 2:
-					szType = "(\xbc\xb1\xb9\xb0\xc0\xfc\xbf\xeb)";
-					break;
-				case 3:
-					szType = "(\xb1\xb8\xc0\xd4\xc0\xfc\xbf\xeb)";
-					break;
-				case 4:
-					szType = "(\xc0\xfc\xbd\xc3\xbf\xeb)";
-					break;
-				}
-
-				m_pName->AddText(MakeStr("%s\\c0xffff0000\\c%s\\c0xffff0000\\c",
-									 m_pSetItem->c.Name, szType),
-					0, true);
-			}
-
-			if (m_pComponent)
-			{
-				for (int i = 0; i < m_pSetItem->nElems; i++)
-				{
-					IFF_ITEM_COMMON* pCommon =
-						ItemManager()->FindCommonItem(m_pSetItem->ElemIds[i]);
-
-					if (pCommon)
-						m_pComponent->AddItem(pCommon);
-				}
-			}
-
-			IFF_STRUCT::sDesc* pDesc =
-				ItemManager()->FindDesc(m_pSetItem->c.TypeId);
-			if (pDesc)
-				SetMessage(pDesc->Desc, false);
-
-			_SYSTEMTIME* pSaleS = NULL;
-			_SYSTEMTIME* pSaleE = NULL;
-
-			if (ItemManager()->HasSalePeriod(m_pSetItem->c.TypeId, &pSaleS,
-					&pSaleE))
-			{
-				if (pSaleS->wYear && pSaleE->wYear)
-				{
-					m_pName->AddText(
-						MakeStr(
-							"\\c0xffff0000\\c\xc6\xc7\xb8\xc5\xb1\xe2\xb0\xa3: %d\xbf\xf9 %d\xc0\xcf ~ %d\xbf\xf9 %d\xc0\xcf\\c0xff000000\\c",
-							pSaleS->wMonth, pSaleS->wDay, pSaleE->wMonth,
-							pSaleE->wDay),
-						0, true);
-				}
-				else
-					m_pName->AddText("\n", 0, true);
-			}
-
-			else
-				m_pName->AddText("\n", 0, true);
-		}
+struct __sFrSetItemDlg {
+	__sFrSetItemDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrSetItemDlgMakeInstance, "FrSetItemDlg");
 	}
+};
+static __sFrSetItemDlg s_registerFrSetItemDlg;
+
+// setitemdlg.cpp:19
+const sFRESH_MSGMAP* FrSetItemDlg::GetMessageMap(void) const {
+	return &FrSetItemDlg::_MsgMap;
 }
 
-void FrSetItemDlg::OnPortraitInit(int param)
-{
+sFRESH_MSGMAP FrSetItemDlg::_MsgMap = { &FrForm::_MsgMap, &FrSetItemDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrSetItemDlg::_MsgEntries[] = {
+	// setitemdlg.cpp:21
+	{ "portrait", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrSetItemDlg::OnPortraitInit },
+	// setitemdlg.cpp:22
+	{ "name", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrSetItemDlg::OnNameInit },
+	// setitemdlg.cpp:23
+	{ "component", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrSetItemDlg::OnComponentInit },
+	// setitemdlg.cpp:24
+	{ "component", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrSetItemDlg::OnComponentOwnerDraw },
+
+	// setitemdlg.cpp:29
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// setitemdlg.cpp:33
+FrSetItemDlg::FrSetItemDlg(void) {
+	m_pPortrait = 0;
+	m_pName = 0;
+	m_pComponent = 0;
+	m_pSetItem = 0;
+}
+
+// setitemdlg.cpp:112
+void FrSetItemDlg::OnPortraitInit(intptr_t param) {
 	m_pPortrait = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrSetItemDlg::OnNameInit(int param)
-{
+// setitemdlg.cpp:117
+void FrSetItemDlg::OnNameInit(intptr_t param) {
 	m_pName = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrSetItemDlg::OnComponentInit(int param)
-{
+// setitemdlg.cpp:122
+void FrSetItemDlg::OnComponentInit(intptr_t param) {
 	m_pComponent = DYNAMIC_CAST(FrListBox, param);
 }
 
-void FrSetItemDlg::OnComponentOwnerDraw(int param)
-{
+// setitemdlg.cpp:133
+void FrSetItemDlg::OnComponentOwnerDraw(intptr_t param) {
 	FrListItem* pItem = (FrListItem*)param;
-	if (!pItem)
+	if (pItem == 0) {
 		return;
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (!pDevice)
-		return;
-
-	IFF_ITEM_COMMON* pCommon = (IFF_ITEM_COMMON*)pItem->pData;
-	if (!pCommon)
-		return;
-
-	const Bitmap* pBmp =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", pCommon->Icon);
-	if (!pBmp)
-		pBmp =
-			g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pCommon->Icon);
-
-	if (pBmp)
-	{
-		WRect dest(pItem->pos.x, pItem->pos.y, (float)pBmp->Width(),
-			(float)pBmp->Height());
-
-		pDevice->DrawTexture(pBmp, dest, 0xffffffff, 0);
 	}
 
-	pDevice->SetTextColor(0xff000000, 0xffffffff);
-	pDevice->SetTextStyle(1);
-	pDevice->Print(WPoint(pItem->pos.x + 90.0f, pItem->pos.y + 14.0f), 0, "%s",
-		pCommon->Name);
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+	if (pGDI == 0) {
+		return;
+	}
 
-	pDevice->SetTextStyle(0);
+	IFF_ITEM_COMMON* pData = (IFF_ITEM_COMMON*)pItem->pData;
+	if (pData == 0) {
+		return;
+	}
 
-	const Bitmap* pLevel = g_pFresh->GetManager()->GetBitmap("LEVELS",
-		MakeStr("level_%03d", pCommon->Level + 1));
-	if (pLevel)
-	{
-		WRect dest;
-		dest.x = pDevice->GetTextExtend("\xb7\xb9    \xba\xa7:") +
-			pItem->pos.x + 102.0f;
-		dest.y = pItem->pos.y + 31.0f;
-		dest.w = pLevel->Width();
-		dest.h = pLevel->Height();
-		pDevice->DrawTexture(pLevel, dest, 0xffffffff, 0);
+	const Bitmap* pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pData->m_icon);
+	if (pBitmap == 0) {
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pData->m_icon);
+	}
+	if (pBitmap) {
+		WRect rect(pItem->pos.x, pItem->pos.y, pBitmap->Width(), pBitmap->Height());
 
-		pDevice->Print(WPoint(pItem->pos.x + 90.0f, pItem->pos.y + 34.0f), 0,
-			"\xb7\xb9    \xba\xa7:");
+		pGDI->DrawTexture(pBitmap, rect, 0xFFFFFFFF, 0);
+	}
 
-		if (pCommon->Level > Doc()->m_myInfo.stat.Level)
-		{
-			pDevice->Print(WPoint(dest.Right() + 5.0f, pItem->pos.y + 34.0f), 0,
-				"\xc0\xcc\xbb\xf3");
+	pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
+	pGDI->SetTextStyle(1);
+	pGDI->Print(WPoint(pItem->pos.x + 90.0f, pItem->pos.y + 14.0f), 0, "%s", pData->m_name);
 
-			pDevice->SetTextColor(0xffff0000, 0xffffffff);
+	pGDI->SetTextStyle(0);
+
+	pBitmap = g_pFresh->GetManager()->GetBitmap("LEVELS", MakeStr("level_%03d", (pData->m_level & 0x7F) + 1));
+	if (pBitmap) {
+		float x = pGDI->GetTextExtend("\xB7\xB9    \xBA\xA7:") + pItem->pos.x;
+
+		WRect rect(x + 102.0f, pItem->pos.y + 31.0f, pBitmap->Width(),
+			pBitmap->Height());
+		pGDI->DrawTexture(pBitmap, rect, 0xFFFFFFFF, 0);
+
+		pGDI->Print(WPoint(pItem->pos.x + 90.0f, pItem->pos.y + 34.0f), 0, "\xB7\xB9    \xBA\xA7:");
+
+		if ((pData->m_level & 0x7F) > CSharedDoc::Instance()->m_myLevel) {
+			pGDI->Print(WPoint(rect.x + rect.w + 5.0f, pItem->pos.y + 34.0f), 0, "\xC0\xCC\xBB\xF3");
+			pGDI->SetTextColor(0xFFFF0000, 0xFFFFFFFF);
+		} else {
+			pGDI->Print(WPoint(rect.x + rect.w + 5.0f, pItem->pos.y + 34.0f), 0, "\xC0\xCC\xBB\xF3");
 		}
-		else
-			pDevice->Print(WPoint(dest.Right() + 5.0f, pItem->pos.y + 34.0f), 0,
-				"\xc0\xcc\xbb\xf3");
 	}
 }

@@ -1,162 +1,98 @@
-#pragma once
+// Original: d:\build\custom\temp\code\shared\coord.h
+#ifndef PG_SHARED_COORD_H
+#define PG_SHARED_COORD_H
 
-struct tagRECT;
+#include "..\..\defines.h"
 
+// Coordinate and rectangle templates shared by client and server (PDB layouts;
+// the original keeps the inline bodies in coord.inl, here they follow the
+// classes with their coord.inl line). Only the members other code uses so far
+// are written: the PDB also lists _Rectangle's tl/br _Coordinates aliasing
+// left/top and right/bottom, and the other methods of both templates.
+
+// coord.h
 template <class T>
-struct _Coordinates
-{
-	T x;
-	T y;
+struct _Coordinates {
+	T x;    // 0x0
+	T y;    // sizeof(T)
 
-	_Coordinates(T x, T y);
-	_Coordinates(const _Coordinates<T>& c);
-	_Coordinates();
-
-	void Reset() { x = y = 0; }
-	T SquareMagnitude() const;
-	T Magnitude() const;
-
-	void operator+=(const _Coordinates<T>& c);
-	void operator+=(const T v);
-	void operator-=(const _Coordinates<T>& c);
-	void operator-=(const T v);
-	void operator*=(const _Coordinates<T>& c);
-	void operator*=(const T v);
-	void operator/=(const _Coordinates<T>& c);
-	void operator/=(const T v);
-	void operator%=(const _Coordinates<T>& c);
-	void operator%=(const T v);
-
-	bool operator==(const _Coordinates<T>& c) const;
-	bool operator!=(const _Coordinates<T>& c) const;
-
-	_Coordinates<T> operator+(const _Coordinates<T>& c) const;
-	_Coordinates<T> operator+(const T v) const;
-	_Coordinates<T> operator-(const _Coordinates<T>& c) const;
-	_Coordinates<T> operator-(const T v) const;
-	_Coordinates<T> operator*(const _Coordinates<T>& c) const;
-	_Coordinates<T> operator*(const T v) const;
-	_Coordinates<T> operator/(const _Coordinates<T>& c) const;
-	_Coordinates<T> operator/(const T v) const;
-};
-
-struct _CoordinatesSHORT : public _Coordinates<short>
-{
-	_CoordinatesSHORT() { }
-	_CoordinatesSHORT(const short x, const short y);
-	_CoordinatesSHORT(const _Coordinates<short>& c);
-	_CoordinatesSHORT(const _Coordinates<float>& c);
-	_CoordinatesSHORT(const _CoordinatesSHORT& c);
-
-	_CoordinatesSHORT& operator=(const _Coordinates<short>& c);
-	_CoordinatesSHORT& operator=(const _Coordinates<float>& c);
-};
-
-struct _CoordinatesFLOAT : public _Coordinates<float>
-{
-	_CoordinatesFLOAT() { }
-	_CoordinatesFLOAT(const float x, const float y);
-	_CoordinatesFLOAT(const _Coordinates<float>& c);
-	_CoordinatesFLOAT(const _Coordinates<short>& c);
-	_CoordinatesFLOAT(const _CoordinatesFLOAT& c);
-
-	_CoordinatesFLOAT& operator=(const _Coordinates<float>& c);
-	_CoordinatesFLOAT& operator=(const _Coordinates<short>& c);
+	// coord.inl:7
+	_Coordinates(void) {}
 };
 
 template <class T>
-struct _Rectangle
-{
-	union
-	{
-		struct
-		{
-			_Coordinates<T> tl;
-			_Coordinates<T> br;
-		};
-		struct
-		{
-			T left;
-			T top;
-			T right;
-			T bottom;
-		};
-	};
+struct _Rectangle {
+	// coord.h:77
+	void Reset(void) { left = top = right = bottom = 0; }
+	T Height(void) const;
+	T Width(void) const;
 
-	void Reset() { left = top = right = bottom = 0; }
-	void Nomalize();
-	bool IsIncluded(const _Coordinates<T>& c) const;
-	bool IsIntersect(const _Rectangle<T>& rc) const;
-	T Height() const { return bottom - top; }
-	T Width() const { return right - left; }
-	_Coordinates<T> GetSize() const;
-	_Coordinates<T> GetCenterCoord() const;
-
-	void InflateRect(T l, T t, T r, T b);
-	void InflateRect(const _Rectangle<T>& rc);
-	void InflateRect(const _Coordinates<T>& c);
-	void InflateRect(T x, T y);
-	void DeflateRect(T l, T t, T r, T b);
-	void DeflateRect(const _Rectangle<T>& rc);
-	void DeflateRect(const _Coordinates<T>& c);
-	void DeflateRect(T x, T y);
-
-	_Rectangle(const _Coordinates<T>& tl, const _Coordinates<T>& br);
-	_Rectangle(const T l, const T t, const T r, const T b);
 	_Rectangle(const _Rectangle<T>& rhs);
-	_Rectangle();
+	_Rectangle(void);
 
 	_Rectangle<T>& operator=(const _Rectangle<T>& rhs);
-	_Rectangle<T>& operator=(const tagRECT* rc);
-	_Rectangle<T>& operator=(const tagRECT& rc);
 
-	void operator+=(const _Coordinates<T>& c);
-	void operator+=(const T v);
-	void operator-=(const _Coordinates<T>& c);
-	void operator-=(const T v);
-
-	bool operator==(const _Rectangle<T>& rc);
-	bool operator!=(const _Rectangle<T>& rc);
-
-	void operator&=(const _Rectangle<T>& rc);
-	void operator|=(const _Rectangle<T>& rc);
-	_Rectangle<T> operator&(const _Rectangle<T>& rc) const;
-	_Rectangle<T> operator|(const _Rectangle<T>& rc) const;
-
-	_Rectangle<T> operator+(const _Coordinates<T>& c) const;
-	_Rectangle<T> operator+(const T v) const;
-	_Rectangle<T> operator-(const _Coordinates<T>& c) const;
-	_Rectangle<T> operator-(const T v) const;
+	// coord.h: the fields alias tl/br (PDB), as in the original header.
+	union {
+		struct {
+			_Coordinates<T> tl;    // 0x0
+			_Coordinates<T> br;    // sizeof(_Coordinates<T>)
+		};
+		struct {
+			T left;      // 0x0
+			T top;       // sizeof(T)
+			T right;     // 2 * sizeof(T)
+			T bottom;    // 3 * sizeof(T)
+		};
+	};
 };
 
-struct _RectangleSHORT : public _Rectangle<short>
-{
-	_RectangleSHORT() { }
-	_RectangleSHORT(const _Rectangle<short>& rc);
-	_RectangleSHORT(const short l, const short t, const short r, const short b);
-	_RectangleSHORT(const _Coordinates<short>& tl,
-		const _Coordinates<short>& br);
-
-	_RectangleSHORT& operator=(const _Rectangle<short>& rc);
-	_RectangleSHORT& operator=(const _Rectangle<float>& rc);
-	_RectangleSHORT& operator=(const tagRECT& rc);
-	_RectangleSHORT& operator=(const tagRECT* rc);
+struct _RectangleSHORT : public _Rectangle<short> {
+	// coord.h:160
+	_RectangleSHORT(void) {}
 };
 
-struct _RectangleFLOAT : public _Rectangle<float>
-{
-	_RectangleFLOAT() { }
-	_RectangleFLOAT(const _Rectangle<float>& rc);
-	_RectangleFLOAT(const float l, const float t, const float r, const float b);
-	_RectangleFLOAT(const _Coordinates<float>& tl,
-		const _Coordinates<float>& br);
-	_RectangleFLOAT(const tagRECT& rc);
-	_RectangleFLOAT(const _RectangleFLOAT& rc);
+// coord.inl:236
+template <class T>
+inline _Rectangle<T>::_Rectangle(void) {
+}
 
-	_RectangleFLOAT& operator=(const _Rectangle<short>& rc);
-	_RectangleFLOAT& operator=(const _Rectangle<float>& rc);
-	_RectangleFLOAT& operator=(const tagRECT& rc);
-	_RectangleFLOAT& operator=(const tagRECT* rc);
-};
+// coord.inl:242
+template <class T>
+inline _Rectangle<T>::_Rectangle(const _Rectangle<T>& rhs) {
+	left = rhs.left;
+	top = rhs.top;
+	right = rhs.right;
+	bottom = rhs.bottom;
+}
 
-#include "coord.inl"
+// coord.inl:310
+template <class T>
+inline T _Rectangle<T>::Height(void) const {
+	return bottom - top;
+}
+
+template <class T>
+inline T _Rectangle<T>::Width(void) const {
+	return right - left;
+}
+
+// coord.inl:412
+template <class T>
+inline _Rectangle<T>& _Rectangle<T>::operator=(const _Rectangle<T>& rhs) {
+	left = rhs.left;
+	top = rhs.top;
+	right = rhs.right;
+	bottom = rhs.bottom;
+	return *this;
+}
+
+CHECK_SIZE(_Coordinates<short>, 0x4);
+CHECK_SIZE(_Rectangle<short>, 0x8);
+CHECK_FIELD(_Rectangle<short>, left, 0x0);
+CHECK_FIELD(_Rectangle<short>, top, 0x2);
+CHECK_FIELD(_Rectangle<short>, right, 0x4);
+CHECK_FIELD(_Rectangle<short>, bottom, 0x6);
+CHECK_SIZE(_RectangleSHORT, 0x8);
+
+#endif // PG_SHARED_COORD_H

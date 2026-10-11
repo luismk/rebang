@@ -1,56 +1,77 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frcombobox.cpp
 #include <stdio.h>
 #include <string.h>
-#include "bitmap.h"
+
 #include "frcombobox.h"
+#include "ObjectFactory.h"
+#include "bitmap.h"
 #include "frbutton.h"
+#include "frdesktop.h"
+#include "frgraphicinterface.h"
 #include "frlistbox.h"
 #include "frscrollbar.h"
 #include "frwndmanager.h"
-#include "frdesktop.h"
-#include "frelement.h"
-#include "frgraphicinterface.h"
-#include "chatmsg.h"
-#include "commonutil.h"
+#include "../client/ProjectG/ChatMsg.h"
+#include "../client/ProjectG/commonutil.h"
 
-IObject* FrComboBoxMakeInstance()
-{
+// wtypes.h:174: WRect::IsInRect is inline in the original; local copy until wtypes.h defines it.
+inline bool WRect::IsInRect(const WPoint& pt) {
+	if (pt.x >= x && pt.x <= x + w && pt.y >= y && pt.y <= y + h)
+		return true;
+	return false;
+}
+
+// frcombobox.cpp:16 (run-time type and factory registration of FrComboBox)
+const WRTTI FrComboBox::m_RTTI("FrComboBox", &FrWnd::m_RTTI);
+
+IObject* FrComboBoxMakeInstance(void) {
 	return new FrComboBox;
 }
 
-struct __sFrComboBox
-{
-	__sFrComboBox()
-	{
+struct __sFrComboBox {
+	__sFrComboBox(void) {
 		ObjectFactory().AddObjectFunctor(FrComboBoxMakeInstance, "FrComboBox");
 	}
 };
+static __sFrComboBox s_registerFrComboBox;
 
-const WRTTI FrComboBox::m_RTTI("FrComboBox", &FrEdit::m_RTTI);
-static __sFrComboBox __implFrComboBox;
+// frcombobox.cpp:19
+const sFRESH_MSGMAP* FrComboBox::GetMessageMap(void) const {
+	return &FrComboBox::_MsgMap;
+}
 
-BEGIN_FRESH_MSGMAP(FrComboBox, FrEdit)
-ON_FRESH_VV("unfold", FRCMD_LBUTTONUP, FrComboBox::OnUnfold)
-ON_FRESH_VI("list", FRCMD_OWNERDRAW, FrComboBox::OnListOwnerDraw)
-ON_FRESH_VV("list", FRCMD_LBUTTONDOWN, FrComboBox::OnListBtnDown)
-ON_FRESH_VI("list", FRCMD_LOSTKEYFOCUS, FrComboBox::OnListLostKeyFocus)
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrComboBox::_MsgMap = { &FrCmdTarget::_MsgMap, &FrComboBox::_MsgEntries[0] };
 
-FrComboBox::FrComboBox()
-{
+sFRESH_ENTRY FrComboBox::_MsgEntries[] = {
+	// frcombobox.cpp:21
+	{ "unfold", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrComboBox::OnUnfold },
+	// frcombobox.cpp:22
+	{ "list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrComboBox::OnListOwnerDraw },
+	// frcombobox.cpp:23
+	{ "list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrComboBox::OnListBtnDown },
+	// frcombobox.cpp:24
+	{ "list", FRCMD_LOSTKEYFOCUS, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrComboBox::OnListLostKeyFocus },
+
+	// frcombobox.cpp:26
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// frcombobox.cpp:33
+FrComboBox::FrComboBox(void) {
 	m_maxListNum = 10;
-	m_pButton = NULL;
-	m_pListBox = NULL;
 	m_selected = m_comboList.end();
+	m_pButton = 0;
+	m_pListBox = 0;
 	m_selectColor = 0;
 }
 
-FrComboBox::~FrComboBox()
-{
+// frcombobox.cpp:43
+FrComboBox::~FrComboBox(void) {
 	ClearList();
 }
 
-void FrComboBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
-{
+// frcombobox.cpp:48
+void FrComboBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
 	FrEdit::Init(item, pManager, pParent);
 
 	FrElementDoc* pDoc = pManager->GetDocument();
@@ -58,8 +79,7 @@ void FrComboBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 	m_multiLine = false;
 
 	m_pButton = new FrButton;
-	if (m_pButton)
-	{
+	if (m_pButton) {
 		FrGuiItem& info = m_buttonInfo;
 		info = item;
 		info.m_caption = "unfold";
@@ -81,8 +101,7 @@ void FrComboBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 		sscanf(item.m_param["selectcolor"].c_str(), "%x", &m_selectColor);
 
 	m_pListBox = new FrListBox;
-	if (m_pListBox)
-	{
+	if (m_pListBox) {
 		FrGuiItem& info = m_listInfo;
 		info = item;
 		info.m_caption = "list";
@@ -91,7 +110,7 @@ void FrComboBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 		info.m_rect.bottom -= info.m_rect.top;
 		info.m_rect.left = 0;
 		float height = pManager->GetDesktop()->GetRect().h;
-		info.m_rect.top = (m_rect.y > height * 0.5f) ? -5 : 5;
+		info.m_rect.top = m_rect.y > height * 0.5f ? -5 : 5;
 
 		m_pListBox->SetItemSize(info.m_rect.right, m_lineHeight);
 		m_pListBox->SetOwner(this);
@@ -109,58 +128,51 @@ void FrComboBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 	}
 }
 
-void FrComboBox::IncreaseMaxListNum(int maxListNum)
-{
-	if (maxListNum < m_maxListNum)
-		return;
-
-	m_maxListNum = maxListNum;
-	ResizeListRect();
+// frcombobox.cpp:118
+void FrComboBox::IncreaseMaxListNum(int num) {
+	if (num >= m_maxListNum) {
+		m_maxListNum = num;
+		ResizeListRect();
+	}
 }
 
-void FrComboBox::ResizeListRect()
-{
-	if (!m_pListBox)
-		return;
+// frcombobox.cpp:132
+void FrComboBox::ResizeListRect(void) {
+	if (m_pListBox) {
+		int num = (int)m_comboList.size();
+		if (num > m_maxListNum)
+			num = m_maxListNum;
+		else if (num < 1)
+			num = 1;
 
-	int listNum = m_comboList.size();
-	if (listNum > m_maxListNum)
-	{
-		listNum = m_maxListNum;
+		WRect rect = m_pListBox->GetRect();
+		rect.h = (float)(m_lineHeight * num + m_topMargin * 2);
+		rect.y = rect.y > m_rect.y ? m_rect.y + m_rect.h + 2.0f
+			: m_rect.y - rect.h - 2.0f;
+		m_pListBox->SetRect(rect);
 	}
-	else if (listNum < 1)
-	{
-		listNum = 1;
-	}
-
-	WRect rect = m_pListBox->GetRect();
-	rect.h = (float)(m_lineHeight * listNum + m_topMargin * 2);
-	rect.y = (rect.y > m_rect.y) ? m_rect.y + m_rect.h + 2.0f
-								 : m_rect.y - rect.h - 2.0f;
-
-	m_pListBox->SetRect(rect);
 }
 
-void FrComboBox::AddString(const char* string)
-{
-	FrLine* pItem = new FrLine;
-	pItem->text = string;
-	LimitText(pItem->text);
-	m_comboList.push_back(pItem);
+// frcombobox.cpp:155
+void FrComboBox::AddString(const char* str) {
+	FrLine* pLine = new FrLine;
+
+	pLine->text = str;
+
+	LimitText(pLine->text);
+
+	m_comboList.push_back(pLine);
 
 	if (m_pListBox)
-		m_pListBox->AddItem(pItem);
+		m_pListBox->AddItem(pLine);
 
 	ResizeListRect();
 }
 
-void FrComboBox::DelString(int index)
-{
-	for (std::list<FrLine*>::iterator it = m_comboList.begin();
-		it != m_comboList.end(); ++it, --index)
-	{
-		if (index < 1)
-		{
+// frcombobox.cpp:174
+void FrComboBox::DelString(int index) {
+	for (std::list<FrLine*>::iterator it = m_comboList.begin(); it != m_comboList.end(); ++it) {
+		if (index < 1) {
 			if (m_pListBox)
 				m_pListBox->DelItem(*it);
 
@@ -171,24 +183,23 @@ void FrComboBox::DelString(int index)
 			ResizeListRect();
 			return;
 		}
+		--index;
 	}
 }
 
-int FrComboBox::FindString(const char* string)
-{
+// frcombobox.cpp:193
+int FrComboBox::FindString(const char* str) {
 	int index = 1;
-	for (std::list<FrLine*>::iterator it = m_comboList.begin();
-		it != m_comboList.end(); ++it, ++index)
-	{
-		if ((*it)->text == string)
+	for (std::list<FrLine*>::iterator it = m_comboList.begin(); it != m_comboList.end(); ++it, ++index) {
+		if ((*it)->text == str)
 			return index;
 	}
 
 	return 0;
 }
 
-void FrComboBox::ClearList()
-{
+// frcombobox.cpp:205
+void FrComboBox::ClearList(void) {
 	m_selected = m_comboList.end();
 	sequence_delete(m_comboList.begin(), m_comboList.end());
 	m_comboList.clear();
@@ -199,40 +210,34 @@ void FrComboBox::ClearList()
 	ResizeListRect();
 }
 
-bool FrComboBox::IsSelectString(const std::string& compStr)
-{
+// frcombobox.cpp:217
+bool FrComboBox::IsSelectString(const std::string& str) {
 	if (m_selected == m_comboList.end())
-	{
 		return false;
-	}
 
-	return ((*m_selected)->text == compStr) ? true : false;
+	return (*m_selected)->text == str ? true : false;
 }
 
-void FrComboBox::OnKeyFocus(CChatMsg* im)
-{
+// frcombobox.cpp:246
+void FrComboBox::OnKeyFocus(CChatMsg* im) {
 	FrEdit::OnKeyFocus(im);
 
-	if (im->GetConsolKeyCode() == 6)
-	{
+	if (im->GetConsolKeyCode() == 6) {
 		if (--m_selected == m_comboList.end())
 			--m_selected;
 
-		if (m_selected != m_comboList.end())
-		{
+		if (m_selected != m_comboList.end()) {
 			FrLine* pLine = *m_selected;
 			SetLine(1, pLine->text.c_str(), 0, false, 0);
 			im->SetChatText(pLine->text.c_str(), false);
 		}
 	}
 
-	if (im->GetConsolKeyCode() == 7)
-	{
+	if (im->GetConsolKeyCode() == 7) {
 		if (++m_selected == m_comboList.end())
 			m_selected = m_comboList.begin();
 
-		if (m_selected != m_comboList.end())
-		{
+		if (m_selected != m_comboList.end()) {
 			FrLine* pLine = *m_selected;
 			SetLine(1, pLine->text.c_str(), 0, false, 0);
 			im->SetChatText(pLine->text.c_str(), false);
@@ -240,35 +245,31 @@ void FrComboBox::OnKeyFocus(CChatMsg* im)
 	}
 }
 
-void FrComboBox::OnUnfold()
-{
-	if (m_pListBox)
-	{
+// frcombobox.cpp:277
+void FrComboBox::OnUnfold(void) {
+	if (m_pListBox) {
 		if (m_pListBox->IsVisible())
 			m_pListBox->SetVisible(false);
-		else
-		{
+		else {
 			m_pListBox->SetVisible(true);
 			m_pListBox->SetKeyFocus(false);
 		}
 	}
 }
 
-void FrComboBox::OnListOwnerDraw(int var1)
-{
-	if (!var1)
-	{
-		const WRect& rc = m_pListBox->GetRect();
-		GDI()->Box(rc, m_bgColor);
-		GDI()->LineBox(rc, m_borderColor);
+// frcombobox.cpp:291
+void FrComboBox::OnListOwnerDraw(int param) {
+	if (param == 0) {
+		const WRect& listRect = m_pListBox->GetRect();
+		GDI()->Box(listRect, m_bgColor, 0, 0.0f);
+		GDI()->LineBox(listRect, m_borderColor, 0, 0.0f);
 		return;
 	}
 
-	FrListItem* pItem = (FrListItem*)var1;
+	FrListItem* pItem = (FrListItem*)param;
 	FrLine* pLine = (FrLine*)pItem->pData;
 
-	if (pItem->underCursor)
-	{
+	if (pItem->underCursor) {
 		WRect rect = m_pListBox->GetRect();
 		rect.x = pItem->pos.x;
 		rect.y = pItem->pos.y + m_topMargin / 2;
@@ -279,103 +280,105 @@ void FrComboBox::OnListOwnerDraw(int var1)
 		if (m_selectColor)
 			color = m_selectColor;
 
-		GDI()->Box(rect, color);
+		GDI()->Box(rect, color, 0, 0.0f);
 		GDI()->SetTextColor(m_bgColor, m_fontColor2);
 		GDI()->SetTextStyle(2);
-		GDI()->Print(WPoint(m_leftMargin - 2.0f, m_topMargin - 2.0f) +
-				pItem->pos,
-			0, pLine->text.c_str());
-	}
-	else
-	{
+		GDI()->Print(WPoint(m_leftMargin - 2.0f, m_topMargin - 2.0f) + pItem->pos, 0, pLine->text.c_str());
+	} else {
 		GDI()->SetTextColor(m_fontColor, m_fontColor2);
 		GDI()->SetTextStyle(m_font);
-		GDI()->Print(WPoint((float)m_leftMargin, (float)m_topMargin) +
-				pItem->pos,
-			0, pLine->text.c_str());
+		GDI()->Print(WPoint((float)m_leftMargin, (float)m_topMargin) + pItem->pos, 0, pLine->text.c_str());
 	}
 }
 
-void FrComboBox::OnListBtnDown()
-{
+// frcombobox.cpp:343
+void FrComboBox::OnListBtnDown(void) {
 	FrListItem* pItem = m_pListBox->GetItemUnderCursor();
-	if (pItem)
-	{
+	if (pItem) {
 		FrLine* pLine = (FrLine*)pItem->pData;
 
-		for (std::list<FrLine*>::iterator it = m_comboList.begin();
-			it != m_comboList.end(); ++it)
-		{
+		for (std::list<FrLine*>::iterator it = m_comboList.begin(); it != m_comboList.end(); ++it) {
 			if (pLine == *it)
 				m_selected = it;
 		}
 
 		SetLine(1, pLine->text.c_str(), 0, false, 0);
-		SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, (int)pItem, NULL);
+		SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, (intptr_t)pItem, 0);
 	}
 
 	m_pListBox->SetVisible(false);
 }
 
-void FrComboBox::OnListLostKeyFocus(int var1)
-{
-	WRect rcList = m_pListBox->GetRect();
-	WRect rcBtn = m_pButton->GetRect();
+// frcombobox.cpp:363
+void FrComboBox::OnListLostKeyFocus(int param) {
+	WRect listRect = m_pListBox->GetRect();
+	WRect buttonRect = m_pButton->GetRect();
 
-	if (!rcList.IsInRect(((FrInputState*)var1)->mousePos) &&
-		!rcBtn.IsInRect(((FrInputState*)var1)->mousePos))
+	if (!listRect.IsInRect(((FrInputState*)param)->mousePos) && !buttonRect.IsInRect(((FrInputState*)param)->mousePos))
 		m_pListBox->SetVisible(false);
 }
 
-void FrComboBox::Enable(bool enable)
-{
-	FrEdit::Enable(enable);
+// frcombobox.cpp:376
+void FrComboBox::Enable(bool bEnable) {
+	FrWnd::Enable(bEnable);
 	if (m_pButton)
-		m_pButton->Enable(enable);
+		m_pButton->Enable(bEnable);
 }
 
-IObject* FrComboCtlExMakeInstance()
-{
+// frcombobox.cpp:384 (run-time type and factory registration of FrComboCtlEx)
+const WRTTI FrComboCtlEx::m_RTTI("FrComboCtlEx", &FrWnd::m_RTTI);
+
+IObject* FrComboCtlExMakeInstance(void) {
 	return new FrComboCtlEx;
 }
 
-struct __sFrComboCtlEx
-{
-	__sFrComboCtlEx()
-	{
-		ObjectFactory().AddObjectFunctor(FrComboCtlExMakeInstance,
-			"FrComboCtlEx");
+struct __sFrComboCtlEx {
+	__sFrComboCtlEx(void) {
+		ObjectFactory().AddObjectFunctor(FrComboCtlExMakeInstance, "FrComboCtlEx");
 	}
 };
+static __sFrComboCtlEx s_registerFrComboCtlEx;
 
-const WRTTI FrComboCtlEx::m_RTTI("FrComboCtlEx", &FrWnd::m_RTTI);
-static __sFrComboCtlEx __implFrComboCtlEx;
+// frcombobox.cpp:387
+const sFRESH_MSGMAP* FrComboCtlEx::GetMessageMap(void) const {
+	return &FrComboCtlEx::_MsgMap;
+}
 
-BEGIN_FRESH_MSGMAP(FrComboCtlEx, FrEdit)
-ON_FRESH_VV("unfold", FRCMD_LBUTTONUP, FrComboCtlEx::OnUnfold)
-ON_FRESH_VI("unfold", FRCMD_OWNERDRAW, FrComboCtlEx::OnUnfoldOwnerDraw)
-ON_FRESH_VI("list", FRCMD_OWNERDRAW, FrComboCtlEx::OnListOwnerDraw)
-ON_FRESH_VV("list", FRCMD_LBUTTONDOWN, FrComboCtlEx::OnListBtnDown)
-ON_FRESH_VI("list", FRCMD_LOSTKEYFOCUS, FrComboCtlEx::OnListLostKeyFocus)
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrComboCtlEx::_MsgMap = { &FrCmdTarget::_MsgMap, &FrComboCtlEx::_MsgEntries[0] };
 
-FrComboCtlEx::FrComboCtlEx()
-{
+sFRESH_ENTRY FrComboCtlEx::_MsgEntries[] = {
+	// frcombobox.cpp:389
+	{ "unfold", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrComboCtlEx::OnUnfold },
+	// frcombobox.cpp:390
+	{ "unfold", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrComboCtlEx::OnUnfoldOwnerDraw },
+	// frcombobox.cpp:391
+	{ "list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrComboCtlEx::OnListOwnerDraw },
+	// frcombobox.cpp:392
+	{ "list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrComboCtlEx::OnListBtnDown },
+	// frcombobox.cpp:393
+	{ "list", FRCMD_LOSTKEYFOCUS, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrComboCtlEx::OnListLostKeyFocus },
+
+	// frcombobox.cpp:395
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// frcombobox.cpp:399
+FrComboCtlEx::FrComboCtlEx(void) {
 	memset(m_BitmapSkin, 0, sizeof(m_BitmapSkin));
-	m_pSelectItem = NULL;
+	m_pSelectItem = 0;
 	m_eDrawStyle = IDS_TEXT;
-	m_ItemOffset.x = 0;
-	m_ItemOffset.y = 0;
+	m_ItemOffset.x = 0.0f;
+	m_ItemOffset.y = 0.0f;
 	m_byCurrentIdx = 0;
 	m_bFold = true;
 }
 
-FrComboCtlEx::~FrComboCtlEx()
-{
+// frcombobox.cpp:410
+FrComboCtlEx::~FrComboCtlEx(void) {
 }
 
-void FrComboCtlEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
-{
+// frcombobox.cpp:415
+void FrComboCtlEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
 	FrEdit::Init(item, pManager, pParent);
 
 	FrElementDoc* pDoc = pManager->GetDocument();
@@ -392,13 +395,12 @@ void FrComboCtlEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 	m_BitmapSkin[OVER] = pDoc->GetBitmap(item.m_param["over"]);
 
 	m_pButton = new FrButton;
-	if (m_pButton)
-	{
+	if (m_pButton) {
 		FrGuiItem& info = m_buttonInfo;
 		info = item;
 		info.m_caption = "unfold";
 		info.m_name = "unfold";
-		info.m_rect.Reset();
+		info.m_rect.left = info.m_rect.top = info.m_rect.right = info.m_rect.bottom = 0;
 
 		m_pButton->SetOwner(this);
 		m_pButton->Init(info, pManager, this, true);
@@ -407,8 +409,7 @@ void FrComboCtlEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 	}
 
 	m_pListBox = new FrListBox;
-	if (m_pListBox)
-	{
+	if (m_pListBox) {
 		FrGuiItem& info = m_listInfo;
 		info = item;
 		info.m_caption = "list";
@@ -417,11 +418,10 @@ void FrComboCtlEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 		info.m_rect.bottom -= info.m_rect.top;
 		info.m_rect.left = 0;
 		float height = pManager->GetDesktop()->GetRect().h;
-		info.m_rect.top = (m_rect.y > height * 0.5f) ? -5 : 5;
+		info.m_rect.top = m_rect.y > height * 0.5f ? -5 : 5;
 
 		if (m_BitmapSkin[NORMAL])
-			m_pListBox->SetItemSize(m_BitmapSkin[NORMAL]->Width(),
-				m_topMargin + m_BitmapSkin[NORMAL]->Height());
+			m_pListBox->SetItemSize(m_BitmapSkin[NORMAL]->Width(), m_topMargin + m_BitmapSkin[NORMAL]->Height());
 		else
 			m_pListBox->SetItemSize(info.m_rect.right, m_lineHeight);
 
@@ -450,8 +450,7 @@ void FrComboCtlEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 		rt.x = m_rect.x;
 		rt.y = m_rect.y + m_topMargin + m_BitmapSkin[NORMAL]->Height();
 		rt.w = (float)m_BitmapSkin[NORMAL]->Width();
-		rt.h = (float)m_BitmapSkin[NORMAL]->Height() * m_maxListNum +
-			m_maxListNum * m_topMargin;
+		rt.h = (float)m_BitmapSkin[NORMAL]->Height() * m_maxListNum + m_maxListNum * m_topMargin;
 		m_pListBox->SetRect(rt);
 
 		m_rect.w = rt.w;
@@ -460,22 +459,25 @@ void FrComboCtlEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
 	}
 }
 
-void FrComboCtlEx::AddString(const char* string)
-{
+// frcombobox.cpp:519
+void FrComboCtlEx::AddString(const char* str) {
 	if (m_eDrawStyle == IDS_IMG)
 		return;
 
-	FrLine* pItem = new FrLine;
-	pItem->text = string;
-	LimitText(pItem->text);
-	m_comboList.push_back(pItem);
+	FrLine* pLine = new FrLine;
+
+	pLine->text = str;
+
+	LimitText(pLine->text);
+
+	m_comboList.push_back(pLine);
 
 	if (m_pListBox)
-		m_pListBox->AddItem(pItem);
+		m_pListBox->AddItem(pLine);
 }
 
-void FrComboCtlEx::AddTexItem(const char* fileName)
-{
+// frcombobox.cpp:541
+void FrComboCtlEx::AddTexItem(const char* fileName) {
 	if (m_eDrawStyle == IDS_TEXT)
 		return;
 
@@ -485,159 +487,140 @@ void FrComboCtlEx::AddTexItem(const char* fileName)
 		m_TexItemList.push_back(pTex);
 
 	FrLine* pItem = new FrLine;
+
 	char buf[8];
 	sprintf(buf, "%d", m_comboList.size() + 1);
 	pItem->text = buf;
-	m_comboList.push_back(pItem);
 
+	m_comboList.push_back(pItem);
 	if (m_pListBox)
 		m_pListBox->AddItem(pItem);
 }
 
-void FrComboCtlEx::SelectItem(int idx)
-{
-	int i = 0;
+// frcombobox.cpp:573
+void FrComboCtlEx::SelectItem(int index) {
 	std::vector<const Bitmap*>::iterator it = m_TexItemList.begin();
-	for (; it != m_TexItemList.end(); ++it)
-	{
-		if (i++ == idx)
-		{
+	for (int i = 0; it != m_TexItemList.end(); ++it) {
+		if (i++ == index) {
 			m_pSelectItem = *it;
-			m_byCurrentIdx = (unsigned char)idx;
+			m_byCurrentIdx = (unsigned char)index;
 			break;
 		}
 	}
 
-	if (it == m_TexItemList.end())
-	{
-		m_pSelectItem = NULL;
+	if (it == m_TexItemList.end()) {
+		m_pSelectItem = 0;
 		m_byCurrentIdx = 0;
 	}
 }
 
-void FrComboCtlEx::ClearAllListItem()
-{
+// frcombobox.cpp:594
+void FrComboCtlEx::ClearAllListItem(void) {
 	m_pListBox->ClearItem();
-	m_TexItemList.clear();
+	typedef std::vector<const Bitmap*> TEX_ITEM_LIST;
+	m_TexItemList.~TEX_ITEM_LIST();
 }
 
-void FrComboCtlEx::AlignListItem()
-{
-	switch (m_align)
-	{
+// frcombobox.cpp:600
+void FrComboCtlEx::AlignListItem(void) {
+	switch (m_align) {
 	case leftAlign:
 		m_ItemOffset.x = (float)m_leftMargin;
+		m_ItemOffset.y = (float)m_topMargin;
 		break;
+
 	case centerAlign:
 		m_ItemOffset.x = m_pListBox->GetItemWidth() * 0.5f + m_leftMargin;
+		m_ItemOffset.y = (float)m_topMargin;
 		break;
+
 	case rightAlign:
 		m_ItemOffset.x = (float)(m_pListBox->GetItemWidth() - m_leftMargin);
+		m_ItemOffset.y = (float)m_topMargin;
 		break;
-	default:
-		return;
 	}
-
-	m_ItemOffset.y = (float)m_topMargin;
 }
 
-void FrComboCtlEx::OnListOwnerDraw(int var1)
-{
-	if (!var1)
+// frcombobox.cpp:631
+void FrComboCtlEx::OnListOwnerDraw(int param) {
+	if (!param)
 		return;
 
-	FrListItem* pItem = (FrListItem*)var1;
+	FrListItem* pItem = (FrListItem*)param;
 	FrLine* pLine = (FrLine*)pItem->pData;
 
-	GDI()->DrawTexture(m_BitmapSkin[NORMAL],
-		WRect(pItem->pos.x, m_ItemOffset.y + pItem->pos.y,
-			m_BitmapSkin[NORMAL]->Width(), m_BitmapSkin[NORMAL]->Height()),
-		0xffffffff, 0);
+	GDI()->DrawTexture(m_BitmapSkin[NORMAL], WRect(pItem->pos.x, m_ItemOffset.y + pItem->pos.y,
+		m_BitmapSkin[NORMAL]->Width(), m_BitmapSkin[NORMAL]->Height()), 0xffffffff, 0);
 
-	if (pItem->underCursor)
-	{
-		GDI()->DrawTexture(m_BitmapSkin[OVER],
-			WRect(pItem->pos.x, m_ItemOffset.y + pItem->pos.y,
-				m_BitmapSkin[OVER]->Width(), m_BitmapSkin[OVER]->Height()),
-			0xffffffff, 0);
+	if (pItem->underCursor) {
+		GDI()->DrawTexture(m_BitmapSkin[OVER], WRect(pItem->pos.x, m_ItemOffset.y + pItem->pos.y,
+			m_BitmapSkin[OVER]->Width(), m_BitmapSkin[OVER]->Height()), 0xffffffff, 0);
 	}
 
 	GDI()->SetTextColor(m_fontColor, m_fontColor2);
 	GDI()->SetTextStyle(m_font);
 
-	if (m_eDrawStyle == IDS_TEXT)
-	{
+	if (m_eDrawStyle == IDS_TEXT) {
 		pItem->pos.x += 0.5f;
 		pItem->pos.y += 0.5f;
-		GDI()->Print(WPoint(pItem->pos.x, pItem->pos.y), 0,
-			pLine->text.c_str());
+		GDI()->Print(WPoint(pItem->pos.x, pItem->pos.y), 0, pLine->text.c_str());
 		return;
 	}
 
-	const Bitmap* pTex = NULL;
+	const Bitmap* pTex = 0;
 	if (m_TexItemList.size())
 		pTex = m_TexItemList[pItem->idx];
 
-	if (pTex)
-	{
+	if (pTex) {
 		pItem->pos.x -= pTex->Width() / 2;
-		GDI()->DrawTexture(pTex,
-			WRect(pItem->pos.x + m_ItemOffset.x,
-				m_ItemOffset.y + pItem->pos.y + 2.0f, pTex->Width(),
-				pTex->Height()),
-			0xffffffff, 0);
+		GDI()->DrawTexture(pTex, WRect(pItem->pos.x + m_ItemOffset.x, m_ItemOffset.y + pItem->pos.y + 2.0f,
+			pTex->Width(), pTex->Height()), 0xffffffff, 0);
 	}
 }
 
-void FrComboCtlEx::OnListBtnDown()
-{
+// frcombobox.cpp:674
+void FrComboCtlEx::OnListBtnDown(void) {
 	FrListItem* pItem = m_pListBox->GetItemUnderCursor();
-	if (pItem)
-	{
+	if (pItem) {
 		if (m_eDrawStyle == IDS_IMG)
 			SelectItem(pItem->idx);
 
 		FrLine* pLine = (FrLine*)pItem->pData;
 
-		for (std::list<FrLine*>::iterator it = m_comboList.begin();
-			it != m_comboList.end(); ++it)
-		{
+		for (std::list<FrLine*>::iterator it = m_comboList.begin(); it != m_comboList.end(); ++it) {
 			if (pLine == *it)
 				m_selected = it;
 		}
 
 		SetLine(1, pLine->text.c_str(), 0, false, 0);
-		SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, (int)pItem, NULL);
+		SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, (intptr_t)pItem, 0);
+
 		m_bFold = true;
 	}
 
 	m_pListBox->SetVisible(false);
 }
 
-void FrComboCtlEx::OnKeyFocus(CChatMsg* im)
-{
+// frcombobox.cpp:699
+void FrComboCtlEx::OnKeyFocus(CChatMsg* im) {
 	FrEdit::OnKeyFocus(im);
 
-	if (im->GetConsolKeyCode() == 6)
-	{
+	if (im->GetConsolKeyCode() == 6) {
 		if (--m_selected == m_comboList.end())
 			--m_selected;
 
-		if (m_selected != m_comboList.end())
-		{
+		if (m_selected != m_comboList.end()) {
 			FrLine* pLine = *m_selected;
 			SetLine(1, pLine->text.c_str(), 0, false, 0);
 			im->SetChatText(pLine->text.c_str(), false);
 		}
 	}
 
-	if (im->GetConsolKeyCode() == 7)
-	{
+	if (im->GetConsolKeyCode() == 7) {
 		if (++m_selected == m_comboList.end())
 			m_selected = m_comboList.begin();
 
-		if (m_selected != m_comboList.end())
-		{
+		if (m_selected != m_comboList.end()) {
 			FrLine* pLine = *m_selected;
 			SetLine(1, pLine->text.c_str(), 0, false, 0);
 			im->SetChatText(pLine->text.c_str(), false);
@@ -645,30 +628,24 @@ void FrComboCtlEx::OnKeyFocus(CChatMsg* im)
 	}
 }
 
-void FrComboCtlEx::OnListLostKeyFocus(int var1)
-{
-	WRect rcList = m_pListBox->GetRect();
-	WRect rcBtn = m_pButton->GetRect();
+// frcombobox.cpp:730
+void FrComboCtlEx::OnListLostKeyFocus(int param) {
+	WRect listRect = m_pListBox->GetRect();
+	WRect buttonRect = m_pButton->GetRect();
 
-	if (!rcList.IsInRect(((FrInputState*)var1)->mousePos) &&
-		!rcBtn.IsInRect(((FrInputState*)var1)->mousePos))
-	{
+	if (!listRect.IsInRect(((FrInputState*)param)->mousePos) && !buttonRect.IsInRect(((FrInputState*)param)->mousePos)) {
 		m_pListBox->SetVisible(false);
 		m_bFold = true;
 	}
 }
 
-void FrComboCtlEx::OnUnfold()
-{
-	if (m_pListBox)
-	{
-		if (m_pListBox->IsVisible())
-		{
+// frcombobox.cpp:744
+void FrComboCtlEx::OnUnfold(void) {
+	if (m_pListBox) {
+		if (m_pListBox->IsVisible()) {
 			m_pListBox->SetVisible(false);
 			m_bFold = true;
-		}
-		else
-		{
+		} else {
 			m_pListBox->SetVisible(true);
 			m_pListBox->SetKeyFocus(false);
 			m_bFold = false;
@@ -676,18 +653,13 @@ void FrComboCtlEx::OnUnfold()
 	}
 }
 
-void FrComboCtlEx::OnUnfoldOwnerDraw(int var1)
-{
-	if (m_eDrawStyle == IDS_IMG)
-	{
-		if (m_pSelectItem)
-		{
+// frcombobox.cpp:762
+void FrComboCtlEx::OnUnfoldOwnerDraw(int param) {
+	if (m_eDrawStyle == IDS_IMG) {
+		if (m_pSelectItem) {
 			WRect rc = m_pButton->GetRect();
 			rc.x -= m_pSelectItem->Width() / 2;
-			GDI()->DrawTexture(m_pSelectItem,
-				WRect(rc.x + m_ItemOffset.x, rc.y + 2.0f,
-					m_pSelectItem->Width(), m_pSelectItem->Height()),
-				0xffffffff, 0);
+			GDI()->DrawTexture(m_pSelectItem, WRect(rc.x + m_ItemOffset.x, rc.y + 2.0f, m_pSelectItem->Width(), m_pSelectItem->Height()), 0xffffffff, 0);
 		}
 	}
 }

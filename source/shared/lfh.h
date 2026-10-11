@@ -1,118 +1,114 @@
-#pragma once
+// Original: d:\build\custom\temp\code\shared\lfh.h
+#ifndef PG_SHARED_LFH_H
+#define PG_SHARED_LFH_H
 
 #include <windows.h>
 
-class LFHInstaller
-{
+#include "..\..\defines.h"
+
+// Switches every process heap to the low-fragmentation heap (heap
+// compatibility information 2), through Kernel32 entry points looked up at
+// run time (they are missing on Windows 2000). Skipped under a debugger.
+class LFHInstaller {
 public:
-	typedef unsigned long(__stdcall* PFN_GETPROCESSHEAPS)(
-		unsigned long numberOfHeaps, void** processHeaps);
-	typedef int(__stdcall* PFN_HEAPQUERYINFORMATION)(void* heapHandle,
-		int heapInformationClass, void* heapInformation,
-		unsigned long heapInformationLength, unsigned long* returnLength);
-	typedef int(__stdcall* PFN_HEAPSETINFORMATION)(void* heapHandle,
-		int heapInformationClass, void* heapInformation,
-		unsigned long heapInformationLength);
-	typedef int(__stdcall* PFN_ISDEBUGGERPRESENT)();
+	typedef DWORD (WINAPI* GetProcessHeapsFn)(DWORD count, PHANDLE heaps);
+	typedef BOOL (WINAPI* HeapQueryInformationFn)(HANDLE heap, int infoClass, PVOID info, SIZE_T length, PSIZE_T returnLength);
+	typedef BOOL (WINAPI* HeapSetInformationFn)(HANDLE heap, int infoClass, PVOID info, SIZE_T length);
+	typedef BOOL (WINAPI* IsDebuggerPresentFn)(void);
 
-	struct _Handles
-	{
-		_Handles(unsigned long count, PFN_GETPROCESSHEAPS pfnGetProcessHeaps)
-			: m_handles(new void*[count])
-		{
-			pfnGetProcessHeaps(count, m_handles);
+	// The process heaps, as GetProcessHeaps returns them.
+	class _Handles {
+	public:
+		// lfh.h:17
+		_Handles(DWORD count, GetProcessHeapsFn getProcessHeaps) {
+			m_handles = new HANDLE[count];
+			getProcessHeaps(count, m_handles);
 		}
-
-		~_Handles() { delete[] m_handles; }
-
+		// lfh.h:21
+		~_Handles(void) { delete[] m_handles; }
+		// lfh.h:23
 		void* operator[](unsigned int index) { return m_handles[index]; }
 
-		void** m_handles;
+	private:
+		HANDLE* m_handles; // 0x0
 	};
 
-	struct _Modules
-	{
-		HINSTANCE m_hKernel32;
-		PFN_GETPROCESSHEAPS m_pfnGetProcessHeaps;
-		PFN_HEAPQUERYINFORMATION m_pfnHeapQueryInformation;
-		PFN_HEAPSETINFORMATION m_pfnHeapSetInformation;
-		PFN_ISDEBUGGERPRESENT m_pfnIsDebuggerPresent;
-
-		_Modules()
-		{
+	// Kernel32 and the entry points InstallLFH needs.
+	class _Modules {
+		LAYOUT_CHECK_FRIEND;
+	public:
+		// lfh.h:36
+		_Modules(void) {
 			m_hKernel32 = LoadLibraryA("Kernel32.dll");
 
-			if (m_hKernel32)
-			{
-				m_pfnGetProcessHeaps = (PFN_GETPROCESSHEAPS)GetProcAddress(
-					m_hKernel32, "GetProcessHeaps");
-				m_pfnHeapQueryInformation =
-					(PFN_HEAPQUERYINFORMATION)GetProcAddress(m_hKernel32,
-						"HeapQueryInformation");
-				m_pfnHeapSetInformation =
-					(PFN_HEAPSETINFORMATION)GetProcAddress(m_hKernel32,
-						"HeapSetInformation");
-				m_pfnIsDebuggerPresent = (PFN_ISDEBUGGERPRESENT)GetProcAddress(
-					m_hKernel32, "IsDebuggerPresent");
+			if (m_hKernel32) {
+				m_pGetProcessHeaps = (GetProcessHeapsFn)GetProcAddress(m_hKernel32, "GetProcessHeaps");
+				m_pHeapQueryInformation = (HeapQueryInformationFn)GetProcAddress(m_hKernel32, "HeapQueryInformation");
+				m_pHeapSetInformation = (HeapSetInformationFn)GetProcAddress(m_hKernel32, "HeapSetInformation");
+				m_pIsDebuggerPresent = (IsDebuggerPresentFn)GetProcAddress(m_hKernel32, "IsDebuggerPresent");
 			}
 		}
 
-		~_Modules()
-		{
+		// lfh.h:50
+		~_Modules(void) {
 			if (m_hKernel32)
 				FreeLibrary(m_hKernel32);
 		}
 
-		bool IsValid() const
-		{
-			if (m_hKernel32 == NULL)
+		// lfh.h:56
+		bool IsValid(void) const {
+			if (!m_hKernel32)
 				return false;
 
-			return m_pfnGetProcessHeaps && m_pfnHeapQueryInformation &&
-				m_pfnHeapSetInformation && m_pfnIsDebuggerPresent;
+			return m_pGetProcessHeaps && m_pHeapQueryInformation && m_pHeapSetInformation && m_pIsDebuggerPresent;
 		}
 
-		bool InstallLFH()
-		{
+		// lfh.h:64
+		bool InstallLFH(void) {
 			if (!IsValid())
 				return false;
 
-			if (m_pfnIsDebuggerPresent())
+			if (m_pIsDebuggerPresent())
 				return true;
 
-			unsigned long numHeaps = m_pfnGetProcessHeaps(0, NULL);
+			DWORD count = m_pGetProcessHeaps(0, NULL);
 
-			if (numHeaps == 0)
-			{
+			if (!count)
 				return false;
-			}
 
-			_Handles heaps(numHeaps, m_pfnGetProcessHeaps);
+			_Handles heaps(count, m_pGetProcessHeaps);
 
-			for (unsigned long i = 0; i < numHeaps; ++i)
-			{
-				unsigned long info, len;
-				if (!m_pfnHeapQueryInformation(heaps[i], 0, &info, sizeof(info),
-						&len))
+			for (DWORD i = 0; i < count; i++) {
+				ULONG info;
+				SIZE_T length;
+				if (!m_pHeapQueryInformation(heaps[i], 0, &info, sizeof(info), &length))
 					return false;
 
-				if (info == 1)
-				{
+				if (info == 1) {
 					info = 2;
-					if (!m_pfnHeapSetInformation(heaps[i], 0, &info,
-							sizeof(info)))
+					if (!m_pHeapSetInformation(heaps[i], 0, &info, sizeof(info)))
 						return false;
 				}
 			}
 
 			return true;
 		}
+
+	private:
+		HMODULE m_hKernel32;                            // 0x00
+		GetProcessHeapsFn m_pGetProcessHeaps;           // 0x04
+		HeapQueryInformationFn m_pHeapQueryInformation; // 0x08
+		HeapSetInformationFn m_pHeapSetInformation;     // 0x0C
+		IsDebuggerPresentFn m_pIsDebuggerPresent;       // 0x10
 	};
 
-	static bool install()
-	{
+	// lfh.h:123
+	static bool install(void) {
 		_Modules modules;
 
 		return modules.InstallLFH();
 	}
 };
+CHECK_SIZE(LFHInstaller::_Modules, 0x14);
+
+#endif // PG_SHARED_LFH_H

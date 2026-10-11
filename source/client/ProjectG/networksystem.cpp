@@ -1,87 +1,82 @@
-#include "minatl.h"
-#include "networksystem.h"
-#include "gameunit.h"
-#include "msnunit.h"
-#include "loginunit.h"
-#include "rankunit.h"
-#include "packet.h"
+// Original: d:\build\custom\temp\code\client\projectg\networksystem.cpp
+#include "GameUnit.h"
+#include <string.h>
+#include "NetworkSystem.h"
+#include "MSNUnit.h"
+#include "LoginUnit.h"
+#include "RankUnit.h"
+#include "Packet.h"
 
-WNetworkSystem::WNetworkSystem()
-{
-	m_pUnit[NET_GAME] = new GameUnit;
-	m_pUnit[NET_MSN] = new MSNUnit;
+// networksystem.cpp:19
+WNetworkSystem::WNetworkSystem(void) {
+	m_units[NET_UNIT_DEFAULT] = new GameUnit;
+	m_units[NET_UNIT_MSN] = new MSNUnit;
 
-	m_pUnit[NET_LOGIN] = new LoginUnit;
-	m_pUnit[NET_RANK] = new RankUnit;
-
-	memset(m_bParseKey, 0, sizeof(m_bParseKey));
+	m_units[NET_UNIT_LOGIN] = new LoginUnit;
+	m_units[NET_UNIT_RANK] = new RankUnit;
+	memset(m_parseKey, 0, sizeof(m_parseKey));
 	m_connectionType = 0;
 }
 
-WNetworkSystem::~WNetworkSystem()
-{
-	for (int i = 0; i < NET_MAX; i++)
-		delete m_pUnit[i];
+// networksystem.cpp:31
+WNetworkSystem::~WNetworkSystem(void) {
+	for (int i = 0; i < NET_UNIT_ALL; i++) {
+		delete m_units[i];
+	}
 }
 
-int WNetworkSystem::Init(eNetUnit unit)
-{
-	if (unit == NET_MAX)
-	{
-		for (int i = 0; i < NET_MAX; i++)
-		{
-			m_pUnit[i]->Init();
+// networksystem.cpp:41
+int WNetworkSystem::Init(eNetUnit unit) {
+	if (unit == NET_UNIT_ALL) {
+		for (int i = 0; i < NET_UNIT_ALL; i++) {
+			m_units[i]->Init();
 		}
+	} else {
+		m_units[unit]->Init();
 	}
-	else
-		m_pUnit[unit]->Init();
-
-	return TRUE;
+	return 1;
 }
 
-int WNetworkSystem::Process()
-{
-	for (int i = 0; i < NET_MAX; i++)
-	{
-		m_pUnit[i]->Process();
+// networksystem.cpp:57
+int WNetworkSystem::Process(void) {
+	for (int i = 0; i < NET_UNIT_ALL; i++) {
+		m_units[i]->Process();
 	}
-
-	return TRUE;
+	return 1;
 }
 
-int WNetworkSystem::SendMessage(eNetUnit unit, NetworkUnit::eEvent event)
-{
-	m_pUnit[unit]->setTransition(event);
-	return TRUE;
+// networksystem.cpp:76
+int WNetworkSystem::SendMessage(eNetUnit unit, NetworkUnit::eEvent event) {
+	m_units[unit]->setTransition(event);
+	return 1;
 }
 
-void WNetworkSystem::ForceShutDown(eNetUnit unit)
-{
-	m_pUnit[unit]->ShutDown();
+// networksystem.cpp:82
+void WNetworkSystem::ForceShutDown(eNetUnit unit) {
+	m_units[unit]->ShutDown();
 }
 
-void WNetworkSystem::WriteSendTime()
-{
+// networksystem.cpp:88
+void WNetworkSystem::WriteSendTime(void) {
 	m_sendTime = GetTickCount();
 }
 
-int WNetworkSystem::IsConnected(eNetUnit unit)
-{
-	return m_pUnit[unit]->IsConnected();
+// networksystem.cpp:96
+int WNetworkSystem::IsConnected(eNetUnit unit) {
+	return m_units[unit]->IsConnected();
 }
 
-int WNetworkSystem::IsConnectionComplete(eNetUnit unit)
-{
-	return m_pUnit[unit]->IsConnectionComplete();
+// networksystem.cpp:105
+int WNetworkSystem::IsConnectionComplete(eNetUnit unit) {
+	return m_units[unit]->IsConnectionComplete();
 }
 
-void WNetworkSystem::SendTTL()
-{
-	unsigned long time = GetTickCount();
+// networksystem.cpp:111
+void WNetworkSystem::SendTTL(void) {
+	DWORD now = GetTickCount();
 
-	if (time - m_sendTime > 5000)
-	{
+	if (now - m_sendTime > 5000) {
 		WSendPacket packet((enumClientPacket)1);
-		packet.Send(TO_GAME);
+		packet.Send(SEND_TO_DEFAULT);
 	}
 }

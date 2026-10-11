@@ -1,21 +1,28 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\shopunit.h
+#ifndef PG_CLIENT_PROJECTG_SHOPUNIT_H
+#define PG_CLIENT_PROJECTG_SHOPUNIT_H
 
-#include "networkunit.h"
+#include "..\..\defines.h"
+#include "NetworkUnit.h"
 
-class ShopUnit : public NetworkUnit
-{
+// The connection to the shop server (no members of its own).
+class ShopUnit : public NetworkUnit {
 public:
-	ShopUnit();
-	virtual ~ShopUnit();
+	ShopUnit(void);
+	virtual ~ShopUnit(void);
 
-	virtual bool Init();
-	virtual void ShutDown();
-	virtual bool OnLine();
-	virtual bool OffLine();
-	virtual bool Connect();
-	virtual bool Connecting();
-	virtual bool Disconnecting();
+	virtual bool Init(void);
+	virtual void ShutDown(void);
+	virtual bool OnLine(void);
+	virtual bool OffLine(void);
+	virtual bool Connect(void);
+	virtual bool Connecting(void);
+	virtual bool Disconnecting(void);
 
 private:
-	int OnConnect();
+	int OnConnect(void);
 };
+
+CHECK_SIZE(ShopUnit, 0x88);
+
+#endif // PG_CLIENT_PROJECTG_SHOPUNIT_H

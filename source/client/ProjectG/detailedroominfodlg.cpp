@@ -1,519 +1,474 @@
-#include "minatl.h"
-#include "detailedroominfodlg.h"
-#include "passworddlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\detailedroominfodlg.cpp
+#include "SharedDoc.h"
+#include "Packet.h"
+#include "TaskManager.h"
+#include "actor.h"
+#include "DetailedRoomInfoDlg.h"
+#include "ObjectFactory.h"
+#include "frbutton.h"
+#include "fredit.h"
+#include "frlistbox.h"
 #include "user_info.h"
-#include "netresourcemanager.h"
-#include "projectg.h"
+#include "../shared/classdefine.h"
+#include <stdio.h>
+#include <string.h>
 
-int float2int(float f);
+typedef std::map<unsigned long, sBriefUserInfo> UserMap;
 
-extern Fresh* g_pFresh;
+// detailedroominfodlg.cpp:65 (sort by nickname, ascending; players missing
+// from the user map first)
+static bool CompareNickAsc(const void* pA, const void* pB) {
+	const sRoomUserInfo* a = (const sRoomUserInfo*)pA;
+	const sRoomUserInfo* b = (const sRoomUserInfo*)pB;
 
-static bool CompareIdDesc(const void* left, const void* right)
-{
-	std::map<unsigned long, sBriefUserInfo>& users = Doc()->m_briefUserInfoMap;
-	std::map<unsigned long, sBriefUserInfo>::iterator ia =
-		users.find(((sRoomUserInfo*)left)->uid);
-	std::map<unsigned long, sBriefUserInfo>::iterator ib =
-		users.find(((sRoomUserInfo*)right)->uid);
-	if (ia == Doc()->m_briefUserInfoMap.end())
+	UserMap::iterator itA = WSingleton<CSharedDoc>::Instance()->m_userMap.find(a->m_uid);
+	UserMap::iterator itB = WSingleton<CSharedDoc>::Instance()->m_userMap.find(b->m_uid);
+
+	if (itA == WSingleton<CSharedDoc>::Instance()->m_userMap.end())
 		return true;
-	if (ib == Doc()->m_briefUserInfoMap.end())
+
+	if (itB == WSingleton<CSharedDoc>::Instance()->m_userMap.end())
 		return true;
-	bool result = strcmp(ia->second.sNick, ib->second.sNick) < 0;
-	return result;
+
+
+
+
+	return strcmp(itA->second.nick, itB->second.nick) < 0 ? true : false;
 }
-static bool CompareStatusDesc(const void* left, const void* right)
-{
-	sRoomUserInfo* a = (sRoomUserInfo*)left;
-	sRoomUserInfo* b = (sRoomUserInfo*)right;
-	if (a->hole > b->hole)
+
+// Minimal stubs for user list handlers used by the message map. These
+// implementations are placeholders to satisfy the linker during iterative
+// development and must be replaced with full behavior later.
+void FrDtRoomDlg::OnUserListInit(intptr_t param) {
+	m_pUserList = DYNAMIC_CAST(FrListBox, param);
+}
+
+void FrDtRoomDlg::OnUserListOwnerDraw(int) { }
+
+void FrDtRoomDlg::OnJoinBtnUp(void) {
+	// Placeholder: attempt to join the room by sending a minimal message
+	// or simply close the dialog in this stubbed build.
+	Close(FrNONE, true);
+}
+
+// detailedroominfodlg.cpp:40 (sort by level, or rank in channels with flag
+// 0x80, descending)
+static bool CompareLevelDesc(const void* pA, const void* pB) {
+	const sRoomUserInfo* a = (const sRoomUserInfo*)pA;
+	const sRoomUserInfo* b = (const sRoomUserInfo*)pB;
+
+	if (WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x80) {
+
+		if (a->m_rankValue > b->m_rankValue)
+			return true;
+		else if (a->m_rankValue < b->m_rankValue)
+			return false;
+	} else {
+
+		if (a->m_level > b->m_level)
+			return true;
+
+		else if (a->m_level < b->m_level)
+			return false;
+	}
+
+
+	return CompareNickAsc(pA, pB);
+}
+
+// detailedroominfodlg.cpp:85 (sort by status, descending)
+static bool CompareStatusDesc(const void* pA, const void* pB) {
+	const sRoomUserInfo* a = (const sRoomUserInfo*)pA;
+	const sRoomUserInfo* b = (const sRoomUserInfo*)pB;
+
+	if ((a->m_status & 0x1f) > (b->m_status & 0x1f))
 		return true;
-	if (a->hole < b->hole)
+	else if ((a->m_status & 0x1f) < (b->m_status & 0x1f))
 		return false;
-	return CompareIdDesc(left, right);
-}
-static bool CompareLevelAsc(const void* left, const void* right)
-{
-	const sRoomUserInfo* a = (const sRoomUserInfo*)left;
-	const sRoomUserInfo* b = (const sRoomUserInfo*)right;
-	if (Doc()->m_curChannel.Type & 0x80)
-	{
-		if (a->ladderPoint > b->ladderPoint)
-			return false;
-		if (a->ladderPoint < b->ladderPoint)
-			return true;
-	}
-	else
-	{
-		if (a->level > b->level)
-			return false;
-		if (a->level < b->level)
-			return true;
-	}
-	return CompareIdDesc(left, right);
+
+	return CompareNickAsc(pA, pB);
 }
 
-static bool CompareIdAsc(const void* left, const void* right)
-{
-	std::map<unsigned long, sBriefUserInfo>& users = Doc()->m_briefUserInfoMap;
-	std::map<unsigned long, sBriefUserInfo>::iterator ia =
-		users.find(((sRoomUserInfo*)left)->uid);
-	std::map<unsigned long, sBriefUserInfo>::iterator ib =
-		users.find(((sRoomUserInfo*)right)->uid);
-	if (ia == Doc()->m_briefUserInfoMap.end())
-		return true;
-	if (ib == Doc()->m_briefUserInfoMap.end())
-		return true;
-	bool result = strcmp(ia->second.sNick, ib->second.sNick) >= 0;
-	return result;
+// detailedroominfodlg.cpp:98 (sort by level, or rank in channels with flag
+// 0x80, ascending)
+static bool CompareLevelAsc(const void* pA, const void* pB) {
+	const sRoomUserInfo* a = (const sRoomUserInfo*)pA;
+	const sRoomUserInfo* b = (const sRoomUserInfo*)pB;
+
+	if (WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x80) {
+
+		if (a->m_rankValue > b->m_rankValue)
+			return false;
+		else if (a->m_rankValue < b->m_rankValue)
+			return true;
+	} else {
+
+		if (a->m_level > b->m_level)
+			return false;
+
+		else if (a->m_level < b->m_level)
+			return true;
+	}
+
+
+	return CompareNickAsc(pA, pB);
 }
-static bool CompareStatusAsc(const void* left, const void* right)
-{
-	sRoomUserInfo* a = (sRoomUserInfo*)left;
-	sRoomUserInfo* b = (sRoomUserInfo*)right;
-	if (a->hole > b->hole)
+
+// detailedroominfodlg.cpp:123 (sort by nickname, descending; players missing
+// from the user map first)
+static bool CompareNickDesc(const void* pA, const void* pB) {
+	const sRoomUserInfo* a = (const sRoomUserInfo*)pA;
+	const sRoomUserInfo* b = (const sRoomUserInfo*)pB;
+
+	UserMap::iterator itA = WSingleton<CSharedDoc>::Instance()->m_userMap.find(a->m_uid);
+	UserMap::iterator itB = WSingleton<CSharedDoc>::Instance()->m_userMap.find(b->m_uid);
+
+	if (itA == WSingleton<CSharedDoc>::Instance()->m_userMap.end())
+		return true;
+
+	if (itB == WSingleton<CSharedDoc>::Instance()->m_userMap.end())
+		return true;
+
+
+
+
+	return strcmp(itA->second.nick, itB->second.nick) >= 0 ? true : false;
+}
+
+// detailedroominfodlg.cpp:143 (sort by status, ascending)
+static bool CompareStatusAsc(const void* pA, const void* pB) {
+	const sRoomUserInfo* a = (const sRoomUserInfo*)pA;
+	const sRoomUserInfo* b = (const sRoomUserInfo*)pB;
+
+	if ((a->m_status & 0x1f) > (b->m_status & 0x1f))
 		return false;
-	if (a->hole < b->hole)
+	else if ((a->m_status & 0x1f) < (b->m_status & 0x1f))
 		return true;
-	return CompareIdDesc(left, right);
-}
-static bool CompareLevelDesc(const void* left, const void* right)
-{
-	// HACK
-	if (false)
-		new FrDtRoomDlg;
-	const sRoomUserInfo* a = (const sRoomUserInfo*)left;
-	const sRoomUserInfo* b = (const sRoomUserInfo*)right;
-	if (Doc()->m_curChannel.Type & 0x80)
-	{
-		if (a->ladderPoint > b->ladderPoint)
-			return true;
-		if (a->ladderPoint < b->ladderPoint)
-			return false;
-	}
-	else
-	{
-		if (a->level > b->level)
-			return true;
-		if (a->level < b->level)
-			return false;
-	}
-	return CompareIdDesc(left, right);
-}
-IMPLEMENT_OBJECT(FrDtRoomDlg, FrForm)
 
-BEGIN_FRESH_MSGMAP(FrDtRoomDlg, FrForm)
-
-ON_FRESH_VI("gamedesc", FRCMD_INIT, FrDtRoomDlg::OnGameDescInit)
-ON_FRESH_VI("join", FRCMD_INIT, FrDtRoomDlg::OnJoinBtnInit)
-ON_FRESH_VV("join", FRCMD_LBUTTONUP, FrDtRoomDlg::OnJoinBtnUp)
-ON_FRESH_VI("userinfo", FRCMD_INIT, FrDtRoomDlg::OnUserInfoBtnInit)
-ON_FRESH_VV("userinfo", FRCMD_LBUTTONUP, FrDtRoomDlg::OnUserInfoBtnUp)
-ON_FRESH_VI("level", FRCMD_INIT, FrDtRoomDlg::OnLevelHdrInit)
-ON_FRESH_VV("level", FRCMD_LBUTTONDOWN, FrDtRoomDlg::OnLevelHdrDown)
-ON_FRESH_VI("id", FRCMD_INIT, FrDtRoomDlg::OnIdHdrInit)
-ON_FRESH_VV("id", FRCMD_LBUTTONDOWN, FrDtRoomDlg::OnIdHdrDown)
-ON_FRESH_VI("status", FRCMD_INIT, FrDtRoomDlg::OnStatusHdrInit)
-ON_FRESH_VV("status", FRCMD_LBUTTONDOWN, FrDtRoomDlg::OnStatusHdrDown)
-ON_FRESH_VI("userlist", FRCMD_INIT, FrDtRoomDlg::OnUserListInit)
-ON_FRESH_VI("userlist", FRCMD_OWNERDRAW, FrDtRoomDlg::OnUserListOwnerDraw)
-ON_FRESH_VV("userlist", FRCMD_LBUTTONDOWN, FrDtRoomDlg::OnUserListLBtnDown)
-ON_FRESH_VV("userlist", FRCMD_RBUTTONUP, FrDtRoomDlg::OnUserListRBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrDtRoomDlg::FrDtRoomDlg()
-	: m_pGameDesc(NULL),
-	  m_pJoinBtn(NULL),
-	  m_pUserInfoBtn(NULL),
-	  m_pGalleryBtn(NULL),
-	  m_pUserList(NULL)
-{
-	m_pSelUser = NULL;
-	m_pIdHdr = NULL;
-	m_pLevelHdr = NULL;
-	m_pStatusHdr = NULL;
-	m_sortHeader = eHEADER_ID;
+	return CompareNickAsc(pA, pB);
 }
 
-bool FrDtRoomDlg::OnInit()
-{
-	// HACK
-	if (false)
-		OnHeaderLBtnDown(eHEADER_LEVEL);
-	m_sortHeader = (eHeader)3;
-	if (m_pUserList)
-	{
-		m_sortHeader = eHEADER_LEVEL;
-		m_pUserList->SortItem(CompareLevelDesc);
+// detailedroominfodlg.cpp:156 (run-time type and factory registration of FrDtRoomDlg)
+const WRTTI FrDtRoomDlg::m_RTTI("FrDtRoomDlg", &FrForm::m_RTTI);
+
+IObject* FrDtRoomDlgMakeInstance(void) {
+	return new FrDtRoomDlg;
+}
+
+struct __sFrDtRoomDlg {
+	__sFrDtRoomDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrDtRoomDlgMakeInstance, "FrDtRoomDlg");
 	}
+};
+static __sFrDtRoomDlg s_registerFrDtRoomDlg;
+
+// detailedroominfodlg.cpp:158
+const sFRESH_MSGMAP* FrDtRoomDlg::GetMessageMap(void) const {
+	return &FrDtRoomDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrDtRoomDlg::_MsgMap = { &FrForm::_MsgMap, &FrDtRoomDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrDtRoomDlg::_MsgEntries[] = {
+	// detailedroominfodlg.cpp:160
+	{ "gamedesc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnGameDescInit },
+	// detailedroominfodlg.cpp:161
+	{ "join", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnJoinBtnInit },
+	// detailedroominfodlg.cpp:162
+	{ "join", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrDtRoomDlg::OnJoinBtnUp },
+	// detailedroominfodlg.cpp:163
+	{ "userinfo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnUserInfoBtnInit },
+	// detailedroominfodlg.cpp:164
+	{ "userinfo", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrDtRoomDlg::OnUserInfoBtnUp },
+	// detailedroominfodlg.cpp:165
+	{ "level", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnLevelHdrInit },
+	// detailedroominfodlg.cpp:166
+	{ "level", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrDtRoomDlg::OnLevelHdrDown },
+	// detailedroominfodlg.cpp:167
+	{ "id", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnIdHdrInit },
+	// detailedroominfodlg.cpp:168
+	{ "id", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrDtRoomDlg::OnIdHdrDown },
+	// detailedroominfodlg.cpp:169
+	{ "status", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnStatusHdrInit },
+	// detailedroominfodlg.cpp:170
+	{ "status", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrDtRoomDlg::OnStatusHdrDown },
+	// detailedroominfodlg.cpp:171
+	{ "userlist", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnUserListInit },
+	// detailedroominfodlg.cpp:172
+	{ "userlist", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDtRoomDlg::OnUserListOwnerDraw },
+	// detailedroominfodlg.cpp:173
+	{ "userlist", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrDtRoomDlg::OnUserListLBtnDown },
+	// detailedroominfodlg.cpp:174
+	{ "userlist", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrDtRoomDlg::OnUserListRBtnUp },
+
+	// detailedroominfodlg.cpp:176
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// detailedroominfodlg.cpp:182
+FrDtRoomDlg::FrDtRoomDlg(void)
+	: m_pGameDesc(0), m_pJoinBtn(0), m_pUserInfoBtn(0), m_pGalleryBtn(0), m_pUserList(0) {
+	m_pSelectedUser = 0; m_pIdHdr = 0; m_pLevelHdr = 0; m_pStatusHdr = 0; m_sortState = 1;
+}
+
+// detailedroominfodlg.cpp:189
+bool FrDtRoomDlg::OnInit(void) {
+	m_sortState = HEADER_LEVEL + 3;
+	OnHeaderLBtnDown(HEADER_LEVEL);
+
 	return true;
 }
 
-void FrDtRoomDlg::SetRoomInfo(const sRoomInfo& info)
-{
-	m_roomInfo = info;
+// detailedroominfodlg.cpp:197
+void FrDtRoomDlg::SetRoomInfo(const sRoomInfo& roomInfo) {
+	m_roomInfo = roomInfo;
 }
 
-void FrDtRoomDlg::OnGameDescInit(int param)
-{
-	m_pGameDesc = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// detailedroominfodlg.cpp:202
+void FrDtRoomDlg::OnGameDescInit(intptr_t param) {
+	m_pGameDesc = DYNAMIC_CAST(FrEdit, param);
+
 	char text[256];
-	const char* typeName;
-	switch (Doc()->m_roomDetail.gameType)
-	{
+	const char* pName;
+
+
+
+	switch (CSharedDoc::Instance()->m_gameDesc.m_descGameType) {
 	case 4:
 	case 5:
 	case 6:
 	case 9:
 	case 10:
-	case 14:
-	{
-		IFF_STRUCT::sMatch* match =
-			ItemManager()->FindMatch(Doc()->m_roomDetail.matchTypeId);
-		if (match)
-			typeName = match->Name;
-		else
-			typeName = Doc()->m_gameTypeInfo[Doc()->m_roomDetail.gameType].name;
-	}
-	break;
-	default:
-		typeName = Doc()->m_gameTypeInfo[Doc()->m_roomDetail.gameType].name;
-		break;
-	}
-	sprintf(text, "\260\324\300\323\305\270\300\324 : %s%s", typeName,
-		Doc()->m_roomDetail.gameType == 5 ? "\306\300\300\374" : "");
-	m_pGameDesc->SetLine(1, text, 0, false, 0);
-	if (Doc()->m_roomDetail.map == 255)
-	{
-		const char* source = "\304\332\275\272 : RANDOM";
-		int i = 0;
-		do
-		{
-			text[i] = source[i];
-		} while (source[i++]);
-	}
-	else
-	{
-		unsigned char map = Doc()->m_roomDetail.map;
-		IFF_STRUCT::sCourse* course = Doc()->m_itemManager.FindCourse(
-			(map <= 127 || map == 253 ? map : map - 128) | 0x28000000);
-		if (course)
-			sprintf(text, "\304\332\275\272 : %s", course->c.Name);
-		else
-		{
-			const char* source = "\304\332\275\272 : \270\360\270\247";
-			int i = 0;
-			do
-			{
-				text[i] = source[i];
-			} while (source[i++]);
+	case 14: {
+		IFF_STRUCT::sMatch* pMatch = ItemManager()->FindMatch(CSharedDoc::Instance()->m_gameDesc.m_descMatchId);
+
+		if (pMatch) {
+			pName = pMatch->m_name;
+			break;
 		}
 	}
+	default:
+		pName = CSharedDoc::Instance()->m_gameTypeNames[CSharedDoc::Instance()->m_gameDesc.m_descGameType].name;
+	}
+
+
+	sprintf(text, "\xb0\xd4\xc0\xd3\xc5\xb8\xc0\xd4 : %s%s", pName, CSharedDoc::Instance()->m_gameDesc.m_descGameType == 5 ? "\xc6\xc0\xc0\xfc" : "");
+
+	m_pGameDesc->SetLine(1, text, 0, false, 0);
+
+
+	unsigned char course = CSharedDoc::Instance()->m_gameDesc.m_descCourse;
+	if (course == 0xff) {
+
+		strcpy(text, "\xc4\xda\xbd\xba : RANDOM");
+
+	} else {
+
+		unsigned long typeId = 0x28000000 | ((course > 0x7F && course != 0xFD) ? course - 0x80 : course);
+		IFF_STRUCT::sCourse* pCourse = ItemManager()->FindCourse(typeId);
+
+		if (pCourse) {
+			sprintf(text, "\xc4\xda\xbd\xba : %s", pCourse->m_name);
+		} else {
+			strcpy(text, "\xc4\xda\xbd\xba : \xb8\xf0\xb8\xa7");
+		}
+	}
+
+
 	m_pGameDesc->SetLine(2, text, 0, false, 0);
-	if (Doc()->m_roomDetail.holeOrder == 2 ||
-		Doc()->m_roomDetail.holeOrder == 3)
-		sprintf(text,
-			"\275\303\300\333\310\246 : \267\243\264\375 \310\246 / \310\246 \274\366 : %d \310\246",
-			Doc()->m_roomDetail.holes);
-	else
-		sprintf(text,
-			"\275\303\300\333\310\246 : %d \310\246 / \310\246 \274\366 : %d \310\246",
-			Doc()->m_roomDetail.holeOrder ? 10 : 1, Doc()->m_roomDetail.holes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	unsigned char mode = CSharedDoc::Instance()->m_gameDesc.m_descMode;
+	if (mode == 2 || mode == 3) {
+
+
+		sprintf(text, "\xbd\xc3\xc0\xdb\xc8\xa6 : \xb7\xa3\xb4\xfd \xc8\xa6 / \xc8\xa6 \xbc\xf6 : %d \xc8\xa6", CSharedDoc::Instance()->m_gameDesc.m_descHoleCount);
+
+	} else {
+
+
+		sprintf(text, "\xbd\xc3\xc0\xdb\xc8\xa6 : %d \xc8\xa6 / \xc8\xa6 \xbc\xf6 : %d \xc8\xa6", mode ? 10 : 1, CSharedDoc::Instance()->m_gameDesc.m_descHoleCount);
+	}
+
+
 	m_pGameDesc->SetLine(3, text, 0, false, 0);
-	if (Doc()->m_roomDetail.gameType == 2)
+
+
+	unsigned char type = CSharedDoc::Instance()->m_gameDesc.m_descGameType;
+	if (type == 2) {
+
 		text[0] = 0;
-	else
-	{
-		switch (Doc()->m_roomDetail.gameType)
-		{
+
+	} else {
+		switch (type) {
 		case 4:
 		case 5:
 		case 6:
 		case 9:
 		case 10:
 		case 14:
-			if (Doc()->m_roomDetail.gameType == 10)
-				goto strokeTime;
-			sprintf(text,
-				"\260\324\300\323\301\246\307\321\275\303\260\243 : %d \272\320",
-				Doc()->m_roomDetail.gameTime / 60000);
-			break;
-		default:
-strokeTime:
-			if (!Doc()->m_roomDetail.gameTime)
-			{
-				const char* source =
-					"\305\270\261\270\301\246\307\321\275\303\260\243 : \276\370\300\275";
-				int i = 0;
-				do
-				{
-					text[i] = source[i];
-				} while (source[i++]);
+			if (type != 10) {
+
+				sprintf(text, "\xb0\xd4\xc0\xd3\xc1\xa6\xc7\xd1\xbd\xc3\xb0\xa3 : %d \xba\xd0", CSharedDoc::Instance()->m_gameDesc.m_descGameTime / 60000);
+				break;
 			}
-			else
-				sprintf(text,
-					"\305\270\261\270\301\246\307\321\275\303\260\243 : %d \303\312",
-					Doc()->m_roomDetail.gameTime / 1000);
-			break;
+		default:
+
+			if (CSharedDoc::Instance()->m_gameDesc.m_descGameTime == 0) {
+				strcpy(text, "\xc5\xb8\xb1\xb8\xc1\xa6\xc7\xd1\xbd\xc3\xb0\xa3 : \xbe\xf8\xc0\xbd");
+			} else {
+
+
+				sprintf(text, "\xc5\xb8\xb1\xb8\xc1\xa6\xc7\xd1\xbd\xc3\xb0\xa3 : %d \xc3\xca", CSharedDoc::Instance()->m_gameDesc.m_descGameTime / 1000);
+			}
 		}
 	}
+
 	m_pGameDesc->SetLine(4, text, 0, false, 0);
 }
 
-void FrDtRoomDlg::OnJoinBtnInit(int param)
-{
-	m_pJoinBtn = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pJoinBtn && (Doc()->m_curChannel.Type & 0x80))
+// detailedroominfodlg.cpp:294
+void FrDtRoomDlg::OnJoinBtnInit(intptr_t param) {
+	m_pJoinBtn = DYNAMIC_CAST(FrButton, param);
+
+
+	if (m_pJoinBtn && (WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x80)) {
 		m_pJoinBtn->Enable(false);
-}
-
-void FrDtRoomDlg::OnJoinBtnUp()
-{
-	int developer = (Doc()->m_myInfo.info.dwIdentity & 14) == 14;
-	if (developer)
-	{
-		OnGalleryBtnUp();
-		return;
-	}
-	if (m_roomInfo.bAvailable)
-	{
-		if (!Doc()->m_myInfo.info.IsIdentity(4))
-		{
-			if (m_roomInfo.nUserNum == m_roomInfo.nUserLimit)
-			{
-				AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-					(int)"\301\244\277\370\300\314 \303\312\260\372 \265\307\276\372\275\300\264\317\264\331",
-					0, 0, 0, 0);
-				return;
-			}
-			if (m_roomInfo.gameType == 5)
-			{
-				unsigned long uid = MyGuid(false);
-				std::map<unsigned long, sBriefUserInfo>::iterator it =
-					Doc()->m_briefUserInfoMap.find(uid);
-				if (it != Doc()->m_briefUserInfoMap.end() &&
-					it->second.gender > 1)
-				{
-					AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-						(int)"\260\255\301\246 \301\276\267\341\300\262\300\314 \263\364\300\272 \300\257\300\372\264\302 30\300\316 \306\300\300\374 \260\324\300\323\300\273 \307\322 \274\366 \276\370\275\300\264\317\264\331.",
-						0, 0, 0, 0);
-					return;
-				}
-			}
-		}
-		if (m_roomInfo.gameType == 6 && !Doc()->m_myInfo.info.IsIdentity(0x14))
-		{
-			std::string text;
-			unsigned long guild = Doc()->m_myInfo.info.dwGuildId;
-			bool denied = false;
-			if (!guild)
-			{
-				text =
-					"\261\346\265\345\277\241 \260\241\300\324\307\317\274\305\276\337 \261\346\265\345\264\353\300\374\300\314 \260\241\264\311\307\325\264\317\264\331.";
-				denied = true;
-			}
-			if (m_roomInfo.GuildInfo.nGuildID[0] != guild &&
-				m_roomInfo.GuildInfo.nGuildID[0] &&
-				m_roomInfo.GuildInfo.nGuildID[1] != guild &&
-				m_roomInfo.GuildInfo.nGuildID[1])
-			{
-				text =
-					"\305\270\261\346\265\345\300\307 \264\353\300\374\300\324\264\317\264\331.";
-				denied = true;
-			}
-			if (denied)
-			{
-				AfxGetTask()->GetActor("Lobby")
-					<< MsgObject(NULL, 35, (int)text.c_str(), 0, 0, 0, 0);
-				return;
-			}
-		}
-		if (m_roomInfo.bPublic || Doc()->m_myInfo.info.IsIdentity(0x14))
-		{
-			if (m_pJoinBtn)
-				m_pJoinBtn->Enable(false);
-			{
-				WSendPacket packet((enumClientPacket)9);
-				packet.Encode2(m_roomInfo.roomGuid);
-				packet.EncodeStr(std::string(""));
-				packet.Send(TO_GAME);
-				AfxGetTask()->GetActor("Lobby")
-					<< MsgObject(NULL, 22, 0, 0, 0, 0, 0);
-				AfxGetTask()->GetActor("Lobby")
-					<< MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-			}
-			Close((eFormRet)1, true);
-		}
-		else
-		{
-			FrPasswordDlg* dialog = CreateForm<FrPasswordDlg>(
-				g_pFresh->GetManager(), this, "password", NULL);
-			dialog->Open((FRESH_PFN_RESULT)&FrDtRoomDlg::OnPasswordDlgResult,
-				3);
-		}
-	}
-	else
-	{
-		AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-			(int)"\260\324\300\323 \301\370\307\340\301\337\300\316 \271\346\300\324\264\317\264\331",
-			0, 0, 0, 0);
 	}
 }
 
-void FrDtRoomDlg::OnGalleryBtnInit(int param)
-{
-	m_pGalleryBtn = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// detailedroominfodlg.cpp:431
+void FrDtRoomDlg::OnGalleryBtnInit(int param) {
+	m_pGalleryBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrDtRoomDlg::OnGalleryBtnUp()
-{
-	if (m_roomInfo.bAvailable)
-	{
-		if (m_roomInfo.nGalleryNum != m_roomInfo.nGalleryLimit ||
-			Doc()->m_myInfo.info.IsIdentity(4))
-		{
-			if (m_roomInfo.bPublic || Doc()->m_myInfo.info.IsIdentity(4))
-			{
-				if (m_pGalleryBtn)
-					m_pGalleryBtn->Enable(false);
-				{
-					WSendPacket packet((enumClientPacket)62);
-					packet.Encode2(m_roomInfo.roomGuid);
-					packet.EncodeStr(std::string(""));
-					packet.Send(TO_GAME);
-					AfxGetTask()->GetActor("Lobby")
-						<< MsgObject(NULL, 22, 0, 0, 0, 0, 0);
-					AfxGetTask()->GetActor("Lobby")
-						<< MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-					Close((eFormRet)1, true);
-				}
-			}
-			else
-			{
-				FrPasswordDlg* dialog = CreateForm<FrPasswordDlg>(
-					g_pFresh->GetManager(), this, "password", NULL);
-				dialog->Open(
-					(FRESH_PFN_RESULT)&FrDtRoomDlg::OnPasswordDlgResult, 3);
-			}
-		}
-		else
-		{
-			AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-				(int)"\301\244\277\370\300\314 \303\312\260\372 \265\307\276\372\275\300\264\317\264\331",
-				0, 0, 0, 0);
-		}
-	}
-	else
-	{
-		AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-			(int)"\260\324\300\323 \301\370\307\340\301\337\300\316 \271\346\300\324\264\317\264\331",
-			0, 0, 0, 0);
+// detailedroominfodlg.cpp:471
+void FrDtRoomDlg::EnableJoinBtn(bool bEnable) {
+	if (m_pJoinBtn) {
+		m_pJoinBtn->Enable(bEnable && !(WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x80) ? true : false);
 	}
 }
 
-void FrDtRoomDlg::EnableJoinBtn(bool enable)
-{
-	if (m_pJoinBtn)
-		m_pJoinBtn->Enable(enable && !(Doc()->m_curChannel.Type & 0x80));
-}
-
-void FrDtRoomDlg::OnProc(const float dt)
-{
+// detailedroominfodlg.cpp:477
+void FrDtRoomDlg::OnProc(const float dt) {
 	std::list<void*>::iterator it;
-	for (it = m_delList.begin(); it != m_delList.end();)
-	{
+
+	for (it = m_delList.begin(); it != m_delList.end(); ) {
 		m_pUserList->DelItem(*it);
 		it = m_delList.erase(it);
 	}
 }
 
-void FrDtRoomDlg::OnUserInfoBtnInit(int param)
-{
-	m_pUserInfoBtn = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// detailedroominfodlg.cpp:487
+void FrDtRoomDlg::OnUserInfoBtnInit(intptr_t param) {
+	m_pUserInfoBtn = DYNAMIC_CAST(FrButton, param);
 	m_pUserInfoBtn->Enable(false);
 }
 
-void FrDtRoomDlg::OnUserInfoBtnUp()
-{
-	if (CUserInfo::Instance())
-	{
-		FrListItem* item = m_pUserList->GetSelected();
-		if (item)
-		{
-			sRoomUserInfo* user = (sRoomUserInfo*)item->pData;
-			std::map<unsigned long, sBriefUserInfo>::iterator it =
-				Doc()->m_briefUserInfoMap.find(user->uid);
-			if (it != Doc()->m_briefUserInfoMap.end())
-				CUserInfo::Instance()->SetInfo(it->second.dwUid, user->uid,
-					true, true, false, false, it->second.sNick);
+// detailedroominfodlg.cpp:493
+void FrDtRoomDlg::OnUserInfoBtnUp(void) {
+	if (WSingleton<CUserInfo>::Instance()) {
+
+		FrListItem* pItem = m_pUserList->GetSelected();
+
+		if (pItem) {
+
+
+			sRoomUserInfo* pUser = (sRoomUserInfo*)pItem->pData;
+
+			UserMap::iterator it = WSingleton<CSharedDoc>::Instance()->m_userMap.find(pUser->m_uid);
+			if (it != WSingleton<CSharedDoc>::Instance()->m_userMap.end()) {
+
+				WSingleton<CUserInfo>::Instance()->SetInfo(it->second.id, pUser->m_uid, true, true, false, false, it->second.nick);
+			}
 		}
 	}
 }
 
-void FrDtRoomDlg::OnLevelHdrInit(int param)
-{
-	m_pLevelHdr = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// detailedroominfodlg.cpp:512
+void FrDtRoomDlg::OnLevelHdrInit(intptr_t param) {
+	m_pLevelHdr = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrDtRoomDlg::OnLevelHdrDown()
-{
-	OnHeaderLBtnDown(eHEADER_LEVEL);
+// detailedroominfodlg.cpp:517
+void FrDtRoomDlg::OnLevelHdrDown(void) {
+	OnHeaderLBtnDown(HEADER_LEVEL);
 }
 
-void FrDtRoomDlg::OnIdHdrInit(int param)
-{
-	m_pIdHdr = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// detailedroominfodlg.cpp:522
+void FrDtRoomDlg::OnIdHdrInit(intptr_t param) {
+	m_pIdHdr = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrDtRoomDlg::OnIdHdrDown()
-{
-	OnHeaderLBtnDown(eHEADER_ID);
+// detailedroominfodlg.cpp:527
+void FrDtRoomDlg::OnIdHdrDown(void) {
+	OnHeaderLBtnDown(HEADER_ID);
 }
 
-void FrDtRoomDlg::OnStatusHdrInit(int param)
-{
-	m_pStatusHdr = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// detailedroominfodlg.cpp:532
+void FrDtRoomDlg::OnStatusHdrInit(intptr_t param) {
+	m_pStatusHdr = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrDtRoomDlg::OnStatusHdrDown()
-{
-	OnHeaderLBtnDown(eHEADER_STATUS);
+// detailedroominfodlg.cpp:537
+void FrDtRoomDlg::OnStatusHdrDown(void) {
+	OnHeaderLBtnDown(HEADER_STATUS);
 }
 
-void FrDtRoomDlg::OnHeaderLBtnDown(eHeader header)
-{
-	if (m_pUserList)
-	{
-		if (header == m_sortHeader)
-		{
-			m_sortHeader = (eHeader)(header + 3);
-			switch (header)
-			{
-			case eHEADER_LEVEL:
+// detailedroominfodlg.cpp:542
+void FrDtRoomDlg::OnHeaderLBtnDown(eHeader header) {
+	if (m_pUserList) {
+
+
+		if (header == m_sortState) {
+
+			m_sortState = header + 3;
+
+			switch (header) {
+			case HEADER_LEVEL:
+
 				m_pUserList->SortItem(CompareLevelAsc);
 				break;
-			case eHEADER_ID:
-				m_pUserList->SortItem(CompareIdAsc);
+			case HEADER_ID:
+
+				m_pUserList->SortItem(CompareNickDesc);
 				break;
-			case eHEADER_STATUS:
+			case HEADER_STATUS:
+
 				m_pUserList->SortItem(CompareStatusAsc);
 				break;
 			}
-		}
-		else
-		{
-			m_sortHeader = header;
-			switch (header)
-			{
-			case eHEADER_LEVEL:
+		} else {
+
+			m_sortState = header;
+
+			switch (header) {
+			case HEADER_LEVEL:
+
 				m_pUserList->SortItem(CompareLevelDesc);
 				break;
-			case eHEADER_ID:
-				m_pUserList->SortItem(CompareIdDesc);
+			case HEADER_ID:
+
+				m_pUserList->SortItem(CompareNickAsc);
 				break;
-			case eHEADER_STATUS:
+			case HEADER_STATUS:
+
 				m_pUserList->SortItem(CompareStatusDesc);
 				break;
 			}
@@ -521,201 +476,69 @@ void FrDtRoomDlg::OnHeaderLBtnDown(eHeader header)
 	}
 }
 
-void FrDtRoomDlg::OnUserListInit(int param)
-{
-	m_pUserList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	m_pUserList->UseRightButton(true);
-	m_pIcon[0] = m_pUserList->GetBitmap("i_male");
-	m_pIcon[1] = m_pUserList->GetBitmap("i_female");
-	m_pIcon[2] = m_pUserList->GetBitmap("i_male_02");
-	m_pIcon[3] = m_pUserList->GetBitmap("i_female_02");
-	m_pIcon[4] = m_pUserList->GetBitmap("i_male_03");
-	m_pIcon[5] = m_pUserList->GetBitmap("i_female_03");
-	m_pIcon[6] = m_pUserList->GetBitmap("i_male_manner");
-	m_pIcon[7] = m_pUserList->GetBitmap("i_female_manner");
-	m_pIcon[8] = m_pUserList->GetBitmap("i_male_angel");
-	m_pIcon[9] = m_pUserList->GetBitmap("i_female_angel");
-	m_pUserList->ClearItem();
-	CSharedDoc* doc;
-	std::list<sRoomUserInfo>& users = Doc()->m_roomUserList;
-	std::list<sRoomUserInfo>::iterator it = users.begin();
-	for (; it != users.end(); it++)
-	{
-		doc = Doc();
-		if (!doc->m_myInfo.info.IsIdentity(4) && ((*it).capability & 0x14))
-		{
-			std::map<unsigned long, sBriefUserInfo>::iterator found =
-				doc->m_briefUserInfoMap.find((*it).uid);
-			if (found != doc->m_briefUserInfoMap.end())
-			{
-				if (!(sBriefUserInfo(found->second).state & 1))
-					continue;
-			}
-		}
-		m_pUserList->AddItem(&*it);
+// detailedroominfodlg.cpp:791
+void FrDtRoomDlg::OnUserListLBtnDown(void) {
+	FrListItem* pItem = m_pUserList->GetItemUnderCursor();
+	if (pItem) {
+
+		sRoomUserInfo* pUser = (sRoomUserInfo*)pItem->pData;
+		m_pUserList->SelectItem(pItem, true);
+
+
+
+		m_pSelectedUser = pUser;
+		if (m_pUserInfoBtn) m_pUserInfoBtn->Enable(true);
 	}
 }
 
-void FrDtRoomDlg::OnUserListOwnerDraw(int param)
-{
-	if (!param)
-		return;
-	FrListItem* item = (FrListItem*)param;
-	sRoomUserInfo*& user = (sRoomUserInfo*&)param;
-	user = (sRoomUserInfo*)item->pData;
-	if (!user)
-		return;
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (!gdi)
-		return;
-	std::map<unsigned long, sBriefUserInfo>::iterator it =
-		Doc()->m_briefUserInfoMap.find(user->uid);
-	if (it == Doc()->m_briefUserInfoMap.end())
-	{
-		m_delList.push_back(item->pData);
-		return;
-	}
-	sBriefUserInfo& info = it->second;
-	unsigned long nickColor =
-		((unsigned char)info.dwIdentity & 0x14) ? 0x50ffffff : 0xffffffff;
-	if (item->underCursor)
-	{
-		gdi->SetTextColor(0xffffffff, 0xff808080);
-		gdi->SetTextStyle(2);
-	}
-	else
-	{
-		if (info.bSleep)
-			gdi->SetTextColor(0xff808080, 0xffffffff);
-		else
-			gdi->SetTextColor(0xff000000, 0xffffffff);
-		gdi->SetTextStyle(0);
-	}
-	const Bitmap* bitmap;
-	if (info.angelicWings)
-		bitmap = m_pIcon[8 + (info.gender % 2)];
-	else if (info.manner)
-		bitmap = m_pIcon[6 + (info.gender % 2)];
-	else
-		bitmap = m_pIcon[info.gender];
-	if (user == m_pSelUser)
-	{
-		_WRECT selection = { item->pos.x, item->pos.y,
-			(float)m_pUserList->GetItemWidth(),
-			(float)m_pUserList->GetItemHeight() + 2.0f };
-		gdi->Box(selection, 0x999b9dff, 0, 0.0f);
-	}
-	gdi->DrawTexture(bitmap,
-		WRect(item->pos.x + 58.0f, item->pos.y, (float)bitmap->Width(),
-			(float)bitmap->Height()),
-		0xffffffff, 0);
-	const Bitmap* badge;
-	if (Doc()->m_curChannel.Type & 0x80)
-		badge = g_pFresh->GetManager()->GetBitmap("LEVELS",
-			MakeStr("ladder_%03d", user->ladderPoint / 100));
-	else
-	{
-		IFF_STRUCT::sSkin* skin;
-		if (info.dwTitle && (skin = ItemManager()->FindSkin(info.dwTitle)))
-			badge = g_pFresh->GetBitmap(skin->c.Icon);
-		else
-			badge = g_pFresh->GetManager()->GetBitmap("LEVELS",
-				MakeStr("level_%03d", user->level + 1));
-	}
-	if (badge)
-	{
-		gdi->DrawTexture(badge,
-			WRect(item->pos.x + 28.0f - float2int(badge->Width() * 0.5f),
-				item->pos.y + 13.0f - float2int(badge->Height() * 0.5f),
-				(float)badge->Width(), (float)badge->Height()),
-			0xffffffff, 0);
-	}
-	if (info.m_GuildId && !info.IsIdentity(0x14))
-	{
-		const Bitmap* emblem =
-			NetResourceManager::Instance()->GetEmblemByName(info.szEmblemName);
-		if (emblem)
-		{
-			gdi->DrawTexture(emblem,
-				WRect(item->pos.x + 75.0f, item->pos.y + 1.0f,
-					(float)emblem->Width(), (float)emblem->Height()),
-				0xffffffff, 0);
+// detailedroominfodlg.cpp:806
+void FrDtRoomDlg::OnUserListRBtnUp(void) {
+	OnUserListLBtnDown();
+
+
+	if (m_pSelectedUser && WSingleton<CUserInfo>::Instance()) {
+
+		UserMap::iterator it = WSingleton<CSharedDoc>::Instance()->m_userMap.find(m_pSelectedUser->m_uid);
+		if (it != WSingleton<CSharedDoc>::Instance()->m_userMap.end()) {
+
+			WSingleton<CUserInfo>::Instance()->SetInfo(it->second.id, m_pSelectedUser->m_uid, true, true, false, false, it->second.nick);
 		}
 	}
-	if (!CProjectG::Instance()->HidePrivacy())
-		g_pFresh->GetManager()->PrintText(
-			WPoint(item->pos.x + 98.0f, item->pos.y + 7.0f), 0, info.sNick,
-			-1.0f, nickColor);
-	sRoomUserInfo* current = user;
-	if (current->hole == 0)
-		gdi->Print(WPoint(item->pos.x + 207.0f, item->pos.y + 7.0f), 1,
-			info.bSleep ? "\300\341\274\366\301\337"
-						: "\264\353\261\342\301\337");
-	else if (current->hole == 19)
-		gdi->Print(WPoint(item->pos.x + 207.0f, item->pos.y + 7.0f), 1, "End");
-	else
-		gdi->Print(WPoint(item->pos.x + 207.0f, item->pos.y + 7.0f), 1,
-			"%d \310\246", current->hole);
 }
 
-void FrDtRoomDlg::OnUserListLBtnDown()
-{
-	FrListItem* item = m_pUserList->GetItemUnderCursor();
-	if (item)
-	{
-		sRoomUserInfo* user = (sRoomUserInfo*)item->pData;
-		m_pUserList->SelectItem(item, true);
-		m_pSelUser = user;
-		if (m_pUserInfoBtn)
-			m_pUserInfoBtn->Enable(true);
-	}
-}
+// detailedroominfodlg.cpp:820
+bool FrDtRoomDlg::OnPasswordDlgResult(int result, FrForm* pForm) {
+	if (result == FrOK) {
 
-void FrDtRoomDlg::OnUserListRBtnUp()
-{
-	FrListItem* item = m_pUserList->GetItemUnderCursor();
-	if (item)
-	{
-		sRoomUserInfo* user = (sRoomUserInfo*)item->pData;
-		m_pUserList->SelectItem(item, true);
-		m_pSelUser = user;
-		if (m_pUserInfoBtn)
-			m_pUserInfoBtn->Enable(true);
-	}
-	if (m_pSelUser && CUserInfo::Instance())
-	{
-		std::map<unsigned long, sBriefUserInfo>::iterator it =
-			Doc()->m_briefUserInfoMap.find(m_pSelUser->uid);
-		if (it != Doc()->m_briefUserInfoMap.end())
-			CUserInfo::Instance()->SetInfo(it->second.dwUid, m_pSelUser->uid,
-				true, true, false, false, it->second.sNick);
-	}
-}
+		FrWnd* pWnd = pForm->FindChildByName("password");
 
-bool FrDtRoomDlg::OnPasswordDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		FrWnd* child = form->FindChildByName("password");
-		FrEdit* password = DYNAMIC_CAST(FrEdit, child);
-		std::string text;
-		if (password)
-		{
-			const char* line = password->GetLine(1, false);
-			text = line;
-			AfxGetTask()->GetActor("Lobby")
-				<< MsgObject(NULL, 39, (int)line, 0, 0, 0, 0);
+		FrEdit* pEdit = DYNAMIC_CAST(FrEdit, pWnd);
+
+		std::string password;
+		if (pEdit) {
+
+			const char* pPassword = pEdit->GetLine(1, false);
+			password = pPassword;
+			AfxGetTask()->PassMsgToActor("Lobby", MsgObject(0, 0x27, (intptr_t)pPassword, 0, 0, 0, 0));
 		}
-		FrWnd* ok = form->FindChildByName("ok");
-		if (ok)
-			ok->Enable(false);
+
+
+		FrWnd* pOk = pForm->FindChildByName("ok");
+		if (pOk) {
+			pOk->Enable(false);
+		}
+
 		WSendPacket packet((enumClientPacket)9);
-		packet.Encode2(m_roomInfo.roomGuid);
-		packet.EncodeStr(text);
-		packet.Send(TO_GAME);
-		AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 22, 0, 0, 0, 0, 0);
-		AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-		Close((eFormRet)1, true);
+		packet.Encode2(m_roomInfo.m_roomNumber);
+		packet.EncodeStr(password);
+		packet.Send(SEND_TO_DEFAULT);
+
+		AfxGetTask()->PassMsgToActor("Lobby", MsgObject(0, 0x16, 0, 0, 0, 0, 0));
+		AfxGetTask()->PassMsgToActor("Lobby", MsgObject(0, 1, 0, 0, 0, 0, 0));
+
+		Close(FrOK, true);
 	}
+
+
 	return true;
 }

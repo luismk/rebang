@@ -1,4 +1,5 @@
-#include "wvideo.h"
+// Original: d:\build\custom\temp\code\client\wangreal\source\wvideo.cpp
+#include "../client/Wangreal/include/wtextureview.h"
 
 const WRenderToTextureSizeInfo WRenderToTextureSizeInfo::SIZE_FULL(false, 1.0f,
 	1.0f);

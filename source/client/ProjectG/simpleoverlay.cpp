@@ -1,113 +1,104 @@
-#include "minatl.h"
-#include "projectg.h"
-#include "simpleoverlay.h"
+// Original: d:\build\custom\temp\code\client\projectg\simpleoverlay.cpp
+#include "SimpleOverlay.h"
+#include "../client/Wangreal/include/wtypes.h"
+#include "../client/Wangreal/include/wmath.h"
+#include "../client/Wangreal/include/woverlay.h"
+#include "../client/Wangreal/include/wresrcmng.h"
+#include "../client/Wangreal/include/wview.h"
 
-extern WView* g_view;
-
+// simpleoverlay.cpp:15
 CSimpleUI::CSimpleUI(const char* name)
-	: m_pOverlay(NULL), m_rectList(8, 8)
-{
+	: m_pOverlay(NULL), m_rectList(8, 8) {
 	m_pOverlay = g_resrcmng->GetOverlay(name, 0);
-	if (m_pOverlay)
-	{
+	if (m_pOverlay != NULL) {
+
 		m_width = (float)m_pOverlay->GetWidth();
 		m_height = (float)m_pOverlay->GetHeight();
 	}
 
 	m_angle = 0.0f;
-	m_color = -1;
+	m_color = 0xffffffff;
 }
 
-CSimpleUI::~CSimpleUI()
-{
-	if (g_resrcmng && m_pOverlay)
-	{
-		g_resrcmng->Release(m_pOverlay);
-		m_pOverlay = NULL;
-	}
+// simpleoverlay.cpp:70
+CSimpleUI::~CSimpleUI(void) {
+	if (g_resrcmng != NULL && m_pOverlay != NULL) { g_resrcmng->Release(m_pOverlay); m_pOverlay = NULL; }
 
 	DeleteAllItem();
 }
 
-void CSimpleUI::Add(const char* name, const WRect& rect, bool bAlloc)
-{
-	WRect* pRect = new WRect;
-	pRect->x = rect.x / m_width;
-	pRect->y = rect.y / m_height;
-	pRect->w = rect.w / m_width;
-	pRect->h = rect.h / m_height;
-	m_rectList.AddItem(pRect, name, bAlloc);
+// simpleoverlay.cpp:83
+void CSimpleUI::Add(const char* name, const WRect& rect, bool b) {
+	WRect* piece;
+
+	piece = new WRect;
+	piece->x = rect.x / m_width; piece->y = rect.y / m_height; piece->w = rect.w / m_width; piece->h = rect.h / m_height;
+
+	m_rectList.AddItem(piece, name, b);
 }
 
-void CSimpleUI::Render(const char* name, float x, float y, float scale,
-	int align)
-{
-	if (!(m_color & 0xff000000) || !name)
-		return;
+// simpleoverlay.cpp:98
+void CSimpleUI::Render(const char* name, float x, float y, float alpha, int i) {
+	if ((m_color & 0xff000000) == 0 || name == NULL) return;
 
-	WRect* pRect = m_rectList.Find(name);
+	WRect* piece = m_rectList.Find(name);
 
-	if (!pRect)
-		return;
+	if (piece == NULL) return;
 
-	WRect dest;
+	WRect dst;
 
-	dest.w = pRect->w * m_width * scale;
+	dst.w = piece->w * m_width * alpha;
 
-	switch (align & 6)
-	{
+	switch (i & 6) {
 	case 0:
-		dest.x = x;
+
+		dst.x = x;
 		break;
 
 	case 4:
-		dest.x = x - dest.w;
+		dst.x = x - dst.w;
 		break;
 
 	case 2:
-		dest.x = x - dest.w * 0.5f;
+		dst.x = x - dst.w * 0.5f;
 		break;
 	}
 
-	dest.h = pRect->h * m_height * scale;
-
-	switch (align & 0x60)
-	{
+	dst.h = piece->h * m_height * alpha;
+	switch (i & 0x60) {
 	case 0:
-		dest.y = y;
+
+		dst.y = y;
 		break;
 
 	case 0x40:
-		dest.y = y - dest.h;
+		dst.y = y - dst.h;
 		break;
 
 	case 0x20:
-		dest.y = y - dest.h * 0.5f;
+		dst.y = y - dst.h * 0.5f;
 		break;
 	}
 
-	if (Wabs(m_angle) < g_EPSILON)
-	{
-		if (m_pOverlay)
-			m_pOverlay->Render(g_view, *pRect, dest, 0, m_color, 0.0f, 0);
+	if (WAbsBySign(m_angle) < WMATH_EPSILON) {
+
+		if (m_pOverlay != NULL)
+			m_pOverlay->Render(g_view, *piece, dst, 0, m_color, 0, 0);
 	}
-	else
-	{
-		if (m_pOverlay)
-			m_pOverlay->RenderWithAxis(g_view, *pRect, dest,
-				dest.x + dest.w * 0.5f, dest.y + dest.h * 0.5f, m_angle, 0,
-				m_color, 0);
+	else {
+
+		if (m_pOverlay != NULL)
+			m_pOverlay->RenderWithAxis(g_view, *piece, dst, dst.x + dst.w * 0.5f, dst.y + dst.h * 0.5f, m_angle, 0, m_color, 0);
 	}
 }
 
-void CSimpleUI::DeleteAllItem()
-{
-	for (WRect* pRect = m_rectList.Start(); pRect; pRect = m_rectList.Next())
-	{
-		if (pRect)
-		{
-			m_rectList -= pRect;
-			delete pRect;
+// simpleoverlay.cpp:166
+void CSimpleUI::DeleteAllItem(void) {
+	for (WRect* piece = m_rectList.Start(); piece != NULL; piece = m_rectList.Next()) {
+		if (piece != NULL) {
+
+			m_rectList -= piece;
+			delete piece;
 		}
 	}
 

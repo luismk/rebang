@@ -1,286 +1,350 @@
-#include "minatl.h"
-#include "mapselectdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\mapselectdlg.cpp
+#include "MapSelectDlg.h"
+#include "ObjectFactory.h"
 #include "frlistbox.h"
+#include "../shared/classdefine.h"
+#include "../shared/ItemManager.h"
+#include "SharedDoc.h"
+#include "Packet.h"
+#include "TaskManager.h"
+#include "fresh.h"
 #include "frwndmanager.h"
 #include "frgraphicinterface.h"
-#include "fresh.h"
-#include "actor.h"
-#include "../../shared/localize.h"
+#include "bitmap.h"
+#include "commonutil.h"
+#include <stdio.h>
 
-extern Fresh* g_pFresh;
+// mapselectdlg.cpp:18 (run-time type and factory registration of FrMapSelectDlg)
+const WRTTI FrMapSelectDlg::m_RTTI("FrMapSelectDlg", &FrForm::m_RTTI);
 
-static const unsigned char s_mapOrder[18] = { 0x13, 0x10, 0x0f, 0x0e, 0x0d,
-	0x0b, 0x08, 0x0a, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x09,
-	0x7f };
-
-IMPLEMENT_OBJECT(FrMapSelectDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrMapSelectDlg, FrForm)
-
-ON_FRESH_VI("select", FRCMD_INIT, FrMapSelectDlg::OnSelectInit)
-ON_FRESH_VV("select", FRCMD_LBUTTONUP, FrMapSelectDlg::OnSelectBtnUp)
-ON_FRESH_VI("select", FRCMD_OWNERDRAW, FrMapSelectDlg::OnSelectOwnerDraw)
-
-END_FRESH_MSGMAP()
-
-FrMapSelectDlg::FrMapSelectDlg()
-	: m_pMapList(NULL), m_selectMap(0), m_bNoRandomMap(false)
-{
-	m_bSendChange = true;
+IObject* FrMapSelectDlgMakeInstance(void) {
+	return new FrMapSelectDlg;
 }
 
-FrMapSelectDlg::~FrMapSelectDlg()
-{
+struct __sFrMapSelectDlg {
+	__sFrMapSelectDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrMapSelectDlgMakeInstance, "FrMapSelectDlg");
+	}
+};
+static __sFrMapSelectDlg s_registerFrMapSelectDlg;
+
+// mapselectdlg.cpp:20
+const sFRESH_MSGMAP* FrMapSelectDlg::GetMessageMap(void) const {
+	return &FrMapSelectDlg::_MsgMap;
 }
 
-void FrMapSelectDlg::OnSelectInit(int param)
-{
-	m_pMapList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
+sFRESH_MSGMAP FrMapSelectDlg::_MsgMap = { &FrForm::_MsgMap, &FrMapSelectDlg::_MsgEntries[0] };
 
-	if (m_pMapList)
-	{
-		std::map<unsigned int, IFF_STRUCT::sCourse>& courseMap =
-			ItemManager()->m_CourseMap;
+sFRESH_ENTRY FrMapSelectDlg::_MsgEntries[] = {
+	// mapselectdlg.cpp:22
+	{ "select", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMapSelectDlg::OnSelectInit },
+	// mapselectdlg.cpp:23
+	{ "select", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrMapSelectDlg::OnSelectBtnUp },
+	// mapselectdlg.cpp:24
+	{ "select", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMapSelectDlg::OnSelectOwnerDraw },
+
+	// mapselectdlg.cpp:26
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// mapselectdlg.cpp:30
+FrMapSelectDlg::FrMapSelectDlg(void) {
+	m_pSelect = 0;
+	m_selectMap = 0;
+	m_sendOnSelect = true;
+	m_refuseCourse7F = false;
+}
+
+// mapselectdlg.cpp:38
+FrMapSelectDlg::~FrMapSelectDlg(void) {
+}
+
+// mapselectdlg.cpp:42
+void FrMapSelectDlg::OnSelectInit(intptr_t param) {
+	m_pSelect = DYNAMIC_CAST(FrListBox, param);
+	if (m_pSelect) {
+
+
+
+		std::map<unsigned int, IFF_STRUCT::sCourse>& courseMap = ItemManager()->m_courseMap;
+
 		int count = 0;
-		FrListItem* pSelected = NULL;
+		FrListItem* pSelItem = 0;
+		int i;
 
-		if (IsLocalContent(S3_ROOKIE_CHANNEL) &&
-			(Doc()->m_curChannel.Type & 0x800))
-		{
-			for (int i = 0; i < 18; i++)
-			{
-				unsigned int tid = s_mapOrder[i] | 0x28000000;
-				IFF_STRUCT::sCourse* pCourse = &courseMap[tid];
 
-				if ((Doc()->m_curChannel.Type & 0x800) &&
-					pCourse->Difficulty == 3)
+
+		if (IsLocalContent((localContentType_t)0x3A) && (WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800)) {
+
+
+			for (i = 0; i < 18; i++) {
+
+				IFF_STRUCT::sCourse* pCourse = &courseMap[0x28000000 | s_mapSelectCourseOrder[i]];
+
+				if ((WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800) && (pCourse->courseFlags & 0x0F) == 3)
+					continue;
+				if (pCourse && (WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800) && !WSingleton<CSharedDoc>::Instance()->CanUseRookieChannelMap(pCourse->m_typeId & 0x3FFFFFF))
 					continue;
 
-				if (pCourse && (Doc()->m_curChannel.Type & 0x800) &&
-					!Doc()->CanUseRookieChannelMap(
-						pCourse->c.TypeId & 0x3ffffff))
-					continue;
 
-				FrListItem* pItem = m_pMapList->AddItem(pCourse);
+				FrListItem* pItem = m_pSelect->AddItem(pCourse);
 				count++;
 
-				if (pSelected == NULL &&
-					m_selectMap == (pCourse->c.TypeId & 0x3ffffff))
-					pSelected = pItem;
+				if (!pSelItem && m_selectMap == (pCourse->m_typeId & 0x3FFFFFF))
+					pSelItem = pItem;
 			}
 
-			for (int i = 0; i < 18; i++)
-			{
-				unsigned int tid = s_mapOrder[i] | 0x28000000;
-				IFF_STRUCT::sCourse* pCourse = &courseMap[tid];
+			for (i = 0; i < 18; i++) {
 
-				if (pCourse && (Doc()->m_curChannel.Type & 0x800) &&
-					Doc()->CanUseRookieChannelMap(
-						pCourse->c.TypeId & 0x3ffffff) &&
-					pCourse->Difficulty != 3)
-					continue;
+				IFF_STRUCT::sCourse* pCourse = &courseMap[0x28000000 | s_mapSelectCourseOrder[i]];
 
-				FrListItem* pItem = m_pMapList->AddItem(pCourse);
+				if (pCourse && (WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800) && WSingleton<CSharedDoc>::Instance()->CanUseRookieChannelMap(pCourse->m_typeId & 0x3FFFFFF)) {
+
+					if ((pCourse->courseFlags & 0x0F) != 3)
+						continue;
+				}
+
+
+
+				FrListItem* pItem = m_pSelect->AddItem(pCourse);
 				count++;
 
-				if (pSelected == NULL &&
-					m_selectMap == (pCourse->c.TypeId & 0x3ffffff))
-					pSelected = pItem;
+				if (!pSelItem && m_selectMap == (pCourse->m_typeId & 0x3FFFFFF))
+					pSelItem = pItem;
+			}
+
+		} else {
+
+			for (i = 0; i < 18; i++) {
+
+				IFF_STRUCT::sCourse* pCourse = &courseMap[0x28000000 | s_mapSelectCourseOrder[i]];
+
+
+				if (!pCourse->m_active)
+					continue;
+
+
+
+				if ((WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x80) && (pCourse->courseFlags & 0x0F) == 1)
+					continue;
+
+
+				FrListItem* pItem = m_pSelect->AddItem(pCourse);
+				count++;
+
+				if (!pSelItem && m_selectMap == (pCourse->m_typeId & 0x3FFFFFF))
+					pSelItem = pItem;
 			}
 		}
-		else
-		{
-			for (int i = 0; i < 18; i++)
-			{
-				unsigned int tid = s_mapOrder[i] | 0x28000000;
-				IFF_STRUCT::sCourse* pCourse = &courseMap[tid];
 
-				if (!pCourse->c.Final)
-					continue;
 
-				if ((Doc()->m_curChannel.Type & 0x80) &&
-					pCourse->Difficulty == 1)
-					continue;
 
-				FrListItem* pItem = m_pMapList->AddItem(pCourse);
-				count++;
 
-				if (pSelected == NULL &&
-					m_selectMap == (pCourse->c.TypeId & 0x3ffffff))
-					pSelected = pItem;
-			}
-		}
-
-		int empty;
+		int pad;
 		if (count % 3 == 0)
-			empty = 0;
+			pad = 0;
 		else
-			empty = 3 - count % 3;
-		for (int i = 0; i < empty; i++)
-			m_pMapList->AddItem(NULL);
+			pad = 3 - count % 3;
 
-		m_pMapList->SelectItem(pSelected, true);
-	}
-}
+		for (i = 0; i < pad; i++) {
 
-void FrMapSelectDlg::SetSelectMap(int map)
-{
-	if (m_pMapList == NULL)
-		return;
-
-	for (FrListBox::ITEM_LIST::iterator it = m_pMapList->m_itemList.begin();
-		it != m_pMapList->m_itemList.end(); ++it)
-	{
-		IFF_STRUCT::sCourse* pCourse = (IFF_STRUCT::sCourse*)(*it)->pData;
-
-		if (pCourse && map == (pCourse->c.TypeId & 0x3ffffff))
-		{
-			m_selectMap = map;
-			m_pMapList->SelectItem(*it, true);
-			break;
+			m_pSelect->AddItem(0);
 		}
+
+
+
+		m_pSelect->SelectItem(pSelItem, true);
 	}
 }
 
-void FrMapSelectDlg::OnSelectBtnUp()
-{
-	FrListItem* pItem = m_pMapList->GetSelected();
-	if (pItem == NULL)
-		return;
+// mapselectdlg.cpp:132
+void FrMapSelectDlg::SetSelectMap(int map) {
+	if (m_pSelect) {
 
-	IFF_STRUCT::sCourse* pCourse = (IFF_STRUCT::sCourse*)pItem->pData;
-	if (pCourse == NULL)
-		return;
 
-	if (((Doc()->m_curChannel.Type & 0x800) && pCourse->Difficulty >= 3) ||
-		(m_bNoRandomMap && (pCourse->c.TypeId & 0x3ffffff) == 0x7f))
-	{
-		m_pMapList->ToggleItem(pItem);
-		return;
-	}
 
-	if (IsLocalContent(S3_ROOKIE_CHANNEL) &&
-		(Doc()->m_curChannel.Type & 0x800) &&
-		!Doc()->CanUseRookieChannelMap(pCourse->c.TypeId & 0x3ffffff))
-	{
-		m_pMapList->ToggleItem(pItem);
-		return;
-	}
 
-	if (m_bSendChange &&
-		(stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") == 0 ||
-			stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") ==
-				0 ||
-			stricmp(g_pFresh->GetManager()->GetLayoutID(), "AVATARCHAT_MAIN") ==
-				0))
-	{
-		WSendPacket packet((enumClientPacket)10);
-		packet.Encode2(0xffff);
-		packet.Encode1(1);
-		packet.Encode1(3);
-		packet.Encode1((unsigned char)pCourse->c.TypeId);
-		packet.Send(TO_GAME);
+		for (FrListBox::ITEM_LIST::iterator it = m_pSelect->m_itemList.begin(); it != m_pSelect->m_itemList.end(); ++it) {
 
-		AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
-	}
-	else
-	{
-		m_selectMap = pCourse->c.TypeId & 0x3ffffff;
-	}
+			IFF_STRUCT::sCourse* pCourse = (IFF_STRUCT::sCourse*)(*it)->pData;
 
-	Close(true);
-}
 
-void FrMapSelectDlg::OnSelectOwnerDraw(int param)
-{
-	FrListItem* pItem = (FrListItem*)param;
-	if (pItem == NULL)
-		return;
 
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-	if (pGDI == NULL)
-		return;
+			if (pCourse) {
 
-	IFF_STRUCT::sCourse* pCourse = (IFF_STRUCT::sCourse*)pItem->pData;
 
-	const Bitmap* pBitmap;
-	if (pCourse)
-		pBitmap =
-			pManager->GetBitmap("ITEMS", MakeStr("mid_%s", pCourse->c.Icon));
-	else
-		pBitmap = pManager->GetBitmap("ITEMS", "mid_map_hide");
+				if (map == (pCourse->m_typeId & 0x3FFFFFF)) {
 
-	if (pBitmap)
-	{
-		pGDI->DrawTexture(pBitmap,
-			WRect(0, 0, (float)pBitmap->Width(), (float)pBitmap->Height()),
-			WRect(pItem->pos.x, pItem->pos.y, (float)pBitmap->Width(),
-				(float)pBitmap->Height()),
-			0xffffffff, 0);
-
-		if (IsLocalContent(S3_MAP_EVENT) && pCourse)
-		{
-			unsigned long rate =
-				Doc()->GetMapEventPangRate(pCourse->c.TypeId & 0x3ffffff);
-			char name[128] = { 0 };
-			sprintf(name, "mid_pangrate_%d", rate);
-
-			const Bitmap* pRate = g_pFresh->GetBitmap(name);
-			if (pRate)
-			{
-				float x = pItem->pos.x + 5.0f;
-				float y = (float)pBitmap->Height() - (float)pRate->Height() -
-					2.0f + pItem->pos.y;
-				pGDI->DrawTexture(pRate,
-					WRect(x, y, (float)pRate->Width(), (float)pRate->Height()),
-					0xffffffff, 0);
+					m_selectMap = map;
+					m_pSelect->SelectItem(*it, true);
+					break;
+				}
 			}
 		}
 	}
+}
 
-	if (pCourse &&
-		(((Doc()->m_curChannel.Type & 0x800) && pCourse->Difficulty >= 3) ||
-			(m_bNoRandomMap && (pCourse->c.TypeId & 0x3ffffff) == 0x7f)))
-	{
-		const Bitmap* pLock =
-			g_pFresh->GetManager()->GetBitmap("ITEMS", "map_lock");
-		if (pLock)
-		{
-			pGDI->DrawTexture(pLock,
-				WRect(0, 0, (float)pLock->Width(), (float)pLock->Height()),
-				WRect(pItem->pos.x, pItem->pos.y, (float)pLock->Width(),
-					(float)pLock->Height()),
-				0xffffffff, 0);
+// mapselectdlg.cpp:157
+void FrMapSelectDlg::OnSelectBtnUp(void) {
+	FrListItem* pItem = m_pSelect->GetSelected();
+
+	if (pItem) {
+
+		IFF_STRUCT::sCourse* pCourse = (IFF_STRUCT::sCourse*)pItem->pData;
+
+		if (pCourse) {
+
+
+			if (((WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800) && (pCourse->courseFlags & 0x0F) >= 3) || (m_refuseCourse7F && (pCourse->m_typeId & 0x3FFFFFF) == 0x7F)) {
+
+				m_pSelect->ToggleItem(pItem);
+				return;
+			}
+
+
+			if (IsLocalContent((localContentType_t)0x3A)) {
+
+				if ((WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800) && !WSingleton<CSharedDoc>::Instance()->CanUseRookieChannelMap(pCourse->m_typeId & 0x3FFFFFF)) {
+
+					m_pSelect->ToggleItem(pItem);
+					return;
+				}
+			}
+
+
+
+			if (m_sendOnSelect && (!stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") || !stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") || !stricmp(g_pFresh->GetManager()->GetLayoutID(), "AVATARCHAT_MAIN"))) {
+
+				WSendPacket packet((enumClientPacket)0x0A);
+				packet.Encode2(0xFFFF);
+				packet.Encode1(1);
+				packet.Encode1(3);
+				packet.Encode1((unsigned char)pCourse->m_typeId);
+				packet.Send(SEND_TO_DEFAULT);
+
+				AfxGetTask()->SendMsgToMainActor(MsgObject(0, 1, 0, 0, 0, 0, 0));
+			} else {
+
+				m_selectMap = pCourse->m_typeId & 0x3FFFFFF;
+			}
+
+
+			Close(true);
 		}
 	}
+}
 
-	if (IsLocalContent(S3_ROOKIE_CHANNEL) && pCourse &&
-		(Doc()->m_curChannel.Type & 0x800) &&
-		!Doc()->CanUseRookieChannelMap(pCourse->c.TypeId & 0x3ffffff))
-	{
-		const Bitmap* pLock =
-			g_pFresh->GetManager()->GetBitmap("ITEMS", "map_lock");
-		if (pLock)
-		{
-			pGDI->DrawTexture(pLock,
-				WRect(0, 0, (float)pLock->Width(), (float)pLock->Height()),
-				WRect(pItem->pos.x, pItem->pos.y, (float)pLock->Width(),
-					(float)pLock->Height()),
-				0xffffffff, 0);
-		}
-	}
+// mapselectdlg.cpp:204
+void FrMapSelectDlg::OnSelectOwnerDraw(intptr_t param) {
+	FrListItem* pItem = (FrListItem*)param;
 
-	if (pItem->selected && pItem->pData)
-	{
-		const Bitmap* pSelect =
-			g_pFresh->GetManager()->GetBitmap("RANKING", "map_select");
-		if (pSelect)
-		{
-			pGDI->DrawTexture(pSelect,
-				WRect(pItem->pos.x - 6.0f, pItem->pos.y - 6.0f,
-					(float)pSelect->Width(), (float)pSelect->Height()),
-				0xffffffff, 0);
+	if (pItem) {
+
+
+		FrWndManager* pManager = g_pFresh->GetManager();
+		FrGraphicInterface* pGDI = pManager->GetGDI();
+		if (pGDI) {
+
+
+
+			IFF_STRUCT::sCourse* pCourse = (IFF_STRUCT::sCourse*)pItem->pData;
+			const Bitmap* pBitmap;
+			if (pCourse)
+				pBitmap = pManager->GetBitmap("ITEMS", MakeStr("mid_%s", pCourse->m_icon));
+			else
+				pBitmap = pManager->GetBitmap("ITEMS", "mid_map_hide");
+
+			if (pBitmap) {
+
+
+
+
+				pGDI->DrawTexture(pBitmap, WRect(0.0f, 0.0f, pBitmap->Width(), pBitmap->Height()), WRect(pItem->pos.x, pItem->pos.y, pBitmap->Width(), pBitmap->Height()), 0xFFFFFFFF, 0);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				if (IsLocalContent((localContentType_t)0x39) && pCourse) {
+
+					unsigned long rate = WSingleton<CSharedDoc>::Instance()->GetMapEventPangRate(pCourse->m_typeId & 0x3FFFFFF);
+
+					char name[128] = { 0, };
+					sprintf(name, "mid_pangrate_%d", rate);
+					const Bitmap* pRate = g_pFresh->GetBitmap(name);
+
+					if (pRate) {
+
+
+
+						pGDI->DrawTexture(pRate, WRect(pItem->pos.x + 5.0f, pItem->pos.y + ((float)pBitmap->Height() - (float)pRate->Height() - 2.0f), (float)pRate->Width(), (float)pRate->Height()), 0xFFFFFFFF, 0);
+					}
+				}
+			}
+
+
+
+
+
+
+			if (pCourse && (((WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800) && (pCourse->courseFlags & 0x0F) >= 3) || (m_refuseCourse7F && (pCourse->m_typeId & 0x3FFFFFF) == 0x7F))) {
+
+				const Bitmap* pLock = g_pFresh->GetManager()->GetBitmap("ITEMS", "map_lock");
+
+				if (pLock) {
+
+
+
+
+					pGDI->DrawTexture(pLock, WRect(0.0f, 0.0f, (float)pLock->Width(), (float)pLock->Height()), WRect(pItem->pos.x, pItem->pos.y, (float)pLock->Width(), (float)pLock->Height()), 0xFFFFFFFF, 0);
+				}
+			}
+
+
+
+			if (IsLocalContent((localContentType_t)0x3A)) {
+
+				if (pCourse && (WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags & 0x800) && !WSingleton<CSharedDoc>::Instance()->CanUseRookieChannelMap(pCourse->m_typeId & 0x3FFFFFF)) {
+
+					const Bitmap* pLock = g_pFresh->GetManager()->GetBitmap("ITEMS", "map_lock");
+
+					if (pLock) {
+
+
+
+
+						pGDI->DrawTexture(pLock, WRect(0.0f, 0.0f, (float)pLock->Width(), (float)pLock->Height()), WRect(pItem->pos.x, pItem->pos.y, (float)pLock->Width(), (float)pLock->Height()), 0xFFFFFFFF, 0);
+					}
+				}
+			}
+
+			if (pItem->selected && pItem->pData) {
+
+				const Bitmap* pSelect = g_pFresh->GetManager()->GetBitmap("RANKING", "map_select");
+				if (pSelect)
+					pGDI->DrawTexture(pSelect, WRect(pItem->pos.x - 6.0f, pItem->pos.y - 6.0f, (float)pSelect->Width(), (float)pSelect->Height()), 0xFFFFFFFF, 0);
+			}
 		}
 	}
 }

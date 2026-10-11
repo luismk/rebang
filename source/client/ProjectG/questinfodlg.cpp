@@ -1,668 +1,408 @@
-#include "minatl.h"
-#include "questinfodlg.h"
-
-#include "wfont.h"
+// Original: d:\build\custom\temp\code\client\projectg\questinfodlg.cpp
+#include "QuestInfoDlg.h"
+#include "SharedDoc.h"
+#include "commonutil.h"
+#include "ObjectFactory.h"
 #include "actor.h"
-#include "../../shared/sharedtables.h"
+#include "frarea.h"
+#include "frbutton.h"
+#include "fredit.h"
+#include "fresh.h"
+#include "frlistbox.h"
+#include "wfont.h"
 #include "wresrcmng.h"
+
 #include <string.h>
 
-extern Fresh* g_pFresh;
+// File names of the title fonts of the two dialogs (nameless data).
+extern "C" char* data_a852d8[];
+extern "C" char* data_a852dc[];
 
-extern WResourceManager* g_resrcmng;
-extern WView* g_view;
-
-struct QuestReward
-{
-	unsigned long flag;
-	unsigned long typeId;
-	unsigned long quantity;
+// A quest's completion bit and its reward. The same table as TutorialMain's
+// s_questRewards (each unit has its own copy at a different address, so the
+// original most likely defined it in a header both include).
+struct sQuestReward {
+	unsigned long m_mask;   // 0x00
+	unsigned long m_typeId; // 0x04, 0 for the quest with a gender-dependent reward (index 7)
+	int m_count;            // 0x08
 };
-static const QuestReward questRewards[20] = {
-	{ 0x1,     0x1a00000f, 0x3   },
-	{ 0x2,     0x18000007, 0x3   },
-	{ 0x4,     0x18000005, 0x3   },
-	{ 0x8,     0x18000008, 0x3   },
-	{ 0x10,    0x1a000010, 0x1f4 },
-	{ 0x20,    0x18000004, 0x3   },
-	{ 0x40,    0x1a000010, 0x1f4 },
-	{ 0x80,    0x0,        0x1   },
-	{ 0x100,   0x1a00000f, 0x3   },
-	{ 0x200,   0x18000028, 0x1   },
-	{ 0x400,   0x18000006, 0x1   },
-	{ 0x800,   0x18000007, 0x5   },
-	{ 0x1000,  0x18000000, 0x4   },
-	{ 0x2000,  0x18000001, 0x4   },
-	{ 0x8000,  0x18000005, 0x3   },
-	{ 0x10000, 0x18000005, 0x3   },
-	{ 0x20000, 0x18000005, 0x3   },
-	{ 0x40000, 0x18000005, 0x3   },
-	{ 0x80000, 0x18000005, 0x3   },
-	{ 0x80000, 0x18000005, 0x3   },
+CHECK_SIZE(sQuestReward, 0x0C);
+
+static const sQuestReward s_questRewards[20] = {
+	{ 0x1, 0x1A00000F, 3 }, { 0x2, 0x18000007, 3 }, { 0x4, 0x18000005, 3 },
+	{ 0x8, 0x18000008, 3 }, { 0x10, 0x1A000010, 500 }, { 0x20, 0x18000004, 3 },
+	{ 0x40, 0x1A000010, 500 }, { 0x80, 0, 1 }, { 0x100, 0x1A00000F, 3 },
+	{ 0x200, 0x18000028, 1 }, { 0x400, 0x18000006, 1 }, { 0x800, 0x18000007, 5 },
+	{ 0x1000, 0x18000000, 4 }, { 0x2000, 0x18000001, 4 }, { 0x8000, 0x18000005, 3 },
+	{ 0x10000, 0x18000005, 3 }, { 0x20000, 0x18000005, 3 }, { 0x40000, 0x18000005, 3 },
+	{ 0x80000, 0x18000005, 3 }, { 0x80000, 0x18000005, 3 },
 };
 
-struct QuestText
-{
-	unsigned char index;
-	bool complete;
-	const char* name;
-	const char* npc;
-	const char* description;
-	const char* message;
+// A tutorial quest's texts (questinfodlg.cpp:31-46, 0x14 bytes; nameless
+// data at 0xAF4C08, filled by the unit's dynamic initializer).
+struct sQuestText {
+	unsigned char m_index;      // 0x00
+	bool m_flag;                // 0x01 (always false)
+	const char *m_title;        // 0x04, the quest's name ("%d : %s" in FrQuestInfoDlg)
+	const char *m_npc;          // 0x08, the NPC who gives it
+	const char *m_explane;      // 0x0C, the description
+	const char *m_message;      // 0x10, the goal
 };
-static QuestText questTexts[14] = {
-	{ 0,  false, K2L_Compatibility("\305\254\267\264\274\261\305\303"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\270\360\270\247\301\366\261\342 \270\305\273\347\277\243 \261\342\303\312\260\241 \306\260\306\260\307\330\276\337 \307\317\264\302 \271\375! \306\316\276\337\300\307 \261\342\272\273\260\372 \305\254\267\264 \274\261\305\303 \271\346\271\375\300\273 \276\313\276\306\272\270\300\332!"),
-     K2L_Compatibility(
-			"\307\245\275\303\265\310 \260\367\277\241 \263\253\307\317\301\366\301\241\012\277\305\261\342\261\342")                                         },
-	{ 1,  false, K2L_Compatibility("\305\270\261\270\271\346\271\375"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\306\316\276\337! \270\332\301\370 \274\246\300\273 \307\317\264\302 \271\346\271\375\277\241 \264\353\307\330 \276\313\276\306\272\270\300\332!"),
-     K2L_Compatibility(
-			"\307\245\275\303\265\310 \260\367\300\270\267\316\012\274\246 \303\304\272\270\261\342")                                                         },
-	{ 2,  false, K2L_Compatibility("\306\316\276\337\260\324\300\314\301\366"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\264\365 \270\326\270\256! \264\365 \260\255\307\317\260\324! \306\316\276\337\304\336\272\270\260\324\300\314\301\366\270\246 \273\347\277\353\307\317\277\251 \306\304\277\366\274\246\300\273 \303\304\272\270\300\332!"),
-     K2L_Compatibility(
-			"\306\316\276\337\304\336\272\270\260\324\300\314\301\366\270\246\012\273\347\277\353\307\317\277\251 \306\304\277\366\274\246 \304\241\261\342") },
-	{ 3,  false, K2L_Compatibility("\306\333\306\303\300\307 \261\342\272\273"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\310\246\300\307 \270\266\271\253\270\256! \306\333\306\303\277\241 \264\353\307\330 \271\350\277\366\272\270\300\332"),
-     K2L_Compatibility("\306\333\306\303 \271\350\277\354\261\342")																						   },
-	{ 4,  false, K2L_Compatibility("\276\306\300\314\305\333\273\347\277\353"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\276\321, \300\314\267\261 \275\305\261\342\307\321 \276\306\300\314\305\333\300\314? \276\306\300\314\305\333 \273\347\277\353\271\375\300\273 \276\313\276\306\272\270\300\332!"),
-     K2L_Compatibility(
-			"\276\306\300\314\305\333 \273\347\277\353\300\270\267\316\012\306\304\277\366\274\246 \304\241\261\342")                                         },
-	{ 5,  false, K2L_Compatibility("\301\366\270\351\274\323\274\272"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\307\256\271\347, \270\360\267\241\271\347, \271\331\264\331, \277\254\270\370... \264\331\276\347\307\321 \301\366\270\351\277\241 \264\353\307\330 \260\370\272\316\307\317\300\332!"),
-     K2L_Compatibility(
-			"\304\373\301\356\267\316 \276\313\276\306\272\270\264\302\012\301\366\270\351\300\307 \274\323\274\272")                                         },
-	{ 6,  false, K2L_Compatibility("\275\272\304\332\276\356\260\350\273\352"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\276\313\275\366\264\336\275\366? \306\316\276\337\300\307 \301\241\274\366 \260\350\273\352\271\375\300\273 \276\313\276\306\272\270\300\332!"),
-     K2L_Compatibility(
-			"\304\373\301\356\267\316 \276\313\276\306\272\270\264\302\012\306\316\276\337\300\307 \301\241\274\366")                                         },
-	{ 7,  false,
-     K2L_Compatibility(
-			"4\310\246\277\241\274\255 \310\246\300\316\307\317\261\342"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\303\312\272\270 \264\353\305\273\303\342! \301\366\261\335\261\356\301\366 \271\350\277\356 \270\360\265\347 \260\315\300\273 \300\300\277\353\307\317\277\251 \275\307\275\300 \265\265\300\374!"),
-     K2L_Compatibility(
-			"\306\304 4\310\246\277\241\274\255\012Par\300\314\273\363 \261\342\267\317\307\317\261\342")                                                     },
-	{ 8,  false,
-     K2L_Compatibility("\260\370 \277\305\261\342\261\342"),                     K2L_Compatibility("\272\300\264\331\270\256"), K2L_Compatibility("\265\265\300\372\310\367 \274\246\300\273 \304\245 \274\366 \276\370\264\302 \273\363\310\262\300\314\266\363\270\351? \260\370\277\305\261\342\261\342 \261\342\264\311\300\273 \271\350\277\366\272\270\300\332!"),
-     K2L_Compatibility(
-			"\260\370\277\305\261\342\261\342 \261\342\264\311 \276\313\276\306\272\270\261\342")                                                             },
-	{ 9,  false, K2L_Compatibility("\260\370 \261\342\277\357\261\342"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\301\366\270\351\300\307 \261\342\277\357\261\342\270\246 \300\320\260\355 \264\365\277\355 \301\244\261\263\307\321 \274\246\277\241 \265\265\300\374\307\317\300\332!"),
-     K2L_Compatibility(
-			"\301\366\270\351\300\307 \261\342\277\357\261\342\270\246 \300\320\264\302 \271\375")                                                            },
-	{ 10, false, K2L_Compatibility("\271\331\266\367 \300\320\261\342"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\271\331\266\367\300\273 \300\320\260\355 \260\370\300\307 \261\313\300\373\300\273 \277\271\303\370\307\317\266\363!"),
-     K2L_Compatibility(
-			"\271\331\266\367\300\307 \274\274\261\342\277\315 \271\346\307\342 \276\313\276\306\272\270\261\342")                                            },
-	{ 11, false, K2L_Compatibility("\305\270\301\241\300\314\265\277"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\260\370\300\307 \305\270\301\241\300\273 \301\266\300\375\307\317\277\251 \261\313\300\373\300\307 \260\242\265\265\270\246 \271\331\262\343\272\270\300\332!"),
-     K2L_Compatibility(
-			"\260\370\300\307 \305\270\301\241 \301\266\300\375\307\317\261\342")                                                                             },
-	{ 12, false, K2L_Compatibility("\306\304\277\366\275\272\307\311"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\260\255\267\302\307\321 \275\272\307\311! \306\304\277\366\275\272\307\311\277\241 \264\353\307\330 \276\313\276\306\272\270\300\332."),
-     K2L_Compatibility(
-			"\306\304\277\366 \275\272\307\311 \274\246 \300\315\310\367\261\342")                                                                            },
-	{ 13, false, K2L_Compatibility("\306\304\277\366\304\277\272\352"),
-     K2L_Compatibility("\272\300\264\331\270\256"),
-     K2L_Compatibility(
-			"\260\305\264\353\307\321 \300\345\276\326\271\260\265\265 \277\344\270\256\301\266\270\256 \272\361\304\321\260\241\264\302 \306\304\277\366 \304\277\272\352\274\246\300\273 \271\350\277\366\272\270\300\332!"),
-     K2L_Compatibility(
-			"\300\345\276\326\271\260\300\273 \307\307\307\330 \270\361\307\245\301\366\301\241\300\270\267\316 \260\370 \272\270\263\273\261\342")           },
+CHECK_SIZE(sQuestText, 0x14);
+
+// questinfodlg.cpp:31
+static const char *s_questNpc = "\xba\xc0\xb4\xd9\xb8\xae";
+
+static sQuestText s_questTexts[14] = {
+	{ 0, false, "\xc5\xac\xb7\xb4\xbc\xb1\xc5\xc3", s_questNpc, "\xb8\xf0\xb8\xa7\xc1\xf6\xb1\xe2 \xb8\xc5\xbb\xe7\xbf\xa3 \xb1\xe2\xc3\xca\xb0\xa1 \xc6\xb0\xc6\xb0\xc7\xd8\xbe\xdf \xc7\xcf\xb4\xc2 \xb9\xfd! \xc6\xce\xbe\xdf\xc0\xc7 \xb1\xe2\xba\xbb\xb0\xfa \xc5\xac\xb7\xb4 \xbc\xb1\xc5\xc3 \xb9\xe6\xb9\xfd\xc0\xbb \xbe\xcb\xbe\xc6\xba\xb8\xc0\xda!", "\xc7\xa5\xbd\xc3\xb5\xc8 \xb0\xf7\xbf\xa1 \xb3\xab\xc7\xcf\xc1\xf6\xc1\xa1\x0a\xbf\xc5\xb1\xe2\xb1\xe2" },
+	{ 1, false, "\xc5\xb8\xb1\xb8\xb9\xe6\xb9\xfd", s_questNpc, "\xc6\xce\xbe\xdf! \xb8\xda\xc1\xf8 \xbc\xa6\xc0\xbb \xc7\xcf\xb4\xc2 \xb9\xe6\xb9\xfd\xbf\xa1 \xb4\xeb\xc7\xd8 \xbe\xcb\xbe\xc6\xba\xb8\xc0\xda!", "\xc7\xa5\xbd\xc3\xb5\xc8 \xb0\xf7\xc0\xb8\xb7\xce\x0a\xbc\xa6 \xc3\xc4\xba\xb8\xb1\xe2" },
+	{ 2, false, "\xc6\xce\xbe\xdf\xb0\xd4\xc0\xcc\xc1\xf6", s_questNpc, "\xb4\xf5 \xb8\xd6\xb8\xae! \xb4\xf5 \xb0\xad\xc7\xcf\xb0\xd4! \xc6\xce\xbe\xdf\xc4\xde\xba\xb8\xb0\xd4\xc0\xcc\xc1\xf6\xb8\xa6 \xbb\xe7\xbf\xeb\xc7\xcf\xbf\xa9 \xc6\xc4\xbf\xf6\xbc\xa6\xc0\xbb \xc3\xc4\xba\xb8\xc0\xda!", "\xc6\xce\xbe\xdf\xc4\xde\xba\xb8\xb0\xd4\xc0\xcc\xc1\xf6\xb8\xa6\x0a\xbb\xe7\xbf\xeb\xc7\xcf\xbf\xa9 \xc6\xc4\xbf\xf6\xbc\xa6 \xc4\xa1\xb1\xe2" },
+	{ 3, false, "\xc6\xdb\xc6\xc3\xc0\xc7 \xb1\xe2\xba\xbb", s_questNpc, "\xc8\xa6\xc0\xc7 \xb8\xb6\xb9\xab\xb8\xae! \xc6\xdb\xc6\xc3\xbf\xa1 \xb4\xeb\xc7\xd8 \xb9\xe8\xbf\xf6\xba\xb8\xc0\xda", "\xc6\xdb\xc6\xc3 \xb9\xe8\xbf\xec\xb1\xe2" },
+	{ 4, false, "\xbe\xc6\xc0\xcc\xc5\xdb\xbb\xe7\xbf\xeb", s_questNpc, "\xbe\xd1, \xc0\xcc\xb7\xb1 \xbd\xc5\xb1\xe2\xc7\xd1 \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xcc? \xbe\xc6\xc0\xcc\xc5\xdb \xbb\xe7\xbf\xeb\xb9\xfd\xc0\xbb \xbe\xcb\xbe\xc6\xba\xb8\xc0\xda!", "\xbe\xc6\xc0\xcc\xc5\xdb \xbb\xe7\xbf\xeb\xc0\xb8\xb7\xce\x0a\xc6\xc4\xbf\xf6\xbc\xa6 \xc4\xa1\xb1\xe2" },
+	{ 5, false, "\xc1\xf6\xb8\xe9\xbc\xd3\xbc\xba", s_questNpc, "\xc7\xae\xb9\xe7, \xb8\xf0\xb7\xa1\xb9\xe7, \xb9\xd9\xb4\xd9, \xbf\xac\xb8\xf8... \xb4\xd9\xbe\xe7\xc7\xd1 \xc1\xf6\xb8\xe9\xbf\xa1 \xb4\xeb\xc7\xd8 \xb0\xf8\xba\xce\xc7\xcf\xc0\xda!", "\xc4\xfb\xc1\xee\xb7\xce \xbe\xcb\xbe\xc6\xba\xb8\xb4\xc2\x0a\xc1\xf6\xb8\xe9\xc0\xc7 \xbc\xd3\xbc\xba" },
+	{ 6, false, "\xbd\xba\xc4\xda\xbe\xee\xb0\xe8\xbb\xea", s_questNpc, "\xbe\xcb\xbd\xf6\xb4\xde\xbd\xf6? \xc6\xce\xbe\xdf\xc0\xc7 \xc1\xa1\xbc\xf6 \xb0\xe8\xbb\xea\xb9\xfd\xc0\xbb \xbe\xcb\xbe\xc6\xba\xb8\xc0\xda!", "\xc4\xfb\xc1\xee\xb7\xce \xbe\xcb\xbe\xc6\xba\xb8\xb4\xc2\x0a\xc6\xce\xbe\xdf\xc0\xc7 \xc1\xa1\xbc\xf6" },
+	{ 7, false, "4\xc8\xa6\xbf\xa1\xbc\xad \xc8\xa6\xc0\xce\xc7\xcf\xb1\xe2", s_questNpc, "\xc3\xca\xba\xb8 \xb4\xeb\xc5\xbb\xc3\xe2! \xc1\xf6\xb1\xdd\xb1\xee\xc1\xf6 \xb9\xe8\xbf\xee \xb8\xf0\xb5\xe7 \xb0\xcd\xc0\xbb \xc0\xc0\xbf\xeb\xc7\xcf\xbf\xa9 \xbd\xc7\xbd\xc0 \xb5\xb5\xc0\xfc!", "\xc6\xc4 4\xc8\xa6\xbf\xa1\xbc\xad\x0aPar\xc0\xcc\xbb\xf3 \xb1\xe2\xb7\xcf\xc7\xcf\xb1\xe2" },
+	{ 8, false, "\xb0\xf8 \xbf\xc5\xb1\xe2\xb1\xe2", s_questNpc, "\xb5\xb5\xc0\xfa\xc8\xf7 \xbc\xa6\xc0\xbb \xc4\xa5 \xbc\xf6 \xbe\xf8\xb4\xc2 \xbb\xf3\xc8\xb2\xc0\xcc\xb6\xf3\xb8\xe9? \xb0\xf8\xbf\xc5\xb1\xe2\xb1\xe2 \xb1\xe2\xb4\xc9\xc0\xbb \xb9\xe8\xbf\xf6\xba\xb8\xc0\xda!", "\xb0\xf8\xbf\xc5\xb1\xe2\xb1\xe2 \xb1\xe2\xb4\xc9 \xbe\xcb\xbe\xc6\xba\xb8\xb1\xe2" },
+	{ 9, false, "\xb0\xf8 \xb1\xe2\xbf\xef\xb1\xe2", s_questNpc, "\xc1\xf6\xb8\xe9\xc0\xc7 \xb1\xe2\xbf\xef\xb1\xe2\xb8\xa6 \xc0\xd0\xb0\xed \xb4\xf5\xbf\xed \xc1\xa4\xb1\xb3\xc7\xd1 \xbc\xa6\xbf\xa1 \xb5\xb5\xc0\xfc\xc7\xcf\xc0\xda!", "\xc1\xf6\xb8\xe9\xc0\xc7 \xb1\xe2\xbf\xef\xb1\xe2\xb8\xa6 \xc0\xd0\xb4\xc2 \xb9\xfd" },
+	{ 10, false, "\xb9\xd9\xb6\xf7 \xc0\xd0\xb1\xe2", s_questNpc, "\xb9\xd9\xb6\xf7\xc0\xbb \xc0\xd0\xb0\xed \xb0\xf8\xc0\xc7 \xb1\xcb\xc0\xfb\xc0\xbb \xbf\xb9\xc3\xf8\xc7\xcf\xb6\xf3!", "\xb9\xd9\xb6\xf7\xc0\xc7 \xbc\xbc\xb1\xe2\xbf\xcd \xb9\xe6\xc7\xe2 \xbe\xcb\xbe\xc6\xba\xb8\xb1\xe2" },
+	{ 11, false, "\xc5\xb8\xc1\xa1\xc0\xcc\xb5\xbf", s_questNpc, "\xb0\xf8\xc0\xc7 \xc5\xb8\xc1\xa1\xc0\xbb \xc1\xb6\xc0\xfd\xc7\xcf\xbf\xa9 \xb1\xcb\xc0\xfb\xc0\xc7 \xb0\xa2\xb5\xb5\xb8\xa6 \xb9\xd9\xb2\xe3\xba\xb8\xc0\xda!", "\xb0\xf8\xc0\xc7 \xc5\xb8\xc1\xa1 \xc1\xb6\xc0\xfd\xc7\xcf\xb1\xe2" },
+	{ 12, false, "\xc6\xc4\xbf\xf6\xbd\xba\xc7\xc9", s_questNpc, "\xb0\xad\xb7\xc2\xc7\xd1 \xbd\xba\xc7\xc9! \xc6\xc4\xbf\xf6\xbd\xba\xc7\xc9\xbf\xa1 \xb4\xeb\xc7\xd8 \xbe\xcb\xbe\xc6\xba\xb8\xc0\xda.", "\xc6\xc4\xbf\xf6 \xbd\xba\xc7\xc9 \xbc\xa6 \xc0\xcd\xc8\xf7\xb1\xe2" },
+	{ 13, false, "\xc6\xc4\xbf\xf6\xc4\xbf\xba\xea", s_questNpc, "\xb0\xc5\xb4\xeb\xc7\xd1 \xc0\xe5\xbe\xd6\xb9\xb0\xb5\xb5 \xbf\xe4\xb8\xae\xc1\xb6\xb8\xae \xba\xf1\xc4\xd1\xb0\xa1\xb4\xc2 \xc6\xc4\xbf\xf6 \xc4\xbf\xba\xea\xbc\xa6\xc0\xbb \xb9\xe8\xbf\xf6\xba\xb8\xc0\xda!", "\xc0\xe5\xbe\xd6\xb9\xb0\xc0\xbb \xc7\xc7\xc7\xd8 \xb8\xf1\xc7\xa5\xc1\xf6\xc1\xa1\xc0\xb8\xb7\xce \xb0\xf8 \xba\xb8\xb3\xbb\xb1\xe2" },
 };
 
-IMPLEMENT_ACTOR(FrQuestInfoDlg, FrForm)
+// questinfodlg.cpp:48 (run-time type and factory registration of FrQuestInfoDlg)
+const WRTTI FrQuestInfoDlg::m_RTTI("FrQuestInfoDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrQuestInfoDlg, FrForm)
+IObject* FrQuestInfoDlgMakeInstance(void) {
+	return new FrQuestInfoDlg;
+}
 
-ON_FRESH_VI("quest_info", FRCMD_INIT, FrQuestInfoDlg::OnQuestInfoInit)
-ON_FRESH_VI("reward_item", FRCMD_INIT, FrQuestInfoDlg::OnRewardItemListInit)
-ON_FRESH_VI("reward_item", FRCMD_OWNERDRAW,
-	FrQuestInfoDlg::OnRewardItemListOwnerDraw)
-ON_FRESH_VI("name", FRCMD_INIT, FrQuestInfoDlg::OnQuestNameEditInit)
-ON_FRESH_VI("message", FRCMD_INIT, FrQuestInfoDlg::OnQuestMessageEditInit)
-ON_FRESH_VI("explane", FRCMD_INIT, FrQuestInfoDlg::OnQuestExplaneEditInit)
+struct __impFrQuestInfoDlg {
+	__impFrQuestInfoDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrQuestInfoDlgMakeInstance, "FrQuestInfoDlg");
+		ActorFactory().AddActorClass("FrQuestInfoDlg");
+	}
+};
+static __impFrQuestInfoDlg s_registerFrQuestInfoDlg;
 
-END_FRESH_MSGMAP()
+// questinfodlg.cpp:50
+const sFRESH_MSGMAP* FrQuestInfoDlg::GetMessageMap(void) const {
+	return &FrQuestInfoDlg::_MsgMap;
+}
 
-FrQuestInfoDlg::FrQuestInfoDlg()
-{
-	m_pRewardItemList = NULL;
-	m_pItemFrame = NULL;
-	m_bReward = false;
+sFRESH_MSGMAP FrQuestInfoDlg::_MsgMap = { &FrForm::_MsgMap, &FrQuestInfoDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrQuestInfoDlg::_MsgEntries[] = {
+	// questinfodlg.cpp:53
+	{ "quest_info", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestInfoDlg::OnQuestInfoInit },
+	// questinfodlg.cpp:54
+	{ "reward_item", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestInfoDlg::OnRewardItemListInit },
+	// questinfodlg.cpp:55
+	{ "reward_item", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestInfoDlg::OnRewardItemListOwnerDraw },
+	// questinfodlg.cpp:56
+	{ "name", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestInfoDlg::OnQuestNameEditInit },
+	// questinfodlg.cpp:57
+	{ "message", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestInfoDlg::OnQuestMessageEditInit },
+	// questinfodlg.cpp:58
+	{ "explane", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestInfoDlg::OnQuestExplaneEditInit },
+
+	// questinfodlg.cpp:60
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// questinfodlg.cpp:63
+FrQuestInfoDlg::FrQuestInfoDlg(void) {
+	m_pRewardItemList = 0;
+	m_pItemFrame = 0;
+	m_bRewardItemAdded = false;
 	m_questIndex = 0;
-	m_pQuestName = NULL;
-	m_pQuestMessage = NULL;
-	m_pQuestExplane = NULL;
-	static char* filenames[] = { "[font_wind.jpg" };
-	WTITLEFONT info;
+	m_pQuestName = 0;
+	m_pQuestMessage = 0;
+	m_pQuestExplane = 0;
+
+	tagWTITLEFONT info;
 	memset(&info, 0, sizeof(info));
-	info.filename = filenames;
+	info.filename = data_a852d8;
 	info.fontw = 16;
 	info.fonth = 16;
 	info.numPages = 1;
 	info.texw = 128;
 	info.texh = 64;
 	info.pCharSet = "1234567890ym%-.?/:";
+
 	m_pTitleFont = g_resrcmng->GetTitleFont();
 	m_pTitleFont->Create(&info);
 }
 
-FrQuestInfoDlg::~FrQuestInfoDlg()
-{
-	if (g_resrcmng && m_pTitleFont)
-	{
-		g_resrcmng->Release(m_pTitleFont);
-		m_pTitleFont = NULL;
-	}
+// questinfodlg.cpp:91
+FrQuestInfoDlg::~FrQuestInfoDlg(void) {
+	if (g_resrcmng && m_pTitleFont) { g_resrcmng->Release(m_pTitleFont); m_pTitleFont = 0; }
 }
 
-void FrQuestInfoDlg::OnQuestInfoInit(int)
-{
+// questinfodlg.cpp:96
+void FrQuestInfoDlg::OnQuestInfoInit(int) {
 }
 
-void FrQuestInfoDlg::OnRewardItemListInit(int param)
-{
-	m_pRewardItemList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pRewardItemList)
-	{
-		m_pRewardItemList->SetPushSound(NULL);
+// questinfodlg.cpp:101
+void FrQuestInfoDlg::OnRewardItemListInit(intptr_t param) {
+	m_pRewardItemList = DYNAMIC_CAST(FrListBox, param);
+	if (m_pRewardItemList) {
+		m_pRewardItemList->SetPushSound(0);
+
 		m_pRewardItemList->ClearItem();
+
 		m_pItemFrame = g_pFresh->RegisterBitmap("re_itemframe_n");
 	}
 }
 
-void FrQuestInfoDlg::OnRewardItemListOwnerDraw(int param)
-{
-	if (!param)
-		return;
-	FrListItem* item = (FrListItem*)param;
-	FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-	float offsetX = 0.0f, offsetY = 0.0f;
-	if (m_pRewardItemList->m_itemList.size() > 1)
-	{
-		switch (item->idx)
-		{
-		case 0:
-			offsetY = 7.0f;
-			offsetX = 20.0f;
-			break;
-		case 1:
-			offsetY = 7.0f;
-			offsetX = 20.0f;
-			break;
-		}
-	}
-	else
-	{
-		offsetY = 7.0f;
-		offsetX = 100.0f;
-	}
-	device->SetTextStyle(0);
-	if (m_pItemFrame)
-		device->DrawTexture(m_pItemFrame,
-			WRect(item->pos.x + offsetX, item->pos.y + offsetY,
-				(float)m_pItemFrame->Width(), (float)m_pItemFrame->Height()),
-			0xffffffff, 0);
-	unsigned long typeId = (unsigned long)item->pData;
-	if (typeId)
-	{
-		const char* icon = "caddie_no";
-		IFF_ITEM_COMMON* common = ItemManager()->FindCommonItem(typeId);
-		if (common)
-		{
-			device->SetTextStyle(1);
-			WPoint pos(item->pos.x + 160.0f, item->pos.y + 7.0f);
-			pos.x += offsetX;
-			pos.y += offsetY;
-			device->Print(pos, 2, "%s", common->Name);
-			device->SetTextStyle(0);
-			icon = common->Icon;
-		}
-		const Bitmap* bitmap = g_pFresh->GetBitmap(icon);
-		if (bitmap)
-		{
-			float x, y;
-			switch (typeId >> 26)
-			{
-			case 1:
-			case 2:
-			case 8:
-			case 9:
-			case 15:
-			case 16:
-			case 28:
-				x = 7.0f;
-				y = 2.0f;
-				break;
-
-			case 11:
-				x = 9.0f;
-				y = 12.0f;
-				break;
-			case 14:
-				if ((typeId & 0x3c00000) == 0x800000)
-				{
-					x = 7.0f;
-					y = 12.0f;
-				}
-				else
-				{
-					x = 16.0f;
-					y = 27.0f;
-				}
-				break;
-			default:
-				x = 10.0f;
-				y = 20.0f;
-				break;
-			}
-			device->DrawTexture(bitmap,
-				WRect((item->pos.x + x) + offsetX, (item->pos.y + y) + offsetY,
-					(float)bitmap->Width(), (float)bitmap->Height()),
-				0xffffffff, 0);
-			{
-				int count = questRewards[m_questIndex].quantity;
-				const char* quantity = MakeStr("%d", count);
-				float posX = item->pos.x + 70.0f;
-				for (count = 0; count < strlen(quantity); ++count)
-					posX -= m_pTitleFont->GetCharWidth(g_view,
-						quantity[count] - '0');
-				m_pTitleFont->Print(g_view, posX + offsetX - 10.0f,
-					item->pos.y + offsetY + 50.0f, quantity, 0, 0xffffffff,
-					NULL);
-			}
-		}
-	}
+// questinfodlg.cpp:217
+void FrQuestInfoDlg::OnQuestNameEditInit(intptr_t param) {
+	m_pQuestName = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrQuestInfoDlg::OnQuestNameEditInit(int param)
-{
-	m_pQuestName = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// questinfodlg.cpp:222
+void FrQuestInfoDlg::OnQuestMessageEditInit(intptr_t param) {
+	m_pQuestMessage = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrQuestInfoDlg::OnQuestMessageEditInit(int param)
-{
-	m_pQuestMessage = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// questinfodlg.cpp:227
+void FrQuestInfoDlg::OnQuestExplaneEditInit(intptr_t param) {
+	m_pQuestExplane = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrQuestInfoDlg::OnQuestExplaneEditInit(int param)
-{
-	m_pQuestExplane = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-}
+// questinfodlg.cpp:232
+void FrQuestInfoDlg::SetQuestExplane(int index) {
+	m_pQuestName->AddText(MakeStr("%d : %s", index + 1, s_questTexts[index].m_title), false, true);
+	m_pQuestMessage->AddText(s_questTexts[index].m_message, false, true);
+	m_pQuestExplane->AddText(s_questTexts[index].m_explane, false, true);
 
-void FrQuestInfoDlg::SetQuestExplane(int index)
-{
-	m_pQuestName->AddText(MakeStr("%d : %s", index + 1, questTexts[index].name),
-		false, true);
-	m_pQuestMessage->AddText(questTexts[index].message, false, true);
-	m_pQuestExplane->AddText(questTexts[index].description, false, true);
-	if (questRewards[index].typeId)
-	{
-		m_pRewardItemList->AddItem((void*)questRewards[index].typeId);
-		m_bReward = true;
-	}
-	else if (index == 7)
-	{
-		if (Doc()->m_myInfo.info.gender % 2 == 0)
-			m_pRewardItemList->AddItem((void*)0x800a010);
-		else
+	if (s_questRewards[index].m_typeId != 0) {
+		m_pRewardItemList->AddItem((void*)s_questRewards[index].m_typeId);
+		m_bRewardItemAdded = true;
+	} else if (index == 7) {
+		if ((WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().eventFlags >> 1 & 1) % 2 == 0) {
+			m_pRewardItemList->AddItem((void*)0x800A010);
+		} else {
 			m_pRewardItemList->AddItem((void*)0x8048009);
-		m_bReward = true;
+		}
+		m_bRewardItemAdded = true;
 	}
+
 	m_questIndex = index;
 }
 
-IMPLEMENT_ACTOR(FrQuestGift, FrForm)
+// questinfodlg.cpp:274 (run-time type and factory registration of FrQuestGift)
+const WRTTI FrQuestGift::m_RTTI("FrQuestGift", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrQuestGift, FrForm)
+IObject* FrQuestGiftMakeInstance(void) {
+	return new FrQuestGift;
+}
 
-ON_FRESH_VI("reward_item", FRCMD_INIT, FrQuestGift::OnGiftListInit)
-ON_FRESH_VI("reward_item", FRCMD_OWNERDRAW, FrQuestGift::OnGiftListOwnerDraw)
-ON_FRESH_VV("reward_item", FRCMD_LBUTTONDOWN, FrQuestGift::OnGiftListLBtnDown)
-ON_FRESH_VI("select", FRCMD_INIT, FrQuestGift::OnSelectInit)
-ON_FRESH_VI("itemback4", FRCMD_INIT, FrQuestGift::OnItemBack4)
-ON_FRESH_VI("itemback5", FRCMD_INIT, FrQuestGift::OnItemBack5)
-ON_FRESH_VI("itemback6", FRCMD_INIT, FrQuestGift::OnItemBack6)
-ON_FRESH_VI("itemback7", FRCMD_INIT, FrQuestGift::OnItemBack7)
-ON_FRESH_VI("itemback8", FRCMD_INIT, FrQuestGift::OnItemBack8)
-ON_FRESH_VI("itemback9", FRCMD_INIT, FrQuestGift::OnItemBack9)
-ON_FRESH_VI("ok", FRCMD_INIT, FrQuestGift::OnOkInit)
+struct __impFrQuestGift {
+	__impFrQuestGift(void) {
+		ObjectFactory().AddObjectFunctor(FrQuestGiftMakeInstance, "FrQuestGift");
+		ActorFactory().AddActorClass("FrQuestGift");
+	}
+};
+static __impFrQuestGift s_registerFrQuestGift;
 
-END_FRESH_MSGMAP()
+// questinfodlg.cpp:276
+const sFRESH_MSGMAP* FrQuestGift::GetMessageMap(void) const {
+	return &FrQuestGift::_MsgMap;
+}
 
-FrQuestGift::FrQuestGift()
-	: m_pGiftList(NULL), m_pSelect(NULL), m_pOk(NULL)
-{
+sFRESH_MSGMAP FrQuestGift::_MsgMap = { &FrForm::_MsgMap, &FrQuestGift::_MsgEntries[0] };
+
+sFRESH_ENTRY FrQuestGift::_MsgEntries[] = {
+	// questinfodlg.cpp:278
+	{ "reward_item", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnGiftListInit },
+	// questinfodlg.cpp:279
+	{ "reward_item", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnGiftListOwnerDraw },
+	// questinfodlg.cpp:280
+	{ "reward_item", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrQuestGift::OnGiftListLBtnDown },
+
+	// questinfodlg.cpp:282
+	{ "select", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnSelectInit },
+
+	// questinfodlg.cpp:284
+	{ "itemback4", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnItemBack4 },
+	// questinfodlg.cpp:285
+	{ "itemback5", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnItemBack5 },
+	// questinfodlg.cpp:286
+	{ "itemback6", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnItemBack6 },
+	// questinfodlg.cpp:287
+	{ "itemback7", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnItemBack7 },
+	// questinfodlg.cpp:288
+	{ "itemback8", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnItemBack8 },
+	// questinfodlg.cpp:289
+	{ "itemback9", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnItemBack9 },
+
+	// questinfodlg.cpp:291
+	{ "ok", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrQuestGift::OnOkInit },
+
+	// questinfodlg.cpp:293
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// questinfodlg.cpp:297
+FrQuestGift::FrQuestGift(void) {
+	m_pGiftList = 0;
+	m_pSelect = 0;
+	m_pOk = 0;
+
 	memset(m_pItemBack, 0, sizeof(m_pItemBack));
 	m_questIndex = 0;
-	m_pItemFrame = NULL;
-	m_pNotify = NULL;
-	m_bDataSet = false;
-	static char* filenames[] = { "[font_wind.jpg" };
-	WTITLEFONT info;
+	m_pItemFrame = 0;
+	m_pNotifyForm = 0;
+	m_bGiftAdded = false;
+
+	tagWTITLEFONT info;
 	memset(&info, 0, sizeof(info));
-	info.filename = filenames;
+	info.filename = data_a852dc;
 	info.fontw = 16;
 	info.fonth = 16;
 	info.numPages = 1;
 	info.texw = 128;
 	info.texh = 64;
 	info.pCharSet = "1234567890ym%-.?/:";
+
 	m_pTitleFont = g_resrcmng->GetTitleFont();
 	m_pTitleFont->Create(&info);
 }
 
-FrQuestGift::~FrQuestGift()
-{
-	if (g_resrcmng && m_pTitleFont)
-	{
-		g_resrcmng->Release(m_pTitleFont);
-		m_pTitleFont = NULL;
-	}
+// questinfodlg.cpp:326
+FrQuestGift::~FrQuestGift(void) {
+	if (g_resrcmng && m_pTitleFont) { g_resrcmng->Release(m_pTitleFont); m_pTitleFont = 0; }
 }
 
-void FrQuestGift::OnGiftListInit(int param)
-{
-	m_pGiftList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
+// questinfodlg.cpp:331
+void FrQuestGift::OnGiftListInit(intptr_t param) {
+	m_pGiftList = DYNAMIC_CAST(FrListBox, param);
+
 	m_pItemFrame = g_pFresh->RegisterBitmap("re_itemframe_n");
 }
 
-void FrQuestGift::OnGiftListOwnerDraw(int param)
-{
-	if (!param)
-		return;
-	FrListItem* item = (FrListItem*)param;
-	FrGraphicInterface* device = g_pFresh->GetManager()->GetGDI();
-	float offsetX = 0.0f, offsetY = 0.0f;
-	if (m_pGiftList->m_itemList.size() == 2)
-	{
-		switch (item->idx)
-		{
-		case 0:
-			offsetY = 7.0f;
-			offsetX = 5.0f;
-			break;
-		case 1:
-			offsetY = 7.0f;
-			offsetX = 70.0f;
-			break;
-		}
-	}
-	else if (m_pGiftList->m_itemList.size() == 3)
-	{
-		switch (item->idx)
-		{
-		case 0:
-			offsetY = 7.0f;
-			offsetX = 5.0f;
-			break;
-		case 1:
-			offsetY = 7.0f;
-			offsetX = 70.0f;
-			break;
-		case 2:
-			offsetX = 5.0f;
-			offsetY = 10.0f;
-			break;
-		}
-	}
-	else
-	{
-		offsetY = 7.0f;
-		offsetX = 100.0f;
-	}
-	device->SetTextStyle(0);
-	if (m_pItemFrame)
-		device->DrawTexture(m_pItemFrame,
-			WRect(item->pos.x + offsetX, item->pos.y + offsetY,
-				(float)m_pItemFrame->Width(), (float)m_pItemFrame->Height()),
-			0xffffffff, 0);
-	unsigned long typeId = (unsigned long)item->pData;
-	if (typeId)
-	{
-		const char* icon = "caddie_no";
-		IFF_ITEM_COMMON* common = ItemManager()->FindCommonItem(typeId);
-		if (common)
-		{
-			device->SetTextStyle(1);
-			WPoint pos(item->pos.x + 160.0f, item->pos.y + 7.0f);
-			pos.x += offsetX;
-			pos.y += offsetY;
-			device->Print(pos, 2, "%s", common->Name);
-			device->SetTextStyle(0);
-			icon = common->Icon;
-		}
-		const Bitmap* bitmap = g_pFresh->GetBitmap(icon);
-		if (bitmap)
-		{
-			float x, y;
-			switch (typeId >> 26)
-			{
-			case 2:
-				x = 7.0f;
-				y = -5.0f;
-				break;
-			case 1:
-			case 8:
-			case 9:
-			case 15:
-			case 16:
-			case 28:
-				x = 7.0f;
-				y = 2.0f;
-				break;
-			case 11:
-				x = 9.0f;
-				y = 12.0f;
-				break;
-			case 14:
-				if ((typeId & 0x3c00000) == 0x800000)
-				{
-					x = 7.0f;
-					y = 12.0f;
-				}
-				else
-				{
-					x = 16.0f;
-					y = 27.0f;
-				}
-				break;
-			default:
-				x = 10.0f;
-				y = 20.0f;
-				break;
-			}
-			device->DrawTexture(bitmap,
-				WRect((item->pos.x + x) + offsetX, (item->pos.y + y) + offsetY,
-					(float)bitmap->Width(), (float)bitmap->Height()),
-				0xffffffff, 0);
-			if (m_bDataSet != true && questRewards[m_questIndex].quantity != 1)
-			{
-				int count = questRewards[m_questIndex].quantity;
-				const char* quantity = MakeStr("%d", count);
-				float posX = item->pos.x + 70.0f;
-				for (count = 0; count < strlen(quantity); ++count)
-					posX -= m_pTitleFont->GetCharWidth(g_view,
-						quantity[count] - '0');
-				m_pTitleFont->Print(g_view, posX + offsetX - 10.0f,
-					item->pos.y + offsetY + 50.0f, quantity, 0, 0xffffffff,
-					NULL);
-			}
-		}
-	}
-}
+// questinfodlg.cpp:497
+void FrQuestGift::OnSelectInit(intptr_t param) {
+	m_pSelect = DYNAMIC_CAST(FrArea, param);
 
-void FrQuestGift::OnGiftListLBtnDown()
-{
-	if (m_pGiftList && !m_bDataSet && m_pGiftList->m_itemList.size() != 1)
-	{
-		FrListItem* item = m_pGiftList->GetItemUnderCursor();
-		if (item)
-		{
-			unsigned long typeId = (unsigned long)item->pData;
-			if (typeId)
-			{
-				WSendPacket packet((enumClientPacket)168);
-				packet.Encode4(typeId);
-				packet.Send(TO_GAME);
-				m_pNotify =
-					CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify");
-				m_pNotify->SetMessage(
-					"\274\261\305\303\307\321 \274\261\271\260\300\273 \277\344\303\273\307\317\277\264\275\300\264\317\264\331.",
-					false);
-
-				m_pNotify->Open((FRESH_PFN_RESULT)&FrQuestGift::OnNotifyResult,
-					WPoint((g_view->GetWidth() - m_pNotify->GetRect().w) * 0.5f,
-						80.0f),
-					FrENTER);
-				m_pNotify->EnableDrag(false);
-				m_pNotify->MoveCursor("ok");
-			}
-		}
-	}
-}
-
-void FrQuestGift::OnSelectInit(int param)
-{
-	m_pSelect = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pSelect)
+	if (m_pSelect) {
 		m_pSelect->SetVisible(false);
+	}
 }
 
-void FrQuestGift::OnItemBack4(int param)
-{
-	m_pItemBack[0] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// questinfodlg.cpp:507
+void FrQuestGift::OnItemBack4(intptr_t param) {
+	m_pItemBack[0] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrQuestGift::OnItemBack5(int param)
-{
-	m_pItemBack[1] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// questinfodlg.cpp:512
+void FrQuestGift::OnItemBack5(intptr_t param) {
+	m_pItemBack[1] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrQuestGift::OnItemBack6(int param)
-{
-	m_pItemBack[2] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// questinfodlg.cpp:517
+void FrQuestGift::OnItemBack6(intptr_t param) {
+	m_pItemBack[2] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrQuestGift::OnItemBack7(int param)
-{
-	m_pItemBack[3] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// questinfodlg.cpp:522
+void FrQuestGift::OnItemBack7(intptr_t param) {
+	m_pItemBack[3] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrQuestGift::OnItemBack8(int param)
-{
-	m_pItemBack[4] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// questinfodlg.cpp:527
+void FrQuestGift::OnItemBack8(intptr_t param) {
+	m_pItemBack[4] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrQuestGift::OnItemBack9(int param)
-{
-	m_pItemBack[5] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// questinfodlg.cpp:532
+void FrQuestGift::OnItemBack9(intptr_t param) {
+	m_pItemBack[5] = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrQuestGift::OnOkInit(int param)
-{
-	m_pOk = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// questinfodlg.cpp:537
+void FrQuestGift::OnOkInit(intptr_t param) {
+	m_pOk = DYNAMIC_CAST(FrButton, param);
 }
 
-bool FrQuestGift::OnNotifyResult(int, FrForm*)
-{
+// questinfodlg.cpp:542
+bool FrQuestGift::OnNotifyResult(int ret, FrForm* pForm) {
 	Close(FrOK, true);
 	return true;
 }
 
-void FrQuestGift::SetQuestExplane(int index)
-{
-	if (questRewards[index].typeId)
-		m_pGiftList->AddItem((void*)questRewards[index].typeId);
-	else if (index == 7)
-	{
-		if (m_pSelect)
+// questinfodlg.cpp:548
+void FrQuestGift::SetQuestExplane(int index) {
+	if (s_questRewards[index].m_typeId != 0) {
+		m_pGiftList->AddItem((void*)s_questRewards[index].m_typeId);
+	} else if (index == 7) {
+		if (m_pSelect) {
 			m_pSelect->SetVisible(true);
-		if (Doc()->m_myInfo.info.gender % 2 == 0)
-			m_pGiftList->AddItem((void*)0x800a010);
-		else
+		}
+
+		if ((WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().eventFlags >> 1 & 1) % 2 == 0) {
+			m_pGiftList->AddItem((void*)0x800A010);
+		} else {
 			m_pGiftList->AddItem((void*)0x8048009);
+		}
 	}
+
 	m_questIndex = index;
 }
 
-void FrQuestGift::SetData(int type)
-{
-	switch (type)
-	{
+// questinfodlg.cpp:579
+void FrQuestGift::SetData(int index) {
+	switch (index) {
 	case 0:
 		m_pGiftList->AddItem((void*)0x10000012);
-		m_pGiftList->AddItem((void*)0x1c000000);
+		m_pGiftList->AddItem((void*)0x1C000000);
 		break;
 	case 1:
-		if (Doc()->m_myInfo.info.gender % 2 == 0)
-		{
+		if ((WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().eventFlags >> 1 & 1) % 2 == 0) {
 			m_pGiftList->AddItem((void*)0x8006012);
 			m_pGiftList->AddItem((void*)0x8010001);
-		}
-		else
-		{
+		} else {
 			m_pGiftList->AddItem((void*)0x8044013);
-			m_pGiftList->AddItem((void*)0x804e002);
+			m_pGiftList->AddItem((void*)0x804E002);
 		}
+
 		m_pGiftList->AddItem((void*)0x18000027);
+
 		SetSize();
 		break;
 	}
-	m_bDataSet = true;
+
+	m_bGiftAdded = true;
 }
 
-void FrQuestGift::SetSize()
-{
+// questinfodlg.cpp:622
+void FrQuestGift::SetSize(void) {
 	int height = m_pGiftList->GetItemHeight();
-	WRect rect = GetRect();
-	rect.h += height;
+
+	WRect rect = m_rect;
+	float addHeight = (float)height;
+	rect.h = addHeight + m_rect.h;
 	SetRect(rect);
+
 	rect = m_pGiftList->GetRect();
-	rect.h += height;
+	rect.h = addHeight + rect.h;
 	m_pGiftList->SetRect(rect);
-	WPoint point;
+
 	rect = m_pOk->GetRect();
-	point.x = rect.x;
-	point.y = rect.y + height;
-	m_pOk->MoveWindow(point);
-	for (int i = 0; i < 3; ++i)
-	{
+	m_pOk->MoveWindow(WPoint(rect.x, addHeight + rect.y));
+
+	float backHeight = (float)(height + 10);
+	int i;
+	for (i = 0; i < 3; i++) {
 		rect = m_pItemBack[i]->GetRect();
-		rect.h += height + 10;
+		rect.h = backHeight + rect.h;
 		m_pItemBack[i]->SetRect(rect);
 	}
-	for (int i = 3; i < 6; ++i)
-	{
+
+	float backOffset = addHeight + 10.0f;
+	for (i = 3; i < 6; i++) {
 		rect = m_pItemBack[i]->GetRect();
-		point.x = rect.x;
-		point.y = rect.y + (height + 10.0f);
-		m_pItemBack[i]->MoveWindow(point);
+		m_pItemBack[i]->MoveWindow(WPoint(rect.x, backOffset + rect.y));
 	}
 }

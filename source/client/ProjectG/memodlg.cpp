@@ -1,82 +1,108 @@
-#include "minatl.h"
-#include "memodlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\memodlg.cpp
+#include <string.h>
+
+#include "MemoDlg.h"
+#include "ObjectFactory.h"
+#include "GolfTask.h"
+#include "TaskManager.h"
+#include "fresh.h"
 #include "fredit.h"
 #include "frwndmanager.h"
 #include "frdesktop.h"
-#include "fresh.h"
-#include "golftask.h"
+#include "SharedDoc.h"
 
-extern Fresh* g_pFresh;
+// memodlg.cpp:17 (run-time type and factory registration of FrMemoDlg)
+const WRTTI FrMemoDlg::m_RTTI("FrMemoDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrMemoDlg, FrForm)
+IObject* FrMemoDlgMakeInstance(void) {
+	return new FrMemoDlg;
+}
 
-BEGIN_FRESH_MSGMAP(FrMemoDlg, FrForm)
+struct __sFrMemoDlg {
+	__sFrMemoDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrMemoDlgMakeInstance, "FrMemoDlg");
+	}
+};
+static __sFrMemoDlg s_registerFrMemoDlg;
 
-ON_FRESH_VI("memo", FRCMD_INIT, FrMemoDlg::OnMemoInit)
-ON_FRESH_VV("memo", FRCMD_LBUTTONDOWN, FrMemoDlg::OnMemoLButtonDown)
-ON_FRESH_BI("memo", FRCMD_ENTERKEY, FrMemoDlg::OnMemoEnterKey)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrMemoDlg::OnOkBtnUp)
+// memodlg.cpp:19
+const sFRESH_MSGMAP* FrMemoDlg::GetMessageMap(void) const {
+	return &FrMemoDlg::_MsgMap;
+}
 
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrMemoDlg::_MsgMap = { &FrForm::_MsgMap, &FrMemoDlg::_MsgEntries[0] };
 
-void FrMemoDlg::OnMemoInit(int param)
-{
-	m_pMemo = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+sFRESH_ENTRY FrMemoDlg::_MsgEntries[] = {
+	// memodlg.cpp:21
+	{ "memo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMemoDlg::OnMemoInit },
+	// memodlg.cpp:22
+	{ "memo", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrMemoDlg::OnMemoLButtonDown },
+	// memodlg.cpp:23
+	{ "memo", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&FrMemoDlg::OnMemoEnterKey },
+	// memodlg.cpp:24
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrMemoDlg::OnOkBtnUp },
+
+	// memodlg.cpp:26
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// memodlg.cpp:29
+void FrMemoDlg::OnMemoInit(intptr_t param) {
+	m_pMemo = DYNAMIC_CAST(FrEdit, param);
 	m_pMemo->SetCharLimit(10, false);
 	m_pMemo->SetKeyFocus(true);
 
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
-	{
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
 		g_pFresh->GetManager()->SetExclusiveKey(true);
 	}
 }
 
-void FrMemoDlg::OnMemoLButtonDown()
-{
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
-	{
+// memodlg.cpp:42
+void FrMemoDlg::OnMemoLButtonDown(void) {
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
 		g_pFresh->GetManager()->SetExclusiveKey(true);
 	}
 }
 
-bool FrMemoDlg::OnMemoEnterKey(int param)
-{
-	if (!m_pMemo->GetStyle().GetFlag(FWS_DISABLED))
+// memodlg.cpp:51
+bool FrMemoDlg::OnMemoEnterKey(int param) {
+	if (!m_pMemo->GetStyle().GetFlag(0x2)) {
 		OnOkBtnUp();
+	}
 
 	return false;
 }
 
-void FrMemoDlg::OnOkBtnUp()
-{
-	if (strlen(m_pMemo->GetLine(1, false)) == 0)
+// memodlg.cpp:59
+void FrMemoDlg::OnOkBtnUp(void) {
+	if (strlen(m_pMemo->GetLine(1, false)) == 0) {
 		m_pMemo->SetLine(1, "Friend", 0, false, 0);
+	}
 
 	OnFreshOkay();
 }
 
-const char* FrMemoDlg::GetMemo()
-{
-	if (m_pMemo == NULL)
-		return NULL;
+// memodlg.cpp:67
+const char* FrMemoDlg::GetMemo(void) {
+	if (!m_pMemo) {
+		return 0;
+	}
 
-	const char* memo = m_pMemo->GetLine(1, false);
-	Doc()->m_chatManager.FilteringHack(memo, true);
+	const char* text = m_pMemo->GetLine(1, false);
+	WSingleton<CSharedDoc>::Instance()->m_chatManager.FilteringHack(text, true);
 
-	return memo;
+	return text;
 }
 
-void FrMemoDlg::OnProc(const float deltaTime)
-{
-	if (m_bFocusSet == false)
-	{
-		if (m_focusTime > 0.3f)
-		{
-			WndManager()->GetDesktop()->ResetKeyFocus();
+// memodlg.cpp:91
+void FrMemoDlg::OnProc(const float dt) {
+	if (!m_bFocused) {
+		if (m_elapsed > 0.3f) {
+			m_pWndManager->GetDesktop()->ResetKeyFocus();
 			m_pMemo->SetKeyFocus(true);
-			m_bFocusSet = true;
+			m_bFocused = true;
 		}
 
-		m_focusTime += deltaTime;
+		m_elapsed += dt;
 	}
 }

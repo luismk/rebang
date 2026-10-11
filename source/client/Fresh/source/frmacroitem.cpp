@@ -1,73 +1,33 @@
-#include <list>
-#include <string>
+// Original: d:\build\custom\temp\code\client\fresh\source\frmacroitem.cpp
+#include "frmacroitem.h"
+#include "frelement.h"
+#include "frwndmanager.h"
 
-// HACK: stands in for an unknown erased inline use of __rtti_obj
-static __declspec(thread) int __rtti_tls_pad;
-
-class FrCmdTarget;
-class FrWnd;
-class FrWndManager;
-
-class FrGuiItem
-{
-public:
-	char unknown_00[8];
-	std::string m_resource;
-};
-
-class FrElementMacroItem
-{
-public:
-	char unknown_00[0x24];
-	std::list<FrGuiItem*> m_guiList;
-};
-
-class FrElementDoc
-{
-public:
-	FrElementMacroItem* GetMacroItem(const std::string& name);
-};
-
-class FrWndManager
-{
-public:
-	FrElementDoc* GetDocument() const;
-	FrWnd* DoCreate(FrGuiItem& item, FrWndManager* manager, FrWnd* parent,
-		FrCmdTarget* owner);
-};
-
-class FrMacroItem
-{
-public:
-	FrMacroItem();
-	void SetOwner(FrCmdTarget* owner);
-	void Init(FrGuiItem& item, FrWndManager* manager, FrWnd* parent);
-
-private:
-	FrCmdTarget* m_pOwner;
-};
-
-FrMacroItem::FrMacroItem()
-	: m_pOwner(0)
-{
+// frmacroitem.cpp:16
+FrMacroItem::FrMacroItem(void) {
+	m_pOwner = 0;
 }
 
-void FrMacroItem::SetOwner(FrCmdTarget* owner)
-{
-	m_pOwner = owner;
+// frmacroitem.cpp:21
+void FrMacroItem::SetOwner(FrCmdTarget* pOwner) {
+	m_pOwner = pOwner;
 }
 
-void FrMacroItem::Init(FrGuiItem& item, FrWndManager* manager, FrWnd* parent)
-{
-	FrElementDoc* document = manager->GetDocument();
-	FrElementMacroItem* macro = document->GetMacroItem(item.m_resource);
-	if (macro)
-	{
-		std::list<FrGuiItem*>::iterator it = macro->m_guiList.begin();
-		std::list<FrGuiItem*>::iterator end = macro->m_guiList.end();
-		for (; it != end; ++it)
-		{
-			manager->DoCreate(**it, manager, parent, m_pOwner);
-		}
+// frmacroitem.cpp:26
+void FrMacroItem::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
+	FrElementDoc* pDoc = pManager->GetDocument();
+
+	// The macro item named by the gui item's resource.
+	FrElementMacroItem* pMacro = pDoc->GetMacroItem(item.m_resource);
+	if (pMacro == 0) {
+		return;
+	}
+
+	// Create every gui item of the macro under the parent window.
+	std::list<FrGuiItem*>::iterator itEnd = pMacro->m_guiList.end();
+	std::list<FrGuiItem*>::iterator it = pMacro->m_guiList.begin();
+
+	for (; it != itEnd; ++it) {
+		pManager->DoCreate(**it, pManager, pParent, m_pOwner);
 	}
 }

@@ -1,195 +1,187 @@
-#include "wmemblock.inl"
+// Original: d:\build\custom\temp\code\client\wangreal\source\wxpuppet.cpp
+#include "../include/wxpuppet.h"
+#include "../include/wbone.h"
+#include "../include/wview.h"
+#include "../include/wresrcmng.h"
+
 #include <math.h>
-#include <new>
 #include <stdio.h>
 #include <string.h>
-#include "wxpuppet.h"
-#include "wbone.h"
-#include "wview.h"
 
-WxPuppet::WxPuppet(bool needBuffer)
-	: m_xbNeedTnLBuf(needBuffer)
-{
-	m_xpTnLBuf = 0;
+// wxpuppet.cpp:19
+WxPuppet::WxPuppet(bool bNeedTnLBuf) : m_xbNeedTnLBuf(bNeedTnLBuf), m_xpTnLBuf(NULL) {
 }
 
-WxPuppet::~WxPuppet()
-{
+// wxpuppet.cpp:23
+WxPuppet::~WxPuppet() {
 	xReleaseTnLBuffer();
 }
 
-void WxPuppet::xReleaseTnLBuffer()
-{
-	if (m_xpTnLBuf)
-	{
-		delete m_xpTnLBuf;
-		m_xpTnLBuf = 0;
-	}
+// wxpuppet.cpp:28
+void WxPuppet::xReleaseTnLBuffer() {
+	if (m_xpTnLBuf) { delete m_xpTnLBuf; m_xpTnLBuf = NULL; }
 }
 
-int WxPuppet::LoadPET(char* name, bool flag, int loadFlags)
-{
-	int result = WPuppet::LoadPET(name, flag, loadFlags);
-	char hint[260];
-	sprintf(hint, "WxPuppet:%s", name);
-	SetLeakHint(hint);
-	if (m_xbNeedTnLBuf && result == 0)
-	{
-		xReleaseTnLBuffer();
-		m_xpTnLBuf = new WxTnLBuffer;
-		WVideoDev* video = GetResrcManager()->video;
-		int createResult = m_xpTnLBuf->xCreateBuffers(video, this);
-		return m_xpTnLBuf->xFillBuffers() | createResult;
+// wxpuppet.cpp:33
+int WxPuppet::LoadPET(char* filename, bool alphatest, int iPetType) {
+	int result = WPuppet::LoadPET(filename, alphatest, iPetType);
+
+	char buf[260];
+	sprintf(buf, "WxPuppet:%s", filename);
+	SetLeakHint(buf);
+
+	if (!m_xbNeedTnLBuf || result != 0) {
+		return result;
 	}
+
+	xReleaseTnLBuffer();
+	m_xpTnLBuf = new WxTnLBuffer;
+
+	result = m_xpTnLBuf->xCreateBuffers(GetResrcManager()->VideoReference(), this);
+	result |= m_xpTnLBuf->xFillBuffers();
+
 	return result;
 }
 
-void WxPuppet::xUpdateTnLBuffers(bool rebuild)
-{
-	if (rebuild)
-	{
+// wxpuppet.cpp:56
+void WxPuppet::xUpdateTnLBuffers(bool bCreate) {
+	if (bCreate) {
 		xReleaseTnLBuffer();
 		m_xpTnLBuf = new WxTnLBuffer;
-		m_xpTnLBuf->xCreateBuffers(GetResrcManager()->video, this);
+		m_xpTnLBuf->xCreateBuffers(GetResrcManager()->VideoReference(), this);
 	}
+
 	m_xpTnLBuf->xFillBuffers();
 }
 
-void WxPuppet::xShareTnLResources(WxPuppet* destination)
-{
-	// HACK: this is a workaround for an ordering issue for exactness
-	(void)&WList<int>::Next;
-	if (m_xpTnLBuf)
-	{
-		m_xpTnLBuf->xCopy(&destination->m_xpTnLBuf, GetResrcManager()->video);
-		destination->m_xpTnLBuf->xSetRootBone(destination);
+// wxpuppet.cpp:70
+WPuppet* WxPuppet::MakeClone(bool bNeedTnLBuf) {
+	w_share_pet_data share;
+
+	share.petName = m_petName;
+	share.rootbone = m_rootbone;
+	share.length = m_aniLen;
+	share.faceNum = m_faceNum; share.numFramedata = m_framenum;
+	share.frame = m_frame;
+	share.bound = m_bound;
+
+	share.bbList = &m_bbList; share.mdList = m_mdList;
+	share.fanimList = &m_fanimList;
+
+	WxPuppet* pClone = new WxPuppet(bNeedTnLBuf);
+	pClone->m_iPetType = m_iPetType;
+	pClone->m_rendMode = m_rendMode;
+	pClone->Share(&share);
+
+	if (bNeedTnLBuf) {
+		if (m_xpTnLBuf) { m_xpTnLBuf->xCopy(&pClone->m_xpTnLBuf, GetResrcManager()->VideoReference()); pClone->m_xpTnLBuf->xSetRootBone(pClone); }
 	}
+
+	return pClone;
 }
 
-void WxPuppet::xUpdateTnLResources()
-{
+// wxpuppet.cpp:101
+void WxPuppet::xShareTnLResources(WxPuppet* pxPet) {
+	if (m_xpTnLBuf == NULL) {
+		return;
+	}
+	m_xpTnLBuf->xCopy(&pxPet->m_xpTnLBuf, GetResrcManager()->VideoReference());
+	pxPet->m_xpTnLBuf->xSetRootBone(pxPet);
+}
+
+// wxpuppet.cpp:110
+void WxPuppet::xUpdateTnLResources() {
 	m_xpTnLBuf->xSetRootBone(this);
 }
 
-void WxPuppet::SetAlpha(unsigned char alpha)
-{
-	if (m_xpTnLBuf == 0)
-		m_rootbone->SetAlpha(alpha, true);
-	else
-		m_rootbone->xSetAlpha(alpha, true);
-}
-
-void WxPuppet::UpdateLightSource(LightSet* light, bool addLight, WScene* scene)
-{
-	m_rootbone->SetLight(light);
-	if (m_xpTnLBuf == 0)
-	{
-		int lightMode = m_lightmode;
-		if (addLight)
-			lightMode |= 0x08000000;
-		m_rootbone->CalcLight(light, true, lightMode, scene);
+// wxpuppet.cpp:115
+void WxPuppet::SetAlpha(unsigned char ucAlpha) {
+	if (!m_xpTnLBuf) {
+		m_rootbone->SetAlpha(ucAlpha, 1);
+	} else {
+		m_rootbone->xSetAlpha(ucAlpha, 1);
 	}
 }
 
-void WxPuppet::UpdateMeshBonePtr(WPuppet* source)
-{
-	WPuppet::UpdateMeshBonePtr(source);
-	if (m_xpTnLBuf)
-		m_xpTnLBuf->xUpdateMatrixIdx(source);
+// wxpuppet.cpp:123
+void WxPuppet::UpdateLightSource(LightSet* light, bool bFlag, WScene* scene) {
+	m_rootbone->SetLight(light);
+
+	if (!m_xpTnLBuf) {
+		m_rootbone->CalcLight(light, true, bFlag ? m_lightmode | 0x8000000 : m_lightmode, scene);
+	}
 }
 
-void WxPuppet::Render(WView* view, bool transform, float scale, bool flag0,
-	bool flag1, bool software)
-{
-	if (software)
-	{
-		WPuppet::Render(view, transform, scale, flag0, flag1, false);
+// wxpuppet.cpp:131
+void WxPuppet::UpdateMeshBonePtr(WPuppet* pSrc) {
+	WPuppet::UpdateMeshBonePtr(pSrc);
+
+	if (m_xpTnLBuf) {
+		m_xpTnLBuf->xUpdateMatrixIdx(pSrc);
+	}
+}
+
+// wxpuppet.cpp:139
+void WxPuppet::Render(WView* pView, bool bTransform, float t, bool bNoClip, bool bNoUpdateMat, bool bOriginal) {
+	if (bOriginal) {
+		WPuppet::Render(pView, bTransform, t, bNoClip, bNoUpdateMat, false);
 		return;
 	}
 
-	if (m_xpTnLBuf)
-	{
-		if (transform)
-			Transform(view, scale, (flag0 ? 1 : 0) | (flag1 ? 0 : 2));
-		view->xSetLight(0, m_rootbone->m_light);
-		m_xpTnLBuf->xRender(view);
+	if (m_xpTnLBuf) {
+		if (bTransform) {
+			Transform(pView, t, (bNoClip ? WBone::NOCLIP : 0) | (bNoUpdateMat ? 0 : WBone::NOUPDATEMAT));
+		}
+		pView->xSetLight(0, m_rootbone->GetLight());
+
+		m_xpTnLBuf->xRender(pView);
 	}
 }
 
-WxStaticPuppetGrp::WxStaticPuppetGrp()
-	: m_xnPets(0), m_xpapPets(0)
-{
+// wxpuppet.cpp:174
+WxStaticPuppetGrp::WxStaticPuppetGrp() : m_xnPets(0), m_xpapPets(NULL) {
 }
 
-WxStaticPuppetGrp::~WxStaticPuppetGrp()
-{
+// wxpuppet.cpp:178
+WxStaticPuppetGrp::~WxStaticPuppetGrp() {
 	xReleaseTnLBuffer();
-	if (m_xpapPets)
-	{
-		delete[] m_xpapPets;
-		m_xpapPets = 0;
-	}
+
+	if (m_xpapPets) { delete[] m_xpapPets; m_xpapPets = NULL; }
 	m_xnPets = 0;
 }
 
-void WxStaticPuppetGrp::xReleaseTnLBuffer()
-{
+// wxpuppet.cpp:186
+void WxStaticPuppetGrp::xReleaseTnLBuffer() {
 	m_xTnLBuf.xClear();
 }
 
-int WxStaticPuppetGrp::xLoad(int count, const char*, WPuppet** puppets)
-{
+// wxpuppet.cpp:191
+int WxStaticPuppetGrp::xLoad(int nSPets, const char* FileName, WPuppet** ppaSPets) {
 	m_xnPets = 0;
-	m_xpapPets = new WPuppet*[count];
-	memcpy(m_xpapPets, puppets, count * sizeof(WPuppet*));
-	m_xTnLBuf.xCreateStaticBuffers(GetResrcManager()->video, puppets, count);
-	m_xTnLBuf.xUpdateStaticBufferInfo(puppets, count);
+	m_xpapPets = new WPuppet*[nSPets];
+	memcpy(m_xpapPets, ppaSPets, nSPets * sizeof(WPuppet*));
+
+	m_xTnLBuf.xCreateStaticBuffers(GetResrcManager()->VideoReference(), ppaSPets, nSPets);
+
+	m_xTnLBuf.xUpdateStaticBufferInfo(ppaSPets, nSPets);
+
 	m_xTnLBuf.xFillBuffers();
-	m_xnPets = count;
+
+	m_xnPets = nSPets;
+
 	return 0;
 }
 
-void WxStaticPuppetGrp::xUpdateCullFlag(WView* view)
-{
-	for (int i = 0; i < m_xnPets; ++i)
-	{
-		WPuppet* puppet = m_xpapPets[i];
-		if (puppet->m_rootbone)
-		{
-			float scale = (float)sqrt(puppet->m_mat.xx * puppet->m_mat.xx +
-				puppet->m_mat.yx * puppet->m_mat.yx +
-				puppet->m_mat.zx * puppet->m_mat.zx);
-			m_xpapPets[i]->Transform(view, scale, 2);
+// wxpuppet.cpp:211
+void WxStaticPuppetGrp::xUpdateCullFlag(WView* pView) {
+	for (int i = 0; i < m_xnPets; i++) {
+		if (m_xpapPets[i]->GetRootBone()) {
+			m_xpapPets[i]->Transform(pView, m_xpapPets[i]->GetMatrix().xa.Magnitude(), WBone::NOUPDATEMAT);
 		}
 	}
 }
 
-void WxStaticPuppetGrp::xRender(WView* view)
-{
-	m_xTnLBuf.xRender(view);
-}
-
-WPuppet* WxPuppet::MakeClone(bool needBuffer)
-{
-	// HACK: Force MakeClone to move below dtors
-	(void)&WList<int>::operator-=;
-	w_share_pet_data shareData;
-	shareData.petName = m_petName;
-	shareData.rootbone = m_rootbone;
-	shareData.length = m_aniLen;
-	shareData.faceNum = m_faceNum;
-	shareData.numFramedata = m_framenum;
-	shareData.frame = m_frame;
-	shareData.bound = m_bound;
-	shareData.bbList = &m_bbList;
-	shareData.mdList = m_mdList;
-	shareData.fanimList = &m_fanimList;
-
-	WxPuppet* clone = new WxPuppet(needBuffer);
-	clone->m_iPetType = m_iPetType;
-	clone->m_rendMode = m_rendMode;
-	clone->Share(&shareData);
-	if (needBuffer && m_xpTnLBuf)
-		xShareTnLResources(clone);
-	return clone;
+// wxpuppet.cpp:224
+void WxStaticPuppetGrp::xRender(WView* pView) {
+	m_xTnLBuf.xRender(pView);
 }

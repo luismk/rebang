@@ -1,104 +1,98 @@
-#include "minatl.h"
-#include "projectg.h"
-#include "golfball.h"
+// Original: d:\build\custom\temp\code\client\projectg\effectmanager.cpp
+#include "EffectManager.h"
 #include "fx.h"
-#include "effectmanager.h"
-#include "mathconsts.h"
+#include "fxspray.h"
+#include "golfball.h"
 
-CAztecHoleinEffect::CAztecHoleinEffect()
-{
+template <> CAztecHoleinEffect* WSingleton<CAztecHoleinEffect>::m_pInstance = NULL;
+
+// effectmanager.cpp:10
+CAztecHoleinEffect::CAztecHoleinEffect() {
 	Clear();
 }
 
-CAztecHoleinEffect::~CAztecHoleinEffect()
-{
+// effectmanager.cpp:17
+CAztecHoleinEffect::~CAztecHoleinEffect() {
 	Clear();
 }
 
-void CAztecHoleinEffect::Clear()
-{
-	m_unknown28 = 0;
-	m_unknown2c = 0;
+// effectmanager.cpp:23
+void CAztecHoleinEffect::Clear() {
+	m_lastEffectId = 0;
+	m_lastEffectTime = 0;
 
-	for (std::map<unsigned long, const char*>::iterator it =
-			 m_iffEffectMap.begin();
-		it != m_iffEffectMap.end(); ++it)
-		if (it->second)
-		{
+	EffectNameMap::iterator it;
+	for (it = m_iffEffects.begin(); it != m_iffEffects.end(); ++it) {
+		if (it->second) {
 			delete it->second;
 			it->second = NULL;
 		}
+	}
+	m_iffEffects.clear();
 
-	m_iffEffectMap.clear();
-
-	for (std::map<unsigned long, const char*>::iterator it2 =
-			 m_effectMap.begin();
-		it2 != m_effectMap.end(); ++it2)
-		if (it2->second)
-		{
-			delete it2->second;
-			it2->second = NULL;
+	for (it = m_registeredEffects.begin(); it != m_registeredEffects.end(); ++it) {
+		if (it->second) {
+			delete it->second;
+			it->second = NULL;
 		}
-
-	m_effectMap.clear();
+	}
+	m_registeredEffects.clear();
 }
 
-bool CAztecHoleinEffect::LoadEffectFromIFF()
-{
+// effectmanager.cpp:52
+bool CAztecHoleinEffect::LoadEffectFromIFF() {
 	return true;
 }
 
-bool CAztecHoleinEffect::Initialize()
-{
+// effectmanager.cpp:61
+bool CAztecHoleinEffect::Initialize() {
 	return false;
 }
 
-bool CAztecHoleinEffect::RegisterEffect(unsigned long effect, const char* name)
-{
-	bool ret = m_effectMap.insert(std::make_pair(effect, name)).second;
-
-	return ret;
+// effectmanager.cpp:68
+bool CAztecHoleinEffect::RegisterEffect(unsigned long id, const char* name) {
+	return m_registeredEffects.insert(EffectNameMap::value_type(id, name)).second;
 }
 
-const char* CAztecHoleinEffect::GetEffectName(unsigned long effect)
-{
+// effectmanager.cpp:77
+const char* CAztecHoleinEffect::GetEffectName(unsigned long id) {
 	const char* name = NULL;
-	std::map<unsigned long, const char*>::iterator it;
+	EffectNameMap::iterator it;
 
-	it = m_iffEffectMap.find(effect);
-
-	if (it != m_iffEffectMap.end() && it->second)
-	{
+	it = m_iffEffects.find(id);
+	if (it != m_iffEffects.end()) {
 		name = it->second;
+		if (name) {
+			return name;
+		}
 	}
-	else
-	{
-		it = m_effectMap.find(effect);
 
-		if (it != m_effectMap.end() && it->second)
-			name = it->second;
+	it = m_registeredEffects.find(id);
+	if (it != m_registeredEffects.end()) {
+		name = it->second;
+		if (name) {
+			return name;
+		}
 	}
 
 	return name;
 }
 
-bool CAztecHoleinEffect::PlayEffect(unsigned long effect)
-{
-	bool bRet = false;
+// effectmanager.cpp:114
+bool CAztecHoleinEffect::PlayEffect(unsigned long id) {
+	bool result = false;
+	const char* name = GetEffectName(id);
 
-	const char* name = GetEffectName(effect);
-
-	if (name)
-	{
+	if (name) {
 		CFxSpray* pSpray = CFx::Instance()->OpenSpray(name);
 
-		if (pSpray)
-		{
+		if (pSpray) {
 			WVector pos = GolfBall().m_pos;
-			pSpray->Pos() = pos;
-			bRet = true;
+			pSpray->m_pos = pos;
+
+			return true;
 		}
 	}
 
-	return bRet;
+	return result;
 }

@@ -1,205 +1,170 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\shared\uselzo.cpp
 #include "uselzo.h"
 
-CCompressBuffer::CCompressBuffer()
-{
+#include <new>
+#include <stdio.h>
+#include <string.h>
+
+#include "minilzo/minilzo.h"
+
+// lzo_init()'s result, shared by every CCompressBuffer: 1 until the first
+// one initialises the library.
+static int s_nLzoInit = 1;
+
+// miniLZO's testmini.c sizes: the work memory is declared OUT_LEN long.
+#define IN_LEN      (128 * 1024L)
+#define OUT_LEN     (IN_LEN + IN_LEN / 16 + 64 + 3)
+
+#define HEAP_ALLOC(var, size) \
+	lzo_align_t __LZO_MMODEL var[((size) + (sizeof(lzo_align_t) - 1)) / sizeof(lzo_align_t)]
+
+// uselzo.cpp:20
+CCompressBuffer::CCompressBuffer(void) {
 	Init();
 }
 
-CCompressBuffer::~CCompressBuffer()
-{
-	if (m_Buffer)
-	{
-		delete[] m_Buffer;
-		m_Buffer = NULL;
+// uselzo.cpp:25
+CCompressBuffer::~CCompressBuffer(void) {
+	if (m_pNewBuffer) {
+		delete[] m_pNewBuffer;
+		m_pNewBuffer = NULL;
 	}
 }
 
-void CCompressBuffer::Init()
-{
-	static int iResult = 1;
-	if (iResult == 1)
-	{
-		iResult = lzo_init();
+// uselzo.cpp:34
+void CCompressBuffer::Init(void) {
+	if (s_nLzoInit == 1) {
+		s_nLzoInit = lzo_init();
 	}
-
-	m_bInitialized = iResult;
-	m_bBufferUsed = false;
-	m_iSize = 0;
-	m_Buffer = NULL;
+	m_nLzoInit = s_nLzoInit;
+	m_bUsed = false;
+	m_nNewSize = 0;
+	m_pNewBuffer = NULL;
 }
 
-int CCompressBuffer::Compress(unsigned char* pSrc, int srcSize)
-{
-	if (m_bBufferUsed)
-	{
-		m_iSize = 0;
+// uselzo.cpp:48
+int CCompressBuffer::Compress(unsigned char *pSrc, int nSize) {
+	if (m_bUsed) {
+		m_nNewSize = 0;
 		return 1;
 	}
 
-	if (srcSize == 0)
-	{
+	if (nSize == 0) {
 		return 3;
 	}
 
-	if (pSrc == NULL)
-	{
+	if (pSrc == NULL) {
 		return 2;
 	}
 
-	m_bBufferUsed = true;
-
-	if (m_Buffer)
-	{
-		delete[] m_Buffer;
-		m_Buffer = NULL;
+	m_bUsed = true;
+	if (m_pNewBuffer) {
+		delete[] m_pNewBuffer;
+		m_pNewBuffer = NULL;
 	}
 
-	m_Buffer = new unsigned char[Max(MAX_BUF_LEN, srcSize * 2)];
-	memset(m_Buffer, 0, Max(MAX_BUF_LEN, srcSize * 2));
+	m_pNewBuffer = new unsigned char[Max(0x1000, nSize * 2)];
+	memset(m_pNewBuffer, 0, Max(0x1000, nSize * 2));
 
-	int size = srcSize;
-	for (int i = 0; i < eHeaderLen - 1; i++)
-	{
-		m_Buffer[eHeaderLen - 1 - i] = size % 255;
-		size = (size - m_Buffer[eHeaderLen - 1 - i]) / 255;
-	}
+	// Header: [0] stored raw (1) or LZO (0), [1..3] the size in base 255.
+	m_pNewBuffer[3] = nSize % 255;
+	int nRest = (nSize - m_pNewBuffer[3]) / 255; m_pNewBuffer[2] = nRest % 255; m_pNewBuffer[1] = ((nRest - m_pNewBuffer[2]) / 255) % 255;
 
-	if (m_bInitialized != LZO_E_OK)
-	{
-		m_Buffer[0] = eNotCompressed;
-		for (int i = 0; i < srcSize; i++)
-		{
-			m_Buffer[i + eHeaderLen] = pSrc[i];
+	if (m_nLzoInit) {
+		m_pNewBuffer[0] = 1;
+		for (int i = 0; i < nSize; i++) {
+			m_pNewBuffer[i + 4] = pSrc[i];
 		}
-
-		m_iSize = srcSize + eHeaderLen;
+		m_nNewSize = nSize + 4;
 		return 4;
 	}
 
-	m_Buffer[0] = eCompressed;
+	m_pNewBuffer[0] = 0;
 
-	unsigned char temp[OUT_LEN];
-	lzo_uint uDestLen;
-	int res =
-		lzo1x_1_compress(pSrc, srcSize, m_Buffer + eHeaderLen, &uDestLen, temp);
-	if (res != LZO_E_OK)
-	{
-		char log[128];
-		sprintf(log, "::COMPRESS -> The result should be zero! (res : %d)",
-			res);
+	char szMsg[128];
+	lzo_uint nOutLen;
+	HEAP_ALLOC(wrkmem, OUT_LEN);
+	int nResult = lzo1x_1_compress(pSrc, nSize, m_pNewBuffer + 4, &nOutLen, wrkmem);
+	if (nResult != LZO_E_OK) {
+		sprintf(szMsg, "::COMPRESS -> The result should be zero! (res : %d)", nResult);
 	}
 
-	m_iSize = uDestLen + eHeaderLen;
+	m_nNewSize = nOutLen + 4;
 	return 0;
 }
 
-int CCompressBuffer::Decompress(unsigned char* pSrc, int srcSize)
-{
-	if (m_bBufferUsed)
-	{
-		m_iSize = 0;
+// uselzo.cpp:137
+int CCompressBuffer::Decompress(unsigned char *pSrc, int nSize) {
+	if (m_bUsed) {
+		m_nNewSize = 0;
 		return 1;
 	}
 
-	if (pSrc == NULL)
-	{
+	if (pSrc == NULL) {
 		return 2;
 	}
 
-	if (srcSize == 0)
-	{
+	if (nSize == 0) {
 		return 3;
 	}
 
-	int WrittenOrgSize = 0;
-	int mul = 1;
-	for (int i = 0; i < eHeaderLen - 1; i++)
-	{
-		WrittenOrgSize += pSrc[eHeaderLen - 1 - i] * mul;
-		mul *= 255;
+	int nOrgSize = pSrc[1] * 65025 + pSrc[2] * 255 + pSrc[3];
+
+	m_bUsed = true;
+	if (m_pNewBuffer) {
+		delete[] m_pNewBuffer;
+		m_pNewBuffer = NULL;
 	}
 
-	m_bBufferUsed = true;
+	m_pNewBuffer = new unsigned char[Max(nOrgSize + 10, 0x1000)];
+	memset(m_pNewBuffer, 0, Max(nOrgSize + 10, 0x1000));
 
-	if (m_Buffer)
-	{
-		delete[] m_Buffer;
-		m_Buffer = NULL;
-	}
-
-	m_Buffer = new unsigned char[Max(WrittenOrgSize + 10, MAX_BUF_LEN)];
-	memset(m_Buffer, 0, Max(WrittenOrgSize + 10, MAX_BUF_LEN));
-
-	if (pSrc[0] == eNotCompressed)
-	{
-		for (int i = 0; i < srcSize - eHeaderLen; i++)
-		{
-			m_Buffer[i] = pSrc[i + eHeaderLen];
+	if (pSrc[0] == 1) {
+		for (int i = 0; i < nSize - 4; i++) {
+			m_pNewBuffer[i] = pSrc[i + 4];
 		}
-
-		if (WrittenOrgSize == srcSize - eHeaderLen)
-		{
-			m_iSize = srcSize - eHeaderLen;
-		}
-		else
-		{
-			m_iSize = 0;
+		if (nOrgSize == nSize - 4) {
+			m_nNewSize = nSize - 4;
+		} else {
+			m_nNewSize = 0;
 			return 5;
 		}
-
 		return 0;
-	}
-	else if (pSrc[0] == eCompressed)
-	{
-		if (m_bInitialized != LZO_E_OK)
-		{
-			m_iSize = 0;
+	} else if (pSrc[0] == 0) {
+		if (m_nLzoInit) {
+			m_nNewSize = 0;
 			return 7;
 		}
 
-		lzo_uint uDestLen;
-		int res = lzo1x_decompress(pSrc + eHeaderLen, srcSize - eHeaderLen,
-			m_Buffer, &uDestLen, NULL);
-		if (res != LZO_E_OK)
-		{
-			char log[128];
-			sprintf(log,
-				"::DECOMPRESS -> The result should be zero! (res : %d)", res);
+		char szMsg[128];
+		lzo_uint nOutLen;
+		int nResult = lzo1x_decompress(pSrc + 4, nSize - 4, m_pNewBuffer, &nOutLen, NULL);
+		if (nResult != LZO_E_OK) {
+			sprintf(szMsg, "::DECOMPRESS -> The result should be zero! (res : %d)", nResult);
 			return 8;
 		}
 
-		if (WrittenOrgSize == uDestLen)
-		{
-			m_iSize = uDestLen;
-		}
-		else
-		{
-			m_iSize = 0;
+		if (nOrgSize == nOutLen) {
+			m_nNewSize = nOutLen;
+		} else {
+			m_nNewSize = 0;
 			return 6;
 		}
-
 		return 0;
 	}
-	else
-	{
-		return 9;
-	}
+
+	return 9;
 }
 
-unsigned char* CCompressBuffer::GetNewBuffer()
-{
-	if (m_iSize == 0)
-	{
+// uselzo.cpp:262
+unsigned char *CCompressBuffer::GetNewBuffer(void) {
+	if (m_nNewSize == 0) {
 		return NULL;
 	}
-	else
-	{
-		return m_Buffer;
-	}
+	return m_pNewBuffer;
 }
 
-int CCompressBuffer::GetNewSize()
-{
-	return m_iSize;
+// uselzo.cpp:274
+int CCompressBuffer::GetNewSize(void) {
+	return m_nNewSize;
 }

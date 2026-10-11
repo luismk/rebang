@@ -1,78 +1,96 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\imessage.h
+#ifndef PG_CLIENT_PROJECTG_IMESSAGE_H
+#define PG_CLIENT_PROJECTG_IMESSAGE_H
 
-#define MAX_MSG_SIZE 8192
+#include <string>
 
-class MemBlock
-{
+#include "..\..\defines.h"
+
+// A fixed 0x2000-byte packet buffer with a write/read cursor.
+class MemBlock {
 public:
-	const unsigned char* GetBuffer() const { return m_Buffer; }
-
-	unsigned char* LockBuffer(int offset) { return &m_Buffer[offset]; }
-
-	unsigned int GetLength() const { return m_offset; }
-
 	MemBlock();
-	MemBlock(unsigned int uSize);
-	virtual ~MemBlock();
+	MemBlock(unsigned int size);
+	virtual ~MemBlock();            // vtable slot 0
 
-	int Free();
-	int Alloc(unsigned int uSize);
-	int ReAlloc(unsigned int uSize);
+	// imessage.h:23
+	const unsigned char* GetBuffer() const {
+		return m_buffer;
+	}
+
+	// imessage.h:28
+	unsigned char* LockBuffer(int offset) {
+		return m_buffer + offset;
+	}
+
+	// imessage.h:33
+	unsigned int GetLength() const {
+		return m_length;
+	}
+
 	void Reset();
+	int Alloc(unsigned int size);
+	int ReAlloc(unsigned int size);
+	int Free();
 
-protected:
-	unsigned int GetBufferSize() const { return m_uSize; }
-
-	unsigned char m_Buffer[MAX_MSG_SIZE];
-	unsigned char* m_pBuffer;
-	unsigned int m_uSize;
-	unsigned int m_offset;
+	unsigned char m_buffer[0x2000]; // 0x4
+	unsigned char* m_pBuffer;       // 0x2004, points at m_buffer
+	unsigned int m_bufferSize;      // 0x2008, always 0x2000
+	unsigned int m_length;          // 0x200c, write length / read cursor
 };
+CHECK_SIZE(MemBlock, 0x2010);
+CHECK_FIELD(MemBlock, m_buffer, 0x4);
+CHECK_FIELD(MemBlock, m_pBuffer, 0x2004);
+CHECK_FIELD(MemBlock, m_bufferSize, 0x2008);
+CHECK_FIELD(MemBlock, m_length, 0x200c);
 
-class ISendMsg : public MemBlock
-{
+// An outgoing packet: a 2-byte length, the 2-byte message id, then the data.
+class ISendMsg : public MemBlock {
 public:
 	ISendMsg();
-	ISendMsg(unsigned short nPaketType);
+	ISendMsg(unsigned short msgId);
 	virtual ~ISendMsg();
 
-	void Encode1(unsigned char in);
-	void Encode2(unsigned short in);
-	void Encode4(unsigned long in);
-	void EncodeStr(const char* data);
-	void EncodeBuffer(const void* src, unsigned short len);
-	void FixData(int OffSet, char* Buffer, int Len);
-
+	// imessage.h:77
+	virtual void RollBack() {
+	}
 	virtual void MakePacketComplete();
-
 	virtual void MakeCheckSum();
 
-	virtual void RollBack() { }
+	void Encode1(unsigned char value);
+	void Encode2(unsigned short value);
+	void Encode4(unsigned long value);
+	void EncodeBuffer(const void* data, unsigned short size);
+	void EncodeStr(const char* str);
+	void FixData(int offset, char* data, int size);
 
-protected:
-	int m_nPacketType;
-	unsigned char m_nPandoraKey;
+	unsigned int m_msgId;           // 0x2010
 };
+CHECK_SIZE(ISendMsg, 0x2014);
+CHECK_FIELD(ISendMsg, m_msgId, 0x2010);
 
-class IRecvMsg : public MemBlock
-{
+// An incoming packet, decoded from the start of its buffer.
+class IRecvMsg : public MemBlock {
 public:
 	IRecvMsg();
 	virtual ~IRecvMsg();
+
+	// imessage.h:107
+	virtual void DecodeComplete() {
+	}
 
 	unsigned char Decode1();
 	unsigned short Decode2();
 	unsigned long Decode4();
 	std::string DecodeStr();
-	void DecodeBuffer(void* pBuffer, int len);
+	void DecodeBuffer(void* data, int size);
 	bool DecodeCheckSum();
+	bool IsValid(bool check);
+	void SetRcvPacket(const char* data, int size);
 
-	unsigned int GetLength() const { return m_nLength; }
-	bool IsValid(bool rawpacket);
-	void SetRcvPacket(const char* pBuf, int Len);
-
-	virtual void DecodeComplete() { }
-
-protected:
-	unsigned int m_nLength;
+	unsigned int m_packetSize;      // 0x2010
 };
+CHECK_SIZE(IRecvMsg, 0x2014);
+CHECK_FIELD(IRecvMsg, m_packetSize, 0x2010);
+
+#endif

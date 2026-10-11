@@ -1,220 +1,228 @@
-#include "wproc.h"
-#include "miles.h"
-#include "clientsetting.h"
-#include "fpsmonitor.h"
-#include "dxdiaginfo.h"
-#include "networkmonitor.h"
-#include "projectg.h"
-#include "gamedatadb.h"
-#include "voiceitem.h"
-#include "contentsdoc.h"
-#include "matchhistory.h"
-#include "thread.h"
-#include "noticeboard.h"
-#include "effectmanager.h"
-#include "buddymanager.h"
-#include "netresourcemanager.h"
-#include "rankingdlg.h"
-#include "onelineboard.h"
-#include "messengerdlg.h"
-#include "gmtoolkit.h"
-#include "replaydlg.h"
-#include "matchingsystem.h"
-#include "pangfbi.h"
-#include "eventthread.h"
-#include "messagemanager.h"
-#include "winnernotice.h"
-#include "topiconmanager.h"
-#include "ghostmanager.h"
-#include "ghosthandler.h"
-#include "shufflebonus.h"
-#include "intrusion.h"
-#include "powergauge.h"
-#include "lobbybg.h"
-#include "mathconsts.h"
-#include "../../shared/LuaSystem/luascriptmanager.h"
-#include "md5.h"
-#include "fx.h"
-#include "mousecursor.h"
-#include "user_info.h"
-#include "logininfo.h"
-#include "browser.h"
-#include "cardsystem.h"
-#include "headicon.h"
-#include "treasure.h"
-#include "integritycheck.h"
-#include "chatmsg.h"
-#include "golftask.h"
-#include "lobbytask.h"
-#include "registry.h"
+// Original: d:\build\custom\temp\code\client\projectg\projectg.cpp
+#include <winsock2.h>
+#include <windows.h>
 #include <float.h>
-extern "C" __declspec(dllimport) int __cdecl mkdir(const char*);
+#include <math.h>
 #include <io.h>
 #include <stdarg.h>
+#include <stdio.h>
 
-extern HWND g_hwnd;
+// direct.h (not in the trimmed toolchain include set)
+extern "C" _CRTIMP int __cdecl _mkdir(const char* dirName);
+
+#include "ClientSetting.h"
+#include "DxDiagInfo.h"
+#include "ProjectG.h"
+#include "NetworkSystem.h"
+#include "TaskManager.h"
+#include "fpsmonitor.h"
+#include "../client/Wangreal/include/westpak.h"
+#include "../client/Wangreal/include/wfont.h"
+#include "../client/Wangreal/include/woverlay.h"
+#include "../client/Wangreal/include/wresrcmng.h"
+#include "../client/Wangreal/include/wdevmng.h"
+#include "../client/Wangreal/include/wvideo.h"
+#include "../client/Wangreal/include/winput.h"
+#include "../client/Wangreal/include/wproc.h"
+#include "InputManager.h"
+#include "SoundManager.h"
+#include "fx.h"
+#include "user_info.h"
+#include "mousecursor.h"
+#include "md5.h"
+#include "SharedDoc.h"
+#include "PangFBI.h"
+#include "PowerGauge.h"
+#include "ghostmanager.h"
+#include "ghosthandler.h"
+#include "voiceitem.h"
+#include "ShuffleBonus.h"
+#include "Intrusion.h"
+#include "fresh.h"
+#include "frform.h"
+#include "logininfo.h"
+#include "messengerdlg.h"
+#include "wutil.h"
+#include "MessageManager.h"
+#include "hackingmanager.h"
+#include "buddymanager.h"
+#include "GMToolkit.h"
+#include "ReplayDlg.h"
+#include "cardsystem.h"
+#include "commonutil.h"
+#include "eventthread.h"
+#include "Titles_Client.h"
+#include "../shared/TitleManager.h"
+#include "../shared/Localize.h"
+#include "icontentsdoc.h"
+#include "IntegrityCheck.h"
+#include "ChatMsg.h"
+#include "networkmonitor.h"
+#include "headicon.h"
+#include "NoticeBoard.h"
+#include "WinnerNotice.h"
+#include "EffectManager.h"
+#include "NetResourceManager.h"
+#include "onelineboard.h"
+#include "RankingDlg.h"
+#include "Treasure.h"
+#include "DlgQuickStartSetting.h"
+#include "gamedatadb.h"
+#include "TopIconManager.h"
+#include "lobbybg.h"
+#include "frwndmanager.h"
+#include "Browser.h"
+#include "GolfTask.h"
+#include "scenemanager.h"
+#include "frgraphicinterface.h"
+#include "../client/Wangreal/include/bitmap.h"
+#include "../client/Wangreal/include/wview.h"
+#include "Miles.h"
+#include "../shared/luasystem/LuaScriptManager.h"
+#include <algorithm>
+
 extern bool g_bQuit;
-extern WResourceManager* g_resrcmng;
+extern HWND g_hwnd;
 extern WMilesSoundSystem* g_miles;
+extern unsigned long g_CurrentTime;
+extern WFont* g_font;
+extern WMatrix g_camera;
+extern char PY_PUBLIC_VERSION[];
 extern WInputDev* g_keyboard;
 extern WInputDev* g_mouse;
-extern WFont* g_font;
+extern WInputDev* g_ime;
+extern TitleManager* g_TitleManager;
 
-void InitSingletonClasses();
-void DeleteSingletonClasses();
-void ExecuteStartMode();
-void InitPakedFile();
-bool InitPakedFile2();
-void __cdecl ReleasePAK();
-bool __stdcall GetCRCCheckList(
-	std::list<std::pair<std::string, unsigned long> >& list);
-void RegisterTitles(TitleManager* manager);
+void __cdecl CloseCFile(cFile* file);
+extern char g_executeDirectory[];
+extern bool g_bFocus;
+extern bool g_bOldFocus;
+extern bool g_bAviCapture;
+extern int g_iSendPacketType;
+extern int g_iRecvPacketType;
+extern int g_iRecvDisconCode;
+extern int g_iSendFailType;
+extern int g_last_screen_width;
+extern int g_last_screen_height;
 
-static char captureMessage[256] = { 0 };
-char g_colTex[16][32] = { 0 };
-int g_last_screen_height = 0;
-int g_last_screen_width = 0;
-TitleManager* g_TitleManager = 0;
-WFont* g_font = 0;
-Fresh* g_pFresh = 0;
-unsigned long g_CurrentTime = 0;
-char g_executeDirectory[MAX_PATH] = { 0 };
-WInputDev* g_keyboard = 0;
-WInputDev* g_mouse = 0;
-WInputDev* g_ime = 0;
-WView* g_view = 0;
-HWND g_hwnd = 0;
-WResourceManager* g_resrcmng = 0;
-CSoundManager* g_audio = 0;
-WMilesSoundSystem* g_miles = 0;
-static int processCount = 0;
-static int drawCount = 0;
-int g_nDrawPoly = 0;
-int g_nModel = 0;
-int g_nDrawModel = 0;
-int g_colNum = 0;
-unsigned long* g_pZuffHistogram = 0;
-bool g_bAviCapture = 0;
-bool g_bQuit = 0;
-static unsigned long captureMessageTime = 0;
-int g_iSendPacketType = 0;
-int g_iRecvPacketType = 0;
-int g_iRecvDisconCode = 0;
-int g_iSendFailType = 0;
-WMatrix g_camera;
-CFpsMonitor g_FpsMonitor;
-CFpsMonitor g_VramMonitor;
-bool g_bFocus = true;
-bool g_bOldFocus = true;
-struct UIFileChecksum
-{
-	const char* filename;
-	unsigned char digest[16];
-};
-static UIFileChecksum uiChecks[] = {
-	{ "[left_ht.jpg",
-     { 0x5b, 0xa3, 0x60, 0x07, 0x2f, 0x73, 0x87, 0x21, 0xef, 0xbd, 0xcd,
-			0xd4, 0x45, 0x23, 0xfc, 0xfa } },
-	{ "[middle.jpg",
-     { 0x7b, 0x95, 0xfc, 0xe6, 0x44, 0xab, 0xd1, 0x81, 0xa8, 0x53, 0xd1,
-			0x56, 0xf9, 0xf4, 0xa2, 0x8f } },
-	{ "[right_wind_b.jpg",
-     { 0xed, 0xdd, 0x43, 0xfd, 0x5e, 0x65, 0x91, 0x86, 0x15, 0x1c, 0x80,
-			0x79, 0x32, 0x41, 0x77, 0x1b } }
-};
-static int captureCountdown = -1;
-LightSet g_lightset;
+// commonutil.cpp
+void InitPakedFile(void);
+bool InitPakedFile2(void);
+bool __stdcall GetCRCCheckList(std::list<std::pair<std::string, unsigned long> >& crcList);
 
-extern char PY_PUBLIC_VERSION[];
+void ExecuteStartMode(void);
 
-void SaveJPG(const char* filename, const Bitmap* bitmap, int quality);
-void SaveBMP(const char* filename, const Bitmap* bitmap);
-
-void __cdecl TextOut(WView* view, float x, float y, const char* format, ...)
-{
-	char text[2048];
+// projectg.cpp:184 (windows.h maps TextOut to TextOutA)
+void TextOut(WView* view, float x, float y, const char* format, ...) {
+	char buffer[2048];
 	va_list args;
 	va_start(args, format);
-	if (_vsnprintf(text, sizeof(text) - 1, format, args) == -1)
-		text[sizeof(text) - 1] = 0;
-	va_end(args);
-	g_font->Print(view, x, y, text, 0, 0xffffffff, NULL);
-}
-
-CTmpLogo::CTmpLogo()
-	: m_pLogo(NULL)
-{
-}
-
-CTmpLogo::~CTmpLogo()
-{
-	delete m_pLogo;
-}
-
-static CTmpLogo captureLogo;
-
-static bool SaveScreenShot(const char* filename)
-{
-	Bitmap* image = new Bitmap(g_last_screen_width, g_last_screen_height, 24);
-	if (g_resrcmng->VideoReference()->Command(W_VDEV_CAPTURE_SCREEN, 0,
-			(int)image) == 1)
-	{
-		if (COption::Instance()->GetOption()->gCaptureLogo == 1 &&
-			Doc()->m_playingMode != 2)
-		{
-			if (!captureLogo.m_pLogo)
-				captureLogo.m_pLogo = g_resrcmng->LoadTGA("pangya_s3.tga");
-			if (captureLogo.m_pLogo)
-			{
-				Bitmap* logo = captureLogo.m_pLogo;
-				int height = logo->bi->bmiHeader.biHeight;
-				int width = logo->bi->bmiHeader.biWidth;
-				int x = image->bi->bmiHeader.biWidth - width;
-				int y = image->bi->bmiHeader.biHeight - height;
-				if (x > 0 && y > 0)
-				{
-					for (int row = 0; row < height; ++row)
-					{
-						for (int col = 0; col < width; ++col)
-						{
-							unsigned char r2, g2, b2, a;
-							unsigned char r, g, b;
-							image->GetPixel(col + x, row + y, r, g, b);
-							logo->GetPixel(col, row, r2, g2, b2, a);
-							int alpha = a;
-							int inverseAlpha = 255 - a;
-							image->SetPixel(col + x, row + y,
-								(inverseAlpha * r + alpha * r2) / 255,
-								(inverseAlpha * g + alpha * g2) / 255,
-								(inverseAlpha * b + alpha * b2) / 255, 255);
-						}
-					}
-				}
-			}
-		}
-		if (strrchr(filename, '.'))
-		{
-			if (!strcmpi(strrchr(filename, '.'), ".jpg"))
-			{
-				SaveJPG(filename, image, 100);
-				delete image;
-				return true;
-			}
-			if (!strcmpi(strrchr(filename, '.'), ".bmp"))
-			{
-				SaveBMP(filename, image);
-				delete image;
-				return true;
-			}
-		}
+	if (_vsnprintf(buffer, sizeof(buffer) - 1, format, args) == -1) {
+		buffer[sizeof(buffer) - 1] = 0;
 	}
-	delete image;
-	return false;
+	g_font->Print(view, x, y, buffer, 0, 0xFFFFFFFF, 0);
 }
 
-void InitSingletonClasses()
-{
+// projectg.cpp:198
+CFpsMonitor g_FpsMonitor;
+// projectg.cpp:199
+CFpsMonitor g_VramMonitor;
+
+// Owns a logo object, deleted at exit. The pointee's type is not known (the
+// original only deletes it through the destructor in vtable slot 0).
+class CTmpLogo {
+public:
+	// projectg.cpp:214
+	CTmpLogo(void) : m_pLogo(0) {}
+	// projectg.cpp:215
+	~CTmpLogo(void) { if (m_pLogo) delete m_pLogo; }
+
+	WOverlay* m_pLogo; // 0x0
+};
+
+// projectg.cpp:220
+static CTmpLogo s_tmpLogo;
+
+// projectg.cpp:236 (original sub_00797ff0): captures the back buffer into
+// fileName (.jpg or .bmp); true when the file was written.
+bool __stdcall SaveScreenShot(const char* fileName);
+
+
+// dxdiaginfo.h:277
+CDxDiagInfo::CDxDiagInfo() {
+	Init();
+	StartGathering();
+}
+
+// dxdiaginfo.h:278
+CDxDiagInfo::~CDxDiagInfo() {
+}
+
+// dxdiaginfo.h:289
+bool CDxDiagInfo::IsGathered(void) {
+	return m_isGathered;
+}
+
+// clientsetting.h:345 (inlined into SetVideoDevice only, so not emitted here;
+// GolfRule emits the out-of-line copy)
+inline int COption::vGetTnLMode(void) const {
+	return m_tnlMode;
+}
+
+// clientsetting.h:375
+int COption::aGetMssFrequency(void) const {
+	return m_option.m_mssFrequency;
+}
+
+// clientsetting.h:376
+int COption::aGetMssBits(void) const {
+	return m_option.m_mssBits;
+}
+
+// clientsetting.h:377
+int COption::aGetMssChannels(void) const {
+	return m_option.m_mssChannels;
+}
+
+// clientsetting.h:379
+int COption::aGetMssBalance(void) const {
+	return m_option.m_mssBalance;
+}
+
+// clientsetting.h:381 (inlined into SetAudioDevice only, so not emitted here;
+// MagicCarpet emits the out-of-line copy)
+inline float COption::aGetSfxVolume(void) const {
+	return m_option.m_sfxVolume;
+}
+
+// clientsetting.h:382 (likewise)
+inline float COption::aGetBgmVolume(void) const {
+	return m_option.m_bgmVolume;
+}
+
+// clientsetting.h:410
+int COption::gGetCaptureHideGUI(void) {
+	return m_option.m_captureHideGUI;
+}
+
+// clientsetting.h:412
+int COption::gGetCaptureHidePI(void) {
+	return m_option.m_captureHidePI;
+}
+
+// user_info.h:682
+CMatchHistory::CMatchHistory(void) : m_bUpdated(false) {
+	memset(m_history, 0, sizeof(m_history));
+}
+
+// user_info.h:685
+CMatchHistory::~CMatchHistory(void) {
+}
+
+// projectg.cpp:349
+void InitSingletonClasses(void) {
 	new CPowerGauge;
+
 	new CMatchHistory;
 	new CGhostManager;
 	new CGhostHandler;
@@ -223,1581 +231,1491 @@ void InitSingletonClasses()
 	new CIntrusion;
 }
 
-void DeleteSingletonClasses()
-{
-	if (CIntrusion::IsInstantiated())
-		delete CIntrusion::Instance();
-	if (CShuffleBonus::IsInstantiated())
-		delete CShuffleBonus::Instance();
-	if (CSoundItemManager::IsInstantiated())
-		delete CSoundItemManager::Instance();
-	if (CGhostHandler::IsInstantiated())
-		delete CGhostHandler::Instance();
-	if (CGhostManager::IsInstantiated())
-		delete CGhostManager::Instance();
-	if (CMatchHistory::IsInstantiated())
-		delete CMatchHistory::Instance();
-	if (CPowerGauge::IsInstantiated())
-		delete CPowerGauge::Instance();
+// projectg.cpp:361
+void DeleteSingletonClasses(void) {
+	delete CIntrusion::Instance();
+	delete CShuffleBonus::Instance();
+	delete CSoundItemManager::Instance();
+	delete CGhostHandler::Instance();
+	delete CGhostManager::Instance();
+	delete CMatchHistory::Instance();
+
+	delete CPowerGauge::Instance();
 }
 
-CProjectG::CProjectG(HWND hwnd)
-	: m_inputList(16, 16)
-{
+// projectg.cpp:374
+CProjectG::CProjectG(HWND hWnd) : m_mainFlags(0), m_appFlags(0) {
 	g_CurrentTime = timeGetTime();
+
 	srand(g_CurrentTime);
-	m_threadId = GetCurrentThreadId();
-	m_pDeviceManager = NULL;
-	m_pProcManager = NULL;
+
+	m_mainThreadId = GetCurrentThreadId();
+
+	m_deviceManager = NULL;
+	m_procManager = NULL;
 	m_bMoveLoginServer = false;
-	m_bLostFocus = false;
-	m_pDeviceManager = new WDeviceManager(NULL, 9);
-	m_pProcManager = new WProcManager;
+	m_flagE4 = false;
+
+	m_deviceManager = new WDeviceManager(NULL, 9);
+	m_procManager = new WProcManager;
 	g_resrcmng = new WResourceManager;
+
 	WFile::SetResourceManager(g_resrcmng);
-	m_baseTime = g_CurrentTime;
-	m_reserved = 4;
+
+	m_createTime = g_CurrentTime;
+	m_valueF0 = 4;
+
 	new _systemmsg::CMessageManager;
+
 	new CSharedDoc;
-	new COption(hwnd, m_pDeviceManager, g_resrcmng);
+	new COption(hWnd, m_deviceManager, g_resrcmng);
 	new HackingManager;
+
 	ResetTimer();
-	m_refreshRate = 60.0f;
+
+	m_monitorFPS = 60.0f;
 	new CTaskManager;
+
 	new BuddyManager;
 	new CGMToolkit;
-	if (IsLocalContent((localContentType_t)79))
+
+	if (IsLocalContent((localContentType_t)0x4F))
 		new CReplayControlManager;
-	if (IsLocalContent((localContentType_t)81))
+
+	if (IsLocalContent((localContentType_t)0x51))
 		new CCardManager;
+
 	new CPangFBI;
-	m_bHidePrivacy = false;
-	m_bHideGUI = false;
-	m_bHidePI = false;
-	m_pDxDiagInfo = NULL;
-	m_pDxDiagInfo = new CDxDiagInfo;
+
+	m_hidePrivacy = false;
+	m_hideGUI = false;
+	m_hidePI = false;
+	m_dxDiagInfo = NULL;
+	m_dxDiagInfo = new CDxDiagInfo;
+
 	g_TitleManager = new TitleManager;
 	RegisterTitles(g_TitleManager);
+
 	new CEventThread;
-	m_prevCamera.Reset();
+
+	m_matrix.Reset();
+
 	InitSingletonClasses();
 }
 
-CProjectG::~CProjectG()
-{
-	while (!m_recvPacketQueue.empty())
-	{
-		delete m_recvPacketQueue.front();
-		m_recvPacketQueue.pop();
-	}
-	if (g_view)
-	{
-		g_resrcmng->Release(g_view);
-		g_view = NULL;
-	}
-	if (g_font)
-	{
-		g_resrcmng->Release(g_font);
-		g_font = NULL;
-	}
-	DeleteSingletonClasses();
-	if (CPangFBI::IsInstantiated())
-		delete CPangFBI::Instance();
-	if (IsLocalContent((localContentType_t)88))
-		if (CTHunter::IsInstantiated())
-			delete CTHunter::Instance();
-	if (CMatchingSystem::IsInstantiated())
-		delete CMatchingSystem::Instance();
-	if (CGMToolkit::IsInstantiated())
-		delete CGMToolkit::Instance();
-	if (BuddyManager::IsInstantiated())
-		delete BuddyManager::Instance();
-	if (CHeadIcon::IsInstantiated())
-		delete CHeadIcon::Instance();
-	if (CTaskManager::IsInstantiated())
-		delete CTaskManager::Instance();
-	if (CChatMsg::IsInstantiated())
-		delete CChatMsg::Instance();
-	if (CNetworkMonitor::IsInstantiated())
-		delete CNetworkMonitor::Instance();
-	if (WNetworkSystem::IsInstantiated())
-		delete WNetworkSystem::Instance();
-	if (CMouseCursor::IsInstantiated())
-		delete CMouseCursor::Instance();
-	if (CUserInfo::IsInstantiated())
-		delete CUserInfo::Instance();
-	if (CMessengerInfo::IsInstantiated())
-		delete CMessengerInfo::Instance();
-	if (CSharedDoc::IsInstantiated())
-		delete Doc();
-	if (CContentsDoc::IsInstantiated())
-		delete CContentsDoc::Instance();
-	if (COption::IsInstantiated())
-		delete COption::Instance();
-	if (HackingManager::IsInstantiated())
-		delete HackingManager::Instance();
-	if (CNoticeBoard::IsInstantiated())
-		delete CNoticeBoard::Instance();
-	if (CWinnerNotice::IsInstantiated())
-		delete CWinnerNotice::Instance();
-	if (CFx::IsInstantiated())
-		delete CFx::Instance();
-	if (CAztecHoleinEffect::IsInstantiated())
-		delete CAztecHoleinEffect::Instance();
-	if (NetResourceManager::IsInstantiated())
-		delete NetResourceManager::Instance();
-	if (COneLineBoard::IsInstantiated())
-		delete COneLineBoard::Instance();
-	if (CRankingInfo::IsInstantiated())
-		delete CRankingInfo::Instance();
-	if (IsLocalContent((localContentType_t)79))
-		if (CReplayControlManager::IsInstantiated())
-			delete CReplayControlManager::Instance();
-	if (IsLocalContent((localContentType_t)81))
-		if (CCardManager::IsInstantiated())
-			delete CCardManager::Instance();
-	if (IsLocalContent((localContentType_t)85))
-		if (CAztecHoleinEffect::IsInstantiated())
-			delete CAztecHoleinEffect::Instance();
-	if (CGameDataDB::IsInstantiated())
-		delete CGameDataDB::Instance();
-	if (CIconManager::IsInstantiated())
-		delete CIconManager::Instance();
-	if (g_pFresh)
-	{
-		g_pFresh->GetManager()->DestroyToolTip();
-		if (g_pFresh)
-		{
-			delete g_pFresh;
-			g_pFresh = NULL;
-		}
-	}
-	if (g_input)
-	{
-		delete g_input;
-		g_input = NULL;
-	}
-	if (g_audio)
-	{
-		delete g_audio;
-		g_audio = NULL;
-	}
-	if (g_miles)
-	{
-		delete g_miles;
-		g_miles = NULL;
-	}
-	if (g_resrcmng)
-	{
-		delete g_resrcmng;
-		g_resrcmng = NULL;
-	}
-	if (m_pDeviceManager)
-	{
-		delete m_pDeviceManager;
-		m_pDeviceManager = NULL;
-	}
-	if (m_pProcManager)
-	{
-		delete m_pProcManager;
-		m_pProcManager = NULL;
-	}
-	if (m_pDxDiagInfo)
-	{
-		delete m_pDxDiagInfo;
-		m_pDxDiagInfo = NULL;
-	}
-	if (g_TitleManager)
-	{
-		delete g_TitleManager;
-		g_TitleManager = NULL;
-	}
-	if (CEventThread::IsInstantiated())
-		delete CEventThread::Instance();
-	if (_systemmsg::CMessageManager::IsInstantiated())
-		delete _systemmsg::CMessageManager::Instance();
-	if (CVoiceItem::Instance())
-	{
-		CVoiceItem::Instance()->Destroy();
-		if (CVoiceItem::IsInstantiated())
-			delete CVoiceItem::Instance();
-	}
-	if (m_avi.IsOpened())
-		m_avi.Close();
-	ReleasePAK();
+// projectg.cpp:615
+void CALLBACK MyTimerProc(HWND hwnd, UINT message, UINT_PTR idTimer, DWORD time) {
 }
 
-void CALLBACK MyTimerProc(HWND hwnd, UINT message, UINT timer, DWORD time)
-{
-}
-
-void CProjectG::FPU_Check()
-{
+// projectg.cpp:637
+void CProjectG::FPU_Check(void) {
 	m_fpuControl = _controlfp(0, 0);
-	if (m_fpuControl != 0xa001f)
+	if (m_fpuControl != (_PC_24 | _MCW_EM)) {
 		m_fpuControl = _controlfp(_PC_24, _MCW_PC);
+	}
 }
 
-void CProjectG::SetMoveLoginServer(const char* id, const char* password)
-{
+// projectg.cpp:647
+void CProjectG::SetMoveLoginServer(const char* id, const char* password) {
 	m_bMoveLoginServer = true;
 	m_moveLoginId = id;
 	m_moveLoginPassword = password;
 }
 
-bool CProjectG::Ready()
-{
+// projectg.cpp:654
+bool CProjectG::Ready(void) {
 	FPU_Check();
 	SetCursor(NULL);
-	if (IsLocalContent(S3_ENCRYPTION_LV1))
-	{
+
+#ifdef PG_OFFLINE
+	// The offline CMake build (PG_OFFLINE) has no launcher and no update
+	// list: it loads the projectg*.pak of its directory without the CRC check
+	// of InitPakedFile2.
+	InitPakedFile();
+#else
+	if (IsLocalContent((localContentType_t)0xE)) {
 		if (!InitPakedFile2())
 			return false;
-	}
-	else
+	} else {
 		InitPakedFile();
-	Doc()->LoadItemDb();
-	Doc()->InitGolfDoc();
-	Doc()->LoadChatFilter();
-	Doc()->LoadVisGroup("visgroup.def");
+	}
+#endif
+
+	CSharedDoc::Instance()->LoadItemDb();
+	CSharedDoc::Instance()->InitGolfDoc();
+	CSharedDoc::Instance()->LoadChatFilter();
+	CSharedDoc::Instance()->LoadVisGroup("visgroup.def");
+
 	new CContentsDoc;
 	if (!CContentsDoc::Instance()->Initialize())
 		return false;
+
 	DeleteFile("GameGuard/GameGuard.err");
+
 	char commandLine[MAX_PATH];
 	strcpy(commandLine, GetCommandLine());
 	strlwr(commandLine);
-	if (strstr(commandLine, "-integrity"))
-	{
-		CIntegrityCheck check;
-		if (!check.Report("ResrcIntegrity.txt"))
+
+	if (strstr(commandLine, "-integrity")) {
+		CIntegrityCheck integrityCheck;
+		if (!integrityCheck.Report("ResrcIntegrity.txt"))
 			g_bQuit = true;
 	}
+
 	GetCurrentDirectory(MAX_PATH, g_executeDirectory);
-	g_view = g_resrcmng->GetView(0);
+
+	g_view = g_resrcmng->GetView(NULL);
 	g_input = new CInputManager;
+
 	COption::Instance()->CheckDebugRegValid();
+
 	COption::Instance()->SetVideoDevice(g_resrcmng->VideoReference());
 	COption::Instance()->SetGlobalView(g_view);
 	COption::Instance()->SetAudioManager(g_audio);
 	COption::Instance()->SetInputManager(g_input);
+
 	UploadShaderSource();
+
 	g_font = g_resrcmng->GetTexFont("data/Misc/font.bmp");
 	LoadKeyLayout();
+
 	new CChatMsg;
 	new WNetworkSystem;
 	new CNetworkMonitor;
+
 	new CMouseCursor;
 	new CHeadIcon;
 	new CUserInfo;
 	new CMessengerInfo;
 	new CNoticeBoard;
+
 	new CWinnerNotice;
+
 	new CFx;
 	new CAztecHoleinEffect;
 	new NetResourceManager;
 	new COneLineBoard;
 	new CRankingInfo;
-	if (IsLocalContent((localContentType_t)85))
+
+	// The original calls CAztecHoleinEffect's constructor here too (a class
+	// of the same size whose identical constructor the linker folded).
+	if (IsLocalContent((localContentType_t)0x55))
 		new CAztecHoleinEffect;
-	if (IsLocalContent(S4_TREASURE_HUNTER))
-	{
+
+	if (IsLocalContent((localContentType_t)0x58)) {
 		new CTHunter;
 		CTHunter::Instance()->Initialize(20);
 	}
-	if (IsLocalContent(S4_MATCHING_SYSTEM))
+
+	if (IsLocalContent((localContentType_t)0x59))
 		new CMatchingSystem;
+
 	new CGameDataDB;
+
 	new CIconManager;
+
 	new CVoiceItem;
 	CVoiceItem::Instance()->Initialize();
+
 	g_pFresh = new Fresh;
-	g_pFresh->Init("all.xml", true, false);
+	g_pFresh->Init("all.xml", true, NULL);
 	g_pFresh->GetManager()->CreateToolTip();
+
 	COption::Instance()->dApplyDebugSetting();
+
 	CNetworkMonitor::Instance()->Init();
-	g_FpsMonitor.Init(200, 200, WRect(10, 300, 200, 100));
-	g_VramMonitor.Init(200, 600, WRect(10, 300, 200, 100));
-	g_VramMonitor.SetColor(0, 0xff0000ff);
-	int course = COption::Instance()->dGetLobbyCourse();
-	if (course >= 0)
-	{
-		LOBBYBG_MAP = course;
-		int map = course;
-		if (course > 127 && course != 253)
-			map = course - 128;
-		CItemManager* items = &Doc()->m_itemManager;
-		LOBBYBG_MAPNAME = items->FindCourse(map | 0x28000000)->Data;
+
+	g_FpsMonitor.Init(200, 200, WRect(10.0f, 300.0f, 200, 100));
+
+	g_VramMonitor.Init(200, 600, WRect(10.0f, 300.0f, 200, 100));
+	g_VramMonitor.SetColor(0, 0xFF0000FF);
+
+	int lobbyCourse = COption::Instance()->dGetLobbyCourse();
+	if (lobbyCourse >= 0) {
+		LOBBYBG_MAP = lobbyCourse;
+		IFF_STRUCT::sCourse* course = ItemManager()->FindCourse(0x28000000 | (lobbyCourse > 0x7F && lobbyCourse != 0xFD ? lobbyCourse - 0x80 : lobbyCourse));
+		LOBBYBG_MAPNAME = course->m_mapName;
 	}
+
 	ExecuteStartMode();
+
+#ifndef PG_OFFLINE
+	// The offline CMake build (PG_OFFLINE) has no launcher registry key and
+	// no update list: no background CRC check of the paks.
 	SYSTEM_INFO systemInfo;
 	memset(&systemInfo, 0, sizeof(systemInfo));
 	GetSystemInfo(&systemInfo);
-	if (systemInfo.dwNumberOfProcessors > 1)
-	{
-		std::list<std::pair<std::string, unsigned long> > checks;
-		if (!GetCRCCheckList(checks))
+	if (systemInfo.dwNumberOfProcessors > 1) {
+		std::list<std::pair<std::string, unsigned long> > crcList;
+		if (!GetCRCCheckList(crcList))
 			return false;
-		for (std::list<std::pair<std::string, unsigned long> >::iterator it =
-				 checks.begin();
-			it != checks.end(); ++it)
-			m_crc.AddWork((*it).first.c_str(), (*it).second);
-		m_crc.SetSleepTime(1);
-		m_crc.Begin(g_hwnd);
+
+		for (std::list<std::pair<std::string, unsigned long> >::iterator it = crcList.begin(); it != crcList.end(); ++it)
+			m_crcMT.AddWork(it->first.c_str(), it->second);
+
+		m_crcMT.SetSleepTime(1);
+		m_crcMT.Begin(g_hwnd);
 	}
+#endif
+
 	return true;
 }
 
-void ExecuteStartMode()
-{
+// projectg.cpp:865
+void ExecuteStartMode(void) {
 	CTaskManager::Instance()->CreateTask("CLobbyTask", "CGolfDoc", false);
-	CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0, (int)"LOGIN", 0, 0, 0);
+	CTaskManager::Instance()->PostMsg(0, "Lobby", 0, (intptr_t)"LOGIN", 0, 0, 0);
 }
 
-void CProjectG::LoadKeyLayout()
-{
-	struct KeyBinding
-	{
-		const char* name;
-		int key;
-		unsigned long flags;
-		int type;
+// projectg.cpp:950
+void CProjectG::LoadKeyLayout(void) {
+	// A key binding: its name, its key code, KEY_* flags and whether the
+	// binding records its event time.
+	struct KeyLayout {
+		const char *name;          // 0x0
+		int code;                  // 0x4
+		unsigned long flags;       // 0x8, CInputManager::KEY_*
+		int timed;                 // 0xC, 1: the binding records its event time
 	};
-	KeyBinding bindings[] = {
-		{ "\273\363", 6 },
-		{ "\307\317", 7 },
-		{ "\301\302", 4 },
-		{ "\277\354", 5 },
-		{ "\273\363", 87 },
-		{ "\307\317", 83 },
-		{ "\301\302", 65 },
-		{ "\277\354", 68 },
-		{ "LSHIFT", 129, 1 },
-		{ "RSHIFT", 130, 1 },
-		{ "\275\272\306\344\300\314\275\272\271\331", 32 },
-		{ "PAGE_DOWN", 3, 1 },
-		{ "PAD_PLUS", 140 },
-		{ "PAGE_UP", 2, 1 },
-		{ "PAD_MINUS", 136 },
-		{ "\265\360\271\366\261\327\305\260", 8 },
-		{ "HOME", 12 },
-		{ "END", 26 },
-		{ "PAD_0", 144 },
-		{ "NUM_0", 48 },
-		{ "PAD_1", 141 },
-		{ "NUM_1", 49 },
-		{ "PAD_2", 142 },
-		{ "NUM_2", 50 },
-		{ "PAD_3", 143 },
-		{ "NUM_3", 51 },
-		{ "PAD_4", 137 },
-		{ "NUM_4", 52 },
-		{ "PAD_5", 138 },
-		{ "NUM_5", 53 },
-		{ "PAD_6", 139 },
-		{ "NUM_6", 54 },
-		{ "PAD_7", 133 },
-		{ "NUM_7", 55 },
-		{ "PAD_8", 134 },
-		{ "NUM_8", 56 },
-		{ "PAD_9", 135 },
-		{ "NUM_9", 57 },
-		{ "ITEMSLOT", 73 },
-		{ "\301\244\301\366", 80 },
-		{ "LALT", 28, 1 },
-		{ "RALT", 29, 1 },
-		{ "LCONTROL", 30 },
-		{ "RCONTROL", 31 },
-		{ "TAB", 9, 1 },
-		{ "FASTFORWARD", 32 },
-		{ "\305\327\275\272\306\256", 84 },
-		{ "PARAM_UPDATE", 85 },
-		{ "CONSOLE", 10, 1 },
-		{ "F15", 102, 1 },
-		{ "FUNC_1", 14, 1 },
-		{ "FUNC_2", 15, 1 },
-		{ "FUNC_3", 16, 1 },
-		{ "FUNC_4", 17, 1 },
-		{ "FUNC_5", 18, 1 },
-		{ "FUNC_6", 19, 1 },
-		{ "FUNC_7", 20, 1 },
-		{ "FUNC_8", 21, 1 },
-		{ "FUNC_9", 22, 1 },
-		{ "FUNC_10", 23, 1 },
-		{ "FUNC_11", 24, 1 },
-		{ "FUNC_12", 25, 1 },
-		{ "FUNC_15", 102, 1 },
-		{ "INSERT", 127, 1 },
-		{ "ESCAPE", 27, 1 },
-		{ "ENTER", 13, 1 },
-		{ "PADENTER", 145, 1 },
-		{ "HIDE", 72 },
-		{ "JUKEBOX", 77 },
-		{ "REPLAY", 82 },
-		{ "SKIP", 83 },
-		{ "CANCEL", 67 },
-		{ "FPS_SHOT", 70 },
-		{ "BALL_TRACE", 71 },
-		{ "PARTICLE_1", 46 },
-		{ "PARTICLE_2", 44 },
-		{ "\270\305\305\251\267\316\303\242", 96 },
-		{ "\301\244\301\3662", 86 },
-		{ "EMOTICON", 69 },
-		{ "BANISH", 1, 1 },
-		{ "RANK", 81 },
-		{ "ROTATE_CW", 81 },
-		{ "MESSENGER", 127, 1 },
-		{ "ROTATE_CCW", 69 },
-		{ "DEBUG_INFO", 146, 1 },
-		{ "PLAYER_INFO", 147, 0, 0 },
-		{ "CALIPERS_RIGHT", 88 },
-		{ "CALIPERS_LEFT", 90 },
-		{ "\260\355\274\323", 78 },
-		{ "\300\372\274\323", 66 },
-		{ "UNDO", 90 },
-		{ "REDO", 89 },
-		{ "FLIP", 70 },
-		{ "SAVE", 83 },
-		{ "PAINT", 80 },
-		{ "GRID", 71 },
-		{ "DRAG", 68 },
+
+	KeyLayout layout[] = {
+		{ "\xBB\xF3", 0x06 },
+		{ "\xC7\xCF", 0x07 },
+		{ "\xC1\xC2", 0x04 },
+		{ "\xBF\xEC", 0x05 },
+		{ "\xBB\xF3", 0x57 },
+		{ "\xC7\xCF", 0x53 },
+		{ "\xC1\xC2", 0x41 },
+		{ "\xBF\xEC", 0x44 },
+		{ "LSHIFT", 0x81, 1 },
+		{ "RSHIFT", 0x82, 1 },
+		{ "\xBD\xBA\xC6\xE4\xC0\xCC\xBD\xBA\xB9\xD9", 0x20 },
+		{ "PAGE_DOWN", 0x03, 1 },
+		{ "PAD_PLUS", 0x8C },
+		{ "PAGE_UP", 0x02, 1 },
+		{ "PAD_MINUS", 0x88 },
+		{ "\xB5\xF0\xB9\xF6\xB1\xD7\xC5\xB0", 0x08 },
+		{ "HOME", 0x0C },
+		{ "END", 0x1A },
+		{ "PAD_0", 0x90 },
+		{ "NUM_0", 0x30 },
+		{ "PAD_1", 0x8D },
+		{ "NUM_1", 0x31 },
+		{ "PAD_2", 0x8E },
+		{ "NUM_2", 0x32 },
+		{ "PAD_3", 0x8F },
+		{ "NUM_3", 0x33 },
+		{ "PAD_4", 0x89 },
+		{ "NUM_4", 0x34 },
+		{ "PAD_5", 0x8A },
+		{ "NUM_5", 0x35 },
+		{ "PAD_6", 0x8B },
+		{ "NUM_6", 0x36 },
+		{ "PAD_7", 0x85 },
+		{ "NUM_7", 0x37 },
+		{ "PAD_8", 0x86 },
+		{ "NUM_8", 0x38 },
+		{ "PAD_9", 0x87 },
+		{ "NUM_9", 0x39 },
+		{ "ITEMSLOT", 0x49 },
+		{ "\xC1\xA4\xC1\xF6", 0x50 },
+		{ "LALT", 0x1C, 1 },
+		{ "RALT", 0x1D, 1 },
+		{ "LCONTROL", 0x1E },
+		{ "RCONTROL", 0x1F },
+		{ "TAB", 0x09, 1 },
+		{ "FASTFORWARD", 0x20 },
+		{ "\xC5\xD7\xBD\xBA\xC6\xAE", 0x54 },
+		{ "PARAM_UPDATE", 0x55 },
+		{ "CONSOLE", 0x0A, 1 },
+		{ "F15", 0x66, 1 },
+		{ "FUNC_1", 0x0E, 1 },
+		{ "FUNC_2", 0x0F, 1 },
+		{ "FUNC_3", 0x10, 1 },
+		{ "FUNC_4", 0x11, 1 },
+		{ "FUNC_5", 0x12, 1 },
+		{ "FUNC_6", 0x13, 1 },
+		{ "FUNC_7", 0x14, 1 },
+		{ "FUNC_8", 0x15, 1 },
+		{ "FUNC_9", 0x16, 1 },
+		{ "FUNC_10", 0x17, 1 },
+		{ "FUNC_11", 0x18, 1 },
+		{ "FUNC_12", 0x19, 1 },
+		{ "FUNC_15", 0x66, 1 },
+		{ "INSERT", 0x7F, 1 },
+		{ "ESCAPE", 0x1B, 1 },
+		{ "ENTER", 0x0D, 1 },
+		{ "PADENTER", 0x91, 1 },
+		{ "HIDE", 0x48 },
+		{ "JUKEBOX", 0x4D },
+		{ "REPLAY", 0x52 },
+		{ "SKIP", 0x53 },
+		{ "CANCEL", 0x43 },
+		{ "FPS_SHOT", 0x46 },
+		{ "BALL_TRACE", 0x47 },
+		{ "PARTICLE_1", 0x2E },
+		{ "PARTICLE_2", 0x2C },
+		{ "\xB8\xC5\xC5\xA9\xB7\xCE\xC3\xA2", 0x60 },
+		{ "\xC1\xA4\xC1\xF6" "2", 0x56 },
+		{ "EMOTICON", 0x45 },
+		{ "BANISH", 0x01, 1 },
+		{ "RANK", 0x51 },
+		{ "ROTATE_CW", 0x51 },
+		{ "MESSENGER", 0x7F, 1 },
+		{ "ROTATE_CCW", 0x45 },
+		{ "DEBUG_INFO", 0x92, 1 },
+		{ "PLAYER_INFO", 0x93, 0, 0 },
+		{ "CALIPERS_RIGHT", 0x58 },
+		{ "CALIPERS_LEFT", 0x5A },
+		{ "\xB0\xED\xBC\xD3", 0x4E },
+		{ "\xC0\xFA\xBC\xD3", 0x42 },
+		{ "UNDO", 0x5A },
+		{ "REDO", 0x59 },
+		{ "FLIP", 0x46 },
+		{ "SAVE", 0x53 },
+		{ "PAINT", 0x50 },
+		{ "GRID", 0x47 },
+		{ "DRAG", 0x44 },
 		{ NULL },
 	};
-	for (int i = 0; bindings[i].name; ++i)
-		g_input->Register(bindings[i].name, bindings[i].key, bindings[i].flags,
-			bindings[i].type == 1 ? 3 : 2);
+
+	for (int i = 0; layout[i].name != NULL; i++) {
+		g_input->Register(layout[i].name, layout[i].code, layout[i].flags, layout[i].timed == 1 ? 3 : 2);
+	}
+
 	g_input->ExcludeKey("BALL_TRACE");
+
 	g_input->ExcludeKey("PARAM_UPDATE");
 	g_input->ExcludeKey("FPS_SHOT");
-	g_input->ExcludeKey("\305\327\275\272\306\256");
-	g_input->ExcludeKey("\265\360\271\366\261\327\305\260");
+	g_input->ExcludeKey("\xC5\xD7\xBD\xBA\xC6\xAE");
+	g_input->ExcludeKey("\xB5\xF0\xB9\xF6\xB1\xD7\xC5\xB0");
 	g_input->ExcludeKey("PARTICLE_1");
 	g_input->ExcludeKey("PARTICLE_2");
-	g_input->ExcludeKey("\301\244\301\366");
-	g_input->ExcludeKey("\301\244\301\3662");
-	g_input->ExcludeKey("\260\355\274\323");
-	g_input->ExcludeKey("\300\372\274\323");
+	g_input->ExcludeKey("\xC1\xA4\xC1\xF6");
+	g_input->ExcludeKey("\xC1\xA4\xC1\xF6" "2");
+	g_input->ExcludeKey("\xB0\xED\xBC\xD3");
+	g_input->ExcludeKey("\xC0\xFA\xBC\xD3");
 }
 
-int MainLoop()
-{
-	int beingDebugged = 1;
-	__asm
-	{
+// projectg.cpp:1112 (the original is inline asm: reads PEB->BeingDebugged)
+int MainLoop(void) {
+	int result = 1;
+
+	__asm {
 		mov eax, fs:[18h]
-		mov eax, [eax + 30h]
-		movzx eax, byte ptr [eax + 2]
-		mov beingDebugged, eax
+		mov eax, [eax+30h]
+		movzx eax, byte ptr [eax+2]
+		mov result, eax
 	}
-	return beingDebugged;
+
+	return result;
 }
 
-int CProjectG::MainLoop(int flags)
-{
+// projectg.cpp:1126
+int CProjectG::MainLoop(int) {
 	FPU_Check();
+
 	g_CurrentTime = timeGetTime();
+
 	WNetworkSystem::Instance()->Process();
+
 	ProcessRecvPacketQueue();
-	WFlags captureFlags = m_flag;
-	int mainFlags = m_mainFlags;
-	if (!bool(captureFlags & 2))
-		return Main(mainFlags | 0x80);
-	return Main(mainFlags);
+
+	bool active = ((m_appFlags >> 1) & 1) != 0;
+	int flags = m_mainFlags;
+	if (!active) flags |= 0x80;
+	return Main(flags);
 }
 
-void CProjectG::CheckScreenShot()
-{
-	if (g_input->GetDown("FUNC_11", true) || Doc()->GetReplayState() == 6)
-	{
-		if (IsLocalContent(S4_REPLAY_SYSTEM) &&
-			(Doc()->GetReplayState() == 6 || Doc()->GetReplayState() == 9))
-		{
+// The screenshot notice: CheckScreenShot writes the message and the time it
+// was taken; Draw shows it for a second.
+static char s_screenShotMessage[1024];        // 0xB7BB18
+static unsigned long s_screenShotTime;        // 0xB7BF74
+
+// projectg.cpp:1281
+void CProjectG::CheckScreenShot(void) {
+	// Frames left before the capture is taken (-1: no capture pending).
+	static int s_captureDelay = -1;
+
+	if (g_input->GetDown("FUNC_11", true) || CSharedDoc::Instance()->m_replayState == 6) {
+		if (IsLocalContent((localContentType_t)0x4F) && (CSharedDoc::Instance()->m_replayState == 6 || CSharedDoc::Instance()->m_replayState == 9)) {
 			__int64 freeSpace = CalcHddFreeSpace();
-			if (!freeSpace)
-			{
-				CChatMsg::Instance()->AddChatMsg(
-					"\307\317\265\345\300\307 \277\353\267\256\300\273 \303\274\305\251 \307\322 \274\366 \276\370\300\270\271\307\267\316 \265\277\277\265\273\363 \306\304\300\317\300\273 \273\375\274\272 \307\322 \274\366 \276\370\275\300\264\317\264\331.",
-					0xffff7878, true, false);
+			if (freeSpace == 0) {
+				CChatMsg::Instance()->AddChatMsg(std::string("\xc7\xcf\xb5\xe5\xc0\xc7 \xbf\xeb\xb7\xae\xc0\xbb \xc3\xbc\xc5\xa9 \xc7\xd2 \xbc\xf6 \xbe\xf8\xc0\xb8\xb9\xc7\xb7\xce \xb5\xbf\xbf\xb5\xbb\xf3 \xc6\xc4\xc0\xcf\xc0\xbb \xbb\xfd\xbc\xba \xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9."), 0xFFFF7878, true, false);
+				return;
+			} else if (freeSpace < 0x40000000) {
+				CChatMsg::Instance()->AddChatMsg(std::string("\xc7\xcf\xb5\xe5\xc0\xc7 \xbf\xeb\xb7\xae\xc0\xcc \xba\xce\xc1\xb7\xc7\xcf\xbf\xa9 avi\xc6\xc4\xc0\xcf\xc0\xbb \xbb\xfd\xbc\xba\xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9."), 0xFFFF7878, true, false);
 				return;
 			}
-			if (freeSpace < 0x40000000)
-			{
-				CChatMsg::Instance()->AddChatMsg(
-					"\307\317\265\345\300\307 \277\353\267\256\300\314 \272\316\301\267\307\317\277\251 avi\306\304\300\317\300\273 \273\375\274\272\307\322 \274\366 \276\370\275\300\264\317\264\331.",
-					0xffff7878, true, false);
-				return;
-			}
+
 			COption::Instance()->dSetCaptureFormat(2);
-			if (Doc()->GetReplayState() == 6)
-				Doc()->SetReplayState(7);
-		}
-		else
+
+			if (CSharedDoc::Instance()->m_replayState == 6)
+				CSharedDoc::Instance()->m_replayState = 7;
+		} else {
 			COption::Instance()->dSetCaptureFormat(0);
-		m_bHideGUI = COption::Instance()->gGetCaptureHideGUI() == 1;
-		m_bHidePI = COption::Instance()->gGetCaptureHidePI() == 1;
-		if (g_input->Get("LCONTROL", false) ||
-			g_input->Get("RCONTROL", false) || m_bHidePI)
-		{
-			m_bHidePrivacy = true;
+		}
+
+		m_hideGUI = COption::Instance()->gGetCaptureHideGUI() == 1;
+		m_hidePI = COption::Instance()->gGetCaptureHidePI() == 1;
+
+		if (g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false) || m_hidePI) {
+			m_hidePrivacy = true;
 			g_pFresh->HidePrivacy(true);
 		}
-		captureCountdown = 3;
-		AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 505, 0, 0, 0, 0, 0));
+
+		s_captureDelay = 3;
+		AfxGetTask()->SendMsgToMainActor(MsgObject(0, 0x1F9, 0, 0, 0, 0, 0));
 	}
-	if (captureCountdown > 0)
-		--captureCountdown;
-	if (captureCountdown == 0)
-	{
-		m_bHidePrivacy = false;
-		captureCountdown = -1;
-		g_pFresh->HidePrivacy(false);
-		char suffix[4] = "";
-		char description[64] = "";
-		if (m_bHideGUI)
-		{
-			strcat(suffix, "G");
-			strcat(description, "(GUI");
-			if (!m_bHidePI)
-				strcat(description, "\301\246\260\305)");
+
+	if (s_captureDelay > 0)
+		s_captureDelay--;
+
+	if (s_captureDelay != 0)
+		return;
+
+	m_hidePrivacy = false;
+
+	s_captureDelay = -1;
+	g_pFresh->HidePrivacy(false);
+
+	char tag[4] = "";
+	char description[64] = "";
+	if (m_hideGUI) {
+		strcat(tag, "G");
+		strcat(description, "(GUI");
+		if (!m_hidePI) {
+			strcat(description, "\xc1\xa6\xb0\xc5)");
 		}
-		if (m_bHidePI)
-		{
-			strcat(suffix, "U");
-			if (m_bHideGUI)
-				strcat(description, ", ");
-			else
-				strcat(description, "(");
-			strcat(description,
-				"\260\263\300\316\301\244\272\270\301\246\260\305)");
-		}
-		m_bHideGUI = false;
-		m_bHidePI = false;
-		AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 505, 0, 0, 0, 0, 0));
-		const char* format = COption::Instance()->dGetCaptureFormat();
-		mkdir("capture");
-		char filename[64];
-		do
-		{
-			sprintf(filename, "capture/pangya%s_%03d.%s", suffix,
-				m_captureNum++, format);
-		} while (_access(filename, 0) != -1);
-		if (!stricmp(format, "avi"))
-		{
-			Doc()->SetReplayState(7);
-			if (m_avi.IsOpened())
-			{
-				m_avi.Close();
-				m_mainFlags.Disable(0x22);
-				m_flag.Disable(2);
-				SetFPS(m_refreshRate);
-				if (IsLocalContent(S4_REPLAY_SYSTEM))
-					Doc()->SetReplayState(0);
-				SetGameSpeed(1.0f);
-				COption::Instance()->dSetCaptureFormat(0);
-			}
-			else
-			{
-				int width = COption::Instance()->dGetAviWidth();
-				int height = COption::Instance()->dGetAviHeight();
-				int fps = COption::Instance()->dGetAviFps();
-				if (m_avi.Open(filename, width, height, fps, g_hwnd))
-				{
-					g_input->SetFakeInput(
-						"\275\272\306\344\300\314\275\272\271\331", false);
-					SetFPS((float)fps);
-					m_flag.Enable(2);
-					m_mainFlags.Enable(0x22);
-				}
-			}
-		}
+	}
+
+	if (m_hidePI) {
+		strcat(tag, "U");
+		if (m_hideGUI)
+			strcat(description, ", ");
 		else
-		{
-			if (!COption::Instance()->gGetCaptureHidePI() &&
-				Doc()->m_playingMode != 2)
-			{
-				FILETIME fileTime;
-				SystemTimeToFileTime(&Doc()->GetServerTime(), &fileTime);
-				ULARGE_INTEGER ticks;
-				ticks.LowPart = fileTime.dwLowDateTime;
-				ticks.HighPart = fileTime.dwHighDateTime;
-				ULARGE_INTEGER now;
-				now.QuadPart = ticks.QuadPart +
-					10000LL * (GetTickCount() - Doc()->m_serverTimeTick);
-				fileTime.dwLowDateTime = now.LowPart;
-				fileTime.dwHighDateTime = now.HighPart;
-				SYSTEMTIME time;
-				FileTimeToSystemTime(&fileTime, &time);
-				char stamp[128];
-				sprintf(stamp, "%d-%02d-%02d %02d:%02d:%02d", time.wYear,
-					time.wMonth, time.wDay, time.wHour, time.wMinute,
-					time.wSecond);
-				if (Doc()->m_loginServerUID && Doc()->m_curGameServer.name[0])
-				{
-					strcat(stamp, " (");
-					strcat(stamp, Doc()->m_curGameServer.name);
-					strcat(stamp, ")");
-				}
-				Draw();
-				FrGraphicInterface* graphics = g_pFresh->GetManager()->GetGDI();
-				if (graphics)
-				{
-					graphics->SetTextColor(0xffffffff, 0x88888888);
-					graphics->SetTextStyle(2);
-					graphics->Print(WPoint(5, g_view->GetHeight() - 13), 0,
-						stamp);
-					graphics->SetTextStyle(0);
-				}
-				g_view->EndScene();
-				g_resrcmng->VideoReference()->EndScene();
+			strcat(description, "(");
+
+		strcat(description, "\xb0\xb3\xc0\xce\xc1\xa4\xba\xb8\xc1\xa6\xb0\xc5)");
+	}
+
+	m_hideGUI = false;
+	m_hidePI = false;
+
+	AfxGetTask()->SendMsgToMainActor(MsgObject(0, 0x1F9, 0, 0, 0, 0, 0));
+
+	const char* format = COption::Instance()->dGetCaptureFormat();
+
+	_mkdir("capture");
+
+	char fileName[64];
+	do {
+		sprintf(fileName, "capture/pangya%s_%03d.%s", tag, m_captureNum++, format);
+	} while (_access(fileName, 0) != -1);
+
+	if (_stricmp(format, "avi") == 0) {
+		CSharedDoc::Instance()->m_replayState = 7;
+		if (m_aviEncoder.IsOpened()) {
+			m_aviEncoder.Close();
+
+			m_mainFlags &= ~0x22;
+			m_appFlags &= ~2;
+			SetFPS(m_monitorFPS);
+
+			if (IsLocalContent((localContentType_t)0x4F))
+				CSharedDoc::Instance()->m_replayState = 0;
+
+			SetGameSpeed(1.0f);
+			COption::Instance()->dSetCaptureFormat(0);
+		} else {
+			int width = COption::Instance()->dGetAviWidth();
+			int height = COption::Instance()->dGetAviHeight();
+			int fps = COption::Instance()->dGetAviFps();
+
+			if (m_aviEncoder.Open(fileName, width, height, fps, g_hwnd)) {
+				g_input->SetFakeInput("\xbd\xba\xc6\xe4\xc0\xcc\xbd\xba\xb9\xd9", false);
+				SetFPS((float)fps);
+				m_appFlags |= 2;
+				m_mainFlags |= 0x22;
 			}
-			if (SaveScreenShot(filename))
-				sprintf(captureMessage,
-					"\310\255\270\351%s\300\314 %s\277\241 \300\372\300\345\265\307\276\372\275\300\264\317\264\331.",
-					description, filename);
-			else
-				sprintf(captureMessage,
-					"\275\272\305\251\270\260\274\246 \300\372\300\345\300\314 \275\307\306\320 \307\337\275\300\264\317\264\331.");
-			captureMessageTime = timeGetTime();
 		}
+		return;
 	}
-}
 
-void CheckQuickEscape()
-{
-}
+	if (COption::Instance()->gGetCaptureHidePI() == 0 && CSharedDoc::Instance()->m_playingMode != (eReplayModeType)2) {
+		FILETIME fileTime;
+		SystemTimeToFileTime(&CSharedDoc::Instance()->GetServerTime(), &fileTime);
 
-void CheckDebugKey()
-{
-}
+		ULARGE_INTEGER time;
+		time.LowPart = fileTime.dwLowDateTime;
+		time.HighPart = fileTime.dwHighDateTime;
+		time.QuadPart += (unsigned __int64)(GetTickCount() - CSharedDoc::Instance()->m_serverTimeTick) * 10000;
+		fileTime.dwLowDateTime = time.LowPart;
+		fileTime.dwHighDateTime = time.HighPart;
 
-void CProjectG::OpenDisconDlg(const char* text, bool gameServer)
-{
-	if (g_pFresh)
-	{
-		FrForm* form =
-			CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify", NULL);
-		if (form)
-		{
-			form->SetMessage(text, false);
-			if (gameServer == true)
-				form->Open((FRESH_PFN_RESULT)&CProjectG::OnGameServerResult,
-					515);
-			else
-				form->Open((FRESH_PFN_RESULT)&CProjectG::OnLoginServerResult,
-					515);
+		SYSTEMTIME systemTime;
+		FileTimeToSystemTime(&fileTime, &systemTime);
+
+		char timeText[128];
+		sprintf(timeText, "%d-%02d-%02d %02d:%02d:%02d", systemTime.wYear, systemTime.wMonth, systemTime.wDay, systemTime.wHour, systemTime.wMinute, systemTime.wSecond);
+
+		if (CSharedDoc::Instance()->m_loginConnectValue != 0) {
+			if (CSharedDoc::Instance()->m_serverName[0] != '\0') {
+				strcat(timeText, " (");
+				strcat(timeText, CSharedDoc::Instance()->m_serverName);
+				strcat(timeText, ")");
+			}
 		}
+
+		Draw();
+
+		FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+		if (gdi) {
+			gdi->SetTextColor(0xFFFFFFFF, 0x88888888);
+			gdi->SetTextStyle(2);
+			gdi->Print(WPoint(5.0f, g_view->GetHeight() - 13.0f), 0, timeText);
+			gdi->SetTextStyle(0);
+		}
+
+		g_view->EndScene();
+
+		g_resrcmng->VideoReference()->EndScene();
 	}
+
+	if (SaveScreenShot(fileName))
+		sprintf(s_screenShotMessage, "\xc8\xad\xb8\xe9%s\xc0\xcc %s\xbf\xa1 \xc0\xfa\xc0\xe5\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9.", description, fileName);
 	else
-	{
-		MessageBox(NULL, text, "\276\313\270\262", 0);
-		if (gameServer == true)
-			OnGameServerResult(1, NULL);
-		else
-			OnLoginServerResult(1, NULL);
+		sprintf(s_screenShotMessage, "\xbd\xba\xc5\xa9\xb8\xb0\xbc\xa6 \xc0\xfa\xc0\xe5\xc0\xcc \xbd\xc7\xc6\xd0 \xc7\xdf\xbd\xc0\xb4\xcf\xb4\xd9.");
+
+	s_screenShotTime = timeGetTime();
+}
+
+// projectg.cpp:1531
+void CheckQuickEscape(void) {
+}
+
+// projectg.cpp:1535
+void CheckDebugKey(void) {
+}
+
+// projectg.cpp:1543
+void CProjectG::OpenDisconDlg(const char* message, bool gameServer) {
+	if (g_pFresh) {
+		FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify", 0);
+		if (pForm) {
+			pForm->SetMessage(message, false);
+
+			if (gameServer == true) {
+				pForm->Open((FRESH_RESULT_CALLBACK)&CProjectG::OnGameServerResult, 0x203);
+			} else {
+				pForm->Open((FRESH_RESULT_CALLBACK)&CProjectG::OnLoginServerResult, 0x203);
+			}
+		}
+	} else {
+		MessageBox(0, message, "\xBE\xCB\xB8\xB2", 0);
+
+		if (gameServer == true) {
+			OnGameServerResult(1, 0);
+		} else {
+			g_bQuit = true;
+		}
 	}
 }
 
-void CProjectG::FromGolfToLobbySettings()
-{
-	if (g_input)
-	{
+// projectg.cpp:1577
+void CProjectG::FromGolfToLobbySettings(void) {
+	if (g_input) {
 		g_input->FreeKey();
 		g_input->FreeMouse();
 	}
+
 	if (g_audio)
 		g_audio->StopAllSound();
-	if (CFx::Instance())
-		CFx::Instance()->ClearAll(false);
-	if (CUserInfo::Instance())
-		CUserInfo::Instance()->Close();
-	if (CMouseCursor::Instance())
-		CMouseCursor::Instance()->SetMode(CMouseCursor::SCREEN_LOBBY);
+
+	if (WSingleton<CFx>::IsInstantiated())
+		WSingleton<CFx>::Instance()->ClearAll(false);
+
+	if (WSingleton<CUserInfo>::IsInstantiated())
+		WSingleton<CUserInfo>::Instance()->Close();
+
+	if (WSingleton<CMouseCursor>::IsInstantiated())
+		WSingleton<CMouseCursor>::Instance()->m_mode = CMouseCursor::SCREEN_LOBBY;
+
 	g_resrcmng->VideoReference()->Command(W_VDEV_RELEASE_CAPTURERESOURCE, 0, 0);
 }
 
-void CProjectG::Process(float delta)
-{
+// projectg.cpp:1600
+void CProjectG::Process(float seconds) {
 	g_input->Update();
-	if (!WisEqual(GetGameSpeed(), 1.0f, g_EPSILON))
-	{
-		if (!IS_KINDOF(CGolfTask, AfxGetTask()))
-			SetGameSpeed(1.0f);
-	}
-	CNetworkMonitor::Instance()->Process(delta);
-	g_FpsMonitor.Trace(delta == 0.0f ? -1 : (int)(1.0f / delta));
-	g_FpsMonitor.Process(0.0f);
-	int available =
-		g_resrcmng->VideoReference()->Command(W_VDEV_GETAVAIL_VRAM, 0, 0);
-	static int initialVram = -1;
-	if (initialVram == -1)
-		initialVram = available;
-	g_VramMonitor.Trace((initialVram - available) / 20000);
-	g_VramMonitor.Process(0.0f);
-	delta *= GetGameSpeed();
-	if (IsLocalContent(S4_REPLAY_SYSTEM) && bool(m_flag & 2))
-	{
-		static float captureTime;
-		captureTime += delta;
-		if (delta > 1.0f / 15.0f)
-		{
-			delta = 1.0f / 15.0f;
-			SetGameSpeed(0.0f);
-			captureTime = 0.0f;
-			g_bAviCapture = true;
+
+	if (!WisEqual(m_gameSpeed, 1.0f, 0.00001f) && !((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)))
+		m_gameSpeed = 1.0f;
+
+	WSingleton<CNetworkMonitor>::Instance()->Process(seconds);
+
+	g_FpsMonitor.Trace(seconds == 0.0f ? -1 : (int)(1.0f / seconds));
+	g_FpsMonitor.Process(0);
+
+	// Video memory used since the first frame, in units of 20000 bytes.
+	int availVram = g_resrcmng->VideoReference()->Command(W_VDEV_GETAVAIL_VRAM, 0, 0);
+	static int s_firstAvailVram = -1;
+	if (s_firstAvailVram == -1)
+		s_firstAvailVram = availVram;
+	int usedVram = s_firstAvailVram - availVram;
+	g_VramMonitor.Trace(usedVram / 20000);
+	g_VramMonitor.Process(0);
+
+	seconds *= m_gameSpeed;
+
+	// AVI capture: the game advances by fixed 1/15 s steps.
+	static float s_aviTime = 0.0f;
+	if (IsLocalContent((localContentType_t)0x4F)) {
+		bool active = ((m_appFlags >> 1) & 1) != 0;
+		if (active) {
+			s_aviTime += seconds;
+
+			if (seconds > 1.0f / 15.0f) {
+				seconds = 1.0f / 15.0f;
+				m_gameSpeed = 0;
+				s_aviTime = 0;
+				g_bAviCapture = true;
+			} else if (s_aviTime > 1.0f / 15.0f) {
+				seconds = seconds - (s_aviTime - 1.0f / 15.0f);
+				m_gameSpeed = 0;
+				s_aviTime = 0;
+				g_bAviCapture = true;
+			}
 		}
-		else if (captureTime > 1.0f / 15.0f)
-		{
-			delta -= captureTime - 1.0f / 15.0f;
-			SetGameSpeed(0.0f);
-			captureTime = 0.0f;
-			g_bAviCapture = true;
-		}
 	}
+
 	CTaskManager::Instance()->PreProcess();
-	if (Doc()->m_replayState != 7 && g_input->GetDown("MESSENGER", true) &&
-		NET()->GetSocket(WNetworkSystem::NET_GAME)->m_bConnected)
-		CMessengerInfo::Instance()->Open(true);
-	CMouseCursor::Instance()->Process(delta);
-	CMessengerInfo::Instance()->Process(delta);
-	CTaskManager::Instance()->ProcessTask(delta);
-	CUserInfo::Instance()->Process(delta);
-	CRankingInfo::Instance()->Process(delta);
-	CNoticeBoard::Instance()->Process(delta);
-	CWinnerNotice::Instance()->Process(delta);
-	CFx::Instance()->Process(delta);
-	CBrowser::Instance()->Process(delta);
-	COneLineBoard::Instance()->Process(delta);
-	lua_system::lua_script_manger::GetInstance()->Update(delta);
-	g_audio->Process(delta, g_view);
+
+	if (CSharedDoc::Instance()->m_replayState != 7) {
+		if (g_input->GetDown("MESSENGER", true) && WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_DEFAULT)->m_bConnected != 0)
+			CMessengerInfo::Instance()->Open(true);
+	}
+
+	CMouseCursor::Instance()->Process(seconds);
+	CMessengerInfo::Instance()->Process(seconds);
+	CTaskManager::Instance()->ProcessTask(seconds);
+	CUserInfo::Instance()->Process(seconds);
+	CRankingInfo::Instance()->Process(seconds);
+	CNoticeBoard::Instance()->Process(seconds);
+	CWinnerNotice::Instance()->Process(seconds);
+	CFx::Instance()->Process(seconds);
+	CBrowser::Instance()->Process(seconds);
+	COneLineBoard::Instance()->Process(seconds);
+	lua_system::lua_script_manger::GetInstance()->Update(seconds);
+
+	g_audio->Process(seconds, g_view);
 	if (g_miles)
-		g_miles->Process();
+		WMilesSoundSystem::Process();
+
 	COption::Instance()->CheckPendingChanges();
+
 	CheckScreenShot();
-	if (m_pDxDiagInfo && !m_pDxDiagInfo->IsGathered())
-		m_pDxDiagInfo->GatherInfo();
+
+	if (m_dxDiagInfo && !m_dxDiagInfo->IsGathered())
+		m_dxDiagInfo->GatherInfo();
+
 	if (g_bQuit)
 		Quit();
-	++processCount;
-	if (g_bOldFocus != g_bFocus)
-	{
+
+	static int s_frameCount = 0;
+	s_frameCount++;
+	if (g_bOldFocus != g_bFocus) {
 		g_bOldFocus = g_bFocus;
-		if (!COption::Instance()->GetOption()->vWindowMode)
+		if (COption::Instance()->GetOption()->m_windowed == 0)
 			g_mouse->InitDevice(g_hwnd, g_bFocus);
 	}
-	if (!g_bFocus)
-	{
-		if (NET()->GetSocket(WNetworkSystem::NET_GAME)->GetRcvCnt() < 5000)
+
+	if (!g_bFocus) {
+		if (WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_DEFAULT)->GetRcvCnt() < 5000)
 			Sleep(50);
-	}
-	else if (CBrowser::Instance()->IsOpen())
+	} else if (CBrowser::Instance()->IsOpen()) {
 		Sleep(10);
-}
-
-void CProjectG::ReportError(int code, const char* format, ...)
-{
-	char text[256] = "";
-	va_list args;
-	va_start(args, format);
-	if (_vsnprintf(text, sizeof(text) - 1, format, args) != -1)
-	{
-		char report[512] = "";
-		const char* nick = MyNick();
-		_snprintf(report, sizeof(report) - 1, "%d %s %s %s %s", code,
-			strlen(nick) ? nick : "unknown", PY_PUBLIC_VERSION, "645.00", text);
-		CPangFBI::Instance()->ProcessReport("app_log", report);
 	}
-	va_end(args);
 }
 
-void CProjectG::GameGuardLog(const char* format, ...)
-{
-	char text[256];
+// projectg.cpp:1973
+void CProjectG::ReportError(int code, const char* format, ...) {
+	char message[256] = { 0 };
+
 	va_list args;
 	va_start(args, format);
-	if (_vsnprintf(text, sizeof(text) - 1, format, args) == -1)
-		text[sizeof(text) - 1] = 0;
-	va_end(args);
+
+	if (_vsnprintf(message, sizeof(message) - 1, format, args) == -1)
+		return;
+
+	char report[512] = { 0 };
+	const char* nickname = WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().nickname;
+	_snprintf(report, sizeof(report) - 1, "%d %s %s %s %s", code, strlen(nickname) == 0 ? "unknown" : nickname, PY_PUBLIC_VERSION, "645.00", message);
+
+	WSingleton<CPangFBI>::Instance()->ProcessReport("app_log", report);
+}
+
+// projectg.cpp:1991
+void CProjectG::GameGuardLog(const char* format, ...) {
+	char buffer[256];
+	va_list args;
+	va_start(args, format);
+	if (_vsnprintf(buffer, sizeof(buffer) - 1, format, args) == -1) {
+		buffer[sizeof(buffer) - 1] = 0;
+	}
+
 	SYSTEMTIME time;
 	GetLocalTime(&time);
+
 	FILE* file = fopen("GameGuard/GameGuard.err", "a+");
-	if (file)
-	{
-		fprintf(file, "%d-%02d-%02d %02d:%02d:%02d.%03d %s\n", time.wYear,
-			time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond,
-			time.wMilliseconds, text);
+
+	if (file) {
+		fprintf(file, "%d-%02d-%02d %02d:%02d:%02d.%03d %s\n",
+			time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds,
+			buffer);
 		fclose(file);
 	}
 }
 
-bool CProjectG::HidePrivacy()
-{
-	return m_bHidePrivacy;
+// projectg.cpp:2015
+bool CProjectG::HidePrivacy(void) {
+	return m_hidePrivacy;
 }
 
-bool CProjectG::HideGUI()
-{
-	return m_bHideGUI;
+// projectg.cpp:2020
+bool CProjectG::HideGUI(void) {
+	return m_hideGUI;
 }
 
-bool CProjectG::HidePI()
-{
-	return m_bHidePI;
+// projectg.cpp:2025
+bool CProjectG::HidePI(void) {
+	return m_hidePI;
 }
 
-static bool CheckFileMD5(const char* filename, const unsigned char* expected)
-{
-	cFile* file = g_resrcmng->GetCFile(filename, 0xffff);
-	if (!file)
-		return false;
-	unsigned int size = file->Length();
-	unsigned char* data = new unsigned char[size];
-	file->Read(data, size);
-	CloseCFile(file);
+// A UI image whose content CheckUIHack verifies.
+struct sUIHackFile {
+	const char* fileName;      // 0x0
+	unsigned char digest[16];  // 0x4
+};
+
+static sUIHackFile s_uiHackFiles[] = {
+	{ "[left_ht.jpg", { 0x5b, 0xa3, 0x60, 0x07, 0x2f, 0x73, 0x87, 0x21, 0xef, 0xbd, 0xcd, 0xd4, 0x45, 0x23, 0xfc, 0xfa } },
+	{ "[middle.jpg", { 0x7b, 0x95, 0xfc, 0xe6, 0x44, 0xab, 0xd1, 0x81, 0xa8, 0x53, 0xd1, 0x56, 0xf9, 0xf4, 0xa2, 0x8f } },
+	{ "[right_wind_b.jpg", { 0xed, 0xdd, 0x43, 0xfd, 0x5e, 0x65, 0x91, 0x86, 0x15, 0x1c, 0x80, 0x79, 0x32, 0x41, 0x77, 0x1b } },
+};
+
+// projectg.cpp:2030 (original sub_007975d0): true when the resource file's
+// MD5 equals the expected digest.
+static bool __stdcall CheckFileDigest(const char* fileName, const unsigned char* digest) {
+	unsigned char result[16];
 	MD5Context context;
-	unsigned char digest[16];
+
+	cFile* file = g_resrcmng->GetCFile(fileName, 0xFFFF);
+
+	if (file == NULL)
+		return false;
+
+	int length = file->Length();
+	unsigned char* buffer = new unsigned char[length];
+	file->Read(buffer, length);
+	CloseCFile(file);
+
 	MD5Init(&context);
-	MD5Update(&context, data, size);
-	MD5Final(digest, &context);
-	delete[] data;
-	for (int i = 0; i < 16; ++i)
-		if (expected[i] != digest[i])
+	MD5Update(&context, buffer, length);
+	MD5Final(result, &context);
+
+	delete[] buffer;
+
+	for (int i = 0; i < 16; i++) {
+		if (digest[i] != result[i])
 			return false;
+	}
+
 	return true;
 }
 
-bool CProjectG::CheckUIHack()
-{
-	UIFileChecksum* check = uiChecks;
-	for (unsigned int i = 0; i < sizeof(uiChecks) / sizeof(uiChecks[0]);
-		++i, ++check)
-		if (!CheckFileMD5(check->filename, check->digest))
+// projectg.cpp:2062
+bool CProjectG::CheckUIHack(void) {
+#ifdef PG_FOREIGN_PAKS
+	// The paks are another client's (CMake PG_PAK_REGION other than KR): its
+	// GUI images differ from the 2011 KR ones the digests describe, so the
+	// check would always report a modified file.
+	return true;
+#endif
+	sUIHackFile* file = s_uiHackFiles;
+
+	for (unsigned int i = 0; i < sizeof(s_uiHackFiles) / sizeof(s_uiHackFiles[0]); i++, file++) {
+		if (!CheckFileDigest(file->fileName, file->digest))
 			return false;
+	}
+
 	return true;
 }
 
-void CProjectG::ResetCaptuerNum()
-{
+// projectg.cpp:2074
+void CProjectG::ResetCaptuerNum(void) {
 	m_captureNum = 0;
 }
 
-void CProjectG::Draw()
-{
+// Frames drawn since start.
+static unsigned long s_drawnFrameCount;       // 0xB7BF58
+
+// projectg.cpp:2079
+void CProjectG::Draw(void) {
 	if (CBrowser::Instance()->IsOpen())
 		return;
+
 	WMatrix camera = g_camera;
-	unsigned char flash = 0;
+
+	unsigned char fadeAlpha = 0;
 	if (CFx::Instance())
-		CFx::Instance()->GetOutput(camera.pivot, flash);
+		CFx::Instance()->GetOutput(camera.pivot, fadeAlpha);
+
 	g_view->SetCamera(camera);
+
 	g_view->BeginScene();
+
 	g_view->Clear(0, 2);
-	g_view->SetPrevCamera(m_prevCamera);
-	m_prevCamera = g_view->GetCamera();
+
+	g_view->SetPrevCamera(m_matrix);
+	m_matrix = g_view->GetCamera();
+
 	CTaskManager::Instance()->DisplayTask();
+
 	CMouseCursor::Instance()->Display();
 	CNoticeBoard::Instance()->Display();
+
 	CWinnerNotice::Instance()->Display();
+
 	if (!CSceneManager::Instance())
 		CFx::Instance()->Display();
 	CBrowser::Instance()->Display();
-	if (IsLocalContent(S4_REPLAY_SYSTEM) && Doc()->m_playingMode == 1)
-	{
-		if (IS_EXACTKINDOF(CGolfTask, AfxGetTask()) &&
-			(Doc()->m_replayPlayType == 1 || Doc()->m_replayPlayType == 2) &&
-			Doc()->m_roomInfo.realGameType != 14)
-		{
-			FrGraphicInterface* graphics = g_pFresh->GetManager()->GetGDI();
-			graphics->SetTextStyle(2);
-			graphics->SetTextColor(0xffff0000, 0xffffffff);
-			if (Doc()->m_replayPlayType == 1)
-				graphics->Print(WPoint(300, g_view->GetHeight() - 40), 0,
-					"\270\256\307\303\267\271\300\314\260\241 \300\372\300\345\265\307\276\372\275\300\264\317\264\331.(\274\246)");
-			else if (Doc()->m_replayPlayType == 2)
-				graphics->Print(WPoint(300, g_view->GetHeight() - 40), 0,
-					"\270\256\307\303\267\271\300\314\260\241 \300\372\300\345\265\307\276\372\275\300\264\317\264\331.");
-			graphics->SetTextStyle(0);
+
+	if (IsLocalContent((localContentType_t)0x4F) && CSharedDoc::Instance()->m_playingMode == 1 && ((__rtti_obj = AfxGetTask()) != 0 ? ((IObject*)__rtti_obj)->IsExactKindOf(&CGolfTask::m_RTTI) : false) && (CSharedDoc::Instance()->m_replayPlayType == 1 || CSharedDoc::Instance()->m_replayPlayType == 2) && CSharedDoc::Instance()->m_roomInfo.m_roomMode != 14) {
+		FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+		gdi->SetTextStyle(2);
+		gdi->SetTextColor(0xFFFF0000, 0xFFFFFFFF);
+		if (CSharedDoc::Instance()->m_replayPlayType == 1)
+			gdi->Print(WPoint(300.0f, g_view->GetHeight() - 40.0f), 0, "\xb8\xae\xc7\xc3\xb7\xb9\xc0\xcc\xb0\xa1 \xc0\xfa\xc0\xe5\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9.(\xbc\xa6)");
+		else if (CSharedDoc::Instance()->m_replayPlayType == 2)
+			gdi->Print(WPoint(300.0f, g_view->GetHeight() - 40.0f), 0, "\xb8\xae\xc7\xc3\xb7\xb9\xc0\xcc\xb0\xa1 \xc0\xfa\xc0\xe5\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9.");
+		gdi->SetTextStyle(0);
+	}
+
+	if (timeGetTime() - s_screenShotTime < 1000) {
+		if (CChatMsg::Instance()) {
+			WFont* font = CChatMsg::Instance()->GetMaskedFont();
+			font->Print(g_view, g_view->GetWidth() * 0.5f - font->GetTextWidth(g_view, s_screenShotMessage) * 0.5f, g_view->GetHeight() - 25.0f, s_screenShotMessage, 0, 0xFFFF0000, 0);
+			CChatMsg::Instance()->GetMaskedFont()->Flush(g_view);
 		}
 	}
-	if (timeGetTime() - captureMessageTime < 1000 && CChatMsg::Instance())
-	{
-		WFont* font = CChatMsg::Instance()->GetMaskedFont();
-		font->Print(g_view,
-			g_view->GetWidth() * 0.5f -
-				font->GetTextWidth(g_view, captureMessage) * 0.5f,
-			g_view->GetHeight() - 25.0f, captureMessage, 0, 0xffff0000, NULL);
-		CChatMsg::Instance()->GetMaskedFont()->Flush(g_view);
-	}
-	if (flash)
-	{
-		WRect rect(0, 0, g_view->GetWidth(), g_view->GetHeight());
-		WOverlay::DrawBox(g_view, rect, 0, (flash << 24) | 0xffffff, 0.001f);
-	}
-	++drawCount;
+
+	if (fadeAlpha)
+		WOverlay::DrawBox(g_view, WRect(0.0f, 0.0f, g_view->GetWidth(), g_view->GetHeight()), 0, (fadeAlpha << 24) | 0xFFFFFF, 0.001f);
+
+	s_drawnFrameCount++;
 }
 
-void CProjectG::Paint()
-{
-	if (!CBrowser::Instance()->IsOpen())
-	{
-		g_view->EndScene();
-		g_view->Render();
-		g_last_screen_width = (int)g_view->GetWidth();
-		g_last_screen_height = (int)g_view->GetHeight();
-		WVideoDev* video = g_view->GetVideoDevice();
-		if (video)
-		{
-			int state = video->GetDeviceState();
-			if (state == 1 && g_bFocus)
-			{
-				g_bFocus = false;
-				m_bLostFocus = true;
-			}
-			else if (m_bLostFocus && state == 0 && !g_bFocus)
-			{
-				g_bFocus = true;
-				m_bLostFocus = false;
-			}
+// projectg.cpp:2218
+void CProjectG::Paint(void) {
+	if (CBrowser::Instance()->IsOpen())
+		return;
+
+	g_view->EndScene();
+
+	g_view->Render();
+	g_last_screen_width = (int)g_view->GetWidth();
+	g_last_screen_height = (int)g_view->GetHeight();
+
+	WVideoDev* videoDevice = g_view->GetVideoDevice();
+	if (videoDevice) {
+		int state = videoDevice->GetDeviceState();
+
+		if (state == 1 && g_bFocus) {
+			g_bFocus = false;
+			m_flagE4 = true;
+		} else if (m_flagE4 && state == 0 && !g_bFocus) {
+			g_bFocus = true;
+			m_flagE4 = false;
 		}
-		if (bool(m_flag & 2) && g_bAviCapture)
-		{
-			static Bitmap frame(g_last_screen_width, g_last_screen_height, 24);
-			if (g_resrcmng->VideoReference()->Command(W_VDEV_CAPTURE_SCREEN, 0,
-					(int)&frame) == 1)
-			{
-				m_avi.Write(&frame);
-				SetGameSpeed(1.0f);
-				g_bAviCapture = false;
-			}
+	}
+
+	bool active = ((m_appFlags >> 1) & 1) != 0;
+	if (active && g_bAviCapture) {
+		static Bitmap s_captureBitmap(g_last_screen_width, g_last_screen_height, 24);
+		if (g_resrcmng->VideoReference()->Command(W_VDEV_CAPTURE_SCREEN, 0, (int)&s_captureBitmap) == 1) {
+			m_aviEncoder.Write(&s_captureBitmap);
+			SetGameSpeed(1.0f);
+			g_bAviCapture = false;
 		}
 	}
 }
 
-long __stdcall CProjectG::WinProc(HWND hwnd, unsigned int message,
-	unsigned int wParam, long lParam)
-{
-	switch (message)
-	{
-	case 44468:
-		if (m_crc.IsWorking())
-			m_crc.Resume();
+// projectg.cpp:2358
+long __stdcall CProjectG::WinProc(HWND hWnd, unsigned int message, unsigned int wParam, long lParam) {
+	switch (message) {
+	case 0xADB3:
+		if (m_crcMT.IsWorking())
+			m_crcMT.Pause();
 		break;
-	case 44467:
-		if (m_crc.IsWorking())
-			m_crc.Pause();
+
+	case 0xADB4:
+		if (m_crcMT.IsWorking())
+			m_crcMT.Resume();
 		break;
-	case 44466:
-		if (!wParam)
-		{
-			std::string filename = (const char*)lParam;
-			MessageBox(NULL,
-				MakeStr(
-					"%s\306\304\300\317\277\241 \274\325\273\363\300\314 \271\337\260\337\265\307\276\372\275\300\264\317\264\331. \264\331\275\303 \275\307\307\340\307\330 \301\326\274\274\277\344.",
-					filename.c_str()),
-				"\306\316\276\337\277\241\267\257", MB_ICONEXCLAMATION);
+
+	case 0xADB2:
+		if (wParam == 0) {
+			std::string fileName((const char*)lParam);
+			// "%s file is damaged. Please run the game again." / "PangYa error"
+			MessageBox(NULL, MakeStr("%s\xc6\xc4\xc0\xcf\xbf\xa1 \xbc\xd5\xbb\xf3\xc0\xcc \xb9\xdf\xb0\xdf\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9. \xb4\xd9\xbd\xc3 \xbd\xc7\xc7\xe0\xc7\xd8 \xc1\xd6\xbc\xbc\xbf\xe4.", fileName.c_str()),
+				"\xc6\xce\xbe\xdf\xbf\xa1\xb7\xaf", MB_ICONEXCLAMATION);
 			PostQuitMessage(0);
 		}
 		break;
-	case WM_USER + 10:
-	{
-		if (!NET())
+
+	// The game server's socket.
+	case WM_USER + 10: {
+		if (!WNetworkSystem::Instance())
 			return 0;
-		WClientSocket* socket = NET()->GetSocket(WNetworkSystem::NET_GAME);
+
+		WClientSocket* socket = WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_DEFAULT);
 		if (!socket)
 			return 0;
-		int reason;
-		if (!WSAGETSELECTERROR(lParam))
-		{
-			switch (WSAGETSELECTEVENT(lParam))
-			{
+
+		int reason = 0;
+		if (WSAGETSELECTERROR(lParam) == 0) {
+			switch (WSAGETSELECTEVENT(lParam)) {
 			case FD_READ:
-				if (socket->TryRead())
-					goto DefaultProcessing;
-				socket->Close();
-				reason = 1;
+				if (socket->TryRead() == 0) {
+					socket->Close();
+					reason = 1;
+				}
 				break;
 			case FD_WRITE:
 				socket->Flush();
-				goto DefaultProcessing;
+				break;
 			case FD_CLOSE:
 				reason = 2;
 				break;
-			default:
-				goto DefaultProcessing;
 			}
-		}
-		else
+		} else {
 			reason = 3;
-		if (g_iRecvDisconCode)
-			g_iRecvDisconCode = 0;
-		else if (AfxGetTask()->GetActor("GolfRule"))
-		{
-			ReportError(4, "%d_%d_%d_%d_%d_%d(%d_%d)", reason,
-				WSAGETSELECTERROR(lParam), g_iSendFailType, WSAGetLastError(),
-				g_iSendPacketType, g_iRecvPacketType,
-				Doc()->m_roomInfo.roomGuid, MyGuid(false));
 		}
-		else
-			ReportError(4, "%d_%d_%d_%d_%d_%d", reason,
-				WSAGETSELECTERROR(lParam), g_iSendFailType, WSAGetLastError(),
+
+		if (reason == 0)
+			break;
+
+		if (g_iRecvDisconCode) {
+			g_iRecvDisconCode = 0;
+		} else if (AfxGetTask()->GetActor("GolfRule")) {
+			ReportError(4, "%d_%d_%d_%d_%d_%d(%d_%d)", reason, WSAGETSELECTERROR(lParam), g_iSendFailType, WSAGetLastError(),
+				g_iSendPacketType, g_iRecvPacketType, CSharedDoc::Instance()->m_roomInfo.m_roomNumber, CSharedDoc::Instance()->m_userInfo.guid);
+		} else {
+			ReportError(4, "%d_%d_%d_%d_%d_%d", reason, WSAGETSELECTERROR(lParam), g_iSendFailType, WSAGetLastError(),
 				g_iSendPacketType, g_iRecvPacketType);
-		if (IsLocalContent((localContentType_t)90))
-		{
-			sGameServerInfo selected;
-			memset(&selected, 0, sizeof(selected));
+		}
+
+		if (IsLocalContent((localContentType_t)0x5A)) {
+			// Reconnect to the least crowded game server not tried yet.
+			CSharedDoc* doc = CSharedDoc::Instance();
+			sGameServerInfo best;
+			memset(&best, 0, sizeof(best));
 			bool found = false;
-			int users = 2000;
-			for (std::list<sGameServerInfo>::iterator it =
-					 Doc()->m_gameServerList.begin();
-				it != Doc()->m_gameServerList.end(); ++it)
-			{
-				sGameServerInfo server = *it;
-				if (Doc()->m_curGameServer.id != server.id)
-				{
-					users = server.curUser;
-					selected = server;
+			int minUsers = 2000;
+			// The connected server's record starts at m_serverName.
+			sGameServerInfo& current = *(sGameServerInfo*)doc->m_serverName;
+			for (std::list<sGameServerInfo>::iterator it = doc->m_gameServerList.begin(); it != doc->m_gameServerList.end(); ++it) {
+				sGameServerInfo info = *it;
+				if (current.id != info.id) {
+					minUsers = info.m_curUsers;
+					best = info;
 					found = true;
 				}
-				else if (found != true)
-					continue;
-
-				std::list<unsigned long>& visited = Doc()->m_guildMemberList;
-				for (std::list<unsigned long>::iterator visit = visited.begin();
-					visit != visited.end(); ++visit)
-				{
-					if (*visit == server.id)
-					{
-						memset(&selected, 0, sizeof(selected));
-						found = false;
-						goto NextServer;
+				if (found == true) {
+					for (std::list<unsigned long>::iterator tried = doc->m_list4B64.begin(); tried != doc->m_list4B64.end(); ++tried) {
+						if (*tried == info.id) {
+							memset(&best, 0, sizeof(best));
+							found = false;
+							break;
+						}
 					}
 				}
-				if (server.curUser < users &&
-					Doc()->m_curGameServer.id != server.id)
-				{
-					users = server.curUser;
-					selected = server;
+				if (found == true && info.m_curUsers < minUsers && current.id != info.id) {
+					minUsers = info.m_curUsers;
+					best = info;
 				}
-NextServer:;
 			}
-			if (!found)
-			{
+
+			if (found == false) {
 				socket->Close();
-				Doc()->m_guildMemberList.clear();
-				SetMoveLoginServer(MyId(), Doc()->m_password.c_str());
-				CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0,
-					(int)"LOGIN", 0, 0, 0);
+				CSharedDoc::Instance()->m_list4B64.clear();
+				SetMoveLoginServer(CSharedDoc::Instance()->m_userInfo.id, CSharedDoc::Instance()->m_loginServerAddress.c_str());
+				CTaskManager::Instance()->PostMsg(0, "Lobby", 0, (intptr_t)"LOGIN", 0, 0, 0);
 				break;
 			}
-			Doc()->m_gameServerAddr = selected.addr;
-			Doc()->m_gameServerPort = selected.port;
-			Doc()->m_gameServerUID = selected.id;
-			if (NET()->IsConnected(WNetworkSystem::NET_GAME))
-				NET()->ForceShutDown(WNetworkSystem::NET_GAME);
-			NET()->SendMessage(WNetworkSystem::NET_GAME,
-				NetworkUnit::eEVENT_NEXT);
-			Doc()->m_curGameServer = selected;
-			Doc()->SetDirectMoveRoomInfo(Doc()->m_curChannel.Uid, 0xffff,
-				0xffffffff);
-			Doc()->m_guildMemberList.push_back(selected.id);
-			return 1;
+
+			doc->m_gameServerAddress = best.m_address;
+			CSharedDoc::Instance()->m_gameServerPort = best.m_port;
+			CSharedDoc::Instance()->m_value84 = best.id;
+			if (WNetworkSystem::Instance()->IsConnected(WNetworkSystem::NET_UNIT_DEFAULT))
+				WNetworkSystem::Instance()->ForceShutDown(WNetworkSystem::NET_UNIT_DEFAULT);
+			WNetworkSystem::Instance()->SendMessage(WNetworkSystem::NET_UNIT_DEFAULT, NetworkUnit::EVENT_NEXT);
+			*(sGameServerInfo*)CSharedDoc::Instance()->m_serverName = best;
+			CSharedDoc::Instance()->SetDirectMoveRoomInfo(CSharedDoc::Instance()->m_currentChannel.id, 0xFFFF, 0xFFFFFFFF);
+			CSharedDoc::Instance()->m_list4B64.push_back(best.id);
+		} else {
+			// "The connection to the game server was lost."
+			OpenDisconDlg("\xb0\xd4\xc0\xd3 \xbc\xad\xb9\xf6\xbf\xcd \xbf\xac\xb0\xe1\xc0\xcc \xb2\xf7\xbe\xee\xc1\xb3\xbd\xc0\xb4\xcf\xb4\xd9.", true);
 		}
-		else
-		{
-			OpenDisconDlg(
-				"\260\324\300\323 \274\255\271\366\277\315 \277\254\260\341\300\314 \262\367\276\356\301\263\275\300\264\317\264\331.",
-				true);
-			return 1;
-		}
+		return 1;
 	}
+
+	// The messenger server's socket.
 	case WM_USER + 12:
-		if (WSAGETSELECTERROR(lParam))
-		{
-			if (WSAGETSELECTEVENT(lParam) == FD_CONNECT)
-			{
-				if (WSAGETSELECTERROR(lParam) != WSAEWOULDBLOCK)
-					NET()->SendMessage(WNetworkSystem::NET_MSN,
-						NetworkUnit::eEVENT_FAIL);
+		if (WSAGETSELECTERROR(lParam)) {
+			if (WSAGETSELECTEVENT(lParam) == FD_CONNECT) {
+				if (WSAGETSELECTERROR(lParam) == WSAEWOULDBLOCK)
+					return 0;
+				WNetworkSystem::Instance()->SendMessage(WNetworkSystem::NET_UNIT_MSN, NetworkUnit::EVENT_RESET);
 				return 0;
 			}
 			CMessengerInfo::Instance()->Close(true);
-			NET()->ForceShutDown(WNetworkSystem::NET_MSN);
+			WNetworkSystem::Instance()->ForceShutDown(WNetworkSystem::NET_UNIT_MSN);
 			return 0;
 		}
-		else
-		{
-			if (WSAGETSELECTEVENT(lParam) == FD_CONNECT)
-			{
-				NET()->GetSocket(WNetworkSystem::NET_MSN)->m_bConnected = true;
-				NET()->SendMessage(WNetworkSystem::NET_MSN,
-					NetworkUnit::eEVENT_NEXT);
-			}
-			else if (WSAGETSELECTEVENT(lParam) == FD_READ)
-			{
-				if (NET()->GetSocket(WNetworkSystem::NET_MSN) &&
-					!NET()->GetSocket(WNetworkSystem::NET_MSN)->TryRead())
-				{
-					CMessengerInfo::Instance()->Close(true);
-					NET()->ForceShutDown(WNetworkSystem::NET_MSN);
-				}
-			}
-			else if (WSAGETSELECTEVENT(lParam) == FD_WRITE)
-			{
-				WClientSocket* socket =
-					NET()->GetSocket(WNetworkSystem::NET_MSN);
-				if (socket)
-					socket->Flush();
-			}
-			else if (WSAGETSELECTEVENT(lParam) == FD_CLOSE)
-			{
+		if (WSAGETSELECTEVENT(lParam) == FD_CONNECT) {
+			WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_MSN)->m_bConnected = 1;
+			WNetworkSystem::Instance()->SendMessage(WNetworkSystem::NET_UNIT_MSN, NetworkUnit::EVENT_NEXT);
+		} else if (WSAGETSELECTEVENT(lParam) == FD_READ) {
+			WClientSocket* socket = WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_MSN);
+			if (socket && socket->TryRead() == 0) {
 				CMessengerInfo::Instance()->Close(true);
-				NET()->ForceShutDown(WNetworkSystem::NET_MSN);
+				WNetworkSystem::Instance()->ForceShutDown(WNetworkSystem::NET_UNIT_MSN);
 			}
-		}
-		return 0;
-	case WM_USER + 13:
-		if (WSAGETSELECTERROR(lParam))
-		{
-			NET()->GetSocket(WNetworkSystem::NET_LOGIN)->m_bConnected = false;
-			OpenDisconDlg(
-				"\267\316\261\327\300\316 \274\255\271\366\277\315 \277\254\260\341\300\314 \262\367\276\356\301\263\275\300\264\317\264\331.",
-				false);
-			return 0;
-		}
-		if (WSAGETSELECTEVENT(lParam) == FD_READ)
-		{
-			if (NET()->GetSocket(WNetworkSystem::NET_LOGIN) &&
-				!NET()->GetSocket(WNetworkSystem::NET_LOGIN)->TryRead())
-				OpenDisconDlg(
-					"\267\316\261\327\300\316 \274\255\271\366\277\315 \277\254\260\341\300\314 \262\367\276\356\301\263\275\300\264\317\264\331.",
-					false);
-		}
-		else if (WSAGETSELECTEVENT(lParam) == FD_WRITE)
-		{
-			WClientSocket* socket = NET()->GetSocket(WNetworkSystem::NET_LOGIN);
+		} else if (WSAGETSELECTEVENT(lParam) == FD_WRITE) {
+			WClientSocket* socket = WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_MSN);
 			if (socket)
 				socket->Flush();
+		} else if (WSAGETSELECTEVENT(lParam) == FD_CLOSE) {
+			CMessengerInfo::Instance()->Close(true);
+			WNetworkSystem::Instance()->ForceShutDown(WNetworkSystem::NET_UNIT_MSN);
 		}
-		else if (WSAGETSELECTEVENT(lParam) == FD_CLOSE)
-			OpenDisconDlg(
-				"\267\316\261\327\300\316 \274\255\271\366\277\315 \277\254\260\341\300\314 \262\367\276\356\301\263\275\300\264\317\264\331.",
-				false);
 		return 0;
-	case WM_USER + 14:
-	{
-		if (WSAGETSELECTERROR(lParam))
-		{
-			NET()->GetSocket(WNetworkSystem::NET_RANK)->m_bConnected = false;
-			CMouseCursor::Instance()->SetActive(false);
-			CTaskManager::Instance()->ChangeTask("CLobbyTask", "CGolfDoc",
-				false);
-			CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0, (int)"ROOMLIST",
-				0, 0, 0);
-			CTaskManager::Instance()->PostMsg(NULL, "Lobby", 26, 0, 0, 0, 0);
+
+	// The login server's socket.
+	case WM_USER + 13:
+		if (WSAGETSELECTERROR(lParam)) {
+			WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_LOGIN)->m_bConnected = 0;
+			// "The connection to the login server was lost."
+			OpenDisconDlg("\xb7\xce\xb1\xd7\xc0\xce \xbc\xad\xb9\xf6\xbf\xcd \xbf\xac\xb0\xe1\xc0\xcc \xb2\xf7\xbe\xee\xc1\xb3\xbd\xc0\xb4\xcf\xb4\xd9.", false);
 			return 0;
 		}
-		if (WSAGETSELECTEVENT(lParam) == FD_READ)
-		{
-			if (NET()->GetSocket(WNetworkSystem::NET_RANK) &&
-				!NET()->GetSocket(WNetworkSystem::NET_RANK)->TryRead())
-			{
-				CMouseCursor::Instance()->SetActive(false);
-				CTaskManager::Instance()->ChangeTask("CLobbyTask", "CGolfDoc",
-					false);
-				CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0,
-					(int)"ROOMLIST", 0, 0, 0);
-				CTaskManager::Instance()->PostMsg(NULL, "Lobby", 26, 0, 0, 0,
-					0);
-			}
-		}
-		else if (WSAGETSELECTEVENT(lParam) == FD_CLOSE)
-		{
-			CMouseCursor::Instance()->SetActive(false);
-			CTaskManager::Instance()->ChangeTask("CLobbyTask", "CGolfDoc",
-				false);
-			CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0, (int)"ROOMLIST",
-				0, 0, 0);
-			CTaskManager::Instance()->PostMsg(NULL, "Lobby", 26, 0, 0, 0, 0);
+		if (WSAGETSELECTEVENT(lParam) == FD_READ) {
+			WClientSocket* socket = WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_LOGIN);
+			if (socket && socket->TryRead() == 0)
+				OpenDisconDlg("\xb7\xce\xb1\xd7\xc0\xce \xbc\xad\xb9\xf6\xbf\xcd \xbf\xac\xb0\xe1\xc0\xcc \xb2\xf7\xbe\xee\xc1\xb3\xbd\xc0\xb4\xcf\xb4\xd9.", false);
+		} else if (WSAGETSELECTEVENT(lParam) == FD_WRITE) {
+			WClientSocket* socket = WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_LOGIN);
+			if (socket)
+				socket->Flush();
+		} else if (WSAGETSELECTEVENT(lParam) == FD_CLOSE) {
+			OpenDisconDlg("\xb7\xce\xb1\xd7\xc0\xce \xbc\xad\xb9\xf6\xbf\xcd \xbf\xac\xb0\xe1\xc0\xcc \xb2\xf7\xbe\xee\xc1\xb3\xbd\xc0\xb4\xcf\xb4\xd9.", false);
 		}
 		return 0;
-	}
+
+	// The rank server's socket: on loss, back to the lobby's room list.
+	case WM_USER + 14:
+		if (WSAGETSELECTERROR(lParam)) {
+			WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_RANK)->m_bConnected = 0;
+			CMouseCursor::Instance()->SetActive(false);
+			CTaskManager::Instance()->ChangeTask("CLobbyTask", "CGolfDoc", false);
+			CTaskManager::Instance()->PostMsg(0, "Lobby", 0, (intptr_t)"ROOMLIST", 0, 0, 0);
+			CTaskManager::Instance()->PostMsg(0, "Lobby", 0x1A, 0, 0, 0, 0);
+			return 0;
+		}
+		if (WSAGETSELECTEVENT(lParam) == FD_READ) {
+			WClientSocket* socket = WNetworkSystem::Instance()->GetSocket(WNetworkSystem::NET_UNIT_RANK);
+			if (socket == NULL || socket->TryRead() != 0)
+				return 0;
+		} else if (WSAGETSELECTEVENT(lParam) != FD_CLOSE) {
+			return 0;
+		}
+		CMouseCursor::Instance()->SetActive(false);
+		CTaskManager::Instance()->ChangeTask("CLobbyTask", "CGolfDoc", false);
+		CTaskManager::Instance()->PostMsg(0, "Lobby", 0, (intptr_t)"ROOMLIST", 0, 0, 0);
+		CTaskManager::Instance()->PostMsg(0, "Lobby", 0x1A, 0, 0, 0, 0);
+		return 0;
 
 	case WM_SETFOCUS:
 		if (g_hwnd == GetForegroundWindow())
 			g_bFocus = true;
 		break;
+
 	case WM_KILLFOCUS:
 		if (!CBrowser::Instance() || !CBrowser::Instance()->IsOpen())
 			g_bFocus = false;
 		break;
+
 	case WM_CLOSE:
 		Quit();
 		return 0;
+
 	case WM_NCHITTEST:
-		if (!bool(m_flag & 4))
-			return HTCLIENT;
+		if (((m_appFlags >> 2) & 1) == 0)
+			return 1;
 		break;
+
 	case WM_SYSCOMMAND:
-		switch (wParam)
-		{
+		switch (wParam) {
 		case SC_SIZE:
 		case SC_MOVE:
 		case SC_MAXIMIZE:
 		case SC_KEYMENU:
 		case SC_MONITORPOWER:
-			if (!bool(m_flag & 4))
+			if (((m_appFlags >> 2) & 1) == 0)
 				return 1;
+			break;
 		}
 		break;
+
 	case WM_ACTIVATEAPP:
-		if (!bool(m_flag & 4))
-		{
-			if (wParam)
-			{
-				SetWindowLong(g_hwnd, GWL_STYLE,
-					GetWindowLong(g_hwnd, GWL_STYLE) & ~WS_SYSMENU);
-				ShowWindow(g_hwnd, SW_RESTORE);
-			}
-			else
-			{
-				SetWindowLong(g_hwnd, GWL_STYLE,
-					GetWindowLong(g_hwnd, GWL_STYLE) & ~WS_SYSMENU);
-				ShowWindow(g_hwnd, SW_MINIMIZE);
-			}
+		if (((m_appFlags >> 2) & 1) == 0) {
+			SetWindowLong(g_hwnd, GWL_STYLE, GetWindowLong(g_hwnd, GWL_STYLE) & ~WS_SYSMENU);
+			ShowWindow(g_hwnd, wParam ? SW_RESTORE : SW_MINIMIZE);
 			return 1;
 		}
 		if (g_miles)
 			g_miles->Activate(wParam != 0);
 		break;
+
 	case WM_PAINT:
 		if (CBrowser::Instance() && CBrowser::Instance()->IsOpen())
 			return DefWindowProc(g_hwnd, message, wParam, lParam);
 		break;
 
 	case WM_SYSKEYDOWN:
-		if (wParam == VK_F4)
-		{
-			if (IS_KINDOF(CGolfTask, AfxGetTask()))
-			{
-				if (IsLocalContent(S4_REPLAY_SYSTEM))
-				{
-					if (Doc()->m_playingMode == 1)
-						return 1;
-				}
-				else
+		// Alt+F4 during a round only quits where the content allows it.
+		if (wParam == VK_F4) {
+			if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
+				if (!IsLocalContent((localContentType_t)0x4F) || CSharedDoc::Instance()->m_playingMode == 1)
 					return 1;
 			}
 		}
 		break;
 	}
-DefaultProcessing:
-	if (m_pProcManager)
-		return m_pProcManager->WinProc(g_hwnd, message, wParam, lParam);
-	return 0;
+
+	return m_procManager ? m_procManager->WinProc(g_hwnd, message, wParam, lParam) : 0;
 }
 
-bool CProjectG::Init()
-{
-	m_pDeviceManager->SetHWND(g_hwnd);
-	if (!SetVideoDevice())
-		return false;
-	if (!SetInputDevice())
-		return false;
+// projectg.cpp:2859
+bool CProjectG::Init(void) {
+	m_deviceManager->SetHWND(g_hwnd);
+
+	if (!SetVideoDevice()) return false;
+	if (!SetInputDevice()) return false;
 	SetAudioDevice();
+
 	UpdateWindow(g_hwnd);
 	ShowWindow(g_hwnd, SW_SHOW);
 	InvalidateRect(g_hwnd, NULL, FALSE);
 	UpdateWindow(g_hwnd);
-	m_captureNum = 0;
+
+	ResetCaptuerNum();
+
 	return true;
 }
 
-bool CProjectG::SetVideoDevice()
-{
+// projectg.cpp:2877
+bool CProjectG::SetVideoDevice(void) {
 	char caption[64] = "";
-	int tnl = COption::Instance()->vGetTnLMode();
+
+	int tnlMode = COption::Instance()->vGetTnLMode();
+
 	RECT rect = { 0, 0, 800, 600 };
-	AdjustWindowRectEx(&rect, WS_CAPTION | WS_THICKFRAME, FALSE, 0);
-	int x = (rect.left - rect.right + GetSystemMetrics(SM_CXSCREEN)) / 2;
-	int y = (rect.top - rect.bottom + GetSystemMetrics(SM_CYSCREEN)) / 2;
+
+	AdjustWindowRectEx(&rect, 0xC40000, FALSE, 0);
+	int x = (GetSystemMetrics(SM_CXSCREEN) - (rect.right - rect.left)) / 2;
+	int y = (GetSystemMetrics(SM_CYSCREEN) - (rect.bottom - rect.top)) / 2;
 	OffsetRect(&rect, x, y);
-	MoveWindow(g_hwnd, x, y, rect.right - rect.left, rect.bottom - rect.top,
-		FALSE);
-	m_flag.Enable(4);
-	WVideoDev* video = m_pDeviceManager->CreateVideoDevice(NULL, "Window", tnl);
-	if (!video)
-	{
+
+	MoveWindow(g_hwnd, x, y, rect.right - rect.left, rect.bottom - rect.top, FALSE);
+
+	SetWindowed(true);
+	WVideoDev* video = m_deviceManager->CreateVideoDevice(0, "Window", tnlMode);
+
+	if (!video) {
 		MessageBox(g_hwnd,
-			"\264\331\300\275\260\372 \260\260\300\272 \271\256\301\246\267\316 \275\307\307\340\307\322 \274\366 \276\370\275\300\264\317\264\331.\012\012* DirectX 9.0c \300\314\273\363\300\314 \274\263\304\241 \265\307\301\366 \276\312\276\322\260\305\263\252\012* \265\360\275\272\307\303\267\271\300\314 \276\356\264\360\305\315(\272\361\265\360\277\300\304\253\265\345)\300\307 \265\345\266\363\300\314\271\366\260\241 \303\326\275\305 \271\366\300\374\300\314 \276\306\264\317\260\305\263\252\012* \265\360\275\272\307\303\267\271\300\314 \276\356\264\360\305\315(\272\361\265\360\277\300\304\253\265\345)\300\307 \274\272\264\311\277\241 \271\256\301\246\260\241 \300\326\275\300\264\317\264\331.\012\012\306\316\276\337 \275\307\307\340\275\303 \263\252\277\300\264\302 \303\271 \310\255\270\351\277\241\274\255 [\275\307\307\340\271\256\301\246\272\270\260\355]\270\246 \264\255\267\257 \304\304\307\273\305\315 \301\244\272\270\270\246 \265\356\267\317\307\317\275\305 \310\304,  \012\306\316\276\337 \310\250\306\344\300\314\301\366\300\307 [\260\355\260\264\301\366\277\370->FAQ]\270\246 \300\320\276\356\272\270\275\303\261\342 \271\331\266\370\264\317\264\331.",
+			"\xB4\xD9\xC0\xBD\xB0\xFA \xB0\xB0\xC0\xBA \xB9\xAE\xC1\xA6\xB7\xCE \xBD\xC7\xC7\xE0\xC7\xD2 \xBC\xF6 \xBE\xF8\xBD\xC0\xB4\xCF\xB4\xD9.\n\n"
+			"* DirectX 9.0c \xC0\xCC\xBB\xF3\xC0\xCC \xBC\xB3\xC4\xA1 \xB5\xC7\xC1\xF6 \xBE\xCA\xBE\xD2\xB0\xC5\xB3\xAA\n"
+			"* \xB5\xF0\xBD\xBA\xC7\xC3\xB7\xB9\xC0\xCC \xBE\xEE\xB4\xF0\xC5\xCD(\xBA\xF1\xB5\xF0\xBF\xC0\xC4\xAB\xB5\xE5)\xC0\xC7 \xB5\xE5\xB6\xF3\xC0\xCC\xB9\xF6\xB0\xA1 \xC3\xD6\xBD\xC5 \xB9\xF6\xC0\xFC\xC0\xCC \xBE\xC6\xB4\xCF\xB0\xC5\xB3\xAA\n"
+			"* \xB5\xF0\xBD\xBA\xC7\xC3\xB7\xB9\xC0\xCC \xBE\xEE\xB4\xF0\xC5\xCD(\xBA\xF1\xB5\xF0\xBF\xC0\xC4\xAB\xB5\xE5)\xC0\xC7 \xBC\xBA\xB4\xC9\xBF\xA1 \xB9\xAE\xC1\xA6\xB0\xA1 \xC0\xD6\xBD\xC0\xB4\xCF\xB4\xD9.\n\n"
+			"\xC6\xCE\xBE\xDF \xBD\xC7\xC7\xE0\xBD\xC3 \xB3\xAA\xBF\xC0\xB4\xC2 \xC3\xB9 \xC8\xAD\xB8\xE9\xBF\xA1\xBC\xAD [\xBD\xC7\xC7\xE0\xB9\xAE\xC1\xA6\xBA\xB8\xB0\xED]\xB8\xA6 \xB4\xAD\xB7\xAF \xC4\xC4\xC7\xBB\xC5\xCD \xC1\xA4\xBA\xB8\xB8\xA6 \xB5\xEE\xB7\xCF\xC7\xCF\xBD\xC5 \xC8\xC4,  \n"
+			"\xC6\xCE\xBE\xDF \xC8\xA8\xC6\xE4\xC0\xCC\xC1\xF6\xC0\xC7 [\xB0\xED\xB0\xB4\xC1\xF6\xBF\xF8->FAQ]\xB8\xA6 \xC0\xD0\xBE\xEE\xBA\xB8\xBD\xC3\xB1\xE2 \xB9\xD9\xB6\xF8\xB4\xCF\xB4\xD9.",
 			caption, MB_ICONERROR);
+
 		return false;
 	}
-	video->SetMainThreadId(m_threadId);
+
+	video->SetMainThreadId(m_mainThreadId);
 	SetProc(video);
 	g_resrcmng->SetVideoReference(video);
-	m_refreshRate = (float)floor(video->GetMonitorSupportFps());
-	SetFPS(m_refreshRate);
+	m_monitorFPS = (float)floor(video->GetMonitorSupportFPS());
+	SetFPS(m_monitorFPS);
+
 	return true;
 }
 
-bool CProjectG::SetAudioDevice()
-{
-	bool enabled = COption::Instance()->aIsMssEnabled();
+// projectg.cpp:2940
+bool CProjectG::SetAudioDevice(void) {
+	bool mssEnabled = COption::Instance()->aIsMssEnabled();
 	int frequency = COption::Instance()->aGetMssFrequency();
 	int bits = COption::Instance()->aGetMssBits();
 	int channels = COption::Instance()->aGetMssChannels();
-	bool hardware = COption::Instance()->aIsMssHwSoundEnabled();
-	float sfx = COption::Instance()->aGetSfxVolume();
-	float bgm = COption::Instance()->aGetBgmVolume();
-	g_miles = new WMilesSoundSystem(g_hwnd, "mss", enabled, frequency, bits,
-		channels);
+	bool hwSound = COption::Instance()->aIsMssHwSoundEnabled();
+	float sfxVolume = COption::Instance()->aGetSfxVolume();
+	float bgmVolume = COption::Instance()->aGetBgmVolume();
+
+	g_miles = new WMilesSoundSystem(g_hwnd, "mss", mssEnabled, frequency, bits, channels);
 	g_audio = new CSoundManager;
-	if (!g_miles || !g_miles->Init(g_hwnd, frequency, bits))
-	{
+
+	if (g_miles && g_miles->Init(g_hwnd, frequency, bits)) {
+		WMilesSoundSystem::w_speaker_type speaker = COption::Instance()->aGetMssSpeaker();
+		int balance = COption::Instance()->aGetMssBalance();
+
+		g_miles->SpeakerType(speaker);
+		g_miles->SetBalance(balance);
+		g_miles->SetDistance(128.0f, 960.0f);
+
+		g_audio->SetMSS(g_miles);
+
+		if (mssEnabled) {
+			g_audio->SetVolume(Between(0.0f, sfxVolume, 1.0f));
+			g_audio->SetBGMVolume(Between(0.0f, bgmVolume, 1.0f));
+		} else {
+			g_audio->SetVolume(0);
+			g_audio->SetBGMVolume(0);
+		}
+	} else {
 		g_audio->SetMSS(NULL);
 		return false;
 	}
-	WMilesSoundSystem::w_speaker_type speaker =
-		COption::Instance()->aGetMssSpeaker();
-	int balance = COption::Instance()->aGetMssBalance();
-	g_miles->SpeakerType(speaker);
-	g_miles->SetBalance(balance);
-	g_miles->SetDistance(400.0f * g_CM_TO_WU, 3000.0f * g_CM_TO_WU);
-	g_audio->SetMSS(g_miles);
-	if (enabled)
-	{
-		g_audio->SetVolume(Between(0.0f, sfx, 1.0f));
-		g_audio->SetBGMVolume(Between(0.0f, bgm, 1.0f));
-	}
-	else
-	{
-		g_audio->SetVolume(0.0f);
-		g_audio->SetBGMVolume(0.0f);
-	}
+
 	return true;
 }
 
-void CProjectG::UploadShaderSource()
-{
+// projectg.cpp:2997
+void CProjectG::UploadShaderSource(void) {
 	WVideoDev* video = g_resrcmng->VideoReference();
-	if (video)
-	{
+
+	if (video) {
 		cFile* file = g_resrcmng->GetCFile("pangya.fx", -1);
-		if (file)
-		{
+
+		if (file) {
 			char* source = new char[file->Length() + 1];
+
 			file->Read(source, file->Length());
 			source[file->Length()] = 0;
+
 			video->SetShaderSource(source);
+
 			delete[] source;
 			CloseCFile(file);
+		} else {
+			video->SetShaderSource(0);
 		}
-		else
-			video->SetShaderSource(NULL);
 	}
 }
 
-bool CProjectG::SetInputDevice()
-{
-	g_keyboard = m_pDeviceManager->CreateInputDevice("DirectInput", "keyboard");
+// projectg.cpp:3033
+bool CProjectG::SetInputDevice(void) {
+	g_keyboard = m_deviceManager->CreateInputDevice("DirectInput", "keyboard");
 	SetProc(g_keyboard);
-	AddInputDev(g_keyboard);
-	g_mouse = m_pDeviceManager->CreateInputDevice("DirectInput", "mouse");
+	m_inputDevList += g_keyboard;
+
+	g_mouse = m_deviceManager->CreateInputDevice("DirectInput", "mouse");
 	SetProc(g_mouse);
-	AddInputDev(g_mouse);
-	g_ime = m_pDeviceManager->CreateInputDevice("Ime", "");
+	m_inputDevList += g_mouse;
+
+	g_ime = m_deviceManager->CreateInputDevice("Ime", "");
 	SetProc(g_ime);
-	AddInputDev(g_ime);
+	m_inputDevList += g_ime;
+
 	return true;
 }
 
-void CProjectG::SetProc(WDevice* device)
-{
+// projectg.cpp:3050
+void CProjectG::SetProc(WDevice* device) {
 	WProc* proc = device->ExternProc();
+
 	if (proc)
-		proc->SetProc(m_pProcManager, g_hwnd);
+		proc->SetProc(m_procManager, g_hwnd);
 }
 
-void CProjectG::Update(int time)
-{
-	for (WInputDev* input = m_inputList.Start(); input;
-		input = m_inputList.Next())
-		input->Update(g_CurrentTime);
-}
-
-void CProjectG::SetWindowed(bool windowed)
-{
-	if (windowed)
-		m_flag.Enable(4);
-	else
-		m_flag.Disable(4);
-}
-
-void CProjectG::OnMsnPacket(WReceivedPacket& packet)
-{
-}
-
-void CProjectG::ProcessRecvPacketQueue()
-{
-	if (CTaskManager::Instance())
-	{
-		CTask* task = CTaskManager::Instance()->GetCurrentTask();
-		if (task && task->IsInited() &&
-			!CTaskManager::Instance()->IsTaskChanging())
-		{
-			while (!m_recvPacketQueue.empty())
-			{
-				WReceivedPacket* packet = m_recvPacketQueue.front();
-				if (!task->OnPacket(*packet))
-				{
-					packet->Reset();
-					ProcessPacket(*packet);
-				}
-				delete packet;
-				m_recvPacketQueue.pop();
-			}
-		}
+// projectg.cpp:3058
+void CProjectG::Update(int time) {
+	for (WInputDev* dev = m_inputDevList.Start(); dev; dev = m_inputDevList.Next()) {
+		dev->Update(g_CurrentTime);
 	}
 }
 
-void CProjectG::OnPacket(WReceivedPacket& packet)
-{
-	if (CTaskManager::Instance())
-	{
-		CTask* preserved = CTaskManager::Instance()->GetPreservedTask();
-		CTask* task = CTaskManager::Instance()->GetCurrentTask();
-		if (task)
-		{
-			if (task->IsInited() && !CTaskManager::Instance()->IsTaskChanging())
-			{
-				while (!m_recvPacketQueue.empty())
-				{
-					WReceivedPacket* pending = m_recvPacketQueue.front();
-					if (!task->OnPacket(*pending))
-					{
-						if (preserved)
-						{
-							pending->Reset();
-							if (!preserved->OnPacket(*pending))
-							{
-								pending->Reset();
-								ProcessPacket(*pending);
-							}
-						}
-						else
-						{
-							pending->Reset();
-							ProcessPacket(*pending);
-						}
-					}
-					delete pending;
-					m_recvPacketQueue.pop();
-				}
-				if (!task->OnPacket(packet))
-				{
-					if (preserved)
-					{
-						packet.Reset();
-						if (!preserved->OnPacket(packet))
-						{
-							packet.Reset();
-							ProcessPacket(packet);
-						}
-					}
-					else
-					{
-						packet.Reset();
-						ProcessPacket(packet);
-					}
-				}
-			}
-			else if (packet.Decode2() == 96)
-			{
-				packet.Reset();
-				ProcessPacket(packet);
-			}
-			else
-			{
-				WReceivedPacket* pending = new WReceivedPacket;
-				packet.Copy(pending);
-				m_recvPacketQueue.push(pending);
-			}
+// projectg.cpp:3068
+void CProjectG::SetWindowed(bool windowed) {
+	if (windowed) {
+		m_appFlags |= 4;
+	} else {
+		m_appFlags &= ~4;
+	}
+}
+
+// projectg.cpp:3076
+void CProjectG::OnMsnPacket(WReceivedPacket& packet) {
+}
+
+// projectg.cpp:3081
+void CProjectG::ProcessRecvPacketQueue(void) {
+	CTask *pTask = CTaskManager::Instance() ? CTaskManager::Instance()->GetCurrentTask() : 0;
+	if (pTask == 0) {
+		return;
+	}
+	if (((pTask->m_stateFlags >> 1) & 1) == 0 || CTaskManager::Instance()->m_bReservedTask) {
+		return;
+	}
+	while (!m_recvPacketQueue.empty()) {
+		WReceivedPacket *pPacket = m_recvPacketQueue.front();
+
+		if (pTask->OnPacket(*pPacket) == 0) {
+			pPacket->Reset();
+			pPacket->Decode2();
+		}
+
+		delete pPacket;
+		m_recvPacketQueue.pop_front();
+	}
+}
+
+// projectg.cpp:3108
+// A packet from a network unit: queued while the current task is not ready
+// (or a task change is pending), else the queued packets then this one go to
+// the current task, falling back to the preserved task when it refuses one.
+void CProjectG::OnPacket(WReceivedPacket& packet) {
+	if (CTaskManager::Instance() == 0) {
+		packet.Decode2();
+		return;
+	}
+	CTask *pPreserved = CTaskManager::Instance()->m_preservedTask;
+	CTask *pTask = CTaskManager::Instance()->GetCurrentTask();
+
+	if (pTask == 0) {
+		packet.Decode2();
+		return;
+	}
+
+	if (((pTask->m_stateFlags >> 1) & 1) == 0 || CTaskManager::Instance()->m_bReservedTask) {
+		if (packet.Decode2() == 0x60) {
+			packet.Reset();
+			packet.Decode2();
 			return;
 		}
+		WReceivedPacket *pCopy = new WReceivedPacket;
+		packet.Copy(pCopy);
+		m_recvPacketQueue.push_back(pCopy);
+		return;
 	}
-	ProcessPacket(packet);
+
+	while (!m_recvPacketQueue.empty()) {
+		WReceivedPacket *pQueued = m_recvPacketQueue.front();
+
+		if (pTask->OnPacket(*pQueued) == 0) {
+			pQueued->Reset();
+			if (pPreserved == 0 || pPreserved->OnPacket(*pQueued) == 0) {
+				if (pPreserved) pQueued->Reset();
+				pQueued->Decode2();
+			}
+		}
+
+		delete pQueued;
+		m_recvPacketQueue.pop_front();
+	}
+
+	if (pTask->OnPacket(packet) == 0) {
+		packet.Reset();
+		if (pPreserved == 0 || pPreserved->OnPacket(packet) == 0) {
+			if (pPreserved) packet.Reset();
+			packet.Decode2();
+		}
+	}
 }
 
-void CProjectG::ProcessPacket(WReceivedPacket& packet)
-{
+// projectg.cpp:3186
+void CProjectG::ProcessPacket(WReceivedPacket& packet) {
 	packet.Decode2();
 }
 
-void CProjectG::OnUDPPacket(WReceivedPacket& packet)
-{
+// projectg.cpp:3219
+void CProjectG::OnUDPPacket(WReceivedPacket& packet) {
 }
 
-bool CProjectG::OnGameServerResult(int result, FrForm* form)
-{
-	if (CLoginInfo::Instance()->IsWebLogin())
-	{
+// wtemplate.h:409-414 (not yet in src/client/ProjectG/wtemplate.h, which this
+// unit does not own): finds a game server by its id.
+struct _FindByGuid {
+	unsigned long m_guid;
+
+	_FindByGuid(unsigned long guid) : m_guid(guid) {}
+	bool operator()(const sGameServerInfo& item) const { return m_guid == item.id; }
+};
+
+// projectg.cpp:3224
+bool CProjectG::OnGameServerResult(int result, FrForm* pForm) {
+	if (CLoginInfo::Instance()->IsWebLogin()) {
 		g_bQuit = true;
-		return true;
-	}
-	if (result)
-	{
+	} else if (result) {
 		FromGolfToLobbySettings();
 		CTaskManager::Instance()->ChangeTask("CLobbyTask", "CGolfDoc", false);
-		CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0, (int)"SERVERLIST",
-			0, 0, 0);
-		CMouseCursor::Instance()->SetActive(true);
-		CSharedDoc* doc = Doc();
-		if (doc)
-		{
-			std::list<sGameServerInfo>::iterator it = std::find_if(
-				doc->m_gameServerList.begin(), doc->m_gameServerList.end(),
-				_FindByGuid(doc->m_curGameServer.id));
-			if (it != doc->m_gameServerList.end())
-				doc->m_gameServerList.erase(it);
-			Doc()->m_channelList.clear();
+		CTaskManager::Instance()->PostMsg(0, "Lobby", 0, (intptr_t)"SERVERLIST", 0, 0, 0);
+		WSingleton<CMouseCursor>::Instance()->SetActive(true);
+
+		if (WSingleton<CSharedDoc>::Instance()) {
+			// The connected server's id: CSharedDoc keeps a sGameServerInfo at
+			// 0x4B05 (m_serverName is its name), not yet declared as such.
+			unsigned long serverId = ((const sGameServerInfo*)WSingleton<CSharedDoc>::Instance()->m_serverName)->id;
+			std::list<sGameServerInfo>::iterator it = std::find_if(WSingleton<CSharedDoc>::Instance()->m_gameServerList.begin(), WSingleton<CSharedDoc>::Instance()->m_gameServerList.end(), _FindByGuid(serverId));
+
+			if (it != WSingleton<CSharedDoc>::Instance()->m_gameServerList.end())
+				WSingleton<CSharedDoc>::Instance()->m_gameServerList.erase(it);
+
+			WSingleton<CSharedDoc>::Instance()->m_channelList.clear();
 		}
 	}
+
 	return true;
 }
 
-bool CProjectG::OnLoginServerResult(int result, FrForm* form)
-{
+// projectg.cpp:3257
+bool CProjectG::OnLoginServerResult(int result, FrForm* pForm) {
 	g_bQuit = true;
 	return true;
 }
 
-__int64 CProjectG::CalcHddFreeSpace()
-{
+// projectg.cpp:3274
+__int64 CProjectG::CalcHddFreeSpace(void) {
 	__int64 freeSpace = 0;
-	char* drive = GetCurrentHdd();
-	typedef BOOL(WINAPI * DiskSpaceProc)(LPCSTR, PULARGE_INTEGER,
-		PULARGE_INTEGER, PULARGE_INTEGER);
-	DiskSpaceProc getSpace = (DiskSpaceProc)GetProcAddress(
-		GetModuleHandle("kernel32.dll"), "GetDiskFreeSpaceExA");
-	if (getSpace)
-	{
-		ULARGE_INTEGER available, total, free;
-		if (getSpace(drive, &available, &total, &free))
-			freeSpace = free.QuadPart;
-		else
-			return 0;
-	}
-	return freeSpace;
-}
+	char* hdd = GetCurrentHdd();
 
-char* CProjectG::GetCurrentHdd()
-{
-	CRegistry registry;
-	registry.SetRootKey(HKEY_LOCAL_MACHINE);
-	registry.SetKey("Software\\Ntreev\\Pangya_QA", true);
-	WTL::CString directory = "";
-	directory = registry.ReadString("Install_Dir", "");
-	static char drive[255];
-	sprintf(drive, "%s", (const char*)directory);
-	drive[2] = 0;
-	return drive;
+	typedef BOOL (WINAPI* GetDiskFreeSpaceExProc)(LPCSTR, PULARGE_INTEGER, PULARGE_INTEGER, PULARGE_INTEGER);
+	GetDiskFreeSpaceExProc pGetDiskFreeSpaceEx = (GetDiskFreeSpaceExProc)GetProcAddress(GetModuleHandleA("kernel32.dll"), "GetDiskFreeSpaceExA");
+
+	if (pGetDiskFreeSpaceEx) {
+		ULARGE_INTEGER freeBytesAvailable;
+		ULARGE_INTEGER totalBytes;
+		ULARGE_INTEGER totalFreeBytes;
+		BOOL result = pGetDiskFreeSpaceEx(hdd, &freeBytesAvailable, &totalBytes, &totalFreeBytes);
+
+		if (result) {
+			freeSpace = totalFreeBytes.QuadPart;
+		} else {
+			return 0;
+		}
+	}
+
+	return freeSpace;
 }

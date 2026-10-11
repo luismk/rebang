@@ -1,101 +1,97 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\finitestatemachine.cpp
+#include "FiniteStateMachine.h"
+#include "FiniteState.h"
 
-#include "finitestatemachine.h"
-
-FiniteStateMachine::FiniteStateMachine()
-	: m_pCurrentState(NULL)
-{
+// finitestatemachine.cpp:19
+FiniteStateMachine::FiniteStateMachine(void) : m_currentState(NULL) {
 }
 
-FiniteStateMachine::~FiniteStateMachine()
-{
-	std::map<unsigned long, FiniteState*>::iterator it = m_stateMap.begin();
+// finitestatemachine.cpp:23
+FiniteStateMachine::~FiniteStateMachine() {
+	std::map<unsigned long, FiniteState *>::iterator it = m_states.begin();
 
-	while (it != m_stateMap.end())
-	{
-		delete it->second;
-		m_stateMap.erase(it++);
+	while (it != m_states.end()) {
+		delete (*it).second;
+		m_states.erase(it++);
 	}
 }
 
-void FiniteStateMachine::addStateTransition(unsigned long stateID,
-	unsigned long input, unsigned long outputID)
-{
-	FiniteState* pState = NULL;
+// finitestatemachine.cpp:36
+void FiniteStateMachine::addStateTransition(unsigned long state, unsigned long input, unsigned long output) {
+	FiniteState *pState = NULL;
+	std::map<unsigned long, FiniteState *>::iterator it = m_states.begin();
 
-	std::map<unsigned long, FiniteState*>::iterator it = m_stateMap.begin();
-	while (it != m_stateMap.end())
-	{
-		pState = it->second;
+	while (it != m_states.end()) {
+		pState = (*it).second;
 
-		if (pState->getStateID() == stateID)
+		if (pState->getStateID() == state) {
 			break;
-
-		it++;
+		}
+		++it;
 	}
 
-	if (it == m_stateMap.end())
-	{
-		pState = new FiniteState(stateID);
-		m_stateMap[pState->getStateID()] = pState;
+	if (it == m_states.end()) {
+		pState = new FiniteState(state);
+		m_states[pState->getStateID()] = pState;
 	}
 
-	pState->addTransition(input, outputID);
+	pState->addTransition(input, output);
 }
 
-void FiniteStateMachine::deleteTransition(unsigned long stateID,
-	unsigned long input)
-{
-	std::map<unsigned long, FiniteState*>::iterator itDel;
-	FiniteState* pState = NULL;
+// finitestatemachine.cpp:64
+void FiniteStateMachine::deleteTransition(unsigned long state, unsigned long input) {
+	std::map<unsigned long, FiniteState *>::iterator it;
+	FiniteState *pState = NULL;
+	std::map<unsigned long, FiniteState *>::iterator iter = m_states.begin();
 
-	std::map<unsigned long, FiniteState*>::iterator it = m_stateMap.begin();
-	while (it != m_stateMap.end())
-	{
-		pState = it->second;
-		itDel = it;
-		if (pState->getStateID() == stateID)
+	while (iter != m_states.end()) {
+		pState = (*iter).second;
+
+		it = iter;
+		if (pState->getStateID() == state) {
 			break;
-
-		it++;
+		}
+		++iter;
 	}
 
-	if (it == m_stateMap.end())
+	if (iter == m_states.end()) {
 		return;
+	}
 
 	pState->deleteTransition(input);
-	if (pState->getCount() == 0)
-	{
+	if (pState->getCount() == 0) {
 		delete pState;
 
-		m_stateMap.erase(itDel);
+		m_states.erase(it);
 	}
 }
 
-unsigned long FiniteStateMachine::getOutputState(unsigned long input)
-{
-	FiniteState* pState = m_stateMap[m_pCurrentState->getStateID()];
+// finitestatemachine.cpp:95
+unsigned long FiniteStateMachine::getOutputState(unsigned long input) {
+	FiniteState *pState;
+
+	pState = m_states[m_currentState->getStateID()];
 
 	return pState->outputState(input);
 }
 
-void FiniteStateMachine::setCurrentState(unsigned long stateID)
-{
-	std::map<unsigned long, FiniteState*>::iterator it;
+// finitestatemachine.cpp:111
+void FiniteStateMachine::setCurrentState(unsigned long state) {
+	std::map<unsigned long, FiniteState *>::iterator it;
 
-	it = m_stateMap.find(stateID);
+	it = m_states.find(state);
 
-	m_pCurrentState = it->second;
+	m_currentState = (*it).second;
 }
 
-unsigned long FiniteStateMachine::getCurrentStateID()
-{
-	return m_pCurrentState->getStateID();
+// finitestatemachine.cpp:123
+unsigned long FiniteStateMachine::getCurrentStateID(void) {
+	return m_currentState->getStateID();
 }
 
-void FiniteStateMachine::stateTransition(int input)
-{
-	unsigned long outputID = m_pCurrentState->outputState(input);
+// finitestatemachine.cpp:132
+void FiniteStateMachine::stateTransition(int input) {
+	unsigned long output = m_currentState->outputState(input);
 
-	m_pCurrentState = m_stateMap[outputID];
+	m_currentState = m_states[output];
 }

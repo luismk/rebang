@@ -10,7 +10,7 @@ void LoadNoticeImageFile(const char* filename,
 	if (!file)
 		return;
 
-	int size = file->m_nLen;
+	int size = file->Length();
 	char* buf = new char[size + 1];
 
 	file->Read(buf, size);
@@ -44,9 +44,9 @@ void LoadNoticeImageFile(const char* filename,
 				sNoticeImage::sBn bn;
 				bSpace = true;
 
-				sscanf(token.c_str(), "%d %f %f %f %f", &bn.typeId, &bn.x,
+				sscanf(token.c_str(), "%d %f %f %f %f", &bn.index, &bn.x,
 					&bn.y, &bn.w, &bn.h);
-				info.bnList.push_back(bn);
+				info.buttons.push_back(bn);
 			}
 			else if (*p == '\r')
 				;

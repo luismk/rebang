@@ -1,74 +1,90 @@
-#include "minatl.h"
-#include "newsreader.h"
+// Original: d:\build\custom\temp\code\client\projectg\newsreader.cpp
+#include "NewsReader.h"
+#include "tinyxml.h"
 
-NewsReader::NewsReader()
-{
+// newsreader.cpp:18
+NewsReader::NewsReader(void) {
 }
 
-NewsReader::~NewsReader()
-{
+// newsreader.cpp:23
+NewsReader::~NewsReader(void) {
 	Clear();
 }
 
-unsigned int NewsReader::Load(const char* filename, unsigned int maxArticles)
-{
+// newsreader.cpp:28
+unsigned int NewsReader::Load(const char* fileName, unsigned int maxArticles) {
 	Clear();
+
 	TiXmlDocument doc;
-	if (!doc.LoadFile(filename))
+	if (!doc.LoadFile(fileName)) {
 		return 0;
+	}
 
 	unsigned int count = 0;
-	TiXmlNode* root = doc.FirstChild("rss");
-	if (!root)
+	TiXmlNode* pRss = doc.FirstChild("rss");
+	if (!pRss) {
 		return 0;
+	}
 
-	TiXmlNode* node = root->FirstChild("notice");
-	while (node)
-	{
+	TiXmlNode* pNotice = pRss->FirstChild("notice");
+
+	while (pNotice) {
 		sArticle article;
-		GetChildNodeText(node, "title", article.title);
-		GetChildNodeText(node, "url", article.url);
-		GetChildNodeText(node, "content", article.content);
-		GetChildNodeText(node, "RegDate", article.regDate);
-		GetChildNodeText(node, "Cate", article.cate);
-		GetChildNodeText(node, "Userid", article.userId);
+		GetChildNodeText(pNotice, "title", article.m_title);
+		GetChildNodeText(pNotice, "url", article.m_url);
+		GetChildNodeText(pNotice, "content", article.m_content);
+		GetChildNodeText(pNotice, "RegDate", article.m_regDate);
+		GetChildNodeText(pNotice, "Cate", article.m_category);
+		GetChildNodeText(pNotice, "Userid", article.m_userId);
+
 		m_articles.push_back(article);
 		++count;
-		if (maxArticles && count >= maxArticles)
+
+		if (maxArticles && count >= maxArticles) {
 			break;
-		node = node->NextSibling();
+		}
+
+		pNotice = pNotice->NextSibling();
 	}
+
 	return count;
 }
 
-void NewsReader::Clear()
-{
-	m_articles.clear();
-}
-
-unsigned int NewsReader::GetNumArticles() const
-{
+// newsreader.cpp:64
+unsigned int NewsReader::GetNumArticles(void) const {
 	return m_articles.size();
 }
 
-const NewsReader::sArticle* NewsReader::GetArticle(unsigned int index) const
-{
-	if (index < m_articles.size())
+// newsreader.cpp:69
+const NewsReader::sArticle* NewsReader::GetArticle(unsigned int index) const {
+	if (index < m_articles.size()) {
 		return &m_articles[index];
-	return NULL;
+	}
+	return 0;
 }
 
-bool NewsReader::GetChildNodeText(const TiXmlNode* node, const char* name,
-	std::string& text)
-{
-	if (!node || !name)
+// newsreader.cpp:77
+void NewsReader::Clear(void) {
+	m_articles.clear();
+}
+
+// newsreader.cpp:83
+bool NewsReader::GetChildNodeText(const TiXmlNode* pNode, const char* name, std::string& text) {
+	if (!pNode || !name) {
 		return false;
-	const TiXmlNode* child = node->FirstChild(name);
-	if (!child)
+	}
+
+	TiXmlNode* pChild = pNode->FirstChild(name);
+
+	if (!pChild) {
 		return false;
-	child = child->FirstChild();
-	if (!child)
+	}
+	TiXmlNode* pText = pChild->FirstChild();
+
+	if (!pText) {
 		return false;
-	text = child->Value();
+	}
+
+	text = pText->Value();
 	return true;
 }

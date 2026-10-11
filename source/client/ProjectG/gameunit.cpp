@@ -1,147 +1,130 @@
-#include "minatl.h"
-#include "gameunit.h"
-#include "networksystem.h"
-#include "projectg.h"
-#include "taskmanager.h"
+// Original: d:\build\custom\temp\code\client\projectg\gameunit.cpp
+#include "GameUnit.h"
+#include "Packet.h"
+#include "ProjectG.h"
+#include "NetworkSystem.h"
+#include "SharedDoc.h"
+#include "TaskManager.h"
 #include "logininfo.h"
-#include "packetversion.h"
-#include "../../shared/encryption.h"
-#include "../../shared/localize.h"
+#include "encryption.h"
 
-GameUnit::GameUnit()
-{
+// gameunit.cpp:35
+GameUnit::GameUnit(void) {
 }
 
-GameUnit::~GameUnit()
-{
+// gameunit.cpp:39
+GameUnit::~GameUnit(void) {
 }
 
-bool GameUnit::Init()
-{
+// gameunit.cpp:47
+bool GameUnit::Init(void) {
 	NetworkUnit::Init();
 
-	WNetworkSystem::Instance()->SetParseKey(WNetworkSystem::NET_GAME, false);
+	WSingleton<WNetworkSystem>::Instance()->SetParseKey(WNetworkSystem::NET_UNIT_DEFAULT, false);
 
 	return true;
 }
 
-void GameUnit::ShutDown()
-{
-	CTaskManager::Instance()->ReleaseWork();
+// gameunit.cpp:62
+void GameUnit::ShutDown(void) {
+	WSingleton<CTaskManager>::Instance()->ReleaseWork();
+
 	Init();
 }
 
-bool GameUnit::OnLine()
-{
+// gameunit.cpp:72
+bool GameUnit::OnLine(void) {
 	WReceivedPacket packet;
 
-	unsigned long time = timeGetTime();
+	DWORD start = timeGetTime();
 
-	while (m_socket.GetPacket(packet) == 3)
-	{
-		CProjectG::Instance()->OnPacket(packet);
-
-		if (timeGetTime() - time > 1000)
-			break;
+	if (m_socket.GetPacket(packet) == 3) {
+		do {
+			WSingleton<CProjectG>::Instance()->OnPacket(packet);
+		} while (timeGetTime() - start <= 1000 && m_socket.GetPacket(packet) == 3);
 	}
-
 	return true;
 }
 
-bool GameUnit::OffLine()
-{
+// gameunit.cpp:100
+bool GameUnit::OffLine(void) {
 	return true;
 }
 
-bool GameUnit::Connect()
-{
-	if (m_socket.m_bConnected)
-	{
+// gameunit.cpp:109
+bool GameUnit::Connect(void) {
+	if (m_socket.m_bConnected) {
 		setForceTransition(0);
 		return true;
 	}
 
-	std::string addr = Doc()->m_gameServerAddr;
-	unsigned long port = Doc()->m_gameServerPort;
+	std::string address = WSingleton<CSharedDoc>::Instance()->m_gameServerAddress;
+	int port = WSingleton<CSharedDoc>::Instance()->m_gameServerPort;
 
-	m_socket.SetEventMsg(WM_USER + 10);
-	if (m_socket.Connect(inet_addr(addr.c_str()), htons((u_short)port)) == 0)
-	{
+	m_socket.SetEventMsg(0x40A);
+
+	if (!m_socket.Connect(inet_addr(address.c_str()), htons(port))) {
 		setForceTransition(1);
-		m_bConnectionComplete = TRUE;
+		m_connectResult = 1;
 
-		NET()->ForceShutDown(WNetworkSystem::NET_MSN);
+		WSingleton<WNetworkSystem>::Instance()->ForceShutDown(WNetworkSystem::NET_UNIT_MSN);
 
-		if (IsLocalContent((localContentType_t)0x5a))
-		{
-			CProjectG::Instance()->SetMoveLoginServer(MyId(),
-				Doc()->m_password.c_str());
+		if (IsLocalContent((localContentType_t)0x5A)) {
+			WSingleton<CProjectG>::Instance()->SetMoveLoginServer(
+				WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().id,
+				WSingleton<CSharedDoc>::Instance()->m_loginServerAddress.c_str());
 
-			CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0, (int)"LOGIN", 0,
-				0, 0);
+			WSingleton<CTaskManager>::Instance()->PostMsg(0, "Lobby", 0, (intptr_t)"LOGIN", 0, 0, 0);
 		}
-
 		return false;
 	}
 
 	m_connectTime = GetTickCount();
 	setTransition(0);
-
 	return true;
 }
 
-bool GameUnit::Connecting()
-{
-	if (GetTickCount() - m_connectTime > 30000 || !m_socket.TryRead())
-	{
+// gameunit.cpp:154
+bool GameUnit::Connecting(void) {
+	if (GetTickCount() - m_connectTime > 30000 || m_socket.TryRead() == 0) {
 		setForceTransition(1);
-
-		m_socket.Close();
-		m_bConnectionComplete = TRUE;
+		GetSocket()->Close();
+		m_connectResult = 1;
 		return false;
 	}
 
 	WReceivedPacket packet;
-	if (m_socket.GetPacket(packet) == 3)
-	{
-		if (OnConnect(packet))
-		{
-			m_socket.AsyncSelect(FD_READ | FD_WRITE | FD_CLOSE);
+	if (m_socket.GetPacket(packet) == 3) {
+		if (OnConnect(packet)) {
+			m_socket.AsyncSelect(0x23);
 			setForceTransition(0);
-			m_bConnectionComplete = TRUE;
+			m_connectResult = 1;
 			return true;
 		}
-
 		return false;
 	}
-
 	return true;
 }
 
-bool GameUnit::Disconnecting()
-{
-	if (!m_socket.m_bConnected)
-	{
+// gameunit.cpp:193
+bool GameUnit::Disconnecting(void) {
+	if (m_socket.m_bConnected == 0) {
 		setForceTransition(1);
-	}
-	else
-	{
+	} else {
 		m_socket.Close();
 	}
-
 	return true;
 }
 
-int GameUnit::OnConnect(WReceivedPacket& packet)
-{
+// gameunit.cpp:210
+int GameUnit::OnConnect(WReceivedPacket &packet) {
 	packet.Decode1();
 
-	if (packet.Decode2() != 0x3d)
-	{
-		return FALSE;
+	if (packet.Decode2() != 0x3D) {
+		return 0;
 	}
 
-	CTaskManager::Instance()->ReleaseWork();
+	WSingleton<CTaskManager>::Instance()->ReleaseWork();
 
 	packet.Decode1();
 	packet.Decode1();
@@ -149,26 +132,24 @@ int GameUnit::OnConnect(WReceivedPacket& packet)
 
 	m_socket.SetParseKey(parseKey);
 
-	NET()->SetParseKey(WNetworkSystem::NET_GAME, true);
+	WSingleton<WNetworkSystem>::Instance()->SetParseKey(WNetworkSystem::NET_UNIT_DEFAULT, true);
 
-	std::string id = MyId();
-	std::string password = Doc()->m_password;
+	std::string id = WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().id;
+	std::string server = WSingleton<CSharedDoc>::Instance()->m_loginServerAddress;
 
-	unsigned long version = PY_PACKET_VERSION;
-	Decrypt(&version, sizeof(version));
+	unsigned long key = 0x77DEF61B;
+	XorWithKey((char *)&key, sizeof(key));
 
 	WSendPacket send((enumClientPacket)2);
 	send.EncodeStr(id);
-	send.Encode4(MyUID());
+	send.Encode4(WSingleton<CSharedDoc>::Instance()->m_myUID);
 	send.Encode4(CLoginInfo::Instance()->AuthUid());
 	send.Encode2(0x6696);
-	send.EncodeStr(Doc()->GetLoginAuthKey());
-	send.EncodeStr(std::string(PY_CLIENT_VERSION));
-	send.Encode4(version);
-
+	send.EncodeStr(WSingleton<CSharedDoc>::Instance()->GetLoginAuthKey());
+	send.EncodeStr(std::string("645.00"));
+	send.Encode4(key);
 	send.Encode4(CLoginInfo::Instance()->IsPcBang());
+	send.Send(SEND_TO_DEFAULT);
 
-	send.Send(TO_GAME);
-
-	return TRUE;
+	return 1;
 }

@@ -1,104 +1,97 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\binstr.inl
+// Inline members of cToken, cTokenV and cTokenS (binstr.h).
 
-inline int cToken::GetPos() const
-{
+// binstr.inl:6
+inline int cToken::GetPos(void) const {
 	return m_Pos;
 }
 
-inline int cToken::GetLen() const
-{
+// binstr.inl:26
+inline int cToken::GetLen(void) const {
 	return m_Len;
 }
 
-// HACK: out-of-line noticeboard usage
-__declspec(noinline) inline bool cToken::GetToken(char** ppOut,
-	const char* pcSep, int nSep)
-{
-	if (!GetResultBuf())
-	{
-		if (ppOut)
-		{
-			*ppOut = 0;
+// binstr.inl:40
+inline bool cToken::GetToken(char **ppToken, const char *sep, int sepLen) {
+	if (!GetResultBuf()) {
+		if (ppToken) {
+			*ppToken = 0;
 		}
 		return false;
 	}
-
-	if (ppOut)
-	{
-		*ppOut = m_pcResBuf;
+	if (ppToken) {
+		*ppToken = m_pcResBuf;
 	}
-	return GetToken(m_pcResBuf, pcSep, nSep);
+	return GetToken(m_pcResBuf, sep, sepLen);
 }
 
-inline bool cToken::GetTokenWithoutFail(char* const pOut, const char* pcSep,
-	int nSep)
-{
-	bool bRet = false;
-	*pOut = 0;
-	while (m_Pos < m_Len)
-	{
-		bRet = GetToken(pOut, pcSep, nSep);
-		if (*pOut)
+// binstr.inl:60
+inline bool cToken::GetTokenWithoutFail(char *const pToken, const char *sep, int sepLen) {
+	bool ret = false;
+	*pToken = 0;
+	while (m_Pos < m_Len) {
+		ret = GetToken(pToken, sep, sepLen);
+		if (*pToken != 0) {
 			break;
+		}
 	}
-	return bRet;
+	return ret;
 }
 
-inline bool cToken::GetTokenWithoutFail(char** ppOut, const char* pcSep,
-	int nSep)
-{
-	if (!GetResultBuf())
-	{
-		if (ppOut)
-			*ppOut = 0;
-		return false;
-	}
-	if (ppOut)
-		*ppOut = m_pcResBuf;
-	return GetTokenWithoutFail(m_pcResBuf, pcSep, nSep);
-}
-
-inline bool cToken::GetTokenFullSep(char** ppOut, const char* pcSep, int nSep)
-{
-	if (!GetResultBuf())
-	{
-		if (ppOut)
-		{
-			*ppOut = 0;
+// binstr.inl:78
+inline bool cToken::GetTokenWithoutFail(char **ppToken, const char *sep, int sepLen) {
+	if (!GetResultBuf()) {
+		if (ppToken) {
+			*ppToken = 0;
 		}
 		return false;
 	}
-
-	if (ppOut)
-	{
-		*ppOut = m_pcResBuf;
+	if (ppToken) {
+		*ppToken = m_pcResBuf;
 	}
-	return GetTokenFullSep(m_pcResBuf, pcSep, nSep);
+	return GetTokenWithoutFail(m_pcResBuf, sep, sepLen);
 }
 
-inline const char* cTokenV::GetBuf() const
-{
+// binstr.inl:98
+inline bool cToken::GetTokenFullSep(char **ppToken, const char *sep, int sepLen) {
+	if (!GetResultBuf()) {
+		if (ppToken) {
+			*ppToken = 0;
+		}
+		return false;
+	}
+	if (ppToken) {
+		*ppToken = m_pcResBuf;
+	}
+	return GetTokenFullSep(m_pcResBuf, sep, sepLen);
+}
+
+// binstr.inl:118
+inline const char *cTokenV::GetBuf(void) const {
 	return m_pcBuf;
 }
 
-inline const char* cTokenS::GetBuf() const
-{
+// binstr.inl:125
+inline const char *cTokenS::GetBuf(void) const {
 	return m_pcBuf;
 }
 
-inline int PosB(const char* str, int len, const char* sub, int sublen)
-{
-	for (int i = 0; i < len - sublen + 1; ++i)
-	{
-		for (int j = 0;; ++j)
-		{
-			if (j >= sublen)
-				return i;
-			if (str[i + j] != sub[j])
+// binstr.inl:135
+inline int PosB(const char *str, int strLen, const char *sub, int subLen) {
+	for (int i = 0; i < strLen - subLen + 1; i++) {
+		bool bFind = true;
+		for (int j = 0; j < subLen; j++) {
+			if (str[i + j] != sub[j]) {
+				bFind = false;
 				break;
+			}
 		}
-		if (Custom_IsLeadByte(str[i]))
-			++i;
+		if (bFind) {
+			return i;
+		}
+		if (str[i] & 0x80) {
+			i++;
+		}
 	}
 	return -1;
 }

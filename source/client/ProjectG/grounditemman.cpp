@@ -1,351 +1,212 @@
-#include "minatl.h"
-#include "grounditemman.h"
-#include "grounditem.h"
-#include "quadtree.h"
-#include "contentsdoc.h"
-#include "golfdoc.h"
-#include "projectg.h"
-#include "wresrcmng.h"
-#include "mathconsts.h"
+// Original: d:\build\custom\temp\code\client\projectg\grounditemman.cpp
+// actor.h names IActor in MsgObject before declaring it.
+class IActor;
 
-IObject* GroundItemManMakeInstance()
-{
+#include "GroundItemMan.h"
+
+#include <new>
+
+#include "ObjectFactory.h"
+#include "grounditem.h"
+#include "SharedDoc.h"
+#include "GolfDoc.h"
+#include "wview.h"
+
+unsigned int GroundItemMan::ms_initCnt;
+
+// grounditemman.cpp:42 (run-time type and factory registration of GroundItemMan)
+const WRTTI GroundItemMan::m_RTTI("GroundItemMan", &NetSyncActor::m_RTTI);
+
+IObject* GroundItemManMakeInstance(void) {
 	return new GroundItemMan;
 }
 
-struct __impGroundItemMan
-{
-	__impGroundItemMan()
-	{
-		ObjectFactory().AddObjectFunctor(GroundItemManMakeInstance,
-			"GroundItemMan");
+struct __impGroundItemMan {
+	__impGroundItemMan(void) {
+		ObjectFactory().AddObjectFunctor(GroundItemManMakeInstance, "GroundItemMan");
 		ActorFactory().AddActorClass("GroundItemMan");
 	}
 };
+static __impGroundItemMan s_impGroundItemMan;
 
-const WRTTI GroundItemMan::m_RTTI("GroundItemMan", &NetSyncActor::m_RTTI);
-static __impGroundItemMan __implGroundItemMan;
-
-unsigned int GroundItemMan::ms_initCnt = 0;
-
-GroundItemMan::GroundItemMan()
-{
-	CContentsDoc::Instance()->GetContainer((localContentType_t)0xa3,
-		m_pGimmickContainer);
+// grounditemman.cpp:47
+GroundItemMan::GroundItemMan(void) {
+	WSingleton<CContentsDoc>::Instance()->GetContainer((localContentType_t)0xa3, m_gimmickContainer);
 }
 
-GroundItemMan::~GroundItemMan()
-{
+// grounditemman.cpp:53
+GroundItemMan::~GroundItemMan(void) {
 }
 
-void GroundItemMan::OnLoad()
-{
-	if (!OnlinePlay())
-		m_pGimmickContainer->LoadFromScript("test_table");
-
-	m_pPlayerStats = new PlayerStats[Doc()->m_pGolfDoc->m_playerNum];
-}
-
-void GroundItemMan::OnReload()
-{
-}
-
-void GroundItemMan::OnInit()
-{
-	NetSyncActor::OnInit();
-
-	m_pGimmickContainer->ResetGimmikFlag(Doc()->m_pGolfDoc->m_currentHole,
-		GimmickDispositionInformation::GIMMICK_UNUSED);
-
-	Ut::MakeObjectName(m_sceneElemName, "SceneElemName", *this, ms_initCnt++);
-
-	CSceneManager::Instance()->RegisterElement(OBJ_CUSTOM, NULL, this,
-		m_sceneElemName.c_str(), 0, NULL);
-
-	NSA_SetInitialRandomSeed(m_pGimmickContainer->GetRandomSeed());
-
-	NSA_GetRandomGenerator().seed(m_initialSeed);
-
-	WList<w_texlist*>& texList =
-		(WList<w_texlist*>&)g_resrcmng->GetTextureList();
-	w_texlist* tex = texList.Start();
-
-	while (tex)
-	{
-		FieldItem::eDisposeTextureType texType =
-			FieldItem::DISPOSE_TEXTURE_NONE;
-		if (m_pGimmickContainer->NeedToMakeTriPtArray(tex->texname, &texType))
-		{
-			const std::vector<WPolySoup::sTriangle*>* triArray =
-				GetPVS().GetTriArray(
-					g_resrcmng->FindTexture(tex->texname)->texhandle);
-			DisposeGroundItem(texType, triArray,
-				m_pGimmickContainer->GetGimmickPosition(
-					GOLFDOC()->m_currentHole));
-		}
-
-		tex = texList.Next();
+// grounditemman.cpp:58
+void GroundItemMan::OnLoad(void) {
+	if (!OnlinePlay()) {
+		m_gimmickContainer->LoadFromScript("test_table");
 	}
 
-	std::list<GroundItem*>::iterator it = m_groundItemList.begin();
-
-	while (it != m_groundItemList.end())
-	{
-		GroundItem* pItem = *it;
-		pItem->Initialize();
-		++it;
-	}
+	m_playerStats = new PlayerStats[GOLFDOC()->GetPlayerNum()];
 }
 
-void GroundItemMan::OnDestroy()
-{
-	delete[] m_pPlayerStats;
+// grounditemman.cpp:68
+void GroundItemMan::OnReload(void) {
+}
 
-	m_pGimmickContainer->Release();
+// grounditemman.cpp:130
+void GroundItemMan::OnDestroy(void) {
+	delete[] m_playerStats;
+
+	m_gimmickContainer->Release();
 
 	OnHoleOut();
 
 	NetSyncActor::OnDestroy();
 }
 
-void GroundItemMan::HandleMsg(const MsgObject& msg)
-{
+// grounditemman.cpp:145
+void GroundItemMan::HandleMsg(const MsgObject &msg) {
 	NetSyncActor::HandleMsg(msg);
 
-	switch (msg.message)
-	{
+	switch (msg.m_msg) {
 	case 0x277:
-		*(std::vector<FieldItem::AcquiredItemInfo>**)msg.param1 =
-			&m_pGimmickContainer->GetAcquiredItemInfoArray();
+		*(std::vector<FieldItem::AcquiredItemInfo>**)msg.m_param1 = &m_gimmickContainer->GetAcquiredItemInfoArray();
 		break;
-
 	case 0x27c:
-		*(int*)msg.param1 = m_groundItemList.size();
+		*(int*)msg.m_param1 = m_groundItems.size();
 		break;
-
 	case 0x27b:
-		EnableGroundItemAll(msg.param1 == 1);
+		EnableGroundItemAll(msg.m_param1 == 1);
 		break;
 	}
 }
 
-void GroundItemMan::NSC_OnStep(bool bForce, bool bReplay, float step,
-	float time, int ballState)
-{
-	std::list<GroundItem*>::iterator it = m_groundItemList.begin();
-	while (it != m_groundItemList.end())
-	{
-		GroundItem* pItem = *it;
-		pItem->NSC_OnStep(bForce, bReplay, step, time, ballState);
-		++it;
+// grounditemman.cpp:179
+void GroundItemMan::NSC_OnStep(bool active, bool replay, float elapsed, float syncTime, int frame) {
+	std::list<GroundItem*>::iterator it = m_groundItems.begin();
+	for (; it != m_groundItems.end(); ++it) {
+		(*it)->NSC_OnStep(active, replay, elapsed, syncTime, frame);
 	}
 }
 
-void GroundItemMan::NSC_OnFirstNewShotFrame(float time, int ballState)
-{
-	bool bJackpot = false;
-	unsigned long r = NSA_GetRandomGenerator().randInt(999999);
+// grounditemman.cpp:191
+void GroundItemMan::NSC_OnFirstNewShotFrame(float startTime, int frame) {
+	bool jackpot = false;
 
-	if ((Doc()->m_userInfo[Doc()->m_pGolfDoc->m_currentPlayer]
-				.userEquip.tidBall &
-			0x3ffffff) == 0)
-	{
-		if (r < 20000)
-			bJackpot = true;
-	}
-	else
-	{
-		if (r < 40000)
-			bJackpot = true;
+	unsigned long chance = NSA_GetRandomGenerator().randInt(999999);
+
+	if ((CSharedDoc::Instance()->m_roomPlayers[GOLFDOC()->m_myPlayerIndex].m_ballId & 0x3FFFFFF) == 0) {
+		if (chance < 20000) {
+			jackpot = true;
+		}
+	} else {
+		if (chance < 40000) {
+			jackpot = true;
+		}
 	}
 
-	GroundItem::EnableGreenItemJackpot(bJackpot);
+	GroundItem::EnableGreenItemJackpot(jackpot);
 
-	PlayerStats& stats = m_pPlayerStats[Doc()->m_pGolfDoc->m_currentPlayer];
-	for (int i = 0; i < 3; ++i)
-		stats.numAcquired[i] = 0;
+	PlayerStats &stats = m_playerStats[GOLFDOC()->m_myPlayerIndex];
 
-	std::list<GroundItem*>::iterator it = m_groundItemList.begin();
-	while (it != m_groundItemList.end())
-	{
-		GroundItem* pItem = *it;
-		pItem->NSC_OnFirstNewShotFrame(time, ballState);
-		++it;
-	}
-}
+	stats.m_shotCount[0] = 0;
+	stats.m_shotCount[1] = 0;
+	stats.m_shotCount[2] = 0;
 
-void GroundItemMan::NSC_OnFirstReplayFrame(int ballState)
-{
-	std::list<GroundItem*>::iterator it = m_groundItemList.begin();
+	std::list<GroundItem*>::iterator it = m_groundItems.begin();
 
-	while (it != m_groundItemList.end())
-	{
-		GroundItem* pItem = *it;
-		pItem->NSC_OnFirstReplayFrame(ballState);
-		++it;
+	for (; it != m_groundItems.end(); ++it) {
+		GroundItem *item = *it;
+		item->NSC_OnFirstNewShotFrame(startTime, frame);
 	}
 }
 
-void GroundItemMan::OnHoleOut()
-{
-	std::list<GroundItem*>::iterator it = m_groundItemList.begin();
+// grounditemman.cpp:236
+void GroundItemMan::NSC_OnFirstReplayFrame(int frame) {
+	std::list<GroundItem*>::iterator it = m_groundItems.begin();
 
-	while (it != m_groundItemList.end())
-	{
-		GroundItem* pItem = *it;
-		pItem->Terminate();
-		delete pItem;
-		++it;
+	for (; it != m_groundItems.end(); ++it) {
+		GroundItem *item = *it;
+		item->NSC_OnFirstReplayFrame(frame);
+	}
+}
+
+// grounditemman.cpp:249
+void GroundItemMan::OnHoleOut(void) {
+	std::list<GroundItem*>::iterator it = m_groundItems.begin();
+
+	for (; it != m_groundItems.end(); ++it) {
+		GroundItem *item = *it;
+		item->Terminate();
+		delete item;
 	}
 
-	m_groundItemList.clear();
+	m_groundItems.clear();
 
 	CSceneManager::Instance()->DeleteElement(m_sceneElemName.c_str());
 }
 
-void GroundItemMan::Display()
-{
+// grounditemman.cpp:268
+void GroundItemMan::Display(void) {
 }
 
-void GroundItemMan::DebugDisplay()
-{
-	std::list<GroundItem*>::iterator it = m_groundItemList.begin();
+// grounditemman.cpp:273
+void GroundItemMan::DebugDisplay(void) {
+	std::list<GroundItem*>::iterator it = m_groundItems.begin();
 
-	while (it != m_groundItemList.end())
-	{
-		GroundItem* pItem = *it;
-		pItem->DrawBoundingVolume();
-		++it;
+	for (; it != m_groundItems.end(); ++it) {
+		GroundItem *item = *it;
+		item->DrawBoundingVolume();
 	}
 
-	const ThSphere& ballVolume = GroundItem::GetBallBoundingVolume();
-	g_view->DrawSphere((const WVector&)ballVolume.pos, ballVolume.r, 0xffff0000,
-		10, 0);
+	const ThSphere &ball = GroundItem::GetBallBoundingVolume();
+	g_view->DrawSphere((const WVector &)ball.center, ball.radius, 0xffff0000, 10, 0);
 }
 
-int GroundItemMan::DisposeGroundItem(FieldItem::eDisposeTextureType texType,
-	const std::vector<WPolySoup::sTriangle*>* triArray,
-	std::vector<GimmickDispositionInformation>& dispInfo)
-{
-	int numDisposed = 0;
-	float minDist = m_pGimmickContainer->GetMinDistBtwItems();
-	std::vector<WVector> posList;
-	Ut::BuildAppropriatePosList(triArray, minDist, posList);
+// grounditemman.cpp:397
+GimmickDispositionInformation *GroundItemMan::FindUnusedDisposeInfo(FieldItem::eDisposeTextureType textureType, std::vector<GimmickDispositionInformation> &infos) const {
+	GimmickDispositionInformation *info = 0;
+	switch (textureType) {
+	case 1:
+		info = m_gimmickContainer->FindDisposeInfo(GOLFDOC()->m_currentHole, (GIMMICK_ITEM_TYPE)0, GimmickDispositionInformation::FLAG_NONE);
+		break;
+	case 2:
+		info = m_gimmickContainer->FindDisposeInfo(GOLFDOC()->m_currentHole, GIMMICK_ITEM_ANY, GimmickDispositionInformation::FLAG_NONE);
+		break;
+	}
+	return info;
+}
 
-	int numPos = posList.size();
-	int numDispInfo =
-		m_pGimmickContainer->GetNumDisposeInfo(GOLFDOC()->m_currentHole,
-			GIMMICK_ITEM_ANY, GimmickDispositionInformation::GIMMICK_UNUSED);
+// grounditemman.cpp:424
+GroundItem *GroundItemMan::CreateGroundItem(unsigned long id, GIMMICK_ITEM_TYPE itemType, FieldItem::eDisposeTextureType textureType, const Ut::Spatial &spatial) {
+	GroundItem *item = 0;
+	std::string puppetName;
+	Ut::Spatial itemSpatial = spatial;
 
-	if (posList.size() == 0)
-		return 0;
+	switch (itemType) {
+	case 0:
+		puppetName = "coin.pet";
 
-	int numToDispose = numPos;
-	switch (texType)
-	{
-	case FieldItem::DISPOSE_TEXTURE_BOOSTER:
-		numToDispose = (int)(numPos * 0.7f);
-		if (numToDispose > 50)
-			numToDispose = 50;
+		itemSpatial.m_position.y += 0.1f;
+		itemSpatial.m_scale = 10.0f;
+		item = new GroundItem(this, id, itemType, textureType, puppetName.c_str(), itemSpatial);
+		break;
+	case 1:
+		puppetName = "ct_event.pet";
+
+		itemSpatial.m_position.y -= 3.0f;
+
+		itemSpatial.m_scale = 14.0f;
+		item = new GroundItem(this, id, itemType, textureType, puppetName.c_str(), itemSpatial);
 		break;
 	}
 
-	if (numToDispose > numDispInfo)
-		numToDispose = numDispInfo;
-
-	int* indices = new int[numPos];
-	for (int i = 0; i < numPos; ++i)
-		indices[i] = i;
-
-	for (int j = 0; j < numPos * 3; ++j)
-	{
-		int r = NSA_GetRandomGenerator().randInt(numPos - 1);
-		std::swap(indices[j % numPos], indices[r]);
-	}
-
-	for (int k = 0; k < numToDispose; ++k)
-	{
-		GimmickDispositionInformation* pInfo =
-			FindUnusedDisposeInfo(texType, dispInfo);
-		if (pInfo == NULL)
-			break;
-
-		Ut::Spatial spatial;
-		spatial.pos = (const gaV3&)posList[indices[k]];
-
-		GroundItem* pItem =
-			CreateGroundItem(pInfo->index, pInfo->type, texType, spatial);
-		m_groundItemList.push_back(pItem);
-
-		pInfo->flag = GimmickDispositionInformation::GIMMICK_USED;
-		++numDisposed;
-	}
-
-	if (indices)
-		delete indices;
-
-	return numDisposed;
+	return item;
 }
 
-GimmickDispositionInformation* GroundItemMan::FindUnusedDisposeInfo(
-	FieldItem::eDisposeTextureType texType,
-	std::vector<GimmickDispositionInformation>& dispInfo) const
-{
-	GimmickDispositionInformation* pInfo = NULL;
+// grounditemman.cpp:470
+void GroundItemMan::EnableGroundItemAll(bool enable) {
+	std::list<GroundItem*>::iterator it = m_groundItems.begin();
 
-	switch (texType)
-	{
-	case FieldItem::DISPOSE_TEXTURE_COIN:
-		pInfo = m_pGimmickContainer->FindDisposeInfo(GOLFDOC()->m_currentHole,
-			GIMMICK_ITEM_PANG, GimmickDispositionInformation::GIMMICK_UNUSED);
-		break;
-
-	case FieldItem::DISPOSE_TEXTURE_BOOSTER:
-		pInfo = m_pGimmickContainer->FindDisposeInfo(GOLFDOC()->m_currentHole,
-			GIMMICK_ITEM_ANY, GimmickDispositionInformation::GIMMICK_UNUSED);
-		break;
-	}
-
-	return pInfo;
-}
-
-GroundItem* GroundItemMan::CreateGroundItem(unsigned long id,
-	GIMMICK_ITEM_TYPE type, FieldItem::eDisposeTextureType texType,
-	const Ut::Spatial& spatial)
-{
-	GroundItem* pItem = NULL;
-	std::string modelName;
-	Ut::Spatial newSpatial = spatial;
-
-	switch (type)
-	{
-	case GIMMICK_ITEM_PANG:
-		modelName = "coin.pet";
-		newSpatial.scl = 10.0f;
-		newSpatial.pos.y += 0.1f;
-		pItem = new GroundItem(this, id, GIMMICK_ITEM_PANG, texType,
-			modelName.c_str(), newSpatial);
-		break;
-
-	case GIMMICK_ITEM_BOX:
-		modelName = "ct_event.pet";
-		newSpatial.scl = 14.0f;
-		newSpatial.pos.y -= 3.0f;
-		pItem = new GroundItem(this, id, GIMMICK_ITEM_BOX, texType,
-			modelName.c_str(), newSpatial);
-		break;
-	}
-
-	return pItem;
-}
-
-void GroundItemMan::EnableGroundItemAll(bool bEnable)
-{
-	std::list<GroundItem*>::iterator it = m_groundItemList.begin();
-
-	while (it != m_groundItemList.end())
-	{
-		(*it)->Enable(bEnable);
-		++it;
+	for (; it != m_groundItems.end(); ++it) {
+		(*it)->Enable(enable);
 	}
 }

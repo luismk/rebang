@@ -1,39 +1,35 @@
-typedef unsigned int U32;
+// Original: d:\build\custom\temp\code\shared\tea.cpp
 
-static const U32 DELTA = 0x9e3779b9;
+// XTEA block decipher (16 rounds) and an N-byte decoder built on it.
 
-void Decipher(const U32* const v, U32* const w, const U32* const k)
+// tea.cpp:48
+void Decipher(const unsigned int* const v, unsigned int* const w, const unsigned int* const k)
 {
+	unsigned int sum = 0xE3779B90;
+	unsigned int delta = 0x9E3779B9;
+
 	w[0] = v[0];
 	w[1] = v[1];
-	U32 sum = DELTA * 16;
-	for (int round = 0; round < 16; ++round)
-	{
-		w[1] -=
-			(((w[0] << 4) ^ (w[0] >> 5)) + w[0]) ^ (sum + k[(sum >> 11) & 3]);
-		sum -= DELTA;
-		w[0] -= (((w[1] << 4) ^ (w[1] >> 5)) + w[1]) ^ (sum + k[sum & 3]);
+
+	for (int i = 0; i < 16; i++) {
+		w[1] -= ((w[0] << 4 ^ w[0] >> 5) + w[0]) ^ (sum + k[sum >> 11 & 3]);
+		sum -= delta;
+		w[0] -= ((w[1] << 4 ^ w[1] >> 5) + w[1]) ^ (sum + k[sum & 3]);
 	}
 }
 
-int DecodeTEA_NBYTE(char* szDest, int nSize, const char* szSrc,
-	const U32* paKey)
+// tea.cpp:85
+int DecodeTEA_NBYTE(char* szDest, int nSize, const char* szSrc, const unsigned int* paKey)
 {
-	U32 v[2] = { 0, 0 };
-	U32 k[4];
-	k[0] = paKey[0];
-	k[1] = paKey[1];
-	k[2] = paKey[2];
-	k[3] = paKey[3];
+	unsigned int k[4] = { paKey[0], paKey[1], paKey[2], paKey[3] };
+	unsigned int v[2] = { 0, 0 };
+	for (int i = 0; i < nSize; i += 8) {
+		v[0] = *(const unsigned int*)(szSrc + i);
 
-	if (nSize > 0)
-	{
-		for (int offset = 0; nSize > offset; offset += 8)
-		{
-			v[0] = *(const U32*)(szSrc + offset);
-			v[1] = *(const U32*)(szSrc + offset + 4);
-			Decipher(v, (U32*)(szDest + offset), k);
-		}
+		v[1] = *(const unsigned int*)(szSrc + i + 4);
+
+		Decipher(v, (unsigned int*)(szDest + i), k);
 	}
+
 	return 8;
 }

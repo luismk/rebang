@@ -1,205 +1,217 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frtooltip.cpp
+#define FRTOOLTIP_WTYPES_INLINE
 #include "frtooltip.h"
-#include "frwnd.h"
-#include "frwndmanager.h"
 #include "frgraphicinterface.h"
-#include "inputmanager.h"
-#include "wresrcmng.h"
-#include "wutil.h"
-#include "commonutil.h"
+#include "frwndmanager.h"
+#include "../client/ProjectG/InputManager.h"
+#include "../client/ProjectG/commonutil.h"
+#include "../client/Wangreal/include/woverlay.h"
+#include "../client/Wangreal/include/wresrcmng.h"
+#include "../client/Wangreal/include/wutil.h"
+#include "../client/Wangreal/include/wview.h"
 
-extern const float TEXT_TOOLTIP_LINE_INTERVAL = 2.0f;
+// Named constants of frtooltip.cpp (the original's .rdata).
 const float CURSOR_PIVOT = 20.0f;
 const float TEXT_TOOLTIP_PIVOT_X = 8.0f;
-const float TEXT_TOOLTIP_PIVOT_Y = 4.0f;
-const float FRMIMG_SIZE = 8.0f;
-const float MAX_TOOLTIP_ALPHA = 220.0f;
-const float TOOLTIP_FRM_PIVOT = 1.0f;
+// Line interval used by PrintText11 and tooltip layout.
+// Define with external linkage so other translation units and prebuilt libs
+// can reference the symbol. Place it at global scope and mark 'extern'
+// so the constant has external linkage with a single definition here.
+extern const float TEXT_TOOLTIP_LINE_INTERVAL = 2.0f;
+// frtooltip.cpp:29 (keeps rc inside the view; nonzero when it moved)
+int FixRectInView(WRect& rc) {
+	WRect copy = rc;
 
-namespace
-{
-	int FixRectInView(WRect& rc)
-	{
-		WRect copy(rc);
-		if (rc.x < 0.0f)
-			rc.x = 0.0f;
-		if (rc.y < 0.0f)
-			rc.y = 0.0f;
-		if (rc.Right() > g_view->GetWidth())
-			rc.x = g_view->GetWidth() - rc.w;
-		if (rc.Bottom() > g_view->GetHeight())
-			rc.y = g_view->GetHeight() - rc.h;
-		return copy != rc;
+	if (rc.x < 0.0f) {
+		rc.x = 0.0f;
 	}
-}
 
-FrToolTip::FrToolTip(FrWndManager* pWndMgr)
-	: m_fAlpha(0.0f), m_pWndManager(pWndMgr), m_textColor(0xff000000)
-{
+	if (rc.y < 0.0f) {
+		rc.y = 0.0f;
+	}
+
+	if (rc.w + rc.x > g_view->GetWidth()) {
+		rc.x = g_view->GetWidth() - rc.w;
+	}
+
+	if (rc.y + rc.h > g_view->GetHeight()) {
+		rc.y = g_view->GetHeight() - rc.h;
+	}
+
+	return copy.x != rc.x || copy.y != rc.y || copy.w != rc.w || copy.h != rc.h;
+
+}
+// (previously used anonymous namespace closed above)
+
+// frtooltip.cpp:56
+FrToolTip::FrToolTip(FrWndManager* pWndManager)
+	: m_fAlpha(0.0f), m_pWndManager(pWndManager), m_textColor(0xff000000) {
 	m_Frame.Init();
 }
 
-FrToolTip::~FrToolTip()
-{
+// frtooltip.cpp:61
+FrToolTip::~FrToolTip(void) {
 }
 
-void FrToolTip::Move(const WPoint& pos)
-{
-	m_rcWnd.x = pos.x;
-	m_rcWnd.y = pos.y;
+// frtooltip.cpp:66
+void FrToolTip::Move(const WPoint& pt) {
+	m_rcWnd.x = pt.x;
+	m_rcWnd.y = pt.y;
 }
 
-void FrToolTip::SetToolTipText(const std::string& text)
-{
-	if (text == "")
+// frtooltip.cpp:72
+void FrToolTip::SetToolTipText(const std::string& text) {
+	if (text == "") {
 		return;
-	m_fAlpha = MAX_TOOLTIP_ALPHA;
-	if (m_orgText == text)
+	}
+
+	m_fAlpha = 220.0f;
+	if (m_orgText == text) {
 		return;
+	}
+
 	m_orgText = text;
 	m_FrText = m_orgText;
 	Prepare();
 }
 
-void FrToolTip::SetFrameStyle(unsigned long style)
-{
-	m_Frame.SetStyle(style);
+// frtooltip.cpp:86
+void FrToolTip::SetFrameStyle(unsigned long style) {
+	m_Frame.m_style = Between<unsigned long>(0, style, 3);
 }
 
-void FrToolTip::OnProcess(float deltaTime)
-{
-	if (m_fAlpha <= 0.0f)
+// frtooltip.cpp:92
+void FrToolTip::OnProcess(float delta) {
+	if (m_fAlpha <= 0.0f) {
 		return;
-	if (m_fAlpha > 0.0f)
-	{
-		m_fAlpha -= deltaTime * MAX_TOOLTIP_ALPHA * 3.0f;
+	}
+
+	if (m_fAlpha > 0.0f) {
+		m_fAlpha -= delta * 660.0f;
+
 		m_rcWnd.x = m_pWndManager->GetMousePos().x + CURSOR_PIVOT;
 		m_rcWnd.y = m_pWndManager->GetMousePos().y + CURSOR_PIVOT;
+
 		FixRectInView(m_rcWnd);
 	}
-	if (m_fAlpha <= 0.0f)
+
+	if (m_fAlpha <= 0.0f) {
 		Reset();
+	}
 }
 
-void FrToolTip::OnDisplay()
-{
-	if (m_fAlpha <= 0.0f)
+// frtooltip.cpp:112
+void FrToolTip::OnDisplay(void) {
+	if (m_fAlpha <= 0.0f) {
 		return;
-	m_Frame.Render(m_rcWnd, ((unsigned char)m_fAlpha << 24) | 0xffffff);
-	WPoint pos(m_rcWnd.x + TEXT_TOOLTIP_PIVOT_X,
-		m_rcWnd.y + TEXT_TOOLTIP_PIVOT_Y + TOOLTIP_FRM_PIVOT);
-	FrGraphicInterface* pGDI = m_pWndManager->GetGDI();
-	pGDI->SetTextColor(m_textColor, 0xffffffff);
-	float prevAlpha = pGDI->GetAlpha();
-	pGDI->SetAlpha(m_fAlpha / 255.0f);
-	pGDI->PrintText11(pos, m_FrText);
-	pGDI->SetAlpha(prevAlpha);
+	}
+
+	m_Frame.Render(m_rcWnd, ((unsigned long)(unsigned char)m_fAlpha << 24) | 0x00ffffff);
+
+	WPoint pos(m_rcWnd.x + TEXT_TOOLTIP_PIVOT_X, m_rcWnd.y + 5.0f);
+	FrGraphicInterface* pGI = m_pWndManager->GetGDI();
+	pGI->SetTextColor(m_textColor, 0xffffffff);
+	float prevAlpha = pGI->GetAlpha();
+	pGI->SetAlpha(m_fAlpha * (1.0f / 255.0f));
+
+	pGI->PrintText11(pos, m_FrText);
+
+	pGI->SetAlpha(prevAlpha);
 }
 
-void FrToolTip::Prepare()
-{
-	m_fAlpha = MAX_TOOLTIP_ALPHA;
+// frtooltip.cpp:140
+void FrToolTip::Prepare(void) {
+	m_fAlpha = 220.0f;
 	m_rcWnd.x = g_input->GetMousePoint().x + CURSOR_PIVOT;
 	m_rcWnd.y = g_input->GetMousePoint().y + CURSOR_PIVOT;
-	FrGraphicInterface* pGDI = m_pWndManager->GetGDI();
-	unsigned int lines = m_FrText.GetLineSize();
-	m_rcWnd.h = (float)pGDI->GetFontHeight11() * lines +
-		Max(0, (int)lines - 1) * TEXT_TOOLTIP_LINE_INTERVAL +
-		TEXT_TOOLTIP_PIVOT_Y * 2;
-	m_rcWnd.w = m_FrText.GetWidthLong(pGDI) + TEXT_TOOLTIP_PIVOT_X * 2;
+	FrGraphicInterface* pGI = m_pWndManager->GetGDI();
+	unsigned int lineCount = m_FrText.GetLineSize();
+	m_rcWnd.h = (float)pGI->GetFontHeight11() * lineCount + Max<int>(0, (int)lineCount - 1) * 2.0f + TEXT_TOOLTIP_PIVOT_X;
+
+	m_rcWnd.w = m_FrText.GetWidthLong(pGI) + 16.0f;
 }
 
-void FrToolTip::Reset()
-{
+// frtooltip.cpp:154
+void FrToolTip::Reset(void) {
 	m_fAlpha = 0.0f;
 	m_rcWnd = WRect();
 	m_orgText = "";
 	m_FrText.Clear();
 }
 
-FrToolTip::cToolTipFrame::cToolTipFrame()
-	: m_style(3)
-{
+// frtooltip.cpp:165
+FrToolTip::cToolTipFrame::cToolTipFrame(void) {
+	m_style = 3;
 }
 
-FrToolTip::cToolTipFrame::~cToolTipFrame()
-{
-	for (std::vector<TOOLTIPFRM>::iterator it = m_Frames.begin();
-		it != m_Frames.end(); ++it)
-	{
-		for (int i = 0; i < FRMIDX_MAX; ++i)
-		{
-			if (g_resrcmng && (*it)[i])
-			{
+// frtooltip.cpp:174
+FrToolTip::cToolTipFrame::~cToolTipFrame(void) {
+	for (std::vector<TOOLTIPFRM>::iterator it = m_Frames.begin(); it != m_Frames.end(); ++it) {
+		for (int i = 0; i < FRMIDX_MAX; ++i) {
+			if (g_resrcmng != 0 && (*it)[i] != 0) {
 				g_resrcmng->Release((*it)[i]);
-				(*it)[i] = NULL;
+				(*it)[i] = 0;
 			}
 		}
-		(*it).clear();
+		it->clear();
 	}
 	m_Frames.clear();
 }
 
-void FrToolTip::cToolTipFrame::Init()
-{
+// frtooltip.cpp:189
+void FrToolTip::cToolTipFrame::Init(void) {
 	m_Frames.reserve(4);
-	for (int iFrm = 0; iFrm < 4; ++iFrm)
-	{
-		TOOLTIPFRM Frame(FRMIDX_MAX);
-		for (int i = 0; i < FRMIDX_MAX; ++i)
-		{
-			Frame.push_back(NULL);
-			WOverlay* overlay = g_resrcmng->GetOverlay(
-				MakeStr("tooltip_frm%02d_%02d.tga", iFrm, i), 0);
-			if (overlay)
-				Frame[i] = overlay;
+
+	for (int iFrm = 0; iFrm < 4; ++iFrm) {
+		TOOLTIPFRM Frame(FRMIDX_MAX, (WOverlay*)0);
+		for (int i = 0; i < FRMIDX_MAX; ++i) {
+			Frame.push_back(0);
+			WOverlay* pOverlay = g_resrcmng->GetOverlay(MakeStr("tooltip_frm%02d_%02d.tga", iFrm, i), 0);
+			if (pOverlay != 0) {
+				Frame[i] = pOverlay;
+			}
 		}
 		m_Frames.push_back(Frame);
 	}
 }
 
-void FrToolTip::cToolTipFrame::SetStyle(unsigned long style)
-{
+// frtooltip.cpp:214
+void FrToolTip::cToolTipFrame::SetStyle(unsigned long style) {
 	m_style = Between<unsigned long>(0, style, 3);
 }
 
-void FrToolTip::cToolTipFrame::Render(const WRect& rc, unsigned long color)
-{
-	float fw = rc.w - FRMIMG_SIZE * 2;
-	float fh = rc.h - FRMIMG_SIZE * 2;
-	TOOLTIPFRM& Frame = m_Frames[m_style];
+// frtooltip.cpp:221
+void FrToolTip::cToolTipFrame::Render(const WRect& rc, unsigned long color) {
+	float fw = rc.w - 16.0f;
+	float fh = rc.h - 16.0f;
+	TOOLTIPFRM& frm = m_Frames[m_style];
 	WRect src(0.0f, 0.0f, 1.0f, 1.0f);
-	if (Frame[LT])
-		Frame[LT]->Render(g_view, src,
-			WRect(rc.x, rc.y, FRMIMG_SIZE, FRMIMG_SIZE), 0, color, 0, 0);
-	if (Frame[LM])
-		Frame[LM]->Render(g_view, src,
-			WRect(rc.x, rc.y + FRMIMG_SIZE, FRMIMG_SIZE, fh), 0, color, 0, 0);
-	if (Frame[LB])
-		Frame[LB]->Render(g_view, src,
-			WRect(rc.x, rc.y + fh + FRMIMG_SIZE, FRMIMG_SIZE, FRMIMG_SIZE), 0,
-			color, 0, 0);
-	if (Frame[MT])
-		Frame[MT]->Render(g_view, src,
-			WRect(rc.x + FRMIMG_SIZE, rc.y, fw, FRMIMG_SIZE), 0, color, 0, 0);
-	if (Frame[MM])
-		Frame[MM]->Render(g_view, src,
-			WRect(rc.x + FRMIMG_SIZE, rc.y + FRMIMG_SIZE, fw, fh), 0, color, 0,
-			0);
-	if (Frame[MB])
-		Frame[MB]->Render(g_view, src,
-			WRect(rc.x + FRMIMG_SIZE, rc.y + fh + FRMIMG_SIZE, fw, FRMIMG_SIZE),
-			0, color, 0, 0);
-	if (Frame[RT])
-		Frame[RT]->Render(g_view, src,
-			WRect(rc.x + fw + FRMIMG_SIZE, rc.y, FRMIMG_SIZE, FRMIMG_SIZE), 0,
-			color, 0, 0);
-	if (Frame[RM])
-		Frame[RM]->Render(g_view, src,
-			WRect(rc.x + fw + FRMIMG_SIZE, rc.y + FRMIMG_SIZE, FRMIMG_SIZE, fh),
-			0, color, 0, 0);
-	if (Frame[RB])
-		Frame[RB]->Render(g_view, src,
-			WRect(rc.x + fw + FRMIMG_SIZE, rc.y + fh + FRMIMG_SIZE, FRMIMG_SIZE,
-				FRMIMG_SIZE),
-			0, color, 0, 0);
+
+	if (frm[LT] != 0) {
+		frm[LT]->Render(g_view, src, WRect(rc.x, rc.y, 8, 8), 0, color, 0, 0);
+	}
+	if (frm[LM] != 0) {
+		frm[LM]->Render(g_view, src, WRect(rc.x, rc.y + TEXT_TOOLTIP_PIVOT_X, 8, fh), 0, color, 0, 0);
+	}
+	if (frm[LB] != 0) {
+		frm[LB]->Render(g_view, src, WRect(rc.x, fh + rc.y + TEXT_TOOLTIP_PIVOT_X, 8, 8), 0, color, 0, 0);
+	}
+	if (frm[MT] != 0) {
+		frm[MT]->Render(g_view, src, WRect(rc.x + TEXT_TOOLTIP_PIVOT_X, rc.y, fw, 8), 0, color, 0, 0);
+	}
+	if (frm[MM] != 0) {
+		frm[MM]->Render(g_view, src, WRect(rc.x + TEXT_TOOLTIP_PIVOT_X, rc.y + TEXT_TOOLTIP_PIVOT_X, fw, fh), 0, color, 0, 0);
+	}
+	if (frm[MB] != 0) {
+		frm[MB]->Render(g_view, src, WRect(rc.x + TEXT_TOOLTIP_PIVOT_X, fh + rc.y + TEXT_TOOLTIP_PIVOT_X, fw, 8), 0, color, 0, 0);
+	}
+	if (frm[RT] != 0) {
+		frm[RT]->Render(g_view, src, WRect(fw + rc.x + TEXT_TOOLTIP_PIVOT_X, rc.y, 8, 8), 0, color, 0, 0);
+	}
+	if (frm[RM] != 0) {
+		frm[RM]->Render(g_view, src, WRect(fw + rc.x + TEXT_TOOLTIP_PIVOT_X, rc.y + TEXT_TOOLTIP_PIVOT_X, 8, fh), 0, color, 0, 0);
+	}
+	if (frm[RB] != 0) {
+		frm[RB]->Render(g_view, src, WRect(fw + rc.x + TEXT_TOOLTIP_PIVOT_X, fh + rc.y + TEXT_TOOLTIP_PIVOT_X, 8, 8), 0, color, 0, 0);
+	}
 }

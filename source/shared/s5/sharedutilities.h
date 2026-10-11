@@ -1,70 +1,74 @@
-#pragma once
+// Original: d:\build\custom\temp\code\shared\s5\sharedutilities.h
+#ifndef PG_SHARED_S5_SHAREDUTILITIES_H
+#define PG_SHARED_S5_SHAREDUTILITIES_H
+
+#include <windows.h>
 
 #include <string>
 #include <list>
 
-struct sHoleInBonus
-{
-	__int64 holeinone;
-	__int64 albatross;
-	__int64 eagle;
-	__int64 birdie;
-	__int64 par;
-	__int64 over;
+#include "..\..\padding.h"
+#include "..\..\defines.h"
+
+// The game style of a room (stGameClass, globalgamedefine.h:663); its
+// enumerators are not transcribed yet.
+enum eGameStyle;
+
+struct sItemInfo;
+
+// A course's hole-in-one bonus (0x30 bytes; a table of 20, one per course,
+// in the original's data). Its members are not transcribed yet.
+struct sHoleInBonus {
+	UNKNOWN(0x00, 0x30);
+};
+CHECK_SIZE(sHoleInBonus, 0x30);
+
+namespace S5 {
+
+namespace CLASSICSRV {
+
+unsigned long GetClearBonus(unsigned char level, unsigned char course);
+const sHoleInBonus *GetCourseHoleInBonus(unsigned char course);
+
+} // namespace CLASSICSRV
+
+namespace RENTALPARTS {
+
+int IsRentableParts(unsigned long typeId);
+int GetRentalPrice(unsigned long typeId);
+int IsExistExpiredRentalItem(const std::list<sItemInfo>& itemList);
+
+} // namespace RENTALPARTS
+
+__int64 ExchangeOwnCashToCookie(__int64 cash, __int64 cookie, int rate);
+__int64 ExchangeOwnCookieToCash(__int64 cookie, int rate);
+
+bool IsSpecialGameStyle(eGameStyle style);
+bool IsSpecialGame(unsigned char gameType, eGameStyle style);
+
+_SYSTEMTIME MakeSysTime(unsigned short year, unsigned short month, unsigned short day, unsigned short hour);
+
+} // namespace S5
+
+namespace _util {
+
+// The result of a password check (SecondaryPasswordDlg).
+enum ePwdErrorCode {
+	PWD_OK = 0,
+	PWD_NOT_NUMBER = 1,
+	PWD_EMPTY = 2,
+	PWD_TOO_SHORT = 3,
+	PWD_TOO_LONG = 4,
+	PWD_SAME_DIGITS = 5,
+	PWD_ASCENDING = 6,
+	PWD_DESCENDING = 7
 };
 
-namespace S5
-{
-	namespace CLASSICSRV
-	{
-		enum
-		{
-			PANG_LONGPUTT_PER_YARD = 4,
-			PANG_MULTIPLY_APPROACH = 2,
-			PANG_LONGCHIPIN_PER_YARD = 4
-		};
+ePwdErrorCode VerifyInputPassword(const std::string &password);
+ePwdErrorCode VerifyLength(const std::string &text, int minLength, int maxLength);
+ePwdErrorCode VerifyStringContents_IsNumber(const std::string &text);
+ePwdErrorCode VerifyStringContents_Limit(const std::string &text);
 
-		unsigned long GetClearBonus(unsigned char numPlayer,
-			unsigned char mapType);
-		const sHoleInBonus* GetCourseHoleInBonus(unsigned char mapType);
-	}
+} // namespace _util
 
-	namespace RENTALPARTS
-	{
-		int IsRentableParts(unsigned long typeId);
-		int GetRentalPrice(unsigned long typeId);
-		void CollectRentalItem(std::list<sItemInfo>& rentalItems,
-			const std::list<sItemInfo>& items);
-		int IsExistExpiredRentalItem(const std::list<sItemInfo>& items);
-	}
-
-	__int64 ExchangeOwnCashToCookie(__int64 cash, __int64 cookie, int rate);
-	__int64 ExchangeOwnCookieToCash(__int64 cookie, int rate);
-
-	bool IsSpecialGameStyle(eGameStyle style);
-	bool IsSpecialGame(unsigned char gameType, eGameStyle style);
-
-	SYSTEMTIME MakeSysTime(unsigned short year, unsigned short month,
-		unsigned short day, unsigned short hour);
-}
-
-namespace _util
-{
-	enum ePwdErrorCode
-	{
-		PWD_OK,
-		PWD_NOT_NUMBER,
-		PWD_EMPTY,
-		PWD_TOO_SHORT,
-		PWD_TOO_LONG,
-		PWD_SAME_CHARS,
-		PWD_ASCENDING,
-		PWD_DESCENDING
-	};
-
-	ePwdErrorCode VerifyInputPassword(const std::string& password);
-	ePwdErrorCode VerifyLength(const std::string& str, int minLength,
-		int maxLength);
-	ePwdErrorCode VerifyStringContents_IsNumber(const std::string& str);
-	ePwdErrorCode VerifyStringContents_Limit(const std::string& str);
-}
+#endif // PG_SHARED_S5_SHAREDUTILITIES_H

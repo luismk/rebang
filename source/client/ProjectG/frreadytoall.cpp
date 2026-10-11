@@ -1,75 +1,123 @@
-#include "minatl.h"
-#include "frreadytoall.h"
-#include "shareddoc.h"
+// Original: d:\build\custom\temp\code\client\projectg\frreadytoall.cpp
+#include "FrReadyToAll.h"
+#include "ObjectFactory.h"
+#include "Packet.h"
+#include "SharedDoc.h"
 
-IMPLEMENT_OBJECT(FrReadyToAll, FrForm)
+// frreadytoall.cpp:12 (run-time type and factory registration of FrReadyToAll)
+const WRTTI FrReadyToAll::m_RTTI("FrReadyToAll", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrReadyToAll, FrForm)
-
-ON_FRESH_VV("ReadyStart", FRCMD_LBUTTONUP, FrReadyToAll::OnReadyBtnUp)
-ON_FRESH_VV("WaitCancel", FRCMD_LBUTTONUP, FrReadyToAll::OnWaitBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrReadyToAll::FrReadyToAll()
-{
+IObject* FrReadyToAllMakeInstance(void) {
+	return new FrReadyToAll;
 }
 
-FrReadyToAll::~FrReadyToAll()
-{
+struct __sFrReadyToAll {
+	__sFrReadyToAll(void) {
+		ObjectFactory().AddObjectFunctor(FrReadyToAllMakeInstance, "FrReadyToAll");
+	}
+};
+static __sFrReadyToAll s_registerFrReadyToAll;
+
+// frreadytoall.cpp:14
+const sFRESH_MSGMAP* FrReadyToAll::GetMessageMap(void) const {
+	return &FrReadyToAll::_MsgMap;
 }
 
-void FrReadyToAll::OnReadyBtnUp()
-{
-	if (Doc()->IsControlServerService(2))
+sFRESH_MSGMAP FrReadyToAll::_MsgMap = { &FrForm::_MsgMap, &FrReadyToAll::_MsgEntries[0] };
+
+sFRESH_ENTRY FrReadyToAll::_MsgEntries[] = {
+	// frreadytoall.cpp:16
+	{ "ReadyStart", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrReadyToAll::OnReadyBtnUp },
+	// frreadytoall.cpp:17
+	{ "WaitCancel", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrReadyToAll::OnWaitBtnUp },
+
+	// frreadytoall.cpp:19
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// frreadytoall.cpp:22
+FrReadyToAll::FrReadyToAll(void) {
+}
+
+// frreadytoall.cpp:26
+FrReadyToAll::~FrReadyToAll(void) {
+}
+
+// frreadytoall.cpp:30
+void FrReadyToAll::OnReadyBtnUp(void) {
+	if (WSingleton<CSharedDoc>::Instance()->IsControlServerService(2)) {
 		return;
+	}
 
-	WSendPacket send((enumClientPacket)13);
-	send.Encode1(0);
-	send.Send(TO_GAME);
+	WSendPacket packet((enumClientPacket)0x0D);
+	packet.Encode1(0);
+	packet.Send(SEND_TO_DEFAULT);
 
 	Close(true);
 }
 
-void FrReadyToAll::OnWaitBtnUp()
-{
+// frreadytoall.cpp:44
+void FrReadyToAll::OnWaitBtnUp(void) {
 	Close(true);
 }
 
-IMPLEMENT_OBJECT(FrReadyToMaster, FrForm)
+// frreadytoall.cpp:53 (run-time type and factory registration of FrReadyToMaster)
+const WRTTI FrReadyToMaster::m_RTTI("FrReadyToMaster", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrReadyToMaster, FrForm)
-
-ON_FRESH_VV("ReadyStart", FRCMD_LBUTTONUP, FrReadyToMaster::OnStartBtnUp)
-ON_FRESH_VV("WaitCancel", FRCMD_LBUTTONUP, FrReadyToMaster::OnExitBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrReadyToMaster::FrReadyToMaster()
-{
+IObject* FrReadyToMasterMakeInstance(void) {
+	return new FrReadyToMaster;
 }
 
-FrReadyToMaster::~FrReadyToMaster()
-{
+struct __sFrReadyToMaster {
+	__sFrReadyToMaster(void) {
+		ObjectFactory().AddObjectFunctor(FrReadyToMasterMakeInstance, "FrReadyToMaster");
+	}
+};
+static __sFrReadyToMaster s_registerFrReadyToMaster;
+
+// frreadytoall.cpp:55
+const sFRESH_MSGMAP* FrReadyToMaster::GetMessageMap(void) const {
+	return &FrReadyToMaster::_MsgMap;
 }
 
-void FrReadyToMaster::OnStartBtnUp()
-{
-	if (Doc()->IsControlServerService(2))
+sFRESH_MSGMAP FrReadyToMaster::_MsgMap = { &FrForm::_MsgMap, &FrReadyToMaster::_MsgEntries[0] };
+
+sFRESH_ENTRY FrReadyToMaster::_MsgEntries[] = {
+	// frreadytoall.cpp:57
+	{ "ReadyStart", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrReadyToMaster::OnStartBtnUp },
+	// frreadytoall.cpp:58
+	{ "WaitCancel", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrReadyToMaster::OnExitBtnUp },
+
+	// frreadytoall.cpp:60
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// frreadytoall.cpp:63
+FrReadyToMaster::FrReadyToMaster(void) {
+}
+
+// frreadytoall.cpp:67
+FrReadyToMaster::~FrReadyToMaster(void) {
+}
+
+// frreadytoall.cpp:71
+void FrReadyToMaster::OnStartBtnUp(void) {
+	if (WSingleton<CSharedDoc>::Instance()->IsControlServerService(2)) {
 		return;
+	}
 
-	WSendPacket send((enumClientPacket)14);
-	send.Encode4(MyGuid(false));
-	send.Send(TO_GAME);
+	WSendPacket packet((enumClientPacket)0x0E);
+	packet.Encode4(WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().guid);
+	packet.Send(SEND_TO_DEFAULT);
 
 	Close(true);
 }
 
-void FrReadyToMaster::OnExitBtnUp()
-{
+// frreadytoall.cpp:85
+void FrReadyToMaster::OnExitBtnUp(void) {
 	Close(true);
 }
 
-void FrReadyToMaster::OnProc(const float dt)
-{
+// frreadytoall.cpp:96
+void FrReadyToMaster::OnProc(const float dt) {
 }

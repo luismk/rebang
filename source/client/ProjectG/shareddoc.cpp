@@ -1,112 +1,268 @@
-#include "minatl.h"
-#include "exhibition.h"
+// Original: d:\build\custom\temp\code\client\projectg\shareddoc.cpp
+// The precompiled header already supplies ShareDoc's inline definitions.
+#include "stdafx.h"	// use the project's precompiled header so header changes are visible
+#include "SharedDoc.h"
+#include "globalgamedefine.h"
+#include "GolfDoc.h"
+#include "icontentsdoc.h"
 #include "contentsdoc.h"
 #include "cardsystem.h"
-#include "partsinfo.h"
+#include "Packet.h"
+#include "RealMyRoomData.h"
+#include "MascotInfoDlg.h"
+#include "../shared/s5/SharedUtilities.h"
+#include "buddymanager.h"
+#include "DetailedRoomInfoDlg.h"
+#include "CardDlg.h"
+#include "PangGiftDlg.h"
+#include "messengerdlg.h"
+#include "UccManager.h"
+#include "commonutil.h"
 #include "golfball.h"
-#include "../../shared/sharedtables.h"
-#include "lobbytask.h"
-#include "shoptask.h"
+#include "NetworkSystem.h"
+#include "TaskManager.h"
+#include "LobbyTask.h"
+#include "GolfTask.h"
+#include "Exhibition.h"
+#include "ShopTask.h"
+#include "frwnd.h"
 #include "frcombobox.h"
-#include "../../shared/token.h"
-#include "club.h"
-#include "../../shared/s5/sharedutilities.h"
-static float BAR_LENGTH = BAR_END - BAR_START;
-#include "standinginline.h"
-#include "mathconsts.h"
 
-extern "C" __declspec(dllimport) int __cdecl mkdir(const char*);
-char* GetStr(char* str, char* out);
-void LineParse(const char* line, std::vector<std::string>& tokens);
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-const char* defaultTitles_vs[] = {
-	(0, "\xc6\xce\xbe\xdf~ \xc6\xce\xbe\xdf!"),
-	(0, "\xb3\xca\xb6\xfb \xb3\xaa\xb6\xfb \xc6\xce\xbe\xdf~"),
-	(0, "\xb9\xd9\xb6\xf7 \xc1\xc1\xc0\xba \xb9\xe6~"),
-	(0, "\xc6\xce\xbe\xdf\xbf\xcd \xc7\xd4\xb2\xb2\xb6\xf3\xb8\xe9~!"),
-	(0, "\xbf\xb9\xbb\xdb \xbd\xba\xc0\xae, \xb8\xda\xc1\xf8 \xbc\xa6!"),
-	(0, "\xb3\xaf\xbe\xc6\xb6\xf3 \xbe\xc6\xc1\xee\xc5\xd8~"),
-	(0, "\xc0\xfa \xc7\xcf\xb4\xc3\xc0\xc7 \xc6\xce\xc0\xcc \xb5\xc7\xbe\xee~"),
-	(0, "\xc6\xce\xbe\xdf\xb0\xa1 \xc3\xd6\xb0\xed!"),
-	(0, "\xb4\xd9\xc7\xd4\xb2\xb2 \xc6\xae\xb7\xb9\xc0\xfa \xc7\xe5\xc6\xae!"),
+#include "SharedDoc.inl"
+#if !defined(PG_CLIENT_PROJECTG_GOLFDOC_H)
+// Ensure GolfDoc.h's inlines (GOLFDOC helper) are available for the
+// inline functions emitted from shareddoc.inl. GolfDoc.h includes
+// shareddoc.h at its end, so include it here if not already present.
+#include "GolfDoc.h"
+#endif
+#include "../client/Wangreal/include/westpak.h"
+#include "../client/Wangreal/include/wresrcmng.h"
+
+void __fastcall LineParse(const char *line, std::vector<std::string> &tokens);
+
+// The player level table of the exe, 71 records of 5 dwords (the first is the level's exp).
+extern "C" const unsigned long data_9e6468[71][5];
+
+// Progressive stubs for unnamed data and small helpers referenced by many
+// units. These are minimal placeholders to satisfy the linker during the
+// iterative porting process and should be replaced with accurate data.
+
+// A small float used by login/dialog animations.
+extern "C" float data_b7c970 = 0.0f;
+
+// Wangreal math unnamed .rdata table used by several modules. Provide a
+// small placeholder array with reasonable defaults.
+extern "C" const float data_9eb420[5] = { 3.14159265f, 1.57079633f, 0.0174532925f, 0.0f, 0.0f };
+
+/* FirstMap/PrevMap/NextMap and CSharedDoc::Log30sScore are provided
+   out-of-line by other translation units or as inline in headers; do not
+   redefine them here to avoid duplicate definitions. Only unnamed data
+   placeholders remain in this file. */
+
+// Minimal stub for CSharedDoc::Log30sScore declared in shareddoc.h. The
+// original function likely logged or updated score data every 30 seconds;
+// for now implement a no-op to satisfy the linker. Replace with correct
+// behavior when available.
+void CSharedDoc::Log30sScore(void) {
+	// no-op placeholder
+}
+
+
+// Some unnamed string literals referenced by many units are provided in the
+// original exe's .rdata. Provide minimal placeholders for those string
+// symbols expected by the linker (empty const char arrays). These should be
+// replaced with the original values when available.
+extern "C" const char _C_data_placeholder_1[] = "";
+extern "C" const char _C_data_placeholder_2[] = "";
+extern "C" const char _C_data_placeholder_3[] = "";
+
+
+// The room titles GetDefaultTitle picks from at random, by game kind. The
+// original initializes them dynamically (sub_00989900 to sub_009899f0, one
+// per array): each array's first title is a constant, which makes the
+// initializer non-constant (docs/tough_problems/010). Battle and approach
+// share their first title.
+static const char *const s_titleVs = "\xc6\xce\xbe\xdf~ \xc6\xce\xbe\xdf!"; // 팡야~ 팡야!
+static const char *const s_titleMass = "\xc8\xa6\xc0\xce\xbf\xf8\xc0\xbb \xb3\xbb \xc7\xb0\xbe\xc8\xbf\xa1"; // 홀인원을 내 품안에
+static const char *const s_titleOneRound = "\xbd\xac\xbe\xee\xb0\xa1\xb4\xc2 \xc7\xd1 \xc6\xc7!"; // 쉬어가는 한 판!
+static const char *const s_titleChat = "\xbc\xd2\xb3\xe2, \xbc\xd2\xb3\xe0\xb8\xa6 \xb8\xb8\xb3\xaa\xb4\xd9"; // 소년, 소녀를 만나다
+
+// shareddoc.cpp:52
+const char *defaultTitles_vs[] = {
+	s_titleVs,
+	"\xb3\xca\xb6\xfb \xb3\xaa\xb6\xfb \xc6\xce\xbe\xdf~", // 너랑 나랑 팡야~
+	"\xb9\xd9\xb6\xf7 \xc1\xc1\xc0\xba \xb9\xe6~", // 바람 좋은 방~
+	"\xc6\xce\xbe\xdf\xbf\xcd \xc7\xd4\xb2\xb2\xb6\xf3\xb8\xe9~!", // 팡야와 함께라면~!
+	"\xbf\xb9\xbb\xdb \xbd\xba\xc0\xae, \xb8\xda\xc1\xf8 \xbc\xa6!", // 예쁜 스윙, 멋진 샷!
+	"\xb3\xaf\xbe\xc6\xb6\xf3 \xbe\xc6\xc1\xee\xc5\xd8~", // 날아라 아즈텍~
+	"\xc0\xfa \xc7\xcf\xb4\xc3\xc0\xc7 \xc6\xce\xc0\xcc \xb5\xc7\xbe\xee~", // 저 하늘의 팡이 되어~
+	"\xc6\xce\xbe\xdf\xb0\xa1 \xc3\xd6\xb0\xed!", // 팡야가 최고!
+	"\xb4\xd9\xc7\xd4\xb2\xb2 \xc6\xae\xb7\xb9\xc0\xfa \xc7\xe5\xc6\xae!", // 다함께 트레저 헌트!
 };
 
-const char* defaultTitles_mass[] = {
-	(0, "\xc8\xa6\xc0\xce\xbf\xf8\xc0\xbb \xb3\xbb \xc7\xb0\xbe\xc8\xbf\xa1"),
-	(0, "\xc6\xce\xbe\xdf\xb4\xeb\xc8\xb8\xb7\xce \xb8\xf0\xc0\xcc\xbc\xbc\xbf\xe4~"),
-	(0, "\xb8\xf0\xb5\xce\xb8\xf0\xb5\xce \xc6\xce\xbe\xdf!"),
-	(0, "\xb1\xe2\xb7\xcf \xb0\xbb\xbd\xc5\xc0\xc7 \xb1\xd7\xb3\xaf\xb1\xee\xc1\xf6!"),
-	(0, "1\xb5\xee \xb1\xe2\xb4\xd9\xb7\xc1~"),
-	(0, "\xc6\xae\xb7\xce\xc7\xc7\xb4\xc2 \xb3\xbb\xb2\xa8~"),
+// shareddoc.cpp:70
+const char *defaultTitles_mass[] = {
+	s_titleMass,
+	"\xc6\xce\xbe\xdf\xb4\xeb\xc8\xb8\xb7\xce \xb8\xf0\xc0\xcc\xbc\xbc\xbf\xe4~", // 팡야대회로 모이세요~
+	"\xb8\xf0\xb5\xce\xb8\xf0\xb5\xce \xc6\xce\xbe\xdf!", // 모두모두 팡야!
+	"\xb1\xe2\xb7\xcf \xb0\xbb\xbd\xc5\xc0\xc7 \xb1\xd7\xb3\xaf\xb1\xee\xc1\xf6!", // 기록 갱신의 그날까지!
+	"1\xb5\xee \xb1\xe2\xb4\xd9\xb7\xc1~", // 1등 기다려~
+	"\xc6\xae\xb7\xce\xc7\xc7\xb4\xc2 \xb3\xbb\xb2\xa8~", // 트로피는 내꺼~
 };
 
-const char* defaultTitles_battle[] = {
-	(0, "\xbd\xac\xbe\xee\xb0\xa1\xb4\xc2 \xc7\xd1 \xc6\xc7!"),
-	(0, "\xc7\xd1\xb9\xe6\xbd\xc2\xba\xce! \xc6\xce\xb9\xe8\xc6\xb2~"),
-	(0, "\xb4\xeb\xb9\xda \xb2\xde, \xbd\xf1\xbe\xc6\xc1\xf6\xb4\xc2 \xc6\xce"),
-	(0, "\xbb\xf5\xb7\xce\xbf\xee \xbd\xc3\xc1\xf0 \xc6\xce\xb9\xe8\xc6\xb2 \xc7\xd1 \xc6\xc7!"),
+// shareddoc.cpp:82
+const char *defaultTitles_battle[] = {
+	s_titleOneRound,
+	"\xc7\xd1\xb9\xe6\xbd\xc2\xba\xce! \xc6\xce\xb9\xe8\xc6\xb2~", // 한방승부! 팡배틀~
+	"\xb4\xeb\xb9\xda \xb2\xde, \xbd\xf1\xbe\xc6\xc1\xf6\xb4\xc2 \xc6\xce", // 대박 꿈, 쏟아지는 팡
+	"\xbb\xf5\xb7\xce\xbf\xee \xbd\xc3\xc1\xf0 \xc6\xce\xb9\xe8\xc6\xb2 \xc7\xd1 \xc6\xc7!", // 새로운 시즌 팡배틀 한 판!
 };
 
-const char* defaultTitles_approach[] = {
-	(0, "\xbd\xac\xbe\xee\xb0\xa1\xb4\xc2 \xc7\xd1 \xc6\xc7!"),
-	(0, "\xc7\xd1\xb9\xe6\xbd\xc2\xba\xce! \xbe\xee\xc7\xc1\xb7\xce\xc4\xa1~"),
-	(0, "\xbd\xc3\xc1\xf0 NEW \xbe\xee\xc7\xc1\xb7\xce\xc4\xa1"),
+// shareddoc.cpp:91
+const char *defaultTitles_approach[] = {
+	s_titleOneRound,
+	"\xc7\xd1\xb9\xe6\xbd\xc2\xba\xce! \xbe\xee\xc7\xc1\xb7\xce\xc4\xa1~", // 한방승부! 어프로치~
+	"\xbd\xc3\xc1\xf0 NEW \xbe\xee\xc7\xc1\xb7\xce\xc4\xa1", // 시즌 NEW 어프로치
 };
 
-const char* defaultTitles_chat[] = {
-	(0, "\xbc\xd2\xb3\xe2, \xbc\xd2\xb3\xe0\xb8\xa6 \xb8\xb8\xb3\xaa\xb4\xd9"),
-	(0, "\xbc\xf6\xb4\xd9\xc0\xef\xc0\xcc, \xbb\xf5\xc4\xa7\xb6\xbc\xb1\xe2"),
-	(0, "\xc0\xce\xbf\xac\xc0\xcc \xb8\xf0\xc0\xcc\xb4\xc2 \xb0\xf7"),
-	(0, "\xc6\xce\xbe\xdf! \xc1\xf1\xb0\xc5\xbf\xee \xb8\xb8\xb3\xb2~"),
-	(0, "\xc6\xce\xbe\xdf\xbf\xf9\xb5\xe5\xbf\xcd \xc7\xd4\xb2\xb2!"),
-	(0, "\xc6\xce\xbe\xdf\xc0\xce\xb5\xe9 \xb4\xd9 \xb8\xf0\xbf\xa9\xb6\xf3~!"),
-	(0, "\xc4\xf0 \xb0\xa1\xc0\xcc! \xb3\xaa\xc0\xcc\xbd\xba \xb0\xc9!"),
+// shareddoc.cpp:100
+const char *defaultTitles_chat[] = {
+	s_titleChat,
+	"\xbc\xf6\xb4\xd9\xc0\xef\xc0\xcc, \xbb\xf5\xc4\xa7\xb6\xbc\xb1\xe2", // 수다쟁이, 새침떼기
+	"\xc0\xce\xbf\xac\xc0\xcc \xb8\xf0\xc0\xcc\xb4\xc2 \xb0\xf7", // 인연이 모이는 곳
+	"\xc6\xce\xbe\xdf! \xc1\xf1\xb0\xc5\xbf\xee \xb8\xb8\xb3\xb2~", // 팡야! 즐거운 만남~
+	"\xc6\xce\xbe\xdf\xbf\xf9\xb5\xe5\xbf\xcd \xc7\xd4\xb2\xb2!", // 팡야월드와 함께!
+	"\xc6\xce\xbe\xdf\xc0\xce\xb5\xe9 \xb4\xd9 \xb8\xf0\xbf\xa9\xb6\xf3~!", // 팡야인들 다 모여라~!
+	"\xc4\xf0 \xb0\xa1\xc0\xcc! \xb3\xaa\xc0\xcc\xbd\xba \xb0\xc9!", // 쿨 가이! 나이스 걸!
 };
 
-CSharedDoc::CSharedDoc()
-	: m_maxWhisperPartner(8), m_nicknameSuffix(""), m_serverProperty(0)
-{
-	m_bNeedFirstLoginAlarm = true;
-	m_pGolfDoc = NULL;
+// shareddoc.h:534
+void CSharedDoc::HaveAngelWing(bool have) {
+	m_haveAngelWing = have;
+}
+
+// shareddoc.h:608
+void CSharedDoc::SetTradeMode(unsigned char mode) {
+	m_tradeMode = mode;
+}
+
+// shareddoc.h:1009
+void CSharedDoc::SetHaveHalloweenItem(bool have) {
+	m_haveHalloweenItem = have;
+}
+
+// shareddoc.h:1010
+void CSharedDoc::SetWearHalloweenItem(bool wear) {
+	m_wearHalloweenItem = wear;
+}
+
+// globalgamedefine.h:3549
+void sFriend::Clear(void) {
+	memset(nick, 0, sizeof(nick));
+	memset(group, 0, sizeof(group));
+	uid = 0xFFFFFFFF;
+
+	value25 = 0xFFFFFFFF;
+	value29 = 0;
+	value2D = 0xFFFFFFFF;
+
+	memset(data31, 0, sizeof(data31));
+
+	memset(extra.data, 0, sizeof(extra.data));
+	extra.index = 0xFF;
+	extra.code = 0xFFFF;
+	extra.id1 = 0xFFFFFFFF;
+	extra.id2 = 0xFFFFFFFF;
+
+	status = 5;
+	channel = 0xFF;
+	value8A = 0;
+	flags = 0;
+	listFlags = 0;
+}
+
+// globalnetworkdefine.h:2481
+sTradeItem::sTradeItem(void) {
+	index = 0;
+	typeId = 0;
+	guid = 0;
+	count = 0;
+	kind = 0;
+	flag = 0;
+	price = 0;
+	period = 0;
+	memset(stats, 0, sizeof(stats));
+	statFlag = 0;
+
+	memset(uccIdx, 0, sizeof(uccIdx));
+	uccSeq = 0;
+	uccStatus = 0;
+
+	memset(uccData, 0, sizeof(uccData));
+	memset(uccName, 0, sizeof(uccName));
+	memset(uccCopierNick, 0, sizeof(uccCopierNick));
+}
+
+// globalnetworkdefine.h:2837
+sStall::sStall(void) {
+	AllClear();
+}
+
+// shareddoc.cpp:123
+CSharedDoc::CSharedDoc(void)
+	: m_curMap(0), m_pCurCourse(NULL), m_roomType(0), m_roomName(), m_holes(18), m_weather(0),
+	  m_shotTimeLimit(0), m_gameTimeLimit(0), m_value4CE4(8), m_string4D4C(""), m_serverProperty(0),
+	  m_pGolfDoc(NULL), m_loginDlgCreated(true) {
+	// The original also clears 0x4B39 (inside m_serverChannel as transcribed).
+	m_serverName[0] = 0;
+
 	ClearAll();
 
-	m_unused47cc = 0;
-	m_unused47d0 = 0;
+	m_value47CC = 0;
+	m_flag47D0 = false;
 
 	memset(m_fileName, 0, sizeof(m_fileName));
 
 	m_replayState = 0;
-	m_replayPosition = 0;
-	m_replayDuration = 0;
-	m_replayTick = 0;
+	m_replayValue5BC0 = 0;
+	m_replayStartA = 0;
+	m_replayChannelFlags = 0;
 	m_replayPlayType = -1;
 	m_playingMode = (eReplayModeType)1;
-	m_replayShotIndex = 0;
-	m_replayHoleStroke = 0;
+	m_replayStartB = 0;
+	m_flag5BD0 = false;
 
-	m_replayVersion = 0x18f1;
+	m_value5BD4 = 6385;
 	m_rmrMode = 0;
 
 	m_serverTimeTick = GetTickCount();
-	m_cookie = 0;
-	m_unused5d0c = 0;
+
+	m_directMoveUID = 0xFFFFFFFF;
+	m_myCash = 0;
+	m_flag5D0C = false;
 	m_goStopMode = false;
-	m_cash = 0;
-	m_bonusCash = 0;
-	m_directMoveType = 0xff;
-	m_directMoveRoom = 0xffff;
-	m_directMoveUID = 0xffffffff;
+	m_outsideCash = 0;
+	m_myBonusCash = 0;
+	m_directMoveServer = 0xFF;
+	m_directMoveRoom = 0xFFFF;
 }
 
-CSharedDoc::~CSharedDoc()
-{
-	std::map<unsigned long, sRoomSlot>::iterator it;
-	for (it = Doc()->m_roomSlotMap.begin(); it != m_roomSlotMap.end(); ++it)
-	{
-		if ((*it).second.pExhibition)
-		{
-			delete (*it).second.pExhibition;
-			(*it).second.pExhibition = NULL;
+// shareddoc.cpp (no line marks in the original); defined after the
+// CSharedDoc constructor, which calls it rather than inlining it.
+sUserInfo::sUserInfo(void)
+	: m_characterInfo() {
+}
+
+// shareddoc.cpp:271
+CSharedDoc::~CSharedDoc(void) {
+	for (std::map<unsigned long, sRoomSlot>::iterator it = WSingleton<CSharedDoc>::Instance()->m_roomSlotMap.begin(); it != m_roomSlotMap.end(); ++it) {
+		if (it->second.m_pPet != 0) {
+			delete it->second.m_pPet;
+			it->second.m_pPet = 0;
 		}
 	}
 	m_roomSlotMap.clear();
@@ -114,8 +270,9 @@ CSharedDoc::~CSharedDoc()
 	ClearRivalVars(false);
 	UccManager()->Clear();
 }
-void CSharedDoc::ClearAll()
-{
+
+// shareddoc.cpp:289
+void CSharedDoc::ClearAll(void) {
 	ClearCommonVars();
 	ClearInventory();
 	ClearGameVars();
@@ -127,123 +284,118 @@ void CSharedDoc::ClearAll()
 	ClearOldSeasonStat();
 	ClearServerVars();
 	ClearJapanVars();
-	ClearRealEquip();
+	memset(m_realEquip, 0, sizeof(m_realEquip));
 
-	if (IsLocalContent(S4_UCC))
-	{
+	if (IsLocalContent((localContentType_t)0x57)) {
 		ClearUcc();
 	}
 
-	if (IsLocalContent(S3_MAP_EVENT))
+	if (IsLocalContent((localContentType_t)0x39)) {
 		m_mapEventList.clear();
+	}
+	// shareddoc.cpp:313-314: m_shotDataList.clear() where local content 0x4F
+	// is on; the std::list<CGolfRule::sShotData> member needs CGolfRule's
+	// definition in this header (not transcribed yet).
 
-	if (IsLocalContent(S4_REPLAY_SYSTEM))
-		m_shotDataList.clear();
-
-	SetUserInfoMod(0);
+	m_userInfoMod = 0;
 }
 
-void CSharedDoc::ClearUcc()
-{
-	m_uccItemList.clear();
-	m_uccAztecList.clear();
+// shareddoc.cpp:321
+void CSharedDoc::ClearUcc(void) {
+	m_myItemList.clear();
+	m_myAuxItemList.clear();
 	UccManager()->Clear();
 }
 
-void CSharedDoc::ClearJapanVars()
-{
-	m_unused184 = 0;
-	m_provType = -1;
+// shareddoc.cpp:329
+void CSharedDoc::ClearJapanVars(void) {
+	m_japanState = 0;
+	m_billingType = 0xFFFFFFFF;
 
-	m_unused1c4 = 0;
-	m_gachaTicket[0] = 0;
-	m_gachaTicket[1] = 0;
+	m_japanFlag = 0;
+	m_japanParam1 = 0;
+	m_japanParam2 = 0;
 
-	char cmdLine[260] = { 0 };
-	char args[3][260];
-	char temp[260];
-	char* p;
-	int len;
+	char commandLine[MAX_PATH] = { 0 };
 
-	strcpy(cmdLine, GetCommandLineA());
+	// The command line: the exe path, the account, the login server address.
+	strcpy(commandLine, GetCommandLineA());
 
-	for (int i = 0; i < 3; i++)
+	char args[3][MAX_PATH];
+	for (int i = 0; i < 3; i++) {
 		args[i][0] = 0;
-
-	if (cmdLine[0] == '"')
-		p = GetStr(cmdLine, args[0]);
-	else
-	{
-		sscanf(cmdLine, "%s", args[0]);
-		p = cmdLine + strlen(args[0]);
 	}
 
-	sscanf(p, "%s %s", args[1], args[2]);
+	char *rest;
+	if (commandLine[0] == '"') {
+		rest = GetStr(commandLine, args[0]);
+	} else {
+		sscanf(commandLine, "%s", args[0]);
+		rest = commandLine + strlen(args[0]);
+	}
 
-	if (args[1][0] != 0)
-	{
-		len = strlen(args[1]);
+	sscanf(rest, "%s %s", args[1], args[2]);
 
-		if (args[1][0] == '"' && args[1][len - 1] == '"')
-		{
-			strncpy(temp, &args[1][1], len - 2);
-			temp[len - 2] = 0;
-			strcpy(args[1], temp);
-			Doc()->m_commandLineID = temp;
+	char unquoted[MAX_PATH];
+	if (args[1][0] != 0) {
+		int len = strlen(args[1]);
+		if (args[1][0] == '"' && args[1][len - 1] == '"') {
+			strncpy(unquoted, args[1] + 1, len - 2);
+			unquoted[len - 2] = 0;
+			strcpy(args[1], unquoted);
+			WSingleton<CSharedDoc>::Instance()->m_commandLineAccount = unquoted;
+		} else {
+			WSingleton<CSharedDoc>::Instance()->m_commandLineAccount = args[1];
 		}
-		else
-			Doc()->m_commandLineID = args[1];
 	}
 
-	len = strlen(args[2]);
-
-	if (args[2][0] == '"' && args[2][len - 1] == '"')
-	{
-		strncpy(temp, &args[2][1], len - 2);
-		temp[len - 2] = 0;
-		strcpy(args[2], temp);
-		Doc()->m_password = temp;
+	int len = strlen(args[2]);
+	if (args[2][0] == '"' && args[2][len - 1] == '"') {
+		strncpy(unquoted, args[2] + 1, len - 2);
+		unquoted[len - 2] = 0;
+		strcpy(args[2], unquoted);
+		WSingleton<CSharedDoc>::Instance()->m_loginServerAddress = unquoted;
+	} else {
+		WSingleton<CSharedDoc>::Instance()->m_loginServerAddress = args[2];
 	}
-	else
-		Doc()->m_password = args[2];
 }
 
-void CSharedDoc::ClearCommonVars()
-{
-	m_loginServerUID = 0;
-	m_bGameOver = false;
-	m_holeType = 0;
-	ClearGameMode();
-	m_roomType = 0;
-	m_eventType = 0;
-	m_eventFlag = 2;
+// shareddoc.cpp:418
+void CSharedDoc::ClearCommonVars(void) {
+	m_loginConnectValue = 0;
+	m_gameOver = false;
+	m_gameKind = 0;
+	m_gameMode = 0;
+	m_matchTypeId = 0;
+	m_value456C = 0;
+	m_winningTeam = 2;
 	m_pangRate = 1.0f;
-	m_expRate = 100;
+	m_pangPercent = 100;
 	m_offlinePlay = 0;
-	m_teamPang[0] = 0;
-	m_teamPang[1] = 0;
-	m_newRecordState = 0xff;
-	m_pcBang = 0;
-	m_roomSetupStage = 0;
+	m_quitGamePang = 0;
+	m_value4D7E = 0xFF;
+	m_value4D70 = 0;
+	m_value4D74 = 0;
 
-	m_bNewMapEvent = false;
-	m_newMapEventMask = 0;
-	m_bBingoEvent = false;
-	m_newRecordCourse = 0xffffffff;
+	m_newMapEvent = false;
+	m_newMapEventFlags = 0;
+	m_flag4D84 = false;
+	m_value4D88 = -1;
 
-	memset(m_tutorialComplete, 0, sizeof(m_tutorialComplete));
-	m_tutorialStartMode = 15;
+	memset(m_tutorialData, 0, sizeof(m_tutorialData));
+	m_value4D98 = 15;
 	m_gameServerPort = 0;
-	m_gameServerUID = 0;
-	m_unused80 = 0;
-	m_unused88 = 0;
+	m_value84 = 0;
+	m_value80 = 0;
+	m_value88 = 0;
 
 	LoadLevelTable();
 
-	for (unsigned char i = 0; i < 18; i++)
-	{
+	// The hole order runs 1 to 18 and ends with 19 in the byte after the array.
+	unsigned char i;
+	for (i = 0; i < 18; i++) {
 		m_holeRandom[i] = rand();
-		m_courseMap[i] = m_holeRandom[i] % 3;
+		m_holePin[i] = (unsigned char)(m_holeRandom[i] % 3);
 		m_holeOrder[i] = i + 1;
 	}
 	m_holeOrder[i] = 19;
@@ -252,563 +404,484 @@ void CSharedDoc::ClearCommonVars()
 
 	memset(&m_serverTime, 0, sizeof(m_serverTime));
 
-	m_chatMode = 0;
+	m_value4D04 = 0;
 
-	m_bTutorialResume = false;
-	memset(m_auxPartTidList, 0, sizeof(m_auxPartTidList));
+	m_logoutPending = false;
+	memset(m_myAuxPartTidList, 0, sizeof(m_myAuxPartTidList));
+	m_value5018 = 0;
+	m_matchGameCount = 0;
+	m_flag5020 = false;
+	m_haveHalloweenItem = false;
+	m_wearHalloweenItem = false;
+	m_string4D9C = "";
 
-	m_guildBonusPang = 0;
-	m_guildPoint = 0;
-	m_guildTeam = 0;
-	m_bHaveHalloweenItem = false;
-	m_bWearHalloweenItem = false;
-	m_giftName = "";
+	m_value4DB8 = -1;
 
-	m_giftIndex = -1;
-
-	m_bRefreshCamera = false;
-	m_bMessengerAlarm = false;
-	m_bMessengerInit = false;
+	m_tutorialFinish = 0;
+	m_value4DBD = 0;
+	m_value4DBE = 0;
 	m_friendMap.clear();
-	memset(&m_selFriend, 0, sizeof(m_selFriend));
-
-	m_needParentAgree = 0;
+	memset(&m_myFriendInfo, 0, sizeof(m_myFriendInfo));
+	m_value94 = 0;
 	m_controlServerService = 0;
 	m_serverProperty = 0;
 	m_flagAbilityItem = 0;
 	m_numBonusPangItem = 0;
-	m_cardPackPageNum = 0;
-	m_cardPackSelPageNum = 0;
-	m_cardPackCurPage = 0;
-	m_cardPackMode = 1;
-	m_cardPackSlot = 0;
-	m_cardPackItem = 0;
-	m_rmrTabValue = 0;
-	m_bCardPackRebuild = false;
-	m_bRmrTabPending = false;
-	m_specialShotMark = 0;
-	m_pendingMenu = 0;
-	m_bToppageAd = false;
-	m_toppageFeature = 0;
-
-	if (IsLocalContent(S3_MAP_EVENT))
-	{
-	}
-
-	m_appGiftDownloadState = (eAppGiftDownloadState)0;
-	m_bItemStoragePin = false;
-	m_bTutorialRedirect = false;
-	m_unused5bdc = 0;
-	m_replayTargetUID = 0xffffffff;
-
-	if (IsLocalContent(S4_NT_NICKNAME_CHANGE))
-	{
+	m_value5044 = 0;
+	m_value5048 = 0;
+	m_value504C = 0;
+	m_value5050 = 1;
+	m_value5055 = 0;
+	m_value5056 = 0;
+	m_value5058 = 0;
+	m_value5054 = 0;
+	m_value505A = 0;
+	m_value5064 = 0;
+	m_pointEventState = 0;
+	m_pointEventFlag = false;
+	m_value506C = 0;
+	IsLocalContent((localContentType_t)0x39);
+	m_value5D08 = 0;
+	m_flag50F4 = false;
+	m_flag50F6 = false;
+	m_flag5BDC = false;
+	m_myRoomOwnerUID = 0xFFFFFFFF;
+	if (IsLocalContent((localContentType_t)0x81)) {
 		m_forceNicknameChange = 0;
 	}
-
 	m_pPeriodDoc = NULL;
 }
 
-void CSharedDoc::ClearInventory()
-{
-	memset(&m_myInfo, 0, sizeof(m_myInfo));
-	m_cookie = 0;
-	m_cash = 0;
-	m_bonusCash = 0;
+// shareddoc.cpp:560
+void CSharedDoc::ClearInventory(void) {
+	// The local player's block from 0x3E0 to 0xD4C (one struct in the original).
+	memset(&m_mySlot, 0, 0xD4C - 0x3E0); m_myCash = 0;
+
+	m_outsideCash = 0;
+	m_myBonusCash = 0;
 
 	m_stringMap.clear();
-	m_charMap.clear();
+	m_characterMap.clear();
 	m_caddieMap.clear();
-	m_mascotMap.clear();
-	m_partsList.clear();
-	m_clubSetMap.clear();
-	m_ballList.clear();
-	m_myItemList.clear();
-	m_recordedItemList.clear();
-	m_cadItemList.clear();
-	m_setItemList.clear();
+	m_myMascotMap.clear();
+	m_myPartsList.clear();
+	m_myItemMap.clear();
+	m_myGearList.clear();
+	m_itemInfoList.clear();
+	m_replayFileList.clear();
+	m_myExtraItemList.clear();
+	m_myExtraItemList2.clear();
 	m_giftList.clear();
-	m_cutinList.clear();
-	m_specialTrophyList.clear();
-	m_guildTrophyList.clear();
-	m_auxPartList.clear();
-	m_questDropList.clear();
+	m_mySkinList.clear();
+	m_mySpecialTrophies.clear();
+	m_myGuildTrophies.clear();
+	m_myExtraItemList3.clear();
+	m_myExtraItemList4.clear();
 	m_questList.clear();
 	m_furnitureList.clear();
-	m_refreshGuidList.clear();
-	m_refreshCountList.clear();
+	m_list1D0.clear();
+	m_list1DC.clear();
 
-	ClearUserInfoTimeMap(0xffffffff);
+	ClearUserInfoTimeMap(0xFFFFFFFF);
 }
 
-void CSharedDoc::ClearGameMode()
-{
+// shareddoc.cpp:595
+void CSharedDoc::ClearGameMode(void) {
 	m_gameMode = 0;
 }
 
-void CSharedDoc::ClearUserInfoTimeMap(unsigned long uid)
-{
-	std::map<unsigned long, sUserInfoTime>::iterator it;
-
-	if (uid == 0xffffffff)
-	{
-		for (it = m_userInfoTimeMap.begin(); it != m_userInfoTimeMap.end();
-			++it)
-		{
-			if (it->second.trophies)
-			{
-				delete[] it->second.trophies;
-				it->second.trophies = NULL;
+// shareddoc.cpp:601
+void CSharedDoc::ClearUserInfoTimeMap(unsigned long uid) {
+	if (uid == 0xFFFFFFFF) {
+		std::map<unsigned long, sUserInfoTime>::iterator it = m_userInfoTimeMap.begin();
+		for (; it != m_userInfoTimeMap.end(); ++it) {
+			sUserInfoTime &info = (*it).second;
+			if (info.m_pArray1 != NULL) {
+				delete[] info.m_pArray1;
+				info.m_pArray1 = NULL;
 			}
-			if (it->second.guildTrophies)
-			{
-				delete[] it->second.guildTrophies;
-				it->second.guildTrophies = NULL;
+			if (info.m_pArray2 != NULL) {
+				delete[] info.m_pArray2;
+				info.m_pArray2 = NULL;
 			}
-
-			if (it->second.oldSeason.trophies)
-			{
-				delete[] it->second.oldSeason.trophies;
-				it->second.oldSeason.trophies = NULL;
+			if (info.m_pArray3 != NULL) {
+				delete[] info.m_pArray3;
+				info.m_pArray3 = NULL;
 			}
-			if (it->second.oldSeason.guildTrophies)
-			{
-				delete[] it->second.oldSeason.guildTrophies;
-				it->second.oldSeason.guildTrophies = NULL;
+			if (info.m_pArray4 != NULL) {
+				delete[] info.m_pArray4;
+				info.m_pArray4 = NULL;
 			}
 		}
 		m_userInfoTimeMap.clear();
-	}
-	else
-	{
-		it = m_userInfoTimeMap.find(uid);
-
-		if (it != m_userInfoTimeMap.end())
-		{
-			if (it->second.trophies)
-			{
-				delete[] it->second.trophies;
-				it->second.trophies = NULL;
+	} else {
+		std::map<unsigned long, sUserInfoTime>::iterator it = m_userInfoTimeMap.find(uid);
+		if (it != m_userInfoTimeMap.end()) {
+			sUserInfoTime &info = (*it).second;
+			if (info.m_pArray1 != NULL) {
+				delete[] info.m_pArray1;
+				info.m_pArray1 = NULL;
 			}
-			if (it->second.guildTrophies)
-			{
-				delete[] it->second.guildTrophies;
-				it->second.guildTrophies = NULL;
+			if (info.m_pArray2 != NULL) {
+				delete[] info.m_pArray2;
+				info.m_pArray2 = NULL;
 			}
-
-			if (it->second.oldSeason.trophies)
-			{
-				delete[] it->second.oldSeason.trophies;
-				it->second.oldSeason.trophies = NULL;
+			if (info.m_pArray3 != NULL) {
+				delete[] info.m_pArray3;
+				info.m_pArray3 = NULL;
 			}
-			if (it->second.oldSeason.guildTrophies)
-			{
-				delete[] it->second.oldSeason.guildTrophies;
-				it->second.oldSeason.guildTrophies = NULL;
+			if (info.m_pArray4 != NULL) {
+				delete[] info.m_pArray4;
+				info.m_pArray4 = NULL;
 			}
 			m_userInfoTimeMap.erase(it);
 		}
 	}
 }
 
-void CSharedDoc::ClearGameVars()
-{
-	m_bSentHoleStat = false;
-	m_bTreasureResult = false;
-	m_bTreasureAward = false;
-	memset(m_holeStatistics, 0, sizeof(m_holeStatistics));
+// shareddoc.cpp:635
+void CSharedDoc::ClearGameVars(void) {
+	m_value90 = 0;
+	m_value4843 = 0;
+	m_value4844 = 0;
+	memset(m_gameStatistics, 0, sizeof(m_gameStatistics));
 	memset(m_teamResult, 0, sizeof(m_teamResult));
-	memset(m_guildScore, 0, sizeof(m_guildScore));
+	memset(m_teamPoint, 0, sizeof(m_teamPoint));
 
-	memset(m_guildRoundScore, 0, sizeof(m_guildRoundScore));
+	memset(m_value47B4, 0, sizeof(m_value47B4));
 
-	m_holeStatistics[3].dwExp = 0xffffffff;
-	m_holeStatistics[2].dwExp = 0xffffffff;
-	m_holeStatistics[1].dwExp = 0xffffffff;
-	m_holeStatistics[0].dwExp = 0xffffffff;
-
-	m_startHole = 0;
-	m_eventType = 0;
-	m_eventFlag = 2;
-
+	for (int i = 3; i >= 0; i--) {
+		m_gameStatistics[i].exp = 0xFFFFFFFF;
+	}
+	m_value4D7C = 0;
+	m_value456C = 0;
+	m_winningTeam = 2;
 	m_indexMap.clear();
 }
 
-void CSharedDoc::ClearRivalVars(bool bAll)
-{
-	if (!bAll)
-		memset(m_userInfo, 0, sizeof(m_userInfo));
+// shareddoc.cpp:657
+void CSharedDoc::ClearRivalVars(bool keepPlayers) {
+	if (!keepPlayers)
+		memset(m_roomPlayers, 0, sizeof(m_roomPlayers));
 
-	memset(m_teamPlayerGuid, 0, sizeof(m_teamPlayerGuid));
+	memset(m_trophyUID, 0, sizeof(m_trophyUID));
 
-	m_rivalList.clear();
-	m_guildMatchupList.clear();
-	m_guildMatchFlagList.clear();
+	m_gameResultList.clear();
+	m_vector4524.clear();
+	m_guildMatchFlags.clear();
 }
 
-int CSharedDoc::GetBuffValue(int type, int index)
-{
-	if (index != 20 && index != 16)
+// shareddoc.cpp:670
+int CSharedDoc::GetBuffValue(int target, int type) {
+	if (type != 0x14 && type != 0x10)
 		return -1;
 
 	return 0;
 }
 
-void CSharedDoc::ClearOldSeasonStat()
-{
+// shareddoc.cpp:692
+void CSharedDoc::ClearOldSeasonStat(void) {
 	memset(&m_oldSeasonStatistics, 0, sizeof(m_oldSeasonStatistics));
 	memset(&m_oldSeasonTrophy, 0, sizeof(m_oldSeasonTrophy));
 
-	m_oldSpecialTrophyList.clear();
-	m_oldGuildTrophyList.clear();
+	m_specialTrophies.clear();
+	m_guildTrophies.clear();
 }
 
-void CSharedDoc::ClearStatistics()
-{
+// shareddoc.cpp:701
+void CSharedDoc::ClearStatistics(void) {
 }
 
-void CSharedDoc::ClearCurrentChannel(bool bAll)
-{
-	memset(&m_curChannel, 0, sizeof(m_curChannel));
-	m_curChannel.Uid = 0xff;
+// shareddoc.cpp:705
+void CSharedDoc::ClearCurrentChannel(bool notify) {
+	memset(&m_currentChannel, 0, sizeof(m_currentChannel));
+	m_currentChannel.id = 0xFF;
 }
 
-void CSharedDoc::ClearServerVars()
-{
-	ClearCurrentChannel(true);
-	memset(&m_curGameServer, 0, sizeof(m_curGameServer));
+// shareddoc.cpp:711
+void CSharedDoc::ClearServerVars(void) {
+	memset(&m_currentChannel, 0, sizeof(m_currentChannel)); m_currentChannel.id = 0xFF;
+	memset(m_serverName, 0, 0x5C); // the server's name and channel, one 0x5C-byte block up to 0x4B61
 	m_gameServerList.clear();
 	m_channelList.clear();
 }
 
-void CSharedDoc::ClearLobbyStateVars()
-{
-	m_shopName = "";
-	m_bAutoRefresh = false;
-	m_bShowNotice = true;
-	m_underBarMask = 0;
-	m_bBackgroundVideo = false;
-	m_bReturnLobbyNotice = false;
-	m_bRebuildUnderBar = false;
+// shareddoc.cpp:719
+void CSharedDoc::ClearLobbyStateVars(void) {
+	m_lobbyMessage = "";
+	m_paranNickChanged = false;
+	m_noticeShown = true;
+	m_lobbyStateValue = 0;
+	m_3DBackgroundOff = false;
+	m_lobbyStateFlag = false;
+	m_lobbyStateFlag2 = false;
 
 	memset(&m_roomInfo, 0, sizeof(m_roomInfo));
 
-	sRoomInfo info;
-	m_roomInfo = info;
+	sRoomInfo roomInfo;
+	m_roomInfo = roomInfo;
 
-	m_briefUserInfoMap.clear();
+	m_userMap.clear();
 	m_roomList.clear();
-	m_slotList.clear();
-	m_slotList2.clear();
+	m_roomPlayerList.clear();
+	m_roomPlayerList2.clear();
 	m_roomUserList.clear();
-	m_guildMemberMap.clear();
+	m_guildMembers.clear();
 }
 
-void CSharedDoc::ClearRealEquip()
-{
-	memset(&m_realEquip, 0, sizeof(m_realEquip));
-}
-void CSharedDoc::InitGameType()
-{
-	m_gameTypeInfo[GAME_TYPE_STROKE].maxPlayer = 4;
-	m_gameTypeInfo[GAME_TYPE_STROKE].minPlayer = 2;
-	m_gameTypeInfo[GAME_TYPE_STROKE].holes = 3;
-	m_gameTypeInfo[GAME_TYPE_STROKE].name =
-		K2L_Compatibility("\xbd\xba\xc6\xae\xb7\xce\xc5\xa9");
-
-	m_gameTypeInfo[GAME_TYPE_TEAM].maxPlayer = 4;
-	m_gameTypeInfo[GAME_TYPE_TEAM].minPlayer = 2;
-	m_gameTypeInfo[GAME_TYPE_TEAM].holes = 6;
-	m_gameTypeInfo[GAME_TYPE_TEAM].name = K2L_Compatibility("\xb8\xc5\xc4\xa1");
-
-	m_gameTypeInfo[GAME_TYPE_MATCH].maxPlayer = 2;
-	m_gameTypeInfo[GAME_TYPE_MATCH].minPlayer = 2;
-	m_gameTypeInfo[GAME_TYPE_MATCH].holes = 9;
-	m_gameTypeInfo[GAME_TYPE_MATCH].name =
-		K2L_Compatibility("\xb0\xb3\xc0\xce \xb7\xa1\xb4\xf5");
-
-	m_gameTypeInfo[GAME_TYPE_30S].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_30S].minPlayer = 10;
-	m_gameTypeInfo[GAME_TYPE_30S].holes = 9;
-	m_gameTypeInfo[GAME_TYPE_30S].name =
-		K2L_Compatibility("30\xc0\xce \xb4\xeb\xc8\xb8");
-
-	m_gameTypeInfo[GAME_TYPE_30S_TEAM].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_30S_TEAM].minPlayer = 10;
-	m_gameTypeInfo[GAME_TYPE_30S_TEAM].holes = 9;
-	m_gameTypeInfo[GAME_TYPE_30S_TEAM].name =
-		K2L_Compatibility("30\xc0\xce \xb4\xeb\xc8\xb8 \xc6\xc0\xc0\xfc");
-
-	m_gameTypeInfo[GAME_TYPE_GUILD_MATCH].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_GUILD_MATCH].minPlayer = 10;
-	m_gameTypeInfo[GAME_TYPE_GUILD_MATCH].holes = 9;
-	m_gameTypeInfo[GAME_TYPE_GUILD_MATCH].name =
-		K2L_Compatibility("\xb1\xe6\xb5\xe5 \xb4\xeb\xc0\xfc");
-
-	m_gameTypeInfo[GAME_TYPE_REALMYROOM].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_REALMYROOM].minPlayer = 1;
-	m_gameTypeInfo[GAME_TYPE_REALMYROOM].holes = 1;
-	m_gameTypeInfo[GAME_TYPE_REALMYROOM].name =
-		K2L_Compatibility("\xb0\xf8\xb0\xb3 \xb8\xb6\xc0\xcc\xb7\xeb");
-
-	m_gameTypeInfo[GAME_TYPE_SKINS].maxPlayer = 4;
-	m_gameTypeInfo[GAME_TYPE_SKINS].minPlayer = 2;
-	m_gameTypeInfo[GAME_TYPE_SKINS].holes = 6;
-	m_gameTypeInfo[GAME_TYPE_SKINS].name =
-		K2L_Compatibility("\xc6\xce\xb9\xe8\xc6\xb2");
-
-	m_gameTypeInfo[GAME_TYPE_APPROACH].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_APPROACH].minPlayer = 10;
-	m_gameTypeInfo[GAME_TYPE_APPROACH].holes = 1;
-	m_gameTypeInfo[GAME_TYPE_APPROACH].name =
-		K2L_Compatibility("\xbe\xee\xc7\xc1\xb7\xce\xc4\xa1");
-
-	m_gameTypeInfo[GAME_TYPE_NEW_APPROACH].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_NEW_APPROACH].minPlayer = 6;
-	m_gameTypeInfo[GAME_TYPE_NEW_APPROACH].holes = 3;
-	m_gameTypeInfo[GAME_TYPE_NEW_APPROACH].name =
-		K2L_Compatibility("\xbe\xee\xc7\xc1\xb7\xce\xc4\xa1");
-
-	m_gameTypeInfo[GAME_TYPE_AVATARCHAT].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_AVATARCHAT].minPlayer = 10;
-	m_gameTypeInfo[GAME_TYPE_AVATARCHAT].holes = 1;
-	m_gameTypeInfo[GAME_TYPE_AVATARCHAT].name =
-		K2L_Compatibility("\xb4\xeb\xc8\xad\xb9\xe6");
-
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_BASIC].maxPlayer = 1;
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_BASIC].minPlayer = 1;
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_BASIC].holes = 1;
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_BASIC].name =
-		K2L_Compatibility("\xc3\xb3\xc0\xbd \xbd\xc3\xc0\xdb\xc7\xcf\xb1\xe2");
-
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_ADV].maxPlayer = 1;
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_ADV].minPlayer = 1;
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_ADV].holes = 1;
-	m_gameTypeInfo[GAME_TYPE_TUTORIAL_ADV].name =
-		K2L_Compatibility("\xc4\xb3\xb5\xf0\xbf\xcd \xb9\xe8\xbf\xec\xb1\xe2");
-
-	m_gameTypeInfo[GAME_TYPE_OFFLINE_GHOST].maxPlayer = 255;
-	m_gameTypeInfo[GAME_TYPE_OFFLINE_GHOST].minPlayer = 1;
-	m_gameTypeInfo[GAME_TYPE_OFFLINE_GHOST].holes = 18;
-	m_gameTypeInfo[GAME_TYPE_OFFLINE_GHOST].name =
-		K2L_Compatibility("\xbd\xba\xc6\xae\xb7\xce\xc5\xa9");
-
-	m_gameTypeInfo[GAME_TYPE_USEMAX].maxPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_USEMAX].minPlayer = 30;
-	m_gameTypeInfo[GAME_TYPE_USEMAX].holes = 18;
-	m_gameTypeInfo[GAME_TYPE_USEMAX].name = K2L_Compatibility(
-		"\xba\xd2\xb0\xa1\xbb\xe7\xc0\xc7\xc7\xd1 \xc8\xa5\xb5\xb7");
+// shareddoc.cpp:742
+void CSharedDoc::ClearRealEquip(void) {
+	memset(m_realEquip, 0, sizeof(m_realEquip));
 }
 
-static const unsigned long s_bonusExp[3] = { 520, 680, 840 };
+// shareddoc.cpp:747
+// The game types' room names (cp949), player limits and hole counts.
+void CSharedDoc::InitGameType(void) {
+	// "스트로크" (stroke)
+	m_gameTypeNames[0].maxPlayers = 4;
+	m_gameTypeNames[0].defaultPlayers = 2;
+	m_gameTypeNames[0].defaultHoles = 3;
+	m_gameTypeNames[0].name = "\xBD\xBA\xC6\xAE\xB7\xCE\xC5\xA9";
 
-void CSharedDoc::LoadLevelTable()
-{
-	for (int i = 0; i < 71; i++)
-	{
-		m_levelTable[i].exp = g_LevelTable[i].exp;
-		m_levelTable[i].totalExp =
-			(i == 0 ? 0 : m_levelTable[i - 1].totalExp) + m_levelTable[i].exp;
+	// "매치" (match)
+	m_gameTypeNames[1].maxPlayers = 4;
+	m_gameTypeNames[1].defaultPlayers = 2;
+	m_gameTypeNames[1].defaultHoles = 6;
+	m_gameTypeNames[1].name = "\xB8\xC5\xC4\xA1";
+
+	// "개인 래더" (ladder)
+	m_gameTypeNames[3].maxPlayers = 2;
+	m_gameTypeNames[3].defaultPlayers = 2;
+	m_gameTypeNames[3].defaultHoles = 9;
+	m_gameTypeNames[3].name = "\xB0\xB3\xC0\xCE \xB7\xA1\xB4\xF5";
+
+	// "30인 대회" (30-player tourney)
+	m_gameTypeNames[4].maxPlayers = 30;
+	m_gameTypeNames[4].defaultPlayers = 10;
+	m_gameTypeNames[4].defaultHoles = 9;
+	m_gameTypeNames[4].name = "30\xC0\xCE \xB4\xEB\xC8\xB8";
+
+	// "30인 대회 팀전" (30-player team tourney)
+	m_gameTypeNames[5].maxPlayers = 30;
+	m_gameTypeNames[5].defaultPlayers = 10;
+	m_gameTypeNames[5].defaultHoles = 9;
+	m_gameTypeNames[5].name = "30\xC0\xCE \xB4\xEB\xC8\xB8 \xC6\xC0\xC0\xFC";
+
+	// "길드 대전" (guild battle)
+	m_gameTypeNames[6].maxPlayers = 30;
+	m_gameTypeNames[6].defaultPlayers = 10;
+	m_gameTypeNames[6].defaultHoles = 9;
+	m_gameTypeNames[6].name = "\xB1\xE6\xB5\xE5 \xB4\xEB\xC0\xFC";
+
+	// "공개 마이룸" (open my room)
+	m_gameTypeNames[8].maxPlayers = 30;
+	m_gameTypeNames[8].defaultPlayers = 1;
+	m_gameTypeNames[8].defaultHoles = 1;
+	m_gameTypeNames[8].name = "\xB0\xF8\xB0\xB3 \xB8\xB6\xC0\xCC\xB7\xEB";
+
+	// "팡배틀" (pang battle)
+	m_gameTypeNames[7].maxPlayers = 4;
+	m_gameTypeNames[7].defaultPlayers = 2;
+	m_gameTypeNames[7].defaultHoles = 6;
+	m_gameTypeNames[7].name = "\xC6\xCE\xB9\xE8\xC6\xB2";
+
+	// "어프로치" (approach)
+	m_gameTypeNames[9].maxPlayers = 30;
+	m_gameTypeNames[9].defaultPlayers = 10;
+	m_gameTypeNames[9].defaultHoles = 1;
+	m_gameTypeNames[9].name = "\xBE\xEE\xC7\xC1\xB7\xCE\xC4\xA1";
+
+	m_gameTypeNames[10].maxPlayers = 30;
+	m_gameTypeNames[10].defaultPlayers = 6;
+	m_gameTypeNames[10].defaultHoles = 3;
+	m_gameTypeNames[10].name = "\xBE\xEE\xC7\xC1\xB7\xCE\xC4\xA1";
+
+	// "대화방" (chat room)
+	m_gameTypeNames[2].maxPlayers = 30;
+	m_gameTypeNames[2].defaultPlayers = 10;
+	m_gameTypeNames[2].defaultHoles = 1;
+	m_gameTypeNames[2].name = "\xB4\xEB\xC8\xAD\xB9\xE6";
+
+	// "처음 시작하기" (first steps)
+	m_gameTypeNames[11].maxPlayers = 1;
+	m_gameTypeNames[11].defaultPlayers = 1;
+	m_gameTypeNames[11].defaultHoles = 1;
+	m_gameTypeNames[11].name = "\xC3\xB3\xC0\xBD \xBD\xC3\xC0\xDB\xC7\xCF\xB1\xE2";
+
+	// "캐디와 배우기" (learn with the caddie)
+	m_gameTypeNames[12].maxPlayers = 1;
+	m_gameTypeNames[12].defaultPlayers = 1;
+	m_gameTypeNames[12].defaultHoles = 1;
+	m_gameTypeNames[12].name = "\xC4\xB3\xB5\xF0\xBF\xCD \xB9\xE8\xBF\xEC\xB1\xE2";
+
+	// "스트로크" (stroke)
+	m_gameTypeNames[13].maxPlayers = 0xFF;
+	m_gameTypeNames[13].defaultPlayers = 1;
+	m_gameTypeNames[13].defaultHoles = 18;
+	m_gameTypeNames[13].name = "\xBD\xBA\xC6\xAE\xB7\xCE\xC5\xA9";
+
+	// "불가사의한 혼돈" (mysterious chaos)
+	m_gameTypeNames[14].maxPlayers = 30;
+	m_gameTypeNames[14].defaultPlayers = 30;
+	m_gameTypeNames[14].defaultHoles = 18;
+	m_gameTypeNames[14].name = "\xBA\xD2\xB0\xA1\xBB\xE7\xC0\xC7\xC7\xD1 \xC8\xA5\xB5\xB7";
+}
+
+// shareddoc.cpp:827
+void CSharedDoc::LoadLevelTable(void) {
+	for (int i = 0; i < 71; i++) {
+		m_levelExp[i].m_exp = data_9e6468[i][0];
+		m_levelExp[i].m_totalExp = m_levelExp[i].m_exp + (i == 0 ? 0 : m_levelExp[i - 1].m_totalExp);
 	}
 
-	m_bonusPangTable[0].exp = s_bonusExp[0];
-	m_bonusPangTable[0].pang = s_bonusExp[0];
-	m_bonusPangTable[1].exp = s_bonusExp[1];
-	m_bonusPangTable[1].pang = s_bonusExp[0] + s_bonusExp[1];
-	m_bonusPangTable[2].exp = s_bonusExp[2];
-	m_bonusPangTable[2].pang = s_bonusExp[0] + s_bonusExp[1] + s_bonusExp[2];
+	m_caddieLevelExp[0].m_exp = 0x208;
+	m_caddieLevelExp[0].m_value4 = 0x208;
+	m_caddieLevelExp[1].m_exp = 0x2A8;
+	m_caddieLevelExp[1].m_value4 = 0x4B0;
+	m_caddieLevelExp[2].m_exp = 0x348;
+	m_caddieLevelExp[2].m_value4 = 0x7F8;
 }
 
-void CSharedDoc::LoadItemDb()
-{
+// shareddoc.cpp:843
+void CSharedDoc::LoadItemDb(void) {
 	m_itemManager.Load();
-
 	CPartTidList::SetItemManager(&m_itemManager);
 }
 
-void CSharedDoc::InitGolfDoc()
-{
-	SetCurMap(0);
-	SetGameType(GAME_TYPE_STROKE);
-	Doc()->m_holeType = 0;
-	SetHoles(18);
-	SetWeather(0);
-	Doc()->m_golfGame.shotTimeLimit = 40000;
-	Doc()->m_golfGame.gameTimeLimit = 0;
+// shareddoc.cpp:850
+void CSharedDoc::InitGolfDoc(void) {
+	IFF_STRUCT::sCourse *course = WSingleton<CSharedDoc>::Instance()->m_itemManager.FindCourse(0x28000000);
+	if (course != 0) {
+		WSingleton<CSharedDoc>::Instance()->m_curMap = 0;
+		WSingleton<CSharedDoc>::Instance()->m_pCurCourse = course;
+	}
+	WSingleton<CSharedDoc>::Instance()->m_roomType = 0;
+	strcpy(WSingleton<CSharedDoc>::Instance()->m_roomName, WSingleton<CSharedDoc>::Instance()->m_gameTypeNames[0].name);
+	WSingleton<CSharedDoc>::Instance()->m_gameKind = 0;
+	WSingleton<CSharedDoc>::Instance()->m_holes = 18;
+	WSingleton<CSharedDoc>::Instance()->m_weather = 0;
+	WSingleton<CSharedDoc>::Instance()->m_shotTimeLimit = 40000;
+	WSingleton<CSharedDoc>::Instance()->m_gameTimeLimit = 0;
 }
 
-void CSharedDoc::LoadChatFilter()
-{
+// shareddoc.cpp:861
+void CSharedDoc::LoadChatFilter(void) {
 	m_chatManager.Load();
 }
 
-bool CSharedDoc::AreWePlayingTogether(unsigned long uid)
-{
-	switch (m_golfGame.gameType)
-	{
-	case GAME_TYPE_STROKE:
-	case GAME_TYPE_TEAM:
-	case GAME_TYPE_MATCH:
-	case GAME_TYPE_SKINS:
-		if (GOLFDOC() == NULL)
+// shareddoc.cpp:866, whether the player with the UID is in the current game
+// (the golf doc's players) or in its results (the result kinds).
+bool CSharedDoc::AreWePlayingTogether(unsigned long uid) {
+	switch (m_roomType) {
+	case 0:
+	case 1:
+	case 3:
+	case 7:
+		if (GOLFDOC() == 0)
 			break;
 
-		for (unsigned char i = 0; i < GetPlayerNum(); i++)
-		{
-			if (PLAYER(i)->state == 3)
+		for (unsigned char i = 0; i < GOLFDOC()->GetPlayerNum(); i++) {
+			if (GOLFDOC()->GetPlayer(i)->m_state == 3)
 				continue;
 
-			if (PLAYER(i)->oid == uid)
+			if (GOLFDOC()->GetPlayer(i)->m_uid == uid)
 				return true;
 		}
 		break;
 
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
-	{
-		std::vector<sRivalData>::iterator it;
-		for (it = m_rivalList.begin(); it != Doc()->m_rivalList.end(); ++it)
-		{
-			if (it->oid == uid)
-				return it->state != 3;
+	case 4:
+	case 5:
+	case 6:
+	case 9:
+	case 10:
+		for (std::vector<sGameResultInfo>::iterator it = m_gameResultList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_gameResultList.end(); ++it) {
+			if (it->m_uid == uid)
+				return it->m_state != 3;
 		}
-	}
-	break;
+		break;
 	}
 
 	return false;
 }
 
-bool CSharedDoc::SetWinningPrize(unsigned long uid, const sWinningPrize& prize)
-{
-	if (GOLFDOC() == NULL)
+// shareddoc.cpp:1021, whether the player holds every material of the compound
+// recipe in the needed count.
+bool CSharedDoc::CanCompound(unsigned long typeId) {
+	IFF_STRUCT::sQuest *pQuest = m_itemManager.FindQuest(typeId);
+	if (pQuest == 0) {
 		return false;
-
-	for (unsigned char i = 0; i < GetPlayerNum(); i++)
-	{
-		if (PLAYER(i)->oid == uid)
-		{
-			PLAYER(i)->prize = prize;
-			return true;
-		}
 	}
 
-	return false;
-}
-
-bool CSharedDoc::SetExtPrize(unsigned long uid, int num, sPrizeInfo* prize)
-{
-	if (GOLFDOC() == NULL)
-		return false;
-
-	for (unsigned char i = 0; i < GetPlayerNum(); i++)
-	{
-		if (PLAYER(i)->oid == uid)
-		{
-			if (num > 0)
-			{
-				int k = 0;
-				for (unsigned int j = 0; j < 128; j++)
-				{
-					if (j >= PLAYER(i)->extPrizeNum && k < num)
-					{
-						PLAYER(i)->extPrize[j] = prize[k];
-						k++;
-					}
-				}
-			}
-			PLAYER(i)->extPrizeNum += num;
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool CSharedDoc::CanCompound(unsigned long uid)
-{
-	IFF_STRUCT::sQuest* pQuest = m_itemManager.FindQuest(uid);
-	if (pQuest == NULL)
-		return false;
-
-	std::list<sItemInfo>::iterator it;
-	for (int i = 0; i < 5; i++)
-	{
-		unsigned long tid = pQuest->DropTid[i];
-		if (tid == 0)
+	for (int i = 0; i < 5; i++) {
+		unsigned long materialId = pQuest->m_materialIds[i];
+		if (materialId == 0) {
 			continue;
+		}
 
-		for (it = m_questDropList.begin(); it != m_questDropList.end(); ++it)
-		{
-			if (tid == (*it).tid)
-			{
-				if ((*it).Common[0] < pQuest->DropNum[i])
+		std::list<sItemInfo>::iterator it;
+		for (it = m_myExtraItemList4.begin(); it != m_myExtraItemList4.end(); ++it) {
+			if (it->m_typeId == materialId) {
+				if (it->m_count < pQuest->m_materialCounts[i]) {
 					return false;
+				}
 				break;
 			}
 		}
 
-		if (it == m_questDropList.end())
+		if (it == m_myExtraItemList4.end()) {
 			return false;
+		}
 	}
 
 	return true;
 }
 
-float CSharedDoc::GetAuxPartProperty(unsigned char player, unsigned char type)
-{
-	if (m_pGolfDoc)
-	{
-		if (GetPlayerNum() <= player)
-		{
-			if (type == 0)
-				return 0.0f;
-			return 1.0f;
+// shareddoc.cpp:1054, the sum (property 0) or product (properties 1-3, in
+// percent) of what the aux parts a player wears add to a property.
+float CSharedDoc::GetAuxPartProperty(unsigned char team, unsigned char property) {
+	if (m_pGolfDoc != 0 && m_pGolfDoc->GetPlayerNum() <= team) {
+		if (property == 0) {
+			return 0.0f;
 		}
+
+		return 1.0f;
 	}
 
-	unsigned long* pAuxParts = Doc()->m_userInfo[player].charInfo.tidAuxParts;
-
-	float value = (type == 0) ? 0.0f : 1.0f;
-
-	for (int i = 0; i < 5; i++)
-	{
-		if (pAuxParts[i] == 0)
+	float value = (property == 0) ? 0.0f : 1.0f;
+	for (int i = 0; i < 5; i++) {
+		unsigned long typeId = m_roomPlayers[team].m_characterInfo.auxParts.tids[i];
+		if (typeId == 0) {
 			continue;
+		}
 
-		IFF_STRUCT::sAuxPart* pAuxPart =
-			ItemManager()->FindAuxPart(pAuxParts[i]);
-		if (pAuxPart == NULL)
+		IFF_STRUCT::sAuxPart *pAuxPart = m_itemManager.FindAuxPart(typeId);
+		if (pAuxPart == 0) {
 			continue;
+		}
 
-		switch (type)
-		{
-		case IFF_STRUCT::sAuxPart::AUX_DRIVEUP:
-			value += pAuxPart->DriveUp;
+		switch (property) {
+		case 0:
+			value += (float)pAuxPart->m_propertyAdd;
 			break;
-		case IFF_STRUCT::sAuxPart::AUX_ITEMDROPUP:
-			if (pAuxPart->ItemDropUp > 0)
-				value = value * pAuxPart->ItemDropUp * 0.01f;
-			break;
-		case IFF_STRUCT::sAuxPart::AUX_COMBOUP:
-			if (pAuxPart->ComboUp > 0)
-				value = value * pAuxPart->ComboUp * 0.01f;
-			break;
-		case IFF_STRUCT::sAuxPart::AUX_PANGUP:
-			if (pAuxPart->PangUp > 0)
-				value = value * pAuxPart->PangUp * 0.01f;
-			break;
-		case IFF_STRUCT::sAuxPart::AUX_COMBO_BONUS:
-			if ((pAuxPart->c.TypeId & 0xffff) == 9)
-			{
-				value = 9.0f;
+		case 1:
+			if (pAuxPart->m_propertyRate[0] > 0) {
+				value = (float)pAuxPart->m_propertyRate[0] * value * 0.01f;
 			}
-			else if (IsLocalContent(S3_MYSTIC_RING) &&
-				(pAuxPart->c.TypeId & 0xffff) == 11)
-			{
+			break;
+		case 2:
+			if (pAuxPart->m_propertyRate[1] > 0) {
+				value = (float)pAuxPart->m_propertyRate[1] * value * 0.01f;
+			}
+			break;
+		case 3:
+			if (pAuxPart->m_propertyRate[2] > 0) {
+				value = (float)pAuxPart->m_propertyRate[2] * value * 0.01f;
+			}
+			break;
+		case 4:
+			if ((pAuxPart->m_typeId & 0xFFFF) == 9) {
+				value = 9.0f;
+			} else if (IsLocalContent((localContentType_t)0x4B) && (pAuxPart->m_typeId & 0xFFFF) == 0x0B) {
 				value = 11.0f;
 			}
 			break;
@@ -818,140 +891,61 @@ float CSharedDoc::GetAuxPartProperty(unsigned char player, unsigned char type)
 	return value;
 }
 
-float CSharedDoc::GetWtPepPangyaComboGauge(unsigned char player)
-{
-	unsigned long tids[] = {
-		0x08022808,
-		0x08022809,
-		0x08062808,
-		0x08062809,
-		0x080a6808,
-		0x080a6809,
-		0x080e2808,
-		0x080e2809,
-		0x08128808,
-		0x08128809,
-		0x0816a808,
-		0x0816a809,
-		0x081a0808,
-		0x081a0809,
-		0x081e6808,
-		0x081e6809,
-		0x08222808,
-		0x08222809,
-		0x08262808,
-		0x08262809,
-	};
-	float gauge = 0.0f;
-
-	for (int i = 0; i < 24; i++)
-	{
-		unsigned long tid = Doc()->m_userInfo[player].charInfo.tidParts[i];
-
-		for (int j = 0; j < sizeof(tids) / sizeof(tids[0]); j++)
-		{
-			if (tids[j] == tid)
-			{
-				gauge = 16.0f;
-				break;
-			}
-		}
-
-		if (gauge > 0.0f)
-			break;
-	}
-
-	return gauge;
-}
-
-bool CSharedDoc::FindEquipPart(unsigned char player, unsigned long typeId)
-{
-	bool bFind = false;
-
-	if (Doc()->m_golfGame.gameType == GAME_TYPE_TEAM)
-	{
-		for (int i = 0; i < GetPlayerNum(); i++)
-		{
-			if (PLAYER(i)->team == player)
-			{
-				for (int j = 0; j < 24; j++)
-				{
-					if (typeId == Doc()->m_userInfo[i].charInfo.tidParts[j])
-					{
-						bFind = true;
-						break;
+// shareddoc.cpp:1167, whether the player of a team (every player of the team
+// in a team room) wears the part.
+bool CSharedDoc::FindEquipPart(unsigned char team, unsigned long typeId) {
+	if (WSingleton<CSharedDoc>::Instance()->m_roomType == 1) {
+		for (unsigned char i = 0; i < m_pGolfDoc->GetPlayerNum(); i++) {
+			if (m_pGolfDoc->GetPlayer(i)->m_attribute == team) {
+				for (int j = 0; j < 24; j++) {
+					if (m_roomPlayers[i].m_characterInfo.partTypeIds[j] == typeId) {
+						return true;
 					}
 				}
-				if (bFind)
-					break;
 			}
 		}
+
+		return false;
 	}
-	else
-	{
-		for (int j = 0; j < 24; j++)
-		{
-			if (typeId == Doc()->m_userInfo[player].charInfo.tidParts[j])
-			{
-				bFind = true;
-				break;
-			}
+
+	for (int j = 0; j < 24; j++) {
+		if (m_roomPlayers[team].m_characterInfo.partTypeIds[j] == typeId) {
+			return true;
 		}
 	}
 
-	return bFind;
+	return false;
 }
 
-float CSharedDoc::GetComboGaugeLimit(unsigned char team)
-{
-	static unsigned long s_tids[] = {
-		0x08008816,
-		0x08008817,
-		0x08046822,
-		0x08046823,
-		0x08088816,
-		0x08088817,
-		0x080c8027,
-		0x080c8028,
-		0x08106019,
-		0x0810601a,
-		0x08148025,
-		0x08148026,
-		0x0818601d,
-		0x0818601e,
-		0x081c801a,
-		0x081c801b,
-		0x08208026,
-		0x08208027,
-		0x08248026,
-		0x08248027,
-		0x08008818,
-		0x08008819,
-		0x08046828,
-		0x08046829,
-		0x0808881b,
-		0x0808881c,
-		0x080c802e,
-		0x080c802f,
-		0x0810601c,
-		0x0810601d,
-		0x0814802d,
-		0x0814802e,
-		0x08186027,
-		0x08186028,
-		0x081c801c,
-		0x081c801d,
-		0x0820802f,
-		0x08208030,
-		0x0824802b,
-		0x0824802c,
+// shareddoc.cpp:1212, the combo gauge's limit for a team: 99, 33 more when one
+// of its players wears one of the parts below.
+float CSharedDoc::GetComboGaugeLimit(unsigned char team) {
+	static unsigned long comboParts[] = {
+		0x08008816, 0x08008817,
+		0x08046822, 0x08046823,
+		0x08088816, 0x08088817,
+		0x080C8027, 0x080C8028,
+		0x08106019, 0x0810601A,
+		0x08148025, 0x08148026,
+		0x0818601D, 0x0818601E,
+		0x081C801A, 0x081C801B,
+		0x08208026, 0x08208027,
+		0x08248026, 0x08248027,
+		0x08008818, 0x08008819,
+		0x08046828, 0x08046829,
+		0x0808881B, 0x0808881C,
+		0x080C802E, 0x080C802F,
+		0x0810601C, 0x0810601D,
+		0x0814802D, 0x0814802E,
+		0x08186027, 0x08186028,
+		0x081C801C, 0x081C801D,
+		0x0820802F, 0x08208030,
+		0x0824802B, 0x0824802C,
 	};
-	float bonus = 0.0f;
 
-	for (int i = 0; i < sizeof(s_tids) / sizeof(s_tids[0]); i++)
-	{
-		if (FindEquipPart(team, s_tids[i]))
-		{
+	float bonus = 0.0f;
+	for (unsigned int i = 0; i < 40; i++) {
+		if (FindEquipPart(team, comboParts[i])) {
 			bonus = 33.0f;
 			break;
 		}
@@ -960,1181 +954,423 @@ float CSharedDoc::GetComboGaugeLimit(unsigned char team)
 	return bonus + 99.0f;
 }
 
-void CSharedDoc::AddChar(sCharacterInfo* pInfo)
-{
+// shareddoc.cpp:1249, adds an owned character; a part combination the
+// character cannot wear is replaced by the default parts.
+void CSharedDoc::AddChar(sCharacterInfo *pChar) {
 	CPartTidList tidList;
 
-	if (!tidList.SetTids(pInfo, 0xff) || !tidList.IsComboValid())
-	{
+	if (!tidList.SetTids(pChar, 0xFF) || !tidList.IsComboValid()) {
 		tidList.SetDefaultTids();
-		memcpy(pInfo->tidParts, tidList.m_tid, sizeof(pInfo->tidParts));
+		memcpy(pChar->partTypeIds, tidList.m_partTids, sizeof(pChar->partTypeIds));
 	}
 
-	m_charMap.insert(std::map<unsigned int, sCharacterInfo>::value_type(
-		pInfo->guid, *pInfo));
+	m_characterMap.insert(std::map<unsigned int, sCharacterInfo>::value_type(pChar->id, *pChar));
 }
 
-void CSharedDoc::AddCaddie(sCaddieInfo* pInfo)
-{
-	m_caddieMap.insert(
-		std::map<unsigned int, sCaddieInfo>::value_type(pInfo->guid, *pInfo));
+// shareddoc.cpp:1277
+void CSharedDoc::AddCaddie(sCaddieInfo *pCaddie) {
+	m_caddieMap.insert(std::map<unsigned int, sCaddieInfo>::value_type(pCaddie->id, *pCaddie));
 }
 
-void CSharedDoc::AddMascot(sMascotInfo* pInfo)
-{
-	std::map<unsigned int, sMascotInfo>::iterator it =
-		m_mascotMap.find(pInfo->guid);
+// shareddoc.cpp:1282, adds an owned mascot or updates the one with its id.
+void CSharedDoc::AddMascot(sMascotInfo *pMascot) {
+	std::map<unsigned int, sMascotInfo>::iterator it = m_myMascotMap.find(pMascot->id);
 
-	if (it != m_mascotMap.end())
-	{
-		(*it).second = *pInfo;
-	}
-	else
-	{
-		m_mascotMap.insert(std::map<unsigned int, sMascotInfo>::value_type(
-			pInfo->guid, *pInfo));
+	if (it != m_myMascotMap.end()) {
+		it->second = *pMascot;
+	} else {
+		m_myMascotMap.insert(std::map<unsigned int, sMascotInfo>::value_type(pMascot->id, *pMascot));
 	}
 }
 
-sCardStack* CSharedDoc::GetCardInfoToUID(unsigned long uid)
-{
-	for (std::list<sCardStack>::iterator it = Doc()->m_cardStackList.begin();
-		it != Doc()->m_cardStackList.end(); ++it)
-	{
-		sCardStack* pCard = &(*it);
-		if (uid == pCard->uid && pCard->bValid == 1)
-		{
+// shareddoc.cpp:1297
+sCardStack *CSharedDoc::GetCardInfoToUID(unsigned long uid) {
+	std::list<sCardStack>::iterator it;
+	for (it = WSingleton<CSharedDoc>::Instance()->m_cardList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_cardList.end(); ++it) {
+		sCardStack *pCard = &*it;
+		if (uid == pCard->uid && pCard->valid == 1) {
 			return pCard;
 		}
 	}
-
-	return NULL;
+	return 0;
 }
 
-sCardStack* CSharedDoc::GetCardInfoToTID(unsigned long tid)
-{
-	for (std::list<sCardStack>::iterator it = Doc()->m_cardStackList.begin();
-		it != Doc()->m_cardStackList.end(); ++it)
-	{
-		sCardStack* pCard = &(*it);
-		if (tid == pCard->typeId && pCard->bValid == 1)
-		{
+// shareddoc.cpp:1312
+sCardStack *CSharedDoc::GetCardInfoToTID(unsigned long typeId) {
+	std::list<sCardStack>::iterator it;
+	for (it = WSingleton<CSharedDoc>::Instance()->m_cardList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_cardList.end(); ++it) {
+		sCardStack *pCard = &*it;
+		if (typeId == pCard->typeId && pCard->valid == 1) {
 			return pCard;
 		}
 	}
-
-	return NULL;
+	return 0;
 }
 
-void CSharedDoc::ReplaceCardCountToTID(unsigned long tid, int count)
-{
-	for (std::list<sCardStack>::iterator it = Doc()->m_cardStackList.begin();
-		it != Doc()->m_cardStackList.end(); ++it)
-	{
-		if (tid == (*it).typeId && (*it).bValid == 1)
-		{
-			(*it).count = count;
-			if (count <= 0)
-				(*it).bValid = 0;
-			return;
+// shareddoc.cpp:1349
+void CSharedDoc::DeleteCardToPartsAttach(unsigned long cardId) {
+	std::list<sSCardAvilityPeriodInfo> &cards = WSingleton<CSharedDoc>::Instance()->m_cardPeriodList[0];
+	for (std::list<sSCardAvilityPeriodInfo>::iterator it = cards.begin(); it != cards.end(); ++it) {
+		if (it->partsId == cardId) {
+			m_cardPeriodList[0].erase(it);
+			break;
 		}
 	}
 }
 
-void CSharedDoc::ReplaceCardCountToUID(unsigned long uid, int count)
-{
-	for (std::list<sCardStack>::iterator it = Doc()->m_cardStackList.begin();
-		it != Doc()->m_cardStackList.end(); ++it)
-	{
-		if (uid == (*it).uid && (*it).bValid == 1)
-		{
-			(*it).count = count;
-			if (count <= 0)
-				(*it).bValid = 0;
-			return;
-		}
-	}
-}
-
-void CSharedDoc::DeleteCardToPartsAttach(unsigned long uid)
-{
-	std::list<sSCardAvilityPeriodInfo>::iterator it;
-	for (it = Doc()->m_cardAbilityList[0].begin();
-		it != Doc()->m_cardAbilityList[0].end(); it++)
-	{
-		if ((*it).partsUid == uid)
-		{
-			Doc()->m_cardAbilityList[0].erase(it);
-			return;
-		}
-	}
-}
-
-void CSharedDoc::AddCardStack(sCardStack card, bool bReplace)
-{
-	for (std::list<sCardStack>::iterator it = Doc()->m_cardStackList.begin();
-		it != Doc()->m_cardStackList.end(); ++it)
-	{
-		if (card.typeId == (*it).typeId && card.bValid == 1)
-		{
-			if (bReplace == true)
-				(*it).count = card.count;
-			else
-				(*it).count += card.count;
-
-			if ((*it).count <= 0)
-				(*it).bValid = 0;
-			return;
-		}
-	}
-
-	if (it == Doc()->m_cardStackList.end())
-	{
-		Doc()->m_cardStackList.push_back(card);
-	}
-}
-
-void CSharedDoc::DeleteCardStack(unsigned long uid, int count)
-{
-	for (std::list<sCardStack>::iterator it = Doc()->m_cardStackList.begin();
-		it != Doc()->m_cardStackList.end(); ++it)
-	{
-		sCardStack* pCard = &(*it);
-		if (uid == pCard->uid)
-		{
-			pCard->count -= count;
-			if (pCard->count < 1)
-			{
-				pCard->count = 0;
-				pCard->bValid = 0;
-			}
-		}
-	}
-}
-
-void CSharedDoc::AddCard(unsigned long typeId, unsigned long uid,
-	unsigned short count)
-{
-	std::list<sCards>::iterator it;
-	for (it = Doc()->m_cardList.begin(); it != Doc()->m_cardList.end(); ++it)
-	{
-		if ((*it).tid == typeId)
-		{
-			(*it).cardCount += count;
-			return;
-		}
-	}
-
-	if (it == Doc()->m_cardList.end())
-	{
-		sCards card;
-		memset(&card, 0, sizeof(card));
-		card.tid = typeId;
-		card.uid = uid;
-		card.cardCount = count;
-		Doc()->m_cardList.push_back(card);
-	}
-}
-
-void CSharedDoc::AddFurniture(const sFurniture_List& furniture)
-{
+// shareddoc.cpp:1440
+void CSharedDoc::AddFurniture(const sFurniture_List &furniture) {
 	m_furnitureList.push_back(furniture);
 }
 
-void CSharedDoc::AddMyPartsList(const sItemInfo& item)
-{
-	m_partsList.push_back(item);
+// shareddoc.cpp:1445
+void CSharedDoc::AddMyPartsList(const sItemInfo &item) {
+	m_myPartsList.push_back(item);
 }
 
-sMascotInfo* CSharedDoc::GetMyMascotInfo(unsigned long uid)
-{
-	if (uid)
-	{
-		std::map<unsigned int, sMascotInfo>::iterator it =
-			Doc()->m_mascotMap.find(uid);
-
-		if (it != Doc()->m_mascotMap.end())
-		{
-			return &(*it).second;
+// shareddoc.cpp:1459
+sMascotInfo *CSharedDoc::GetMyMascotInfo(unsigned long id) {
+	if (id) {
+		std::map<unsigned int, sMascotInfo>::iterator it = WSingleton<CSharedDoc>::Instance()->m_myMascotMap.find(id);
+		if (it != WSingleton<CSharedDoc>::Instance()->m_myMascotMap.end()) {
+			return &it->second;
 		}
 	}
-
-	return NULL;
+	return 0;
 }
 
-sMascotInfo* CSharedDoc::GetMyEquippedMascotInfo()
-{
-	if (m_myInfo.userEquip.guidMascot)
-	{
-		std::map<unsigned int, sMascotInfo>::iterator it =
-			Doc()->m_mascotMap.find(m_myInfo.userEquip.guidMascot);
-
-		if (it != Doc()->m_mascotMap.end())
-		{
-			return &(*it).second;
+// shareddoc.cpp:1474
+sMascotInfo *CSharedDoc::GetMyEquippedMascotInfo(void) {
+	if (m_myMascotId) {
+		std::map<unsigned int, sMascotInfo>::iterator it = WSingleton<CSharedDoc>::Instance()->m_myMascotMap.find(m_myMascotId);
+		if (it != WSingleton<CSharedDoc>::Instance()->m_myMascotMap.end()) {
+			return &it->second;
 		}
 	}
-
-	return NULL;
+	return 0;
 }
 
-int CSharedDoc::GetNumAddItemSlotByMascot(unsigned char player)
-{
-	int num = 0;
-	unsigned long tid = m_userInfo[player].mascotInfo.tid;
-	IFF_STRUCT::sMascot* pMascot = ItemManager()->FindMascot(tid);
-
-	if (pMascot)
-	{
-		if (pMascot->ItemSlot <= 1)
-			num = pMascot->ItemSlot;
-	}
-
-	return num;
-}
-
-int CSharedDoc::GetNumAddItemSlotByMascot()
-{
-	int num = 0;
-	sMascotInfo* pInfo = GetMyEquippedMascotInfo();
-
-	if (pInfo)
-	{
-		if (pInfo->Remain_Date > 0)
-		{
-			if (ItemManager()->CompareSystemTime(pInfo->endDate,
-					Doc()->GetServerTime()) > 0)
-			{
-				IFF_STRUCT::sMascot* pMascot =
-					ItemManager()->FindMascot(pInfo->tid);
-
-				if (pMascot)
-				{
-					if (pMascot->ItemSlot <= 1)
-						num = pMascot->ItemSlot;
-				}
-			}
-		}
-	}
-
-	return num;
-}
-
-void CSharedDoc::SendEquipItemSlotByMascot()
-{
-	sMascotInfo* pInfo = GetMyEquippedMascotInfo();
-
-	if (pInfo)
-	{
-		IFF_STRUCT::sMascot* pMascot = ItemManager()->FindMascot(pInfo->tid);
-
-		if (pMascot && pMascot->ItemSlot > 0)
-		{
-			if (ItemManager()->CompareSystemTime(pInfo->endDate,
-					Doc()->GetServerTime()) > 0)
-				return;
-		}
-	}
-
-	if (m_myInfo.userEquip.tidItemSlot[9])
-	{
-		unsigned long slots[10] = { 0 };
-		memcpy(slots, Doc()->m_myInfo.userEquip.tidItemSlot, sizeof(slots));
-		slots[9] = 0;
-
-		WSendPacket packet((enumClientPacket)0x20);
-		packet.Encode1(2);
-		packet.EncodeBuffer(slots, sizeof(slots));
-		packet.Send(TO_GAME);
-	}
-}
-
-void CSharedDoc::SendEquipItemSlot()
-{
-	sMascotInfo* pInfo = GetMyEquippedMascotInfo();
-	CCardManager::Instance()->SetPlayerIndex(0xff);
-	CCardManager::Instance()->CalcCardPeriodAndStatus();
-	int cardSlot = CCardManager::Instance()->GetCardPeriodSlot();
-
-	if (pInfo)
-	{
-		IFF_STRUCT::sMascot* pMascot = ItemManager()->FindMascot(pInfo->tid);
-
-		if (pMascot && pMascot->ItemSlot > 0)
-		{
-			if (ItemManager()->CompareSystemTime(pInfo->endDate,
-					Doc()->GetServerTime()) > 0 &&
-				cardSlot > 0)
-				return;
-		}
-	}
-
-	if (m_myInfo.userEquip.tidItemSlot[9] || m_myInfo.userEquip.tidItemSlot[8])
-	{
-		unsigned long slots[10];
-		memcpy(slots, m_myInfo.userEquip.tidItemSlot, sizeof(slots));
-
-		WSendPacket packet((enumClientPacket)0x20);
-		packet.Encode1(2);
-		packet.EncodeBuffer(slots, sizeof(slots));
-		packet.Send(TO_GAME);
-	}
-}
-
-void CSharedDoc::SetCurEquipInfo(sUserEquip* pEquip)
-{
-	m_myInfo.userEquip = *pEquip;
+// shareddoc.cpp:1610, takes the local player's equipment; a caddie or mascot
+// the player does not own is replaced (the first owned caddie) or cleared.
+void CSharedDoc::SetCurEquipInfo(sUserEquip *equip) {
+	memcpy(&m_myCaddieId, equip, sizeof(sUserEquip));
 	BuildMyPartTidList();
 
-	if (m_myInfo.userEquip.guidCaddie)
-	{
-		if (m_myInfo.userEquip.guidCaddie != 0xffffffff)
-		{
-			if (m_caddieMap.find(m_myInfo.userEquip.guidCaddie) ==
-				m_caddieMap.end())
-			{
-				if (m_caddieMap.size() > 0)
-				{
-					m_myInfo.userEquip.guidCaddie =
-						(*m_caddieMap.begin()).first;
+	if (m_myCaddieId != 0) {
+		if (m_myCaddieId != 0xFFFFFFFF) {
+			std::map<unsigned int, sCaddieInfo>::iterator it = m_caddieMap.find(m_myCaddieId);
+
+			if (it == m_caddieMap.end()) {
+				if (m_caddieMap.size() > 0) {
+					m_myCaddieId = m_caddieMap.begin()->first;
 				}
 			}
 		}
 	}
 
-	if (m_myInfo.userEquip.guidMascot)
-	{
-		if (m_myInfo.userEquip.guidMascot != 0xffffffff)
-		{
-			if (m_mascotMap.find(m_myInfo.userEquip.guidMascot) ==
-				m_mascotMap.end())
-			{
-				m_myInfo.userEquip.guidMascot = 0;
+	if (m_myMascotId != 0) {
+		if (m_myMascotId != 0xFFFFFFFF) {
+			std::map<unsigned int, sMascotInfo>::iterator it = m_myMascotMap.find(m_myMascotId);
+
+			if (it == m_myMascotMap.end()) {
+				m_myMascotId = 0;
 			}
 		}
 	}
 }
 
-void CSharedDoc::CheckCurrEquipParts()
-{
-	CPartTidList tidList;
-	CPartList partList;
-	bool bSendChar = false;
-	std::map<unsigned int, sCharacterInfo>::iterator it;
+// shareddoc.cpp:1787, builds the local player's part list from the equipped
+// character; with no owned character of that id, from the default parts of
+// character typeid 0x4000000 | (eventFlags bit 1).
+void CSharedDoc::BuildMyPartTidList(void) {
+	sCharacterInfo defaultChar = sCharacterInfo();
+	sCharacterInfo *pChar;
+	std::map<unsigned int, sCharacterInfo>::iterator it = m_characterMap.find(m_myCharacterId);
 
-	for (it = m_charMap.begin(); it != m_charMap.end(); ++it)
-	{
-		bool bChanged = false;
-		sCharacterInfo* pInfo = &it->second;
-
-		if (!tidList.SetTids(pInfo, m_myInfo.stat.Level))
-		{
-			tidList.SetDefaultTids();
-			memcpy(pInfo->tidParts, tidList.m_tid, sizeof(pInfo->tidParts));
-		}
-		else
-		{
-			partList.Build(&tidList);
-
-			for (int i = 0; i < 24; i++)
-			{
-				unsigned long tid = pInfo->tidParts[i];
-				if (!tid || (tid & 0x600))
-					continue;
-
-				std::list<sItemInfo>::iterator itPart;
-				for (itPart = m_partsList.begin(); itPart != m_partsList.end();
-					itPart++)
-				{
-					if ((*itPart).tid == tid)
-						break;
-				}
-
-				if (itPart == m_partsList.end())
-				{
-					bChanged = true;
-					partList.SetPart(&tidList, tid, 0);
-				}
-			}
-
-			if (!bChanged)
-				continue;
-
-			memcpy(pInfo->tidParts, tidList.m_tid, sizeof(pInfo->tidParts));
-		}
-
-		if (pInfo->guid == m_myInfo.userEquip.guidChar)
-			bSendChar = true;
-
-		WSendPacket packet((enumClientPacket)0x20);
-		packet.Encode1(0);
-		packet.EncodeBuffer(pInfo, sizeof(sCharacterInfo));
-		packet.Send(TO_GAME);
+	if (it == m_characterMap.end()) {
+		memset(&defaultChar, 0, sizeof(defaultChar));
+		defaultChar.typeId = 0x4000000 | (WSingleton<CSharedDoc>::Instance()->m_userInfo.eventFlags >> 1 & 1) % 2;
+		WSingleton<CSharedDoc>::Instance()->m_itemManager.GetDefCombo(defaultChar.typeId, defaultChar.partTypeIds);
+		pChar = &defaultChar;
+	} else {
+		pChar = &it->second;
 	}
 
-	if (bSendChar)
-	{
-		WSendPacket packet((enumClientPacket)0x20);
-		packet.Encode1(5);
-		packet.Encode4(m_myInfo.userEquip.guidChar);
-		packet.Send(TO_GAME);
+	if (!m_myPartTidList.SetTids(pChar, WSingleton<CSharedDoc>::Instance()->m_myLevel)) {
+		m_myPartTidList.SetDefaultTids();
+	}
+
+	if (!m_myPartTidList.IsComboValid()) {
+		m_myPartTidList.SetDefaultTids();
+	}
+
+	memcpy(m_myAuxPartTidList, &pChar->auxParts, sizeof(m_myAuxPartTidList));
+}
+
+// shareddoc.cpp:1972
+CPartTidList &CSharedDoc::GetMyPartTidList(void) {
+	return m_myPartTidList;
+}
+
+// shareddoc.cpp:1976
+unsigned long *CSharedDoc::GetMyAuxPartTidList(void) {
+	return m_myAuxPartTidList;
+}
+
+// shareddoc.cpp:1981
+void CSharedDoc::SetIndex(unsigned long uid) {
+	if (m_indexMap.find(uid) == m_indexMap.end()) {
+		unsigned char index = (unsigned char)m_indexMap.size();
+
+		if (OnlinePlay()) {
+			if (IsMassGame()) {
+				if (uid == m_userInfo.guid)
+					memcpy(m_roomPlayers[0].m_nickname, &m_userInfo, sizeof(m_userInfo));
+			}
+		}
+
+		m_indexMap[uid] = index;
 	}
 }
 
-bool CSharedDoc::BuildMyPartTidListDefault(unsigned long typeId)
-{
-	IFF_STRUCT::sChar* pChar = m_itemManager.FindChar(typeId);
-	if (pChar)
-	{
-		m_partTidList.m_charTid = typeId;
-		m_partTidList.m_defPartNum = pChar->nParts;
-		m_partTidList.m_partNum = pChar->nParts + pChar->nAcsries;
-		m_partTidList.m_hairColor = 0;
-		m_partTidList.m_shirtsColor = 0;
-		m_partTidList.SetDefaultTids();
+// shareddoc.cpp:2009
+bool CompareItemInfo(const sItemInfo &a, const sItemInfo &b) {
+	return a.m_typeId < b.m_typeId;
+}
 
-		memset(m_auxPartTidList, 0, sizeof(m_auxPartTidList));
+// shareddoc.cpp:2014
+void CSharedDoc::SortAllMyItemList(void) {
+	m_myPartsList.sort(CompareItemInfo);
+	m_myGearList.sort(CompareItemInfo);
+	m_itemInfoList.sort(CompareItemInfo);
+	m_myExtraItemList.sort(CompareItemInfo);
+	m_myExtraItemList2.sort(CompareItemInfo);
+}
+
+// shareddoc.cpp:2024, whether the player can receive count more of the item:
+// a stackable item (type class 5 or 6) holds at most 20000.
+bool CSharedDoc::ConfirmInsertItem(unsigned long typeId, unsigned long count) const {
+	unsigned long typeClass = typeId >> 26;
+
+	if (typeClass >= 5 && typeClass <= 6 && typeId != 0x1A000010) {
+		std::list<sItemInfo>::const_iterator it;
+		for (it = m_itemInfoList.begin(); it != m_itemInfoList.end(); ++it) {
+			sItemInfo item = *it;
+			if (item.m_typeId == typeId) {
+				sItemInfo found = *it;
+				return found.m_count + count <= 20000;
+			}
+		}
+
 		return true;
 	}
 
-	return false;
+	return true;
 }
 
-void CSharedDoc::BuildMyPartTidList()
-{
-	sCharacterInfo* pInfo;
-	sCharacterInfo defInfo;
-	std::map<unsigned int, sCharacterInfo>::iterator it;
-	it = m_charMap.find(m_myInfo.userEquip.guidChar);
-
-	if (it == m_charMap.end())
-	{
-		memset(&defInfo, 0, sizeof(defInfo));
-		defInfo.tid = 0x4000000 | (Doc()->m_myInfo.info.gender % 2);
-		ItemManager()->GetDefCombo(defInfo.tid, defInfo.tidParts);
-		pInfo = &defInfo;
-	}
-	else
-		pInfo = &it->second;
-
-	if (!m_partTidList.SetTids(pInfo, Doc()->m_myInfo.stat.Level))
-	{
-		m_partTidList.SetDefaultTids();
-	}
-
-	if (!m_partTidList.IsComboValid())
-	{
-		m_partTidList.SetDefaultTids();
-	}
-
-	memcpy(m_auxPartTidList, pInfo->tidAuxParts, sizeof(m_auxPartTidList));
+// shareddoc.cpp:2085
+void CSharedDoc::AddMyItem(const sItemInfo &item) {
+	WSingleton<CSharedDoc>::Instance()->m_itemInfoList.push_back(item);
 }
 
-void CSharedDoc::BuildMyPartTidList(sCharacterInfo& info)
-{
-	if (!m_partTidList.SetTids(&info, Doc()->m_myInfo.stat.Level))
-	{
-		m_partTidList.SetDefaultTids();
-	}
-
-	if (!m_partTidList.IsComboValid())
-	{
-		m_partTidList.SetDefaultTids();
-	}
-
-	memcpy(m_auxPartTidList, info.tidAuxParts, sizeof(m_auxPartTidList));
-}
-
-void CSharedDoc::BuildTikiReportList()
-{
-	if (IsLocalContent(S3_CADDIE_REPORT) && m_caddieReportList.size())
-	{
-		Doc()->m_rivalList.clear();
-		Doc()->m_roomInfo.nUserLimit = 30;
-
-		std::vector<sCaddieReportData>::iterator it;
-		for (it = m_caddieReportList.begin(); it != m_caddieReportList.end();
-			it++)
-		{
-			sRivalData rival;
-			memset(&rival, 0, sizeof(rival));
-			rival.uid = it->uid;
-			rival.oid = it->uid;
-			strcpy(rival.nickname, it->nickname);
-			rival.level = it->level;
-			rival.totalScore = it->score;
-			rival.totalPang = it->pang;
-			rival.totalBonusPang = it->bonusPang;
-			rival.guildUID = it->guildUID;
-			strcpy(rival.guildMark, it->guildMark);
-			rival.mascotTypeId = it->mascotTypeId;
-			rival.holeStroke[0] = it->eventType;
-			unsigned char team = it->team;
-			if (team & 4)
-			{
-				team ^= 4;
-				rival.state = 3;
-			}
-			rival.team = team;
-
-			if (strcmp(rival.nickname, MyNick()) == 0)
-			{
-				Doc()->m_eventType = it->eventType;
-				Doc()->m_holeStatistics[0].dwExp = it->exp;
-				Doc()->m_roomType = it->roomType;
-				Doc()->m_golfGame.gameType = it->gameType;
-				Doc()->m_eventFlag = it->eventFlag;
-			}
-
-			rival.capability = it->premium ? 0x80 : 0;
-			rival.pangMastery = 0;
-			rival.pangNitro = 0;
-
-			if (it->awardFlag & 1)
-				m_awardItem[0].uid = rival.uid;
-			if (it->awardFlag & 2)
-				m_awardItem[1].uid = rival.uid;
-			if (it->awardFlag & 4)
-				m_awardItem[2].uid = rival.uid;
-			if (it->awardFlag & 8)
-				m_awardItem[3].uid = rival.uid;
-			if (it->awardFlag & 0x10)
-				m_awardItem[4].uid = rival.uid;
-			if (it->awardFlag & 0x20)
-				m_awardItem[5].uid = rival.uid;
-
-			switch (it->pangItem)
-			{
-			case 1:
-				rival.pangMastery = 1;
-				break;
-			case 2:
-				rival.pangNitro = 1;
-				break;
-			case 3:
-				rival.pangNitro = 1;
-				rival.pangMastery = 1;
-				break;
-			}
-
-			m_rivalList.push_back(rival);
-		}
-	}
-}
-
-CPartTidList& CSharedDoc::GetMyPartTidList()
-{
-	return m_partTidList;
-}
-
-unsigned long* CSharedDoc::GetMyAuxPartTidList()
-{
-	return m_auxPartTidList;
-}
-
-void CSharedDoc::SetIndex(unsigned long uid)
-{
-	if (m_indexMap.find(uid) != m_indexMap.end())
-		return;
-
-	unsigned char index = (unsigned char)m_indexMap.size();
-
-	if (OnlinePlay())
-	{
-		if (IsMassGame())
-		{
-			if (uid == m_myInfo.info.dwGuid)
-				m_userInfo[0].info = m_myInfo.info;
-		}
-	}
-
-	m_indexMap[uid] = index;
-}
-
-bool CompareItemInfo(const sItemInfo& a, const sItemInfo& b)
-{
-	return a.tid < b.tid;
-}
-
-void CSharedDoc::SortAllMyItemList()
-{
-	m_partsList.sort(CompareItemInfo);
-	m_ballList.sort(CompareItemInfo);
-	m_myItemList.sort(CompareItemInfo);
-	m_cadItemList.sort(CompareItemInfo);
-	m_setItemList.sort(CompareItemInfo);
-}
-
-bool CSharedDoc::ConfirmInsertItem(unsigned long typeId,
-	unsigned long count) const
-{
-	unsigned long category = typeId >> 26;
-	if (category >= 5 && category <= 6)
-	{
-		if (typeId != 0x1a000010)
-		{
-			for (std::list<sItemInfo>::const_iterator it = m_myItemList.begin();
-				it != m_myItemList.end(); ++it)
-			{
-				if (sItemInfo(*it).tid == typeId)
-				{
-					if (sItemInfo(*it).Common[0] + count > 20000)
-						return false;
-					return true;
-				}
-			}
-			return true;
-		}
-	}
+// shareddoc.cpp:2092
+bool CSharedDoc::DecreaseMyItem(std::list<sItemInfo>::iterator &it) {
+	sItemInfo *pItem = &(*it);
+	pItem->m_count--;
+	if (pItem->m_count <= 0)
+		m_itemInfoList.erase(it);
 
 	return true;
 }
 
-void CSharedDoc::AddMyItem(const sItemInfo& item)
-{
-	Doc()->m_myItemList.push_back(item);
-}
-
-bool CSharedDoc::DecreaseMyItem(std::list<sItemInfo>::iterator& it)
-{
-	sItemInfo* pItem = &(*it);
-	pItem->Common[0]--;
-	if (pItem->Common[0] <= 0)
-		DeleteMyItem(it);
-
-	return true;
-}
-
-bool CSharedDoc::DeleteMyItem(unsigned long typeId)
-{
-	std::list<sItemInfo>::iterator it;
-	for (it = m_myItemList.begin(); it != m_myItemList.end(); it++)
-	{
-		if ((*it).tid == typeId)
-			break;
-	}
-
-	return DeleteMyItem(it);
-}
-
-bool CSharedDoc::DeleteMyItem(std::list<sItemInfo>::iterator& it)
-{
-	if (it == m_myItemList.end())
+// shareddoc.cpp:2117
+bool CSharedDoc::DeleteMyItem(std::list<sItemInfo>::iterator &it) {
+	if (it == m_itemInfoList.end()) {
 		return false;
+	}
 
-	m_myItemList.erase(it);
+	m_itemInfoList.erase(it);
 	return true;
 }
 
-sItemInfo* CSharedDoc::FindMyItemByGuid(unsigned long guid)
-{
-	std::list<sItemInfo>::iterator it;
-	for (it = m_myItemList.begin(); it != m_myItemList.end(); it++)
-	{
-		if ((*it).guid == guid)
-			return &(*it);
+// shareddoc.cpp:2128
+sItemInfo *CSharedDoc::FindMyItemByGuid(unsigned long guid) {
+	for (std::list<sItemInfo>::iterator it = m_itemInfoList.begin(); it != m_itemInfoList.end(); ++it) {
+		if ((*it).m_serial == guid)
+			return &*it;
 	}
 
 	return NULL;
 }
 
-void CSharedDoc::ClearMyGuildInfo()
-{
-	m_myInfo.info.dwGuildId = 0;
-	m_myInfo.info.dwEmblemVer = 0;
-	memset(m_myInfo.info.sGuild, 0, sizeof(m_myInfo.info.sGuild));
-	memset(m_myInfo.info.szEmblemName, 0, sizeof(m_myInfo.info.szEmblemName));
+// shareddoc.cpp:2146
+void CSharedDoc::ClearMyGuildInfo(void) {
+	m_userInfo.guildUID = 0;
+	m_userInfo.guildPosition = 0;
+	memset(m_userInfo.guildName, 0, sizeof(m_userInfo.guildName));
+	memset(m_userInfo.guildMark, 0, sizeof(m_userInfo.guildMark));
 }
 
-void CSharedDoc::SetEquipCharCaddieInfoFromMyInfo()
-{
-	std::map<unsigned int, sCharacterInfo>::iterator itChar;
-	std::map<unsigned int, sCaddieInfo>::iterator itCaddie;
-	std::map<unsigned int, sMascotInfo>::iterator itMascot;
-	std::map<unsigned int, sItemInfo>::iterator itClub;
+// shareddoc.cpp:2312
+const char *CSharedDoc::GetDefaultTitle(unsigned char gameType) {
+	const char **titles;
+	int index;
 
-	memset(&m_userInfo[0].charInfo, 0, sizeof(sCharacterInfo));
-	memset(&m_userInfo[0].caddieInfo, 0, sizeof(sCaddieInfo));
-	memset(&m_userInfo[0].clubInfo, 0, sizeof(sClubInfo));
-	memset(&m_userInfo[0].mascotInfo, 0, sizeof(sMascotInfo));
-
-	m_userInfo[0].info = m_myInfo.info;
-	m_userInfo[0].stat = m_myInfo.stat;
-	m_userInfo[0].userEquip = m_myInfo.userEquip;
-
-	itChar = m_charMap.find(m_myInfo.userEquip.guidChar);
-	if (itChar != m_charMap.end())
-		m_userInfo[0].charInfo = (*itChar).second;
-
-	itCaddie = m_caddieMap.find(m_myInfo.userEquip.guidCaddie);
-	if (itCaddie != m_caddieMap.end())
-	{
-		m_userInfo[0].caddieInfo = (*itCaddie).second;
-		IFF_STRUCT::sCaddie* pCaddie =
-			ItemManager()->FindCaddie(m_userInfo[0].caddieInfo.tid);
-		if ((pCaddie && m_myInfo.stat.Level < pCaddie->c.Level) ||
-			(Doc()->m_userInfo[0].caddieInfo.Rent_flag &&
-				Doc()->m_userInfo[0].caddieInfo.Remain_Date == 0 &&
-				pCaddie->MonthlyFee > 0))
-			m_userInfo[0].caddieInfo.tid = 0;
-	}
-
-	itMascot = m_mascotMap.find(m_myInfo.userEquip.guidMascot);
-	if (itMascot != m_mascotMap.end())
-	{
-		m_userInfo[0].mascotInfo = (*itMascot).second;
-		IFF_STRUCT::sMascot* pMascot =
-			ItemManager()->FindMascot(m_userInfo[0].mascotInfo.tid);
-	}
-
-	itClub = m_clubSetMap.find(m_myInfo.userEquip.guidClubSet);
-	if (itClub != m_clubSetMap.end())
-	{
-		IFF_STRUCT::sClubSet* pClubSet =
-			ItemManager()->FindClubSet((*itClub).second.tid);
-		if (pClubSet &&
-			((m_myInfo.stat.Level < pClubSet->c.Level &&
-				 !pClubSet->c.IsUnderLvl) ||
-				(m_myInfo.stat.Level > pClubSet->c.Level &&
-					pClubSet->c.IsUnderLvl)))
-		{
-			std::map<unsigned int, sItemInfo>::iterator it;
-			for (it = m_clubSetMap.begin(); it != m_clubSetMap.end(); ++it)
-			{
-				if ((*it).second.tid == 0x10000000)
-				{
-					itClub = it;
-					break;
-				}
-			}
-		}
-		else
-			itClub = m_clubSetMap.find(m_myInfo.userEquip.guidClubSet);
-
-		if (itClub != m_clubSetMap.end())
-		{
-			m_userInfo[0].clubInfo.tid = (*itClub).second.tid;
-			m_userInfo[0].clubInfo.guid = (*itClub).second.guid;
-			memcpy(m_userInfo[0].clubInfo.PCL, (*itClub).second.Common,
-				sizeof(m_userInfo[0].clubInfo.PCL));
-		}
-	}
-}
-
-sRivalData* CSharedDoc::GetRival(unsigned long uid)
-{
-	std::vector<sGuildMatchup>::iterator it;
-	for (it = m_guildMatchupList.begin(); it != m_guildMatchupList.end(); ++it)
-	{
-		if (uid == it._Myptr->uid[0])
-			return &m_rivalList[Doc()->GetIndex(it._Myptr->uid[1])];
-
-		if (uid == it._Myptr->uid[1])
-			return &m_rivalList[Doc()->GetIndex(it._Myptr->uid[0])];
-	}
-
-	return NULL;
-}
-
-int CSharedDoc::CollapseItemSlot(unsigned char player)
-{
-	if (player >= 4)
-		return 0;
-
-	unsigned long* slots = m_userInfo[player].userEquip.tidItemSlot;
-	int numSlots = 10;
-	if (IsLocalContent(S3_MASCOT))
-		numSlots = GetNumAddItemSlotByMascot(player) + 8;
-
-	if (IsLocalContent(S4_CARD_SYSTEM))
-	{
-		CCardManager::Instance()->SetPlayerIndex(player);
-		numSlots += CCardManager::Instance()->GetCardPeriodSlot();
-	}
-
-	int count = 0;
-	for (int i = 0; i < numSlots; i++)
-	{
-		if (slots[i])
-			count++;
-	}
-
-	for (int j = 0; j < count; j++)
-	{
-		if (slots[j] == 0)
-		{
-			int k;
-			for (k = j + 1; k < numSlots; k++)
-			{
-				if (slots[k])
-				{
-					slots[j] = slots[k];
-					slots[k] = 0;
-					break;
-				}
-			}
-			if (k == numSlots)
-				break;
-		}
-	}
-
-	return count;
-}
-
-const char* CSharedDoc::GetDefaultTitle(unsigned char gameType)
-{
-	const char* title;
-
-	switch (gameType)
-	{
-	case GAME_TYPE_STROKE:
-	case GAME_TYPE_TEAM:
-		title = defaultTitles_vs[rand() % 9];
+	switch (gameType) {
+	case 0:
+	case 1:
+		index = rand() % 9;
+		titles = defaultTitles_vs;
 		break;
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
-	case GAME_TYPE_USEMAX:
-		title = defaultTitles_mass[rand() % 6];
+
+	case 4:
+	case 5:
+	case 6:
+	case 0xE:
+		index = rand() % 6;
+		titles = defaultTitles_mass;
 		break;
-	case GAME_TYPE_SKINS:
-		title = defaultTitles_battle[rand() % 4];
+
+	case 7:
+		index = rand() % 4;
+		titles = defaultTitles_battle;
 		break;
-	case GAME_TYPE_NEW_APPROACH:
-		title = defaultTitles_approach[rand() % 3];
+
+	case 0xA:
+		index = rand() % 3;
+		titles = defaultTitles_approach;
 		break;
-	case GAME_TYPE_AVATARCHAT:
-	case GAME_TYPE_REALMYROOM:
-		title = defaultTitles_chat[rand() % 7];
+
+	case 2:
+	case 8:
+		index = rand() % 7;
+		titles = defaultTitles_chat;
 		break;
+
 	default:
-		title = "No Title!";
-		break;
+		return "No Title!";
 	}
 
-	return title;
+	return titles[index];
 }
 
-void CSharedDoc::Log30sScore()
-{
-	if (IsMassGame() || IsGuildGame())
-	{
-		mkdir("score");
-
-		char filename[128];
-		SYSTEMTIME st;
-		GetLocalTime(&st);
-
-		sprintf(filename, "score/score_30s_%d%02d%02d_%02d%02d%02d.txt",
-			st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
-
-		FILE* fp = fopen(filename, "wt");
-		if (fp)
-		{
-			fprintf(fp, "## 30s Game Result ##\n\n");
-			fprintf(fp, "* room name : %s\n", Doc()->m_roomInfo.title);
-			fprintf(fp, "* map no. : %d\n",
-				(unsigned char)(Doc()->m_golfGame.map > 127 &&
-							Doc()->m_golfGame.map != 253
-						? Doc()->m_golfGame.map - 128
-						: Doc()->m_golfGame.map));
-			fprintf(fp, "* grade : %d\n",
-				(unsigned char)(Doc()->m_roomType >> 16));
-			fprintf(fp, "* game finished at : %d-%02d-%02d %02d:%02d\n",
-				st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute);
-			fprintf(fp, "* num of players : %d\n\n", m_rivalList.size());
-
-			fprintf(fp,
-				"nick / id                                rank  score  pang \n");
-			fprintf(fp,
-				"-----------------------------------------------------------\n");
-
-			for (int i = 0; i < (int)m_rivalList.size(); i++)
-			{
-				sRivalData* pRival = &m_rivalList[i];
-
-				if (pRival)
-				{
-					fprintf(fp, "%18s   %2d    ", pRival->nickname,
-						pRival->rank);
-
-					if (pRival->totalScore == 0)
-					{
-						fprintf(fp, "  0   %I64d\n", pRival->totalPang);
-						continue;
-					}
-
-					fprintf(fp, "%+2d   %I64d\n", pRival->totalScore,
-						pRival->totalPang);
-				}
-			}
-
-			fclose(fp);
-		}
-	}
+// shareddoc.cpp:2632
+void CSharedDoc::LogGstUpdateHole(unsigned long uid, unsigned char hole, int score, __int64 pang) {
 }
 
-void CSharedDoc::LogGstUpdateHole(unsigned long uid, unsigned char hole,
-	int score, __int64 pang)
-{
-}
-
-void CSharedDoc::LoadSchoolName(char* const name, unsigned long id)
-{
-	char line[8192];
-	char code[64];
-	cFile* file = g_resrcmng->GetCFile("school.txt", 0xffff);
-
-	if (!file)
-	{
-		name[0] = 0;
-		return;
-	}
-
-	while (file->Scan("%n", line))
-	{
-		int length = strlen(line);
-		cTokenV token;
-		token.Init(line, length);
-
-		token.GetToken(code, " ", 1);
-		token.GetToken(name, "(\r\n", 3);
-
-		if (id == atoi(code))
-		{
-			CloseCFile(file);
-			return;
-		}
-	}
-
-	CloseCFile(file);
-	name[0] = 0;
-}
-
-bool CSharedDoc::InitRecentWhisperList(FrComboBox* combo)
-{
+// shareddoc.cpp:2893
+bool CSharedDoc::InitRecentWhisperList(FrComboBox *pComboBox) {
 	m_recentWhisperList.clear();
-	return UpdateChatTarget(combo);
+	return UpdateChatTarget(pComboBox);
 }
 
-bool CSharedDoc::InitReservedChatList(FrComboBox* combo,
-	eReservedChatPartner partner)
-{
-	if (!combo)
+// shareddoc.cpp:2899, the chat target names are "to team", "to all" and "to
+// guild" (cp949).
+bool CSharedDoc::InitReservedChatList(FrComboBox *pComboBox, eReservedChatPartner partner) {
+	if (pComboBox == 0) {
 		return false;
-
-	m_reservedChatList.clear();
-	if (m_whisperPartner.size() > 0)
-		combo->SetLine(1, m_whisperPartner.c_str(), 0, false, 0);
-
-	if (partner & 1)
-	{
-		m_reservedChatList.push_back("\xc6\xc0\xbf\xa1\xb0\xd4");
-	}
-	else if (strcmpi(m_whisperPartner.c_str(), "\xc6\xc0\xbf\xa1\xb0\xd4") == 0)
-	{
-		m_whisperPartner = "\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4";
-		combo->SetLine(1, "\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4", 0, false, 0);
 	}
 
-	if (partner & 2)
-	{
-		m_reservedChatList.push_back("\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4");
+	m_list4CD8.clear();
+	if (m_string4CE8.size() > 0) {
+		pComboBox->SetLine(1, m_string4CE8.c_str(), 0, false, 0);
 	}
 
-	if (Doc()->m_myInfo.info.dwGuildId)
-	{
-		m_reservedChatList.push_back("\xb1\xe6\xb5\xe5\xbf\xa1\xb0\xd4");
+	if (partner & RESERVED_CHAT_PARTNER_TEAM) {
+		m_list4CD8.push_back(std::string("ÆÀ¿¡°Ô"));
+	} else if (strcmpi(m_string4CE8.c_str(), "ÆÀ¿¡°Ô") == 0) {
+		m_string4CE8 = "¸ðµÎ¿¡°Ô";
+		pComboBox->SetLine(1, "¸ðµÎ¿¡°Ô", 0, false, 0);
 	}
 
-	if (strlen(combo->GetLine(1, false)) == 0)
-		combo->SetLine(1, "\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4", 0, false, 0);
+	if (partner & RESERVED_CHAT_PARTNER_GUILD) {
+		m_list4CD8.push_back(std::string("¸ðµÎ¿¡°Ô"));
+	}
 
-	return UpdateChatTarget(combo);
+	if (WSingleton<CSharedDoc>::Instance()->m_userInfo.guildUID != 0) {
+		m_list4CD8.push_back(std::string("±æµå¿¡°Ô"));
+	}
+
+	if (strlen(pComboBox->GetLine(1, false)) == 0) {
+		pComboBox->SetLine(1, "¸ðµÎ¿¡°Ô", 0, false, 0);
+	}
+
+	return UpdateChatTarget(pComboBox);
 }
 
-bool CSharedDoc::AddWhisperPartner(FrComboBox* combo, const char* name)
-{
-	if (!combo)
+// shareddoc.cpp:3024, refills the combo box with the recent whispers, then
+// the reserved partners.
+bool CSharedDoc::UpdateChatTarget(FrComboBox *pComboBox) {
+	if (pComboBox == 0) {
 		return false;
-
-	bool bSet = false;
-	const char* partner = NULL;
-
-	if (name)
-	{
-		partner = name;
-		bSet = true;
-	}
-	else if (strlen(combo->GetLine(1, false)) &&
-		strcmp(MyNick(), combo->GetLine(1, false)))
-	{
-		partner = combo->GetLine(1, false);
 	}
 
-	if (partner)
-	{
-		std::list<std::string>::iterator it;
+	pComboBox->ClearList();
 
-		it = std::find(m_reservedChatList.begin(), m_reservedChatList.end(),
-			partner);
-		if (it != m_reservedChatList.end())
-		{
-			if (!bSet)
-				m_whisperPartner = partner;
-			return true;
-		}
-
-		if (strcmpi("\xc6\xc0\xbf\xa1\xb0\xd4", partner) == 0)
-		{
-			return false;
-		}
-
-		it = std::find(m_recentWhisperList.begin(), m_recentWhisperList.end(),
-			partner);
-		if (it != m_recentWhisperList.end())
-		{
-			if (*it == m_recentWhisperList.back())
-				return true;
-
-			if (!bSet)
-				m_whisperPartner = partner;
-			m_recentWhisperList.push_back(partner);
-			m_recentWhisperList.erase(it);
-
-			return UpdateChatTarget(combo);
-		}
-
-		if (m_recentWhisperList.size() == m_maxWhisperPartner)
-		{
-			if (!bSet)
-				m_whisperPartner = partner;
-			m_recentWhisperList.push_back(partner);
-			m_recentWhisperList.erase(m_recentWhisperList.begin());
-			return UpdateChatTarget(combo);
-		}
-
-		if (!bSet)
-			m_whisperPartner = partner;
-		m_recentWhisperList.push_back(partner);
-		return UpdateChatTarget(combo);
+	for (std::list<std::string>::iterator it = m_recentWhisperList.begin(); it != m_recentWhisperList.end(); ++it) {
+		pComboBox->AddString((*it).c_str());
 	}
 
-	return false;
-}
-
-bool CSharedDoc::UpdateChatTarget(FrComboBox* combo)
-{
-	if (!combo)
-		return false;
-
-	std::list<std::string>::iterator it;
-	combo->ClearList();
-
-	for (it = m_recentWhisperList.begin(); it != m_recentWhisperList.end();
-		++it)
-	{
-		combo->AddString((*it).c_str());
-	}
-	for (it = m_reservedChatList.begin(); it != m_reservedChatList.end(); ++it)
-	{
-		combo->AddString((*it).c_str());
+	for (std::list<std::string>::iterator it = m_list4CD8.begin(); it != m_list4CD8.end(); ++it) {
+		pComboBox->AddString((*it).c_str());
 	}
 
 	return true;
 }
 
-bool CSharedDoc::UTIL_SendChatMessage(FrComboBox* combo, const char* msg,
-	bool bWhisper)
-{
-	if (!combo)
-	{
-		return false;
-	}
+// shareddoc.cpp:3085, the chat target before target: the reserved partners
+// follow the recent whispers, and the first whisper wraps to the last
+// reserved partner.
+const char *CSharedDoc::GetPrevChatTarget(const char *target) {
+	std::list<std::string>::iterator it = std::find(m_list4CD8.begin(), m_list4CD8.end(), target);
 
-	if (strlen(combo->GetLine(1, false)) == 0)
-		combo->SetLine(1, "\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4", 0, false, 0);
-
-	if (!AddWhisperPartner(combo, NULL))
-		return false;
-
-	const char* target = NULL;
-	bool bTeam = false;
-
-	if (strcmpi(combo->GetLine(1, false), "\xc6\xc0\xbf\xa1\xb0\xd4") == 0)
-	{
-		bTeam = true;
-	}
-	else if (strcmpi(combo->GetLine(1, false),
-				 "\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4") &&
-		strcmpi(combo->GetLine(1, false), "\xc6\xc0\xbf\xa1\xb0\xd4"))
-	{
-		target = combo->GetLine(1, false);
-	}
-
-	if (bWhisper)
-		m_chatManager.SendChatMessage2(msg, target, bTeam);
-	else
-		m_chatManager.SendChatMessage(msg, target, bTeam);
-
-	return true;
-}
-
-const char* CSharedDoc::GetPrevChatTarget(const char* name)
-{
-	std::list<std::string>::iterator it =
-		std::find(m_reservedChatList.begin(), m_reservedChatList.end(), name);
-	if (it != m_reservedChatList.end())
-	{
-		if (it != m_reservedChatList.begin())
-		{
+	if (it != m_list4CD8.end()) {
+		if (it != m_list4CD8.begin()) {
 			--it;
-			return (*it).c_str();
+			return it->c_str();
 		}
-		if (m_recentWhisperList.size() > 0)
-			return m_recentWhisperList.back().c_str();
-	}
-	else if (m_recentWhisperList.size() > 0)
-	{
-		it = std::find(m_recentWhisperList.begin(), m_recentWhisperList.end(),
-			name);
-		if (it != m_recentWhisperList.end())
-		{
-			if (it != m_recentWhisperList.begin())
-			{
+
+		if (m_recentWhisperList.size() > 0) {
+			it = m_recentWhisperList.end();
+			--it;
+			return it->c_str();
+		}
+	} else if (m_recentWhisperList.size() > 0) {
+		it = std::find(m_recentWhisperList.begin(), m_recentWhisperList.end(), target);
+
+		if (it != m_recentWhisperList.end()) {
+			if (it != m_recentWhisperList.begin()) {
 				--it;
-				return (*it).c_str();
 			}
-			return m_recentWhisperList.front().c_str();
+			return it->c_str();
 		}
 	}
-	return m_reservedChatList.back().c_str();
+
+	it = m_list4CD8.end();
+	--it;
+	return it->c_str();
 }
 
-const char* CSharedDoc::GetNextChatTarget(const char* name)
-{
-	std::list<std::string>::iterator it =
-		std::find(m_recentWhisperList.begin(), m_recentWhisperList.end(), name);
-	if (it != m_recentWhisperList.end())
-	{
-		if (++it != m_recentWhisperList.end())
-		{
-			return (*it).c_str();
+// shareddoc.cpp:3122, the chat target after target ("" when none follows).
+const char *CSharedDoc::GetNextChatTarget(const char *target) {
+	std::list<std::string>::iterator it = std::find(m_recentWhisperList.begin(), m_recentWhisperList.end(), target);
+
+	if (it != m_recentWhisperList.end()) {
+		++it;
+		if (it != m_recentWhisperList.end()) {
+			return it->c_str();
 		}
-		else if (m_reservedChatList.size() > 0)
-		{
-			return m_reservedChatList.front().c_str();
+
+		if (m_list4CD8.size() > 0) {
+			return m_list4CD8.begin()->c_str();
 		}
-	}
-	else if (m_reservedChatList.size() > 0)
-	{
-		it = std::find(m_reservedChatList.begin(), m_reservedChatList.end(),
-			name);
-		if (it != m_reservedChatList.end())
-		{
-			if (++it != m_reservedChatList.end())
-			{
-				return (*it).c_str();
+	} else if (m_list4CD8.size() > 0) {
+		it = std::find(m_list4CD8.begin(), m_list4CD8.end(), target);
+
+		if (it != m_list4CD8.end()) {
+			++it;
+			if (it != m_list4CD8.end()) {
+				return it->c_str();
 			}
 		}
 	}
@@ -2142,963 +1378,351 @@ const char* CSharedDoc::GetNextChatTarget(const char* name)
 	return "";
 }
 
-void CSharedDoc::CheckAngelWing()
-{
-	HaveAngelWing(false);
-
-	std::list<sItemInfo>::iterator it;
-	for (it = m_partsList.begin(); it != m_partsList.end(); it++)
-	{
-		if (IsAngelWing((*it).tid))
-		{
-			HaveAngelWing(true);
-			return;
+// shareddoc.cpp:3175
+void CSharedDoc::SetInitHaveHalloweenItem(void) {
+	m_haveHalloweenItem = false;
+	for (std::list<sItemInfo>::iterator it = m_myPartsList.begin(); it != m_myPartsList.end(); ++it) {
+		if (((*it).m_typeId & 0x1800) == 0x1800) {
+			m_haveHalloweenItem = true;
+			break;
 		}
 	}
 }
 
-void CSharedDoc::SetInitHaveHalloweenItem()
-{
-	SetHaveHalloweenItem(false);
-
-	std::list<sItemInfo>::iterator it;
-	for (it = m_partsList.begin(); it != m_partsList.end(); it++)
-	{
-		if (((*it).tid & 0x1800) == 0x1800)
-		{
-			SetHaveHalloweenItem(true);
-			return;
-		}
-	}
-}
-
-void CSharedDoc::SetInitWearHalloweenItem()
-{
-	SetWearHalloweenItem(false);
-
-	std::map<unsigned int, sCharacterInfo>::iterator it;
-	for (it = m_charMap.begin(); it != m_charMap.end(); ++it)
-	{
-		sCharacterInfo* pInfo = &(*it).second;
-
-		if (pInfo && pInfo->guid == m_myInfo.userEquip.guidChar)
-		{
-			for (int i = 0; i < 24; i++)
-			{
-				if ((pInfo->tidParts[i] & 0x1800) == 0x1800)
-				{
-					SetWearHalloweenItem(true);
-					return;
-				}
-			}
-			return;
-		}
-	}
-}
-
-int CSharedDoc::IsControlServerService(int service)
-{
+// shareddoc.cpp:3225
+int CSharedDoc::IsControlServerService(int service) {
 	return m_controlServerService & service;
 }
-void CSharedDoc::InitTradeData()
-{
-	m_stateTrade = STATE_TRADE_INIT;
+
+// shareddoc.cpp:3254
+void CSharedDoc::InitTradeData(void) {
+	m_stateTrade = STATE_TRADE_NONE;
 	m_listTradeItem.clear();
 
-	m_tradeUID = 0xffffffff;
-	m_tradeTitle = "";
+
+	m_tradeUID = 0xFFFFFFFF; m_tradeTitle = "";
 	m_countVisitor = 0;
 	m_tradeIncome = 0;
+
 
 	m_tradeMode = 0;
 }
 
-void CSharedDoc::SetTradeUID(unsigned long uid)
-{
-	if (uid != 0xffffffff)
+// shareddoc.cpp:3269
+void CSharedDoc::SetTradeUID(unsigned long uid) {
+	if (uid != 0xFFFFFFFF) {
 		m_tradeUID = uid;
+	}
 }
 
-bool CSharedDoc::AddListTradeItem(sTradeItem item)
-{
-	if (m_listTradeItem.size() >= 6)
-		return false;
-	if (item.dwGuid == 0)
-		return false;
-	if (item.dwTid == 0)
-		return false;
-	if (item.iNum <= 0)
-		return false;
-	if (item.i64Price <= 0)
-		return false;
+// shareddoc.cpp:3453
+bool CSharedDoc::SendTradeOpenShop(void) {
+	if (m_stateTrade == STATE_TRADE_READY && m_listTradeItem.size() > 0) {
+		WSendPacket packet((enumClientPacket)0x74);
+		packet.Send(SEND_TO_DEFAULT);
 
-	std::list<sTradeItem>::iterator it;
-	for (it = m_listTradeItem.begin(); it != m_listTradeItem.end(); it++)
-	{
-		if ((*it).dwGuid == item.dwGuid)
-		{
-			unsigned long type = item.dwTid >> 26;
-			if (type < 5 || (type > 6 && type != 31))
-				return false;
-		}
-	}
-
-	m_listTradeItem.push_back(item);
-	if (IsLocalContent(S4_UCC))
-	{
-		if (strlen(item.UccIndex) > 0 && item.Seq > 0 && (item.status & 1) &&
-			IsUccClothes(item.dwTid))
-		{
-			sUccClothes clothes;
-			clothes.id = item.dwGuid;
-			clothes.typeId = item.dwTid;
-			strncpy(clothes.uccIndex, item.UccIndex, 9);
-			strncpy(clothes.uccName,
-				"\xc1\xa4\xba\xb8\xb8\xa6 \xb9\xde\xbe\xc6\xbf\xc0\xb4\xc2 "
-				"\xc1\xdf...",
-				41);
-			clothes.downloadCount = 0;
-			UccManager()->AddClothes(0, clothes, true, false);
-		}
-	}
-
-	return true;
-}
-
-bool CSharedDoc::MinusListTradeItem(sTradeItem item)
-{
-	std::list<sTradeItem>::iterator it;
-	for (it = m_listTradeItem.begin(); it != m_listTradeItem.end(); it++)
-	{
-		if ((*it).iIndex == item.iIndex)
-		{
-			if ((*it).dwGuid == item.dwGuid && (*it).dwTid == item.dwTid)
-			{
-				if ((*it).iNum > item.iNum)
-				{
-					(*it).iNum -= item.iNum;
-					return true;
-				}
-				else if ((*it).iNum == item.iNum)
-				{
-					m_listTradeItem.erase(it);
-					return true;
-				}
-			}
-			break;
-		}
+		return true;
 	}
 
 	return false;
 }
 
-void CSharedDoc::ChageListStallitem(sStall* stall)
-{
-	std::list<sStall>::iterator it;
-	std::list<sStall>* pList = Doc()->GetListStallItem();
-	if (stall == NULL)
-	{
-		sStall* pStall = GetStallItem();
-		for (it = pList->begin(); it != pList->end(); it++)
-		{
-			if (pStall->stallKey == (*it).stallKey)
-				*it = *pStall;
-		}
-	}
-	else
-	{
-		for (it = pList->begin(); it != pList->end(); it++)
-		{
-			if (stall->stallKey == (*it).stallKey)
-				*it = *stall;
-		}
-	}
-}
-
-bool CSharedDoc::SendOfflineTradeEditShop()
-{
-	if (!IsLocalContent(S4_OFFLINE_SHOP))
-		return true;
-
-	if (Doc()->GetStallItem() == NULL || Doc()->GetStallItem()->stallKey == 0)
-	{
-		AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 35,
-			(int)"\xc1\xf8\xbf\xad\xc0\xe5 \xb1\xb8\xb8\xc5\xb8\xa6 "
-				 "\xc7\xcf\xc1\xf6\xbe\xca\xc0\xb8\xbc\xcc\xbd\xc0\xb4\xcf"
-				 "\xb4\xd9. \xb1\xb8\xb8\xc5\xc7\xcf\xb0\xed \xc0\xcc\xbf\xeb"
-				 "\xc7\xd8 \xc1\xd6\xbc\xbc\xbf\xe4.~",
-			0, 0, 0, 0));
-		return true;
-	}
-
-	Doc()->SetTradeMode(5);
-	AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 562, 0, 0, 0, 0, 0));
-
-	return true;
-}
-
-bool CSharedDoc::SendOfflineTradeVisitor(unsigned long uid)
-{
-	if (!IsLocalContent(S4_OFFLINE_SHOP))
-		return true;
-
-	if (Doc()->GetStallItem() == NULL || Doc()->GetStallItem()->stallKey == 0)
-	{
-		AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 35,
-			(int)"\xb9\xe6\xb9\xae\xc7\xcf\xbd\xc5 \xb9\xe6\xc0\xc7 \xc0\xaf\xc0\xfa"
-				 "\xb4\xc2 \xc1\xc2\xc6\xc7\xc0\xbb \xb9\xe8\xc4\xa1\xc7\xcf\xb0\xc5"
-				 "\xb3\xaa, \xb1\xb8\xc0\xd4\xc7\xcf\xc1\xf6 \xbe\xca\xc0\xb8\xbc\xcc"
-				 "\xbd\xc0\xb4\xcf\xb4\xd9.",
-			0, 0, 0, 0));
-		return true;
-	}
-
-	std::list<sStall>* pList = Doc()->GetListStallItem();
-	sStall stall;
-	std::list<sStall>::iterator it;
-	for (it = pList->begin(); it != pList->end(); ++it)
-	{
-		if ((*it).typeID == uid)
-		{
-			WSendPacket packet((enumClientPacket)0xcd);
-			packet.Encode4(Doc()->m_replayTargetUID);
-			packet.Encode4((*it).stallKey);
-			packet.Encode1(1);
-			packet.Send(TO_GAME);
-
-			AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
-			break;
-		}
-	}
-
-	return true;
-}
-
-bool CSharedDoc::SendTradeOpenShop()
-{
-	if (GetStateTrade() != STATE_TRADE_EDIT)
-		return false;
-	if (GetListTradeItem()->size() <= 0)
-		return false;
-
-	WSendPacket packet((enumClientPacket)0x74);
-	packet.Send(TO_GAME);
-
-	return true;
-}
-
-bool CSharedDoc::SendTradeCloseShop()
-{
-	if (GetStateTrade() == STATE_TRADE_INIT)
-		return false;
+// shareddoc.cpp:3465
+bool CSharedDoc::SendTradeCloseShop(void) {
+	if (m_stateTrade == STATE_TRADE_NONE) return false;
 
 	WSendPacket packet((enumClientPacket)0x75);
-	packet.Send(TO_GAME);
+	packet.Send(SEND_TO_DEFAULT);
 
 	return true;
 }
 
-bool CSharedDoc::SendTradeEditShop()
-{
+// shareddoc.cpp:3476
+bool CSharedDoc::SendTradeEditShop(void) {
 	WSendPacket packet((enumClientPacket)0x76);
-	packet.Send(TO_GAME);
+	packet.Send(SEND_TO_DEFAULT);
 
 	return true;
 }
 
-bool CSharedDoc::SendTradeEnterShop(unsigned long uid)
-{
-	if (uid == 0xffffffff)
-		return false;
-
-	WSendPacket packet((enumClientPacket)0x77);
-	packet.Encode4(uid);
-	packet.Send(TO_GAME);
-
-	return true;
-}
-
-bool CSharedDoc::SendTradeExitShop(unsigned long uid)
-{
-	if (uid == 0xffffffff)
-		return false;
-
-	WSendPacket packet((enumClientPacket)0x78);
-	packet.Encode4(uid);
-	packet.Send(TO_GAME);
-
-	return true;
-}
-
-bool CSharedDoc::SendTradeTitle(std::string title)
-{
-	if (title.length() <= 0)
-		return false;
+// shareddoc.cpp:3511
+bool CSharedDoc::SendTradeTitle(std::string title) {
+	if (title.length() <= 0) return false;
 
 	WSendPacket packet((enumClientPacket)0x79);
 	packet.EncodeStr(title);
-	packet.Send(TO_GAME);
+	packet.Send(SEND_TO_DEFAULT);
 
 	return true;
 }
 
-bool CSharedDoc::SendTradeShowVisitor()
-{
-	switch (m_stateTrade)
-	{
-	case STATE_TRADE_OPEN:
-	case STATE_TRADE_OUTOFSTOCK:
-		break;
-	default:
-		return false;
-	}
-
-	WSendPacket packet((enumClientPacket)0x7a);
-	packet.Send(TO_GAME);
-
-	return true;
-}
-
-bool CSharedDoc::SendTradeIncome()
-{
-	switch (m_stateTrade)
-	{
-	case STATE_TRADE_OPEN:
-	case STATE_TRADE_OUTOFSTOCK:
-		break;
-	default:
-		return false;
-	}
-
-	WSendPacket packet((enumClientPacket)0x7b);
-	packet.Send(TO_GAME);
-
-	return true;
-}
-
-bool CSharedDoc::SendTradeBuyItem(unsigned long uid, sTradeItem item)
-{
-	if (m_stateTrade != STATE_TRADE_ENTER)
-		return false;
-	if (uid == 0 || uid == 0xffffffff)
-		return false;
-	if (item.dwGuid == 0)
-		return false;
-	if (item.dwTid == 0)
-		return false;
-	if (item.i64Price == 0)
-		return false;
-	if (item.iNum <= 0)
-		return false;
-
-	WSendPacket packet((enumClientPacket)0x7d);
-	packet.Encode4(uid);
-	packet.EncodeBuffer(&item, sizeof(sTradeItem));
-	packet.Send(TO_GAME);
-
-	return true;
-}
-
-void CSharedDoc::SetInitAbilityItem()
-{
-	m_flagAbilityItem = 0;
-	m_numBonusPangItem = 0;
-
-	for (int i = 0; i < 24; i++)
-	{
-		unsigned long flag = ItemManager()->GetIndexAbilityItem(
-			m_userInfo[GOLFDOC()->m_currentPlayer].charInfo.tidParts[i]);
-		m_flagAbilityItem |= flag;
-
-		if (flag & 1)
-		{
-			m_numBonusPangItem++;
-		}
-	}
-}
-
-int CSharedDoc::GetIndexPangyaLogoImage()
-{
-	int index = 0;
-	switch (m_userInfo[GOLFDOC()->m_currentPlayer].clubInfo.tid & 0x3ffffff)
-	{
-	case 0x0c:
-		index = 1;
-		break;
-	case 0x80:
-		index = 2;
-		break;
-	case 0x11:
-		index = 3;
-		break;
-	case 0x10:
-		index = 4;
-		break;
-	case 0x14:
-		index = 6;
-		break;
-
-	case 0x13:
-		index = 8;
-		break;
-
-	case 0x18:
-		index = 11;
-		break;
-	case 0x19:
-		index = 13;
-		break;
-	case 0x1b:
-		index = 16;
-		break;
-
-	case 0x27:
-		index = 19;
-		break;
-	case 0x2b:
-		index = 20;
-		break;
-	case 0x22:
-	case 0x2f:
-	case 0x30:
-		index = 21;
-		break;
-	case 0x26:
-		index = 23;
-		break;
-
-	case 0x2c:
-		index = 26;
-		break;
-
-	case 0x33:
-		index = 27;
-		break;
-	case 0x35:
-		index = 28;
-		break;
-	case 0x34:
-		index = 29;
-		break;
-	case 0x3a:
-		index = 31;
-		break;
-
-	case 0x3f:
-	case 0x40:
-		if ((m_userInfo[GOLFDOC()->m_currentPlayer].charInfo.tid & 0x3ffffff) ==
-			9)
-			index = 58;
-		break;
-
-	case 0x3e:
-		index = 62;
-		break;
-	case 0x43:
-		index = 67;
-		break;
-	case 0x44:
-	case 0x45:
-		index = 68;
-		break;
-	}
-
-	return index;
-}
-
-bool CSharedDoc::IsOverlapPart(unsigned long typeId)
-{
-	std::list<sItemInfo>::iterator it;
-
-	for (it = m_partsList.begin(); it != m_partsList.end(); it++)
-	{
-		if ((*it).tid == typeId)
-		{
+// shareddoc.cpp:3748
+bool CSharedDoc::IsOverlapPart(unsigned long typeId) {
+	for (std::list<sItemInfo>::iterator it = m_myPartsList.begin(); it != m_myPartsList.end(); ++it) {
+		if ((*it).m_typeId == typeId)
 			return true;
-		}
 	}
 
 	return false;
 }
 
-int OnlinePlay()
-{
-	if (!WNetworkSystem::Instance()->IsConnected(WNetworkSystem::NET_GAME))
-		return FALSE;
+// shareddoc.cpp:3763
+int OnlinePlay(void) {
+	if (!WSingleton<WNetworkSystem>::Instance()->IsConnected(WNetworkSystem::NET_UNIT_DEFAULT))
+		return 0;
 
-	if (IS_KINDOF(CLobbyTask, AfxGetTask()) ||
-		IS_KINDOF(CShopTask, AfxGetTask()))
-		return TRUE;
+	if (((__rtti_obj = AfxGetTask()) != 0 ? ((IObject*)__rtti_obj)->IsKindOf(&CLobbyTask::m_RTTI) : false)
+		|| ((__rtti_obj = AfxGetTask()) != 0 ? ((IObject*)__rtti_obj)->IsKindOf(&CShopTask::m_RTTI) : false))
+		return 1;
 
-	if (Doc()->m_gameMode != 0 || Doc()->m_golfGame.gameType == 11 ||
-		Doc()->m_golfGame.gameType == 12)
-		return FALSE;
+	if (WSingleton<CSharedDoc>::Instance()->m_gameMode != 0
+		|| WSingleton<CSharedDoc>::Instance()->m_roomType == 0x0B || WSingleton<CSharedDoc>::Instance()->m_roomType == 0x0C)
+		return 0;
 
-	return TRUE;
+	return 1;
 }
 
-unsigned char GetCurMap()
-{
-	return (Doc()->m_golfGame.map > 127 && Doc()->m_golfGame.map != 0xfd)
-		? Doc()->m_golfGame.map - 128
-		: Doc()->m_golfGame.map;
+// shareddoc.cpp:3777
+unsigned char GetCurMap(void) {
+	unsigned char map = WSingleton<CSharedDoc>::Instance()->m_curMap;
+	return (map > 0x7F && map != 0xFD) ? map - 0x80 : map;
 }
 
-bool IsCurMapSnow()
-{
+// shareddoc.cpp:3796
+bool SetCurMap(unsigned char map) {
+	unsigned long id = (map > 0x7F && map != 0xFD) ? map - 0x80 : map;
+	IFF_STRUCT::sCourse *course = WSingleton<CSharedDoc>::Instance()->m_itemManager.FindCourse(id | 0x28000000);
+
+	if (!course)
+		return false;
+	WSingleton<CSharedDoc>::Instance()->m_curMap = map;
+	WSingleton<CSharedDoc>::Instance()->m_pCurCourse = course;
+	return true;
+}
+
+// shareddoc.cpp:3782
+bool IsCurMapSnow(void) {
 	unsigned char map = GetCurMap();
+
 	if (map == 8)
 		return true;
-	if (map == 14)
+	else if (map == 14)
 		return true;
-	if (map == 17)
+	else if (map == 17)
 		return true;
+
 	return false;
 }
 
-bool SetCurMap(unsigned char map)
-{
-	IFF_STRUCT::sCourse* pCourse = ItemManager()->FindCourse(
-		((map > 127 && map != 0xfd) ? map - 128 : map) | 0x28000000);
-	if (pCourse == NULL)
-	{
-		return false;
+// shareddoc.cpp:3810
+std::string CSharedDoc::GetLoginAuthKey(void) {
+	return WSingleton<CSharedDoc>::Instance()->m_loginAuthKey;
+}
+
+// shareddoc.cpp:3814
+unsigned short CSharedDoc::GetSecurityKey(void) {
+	return Instance()->m_securityKey;
+}
+
+// shareddoc.cpp:3819
+void CSharedDoc::SetLoginAuthKey(std::string key) {
+	WSingleton<CSharedDoc>::Instance()->m_loginAuthKey = key;
+}
+
+// shareddoc.cpp:3824
+void CSharedDoc::SetSecurityKey(unsigned short key) {
+	Instance()->m_securityKey = key;
+}
+
+// shareddoc.cpp:3996, reads the visibility groups: each line of the file is a
+// group name followed by the names of its members.
+void CSharedDoc::LoadVisGroup(const char *fileName) {
+	cFile *file = g_resrcmng->GetCFile(fileName, 0xFFFF);
+	if (file == 0) {
+		return;
 	}
 
-	Doc()->m_golfGame.map = map;
-	Doc()->m_golfGame.pCourse = pCourse;
-	return true;
-}
+	std::vector<std::string> tokens;
+	int length = file->Length();
+	char *data = new char[length + 1];
+	file->Read(data, length);
+	CloseCFile(file);
 
-std::string CSharedDoc::GetLoginAuthKey()
-{
-	return Doc()->m_loginAuthKey;
-}
-
-unsigned short CSharedDoc::GetSecurityKey()
-{
-	return Doc()->m_securityKey;
-}
-
-void CSharedDoc::SetLoginAuthKey(std::string key)
-{
-	Doc()->m_loginAuthKey = key;
-}
-
-void CSharedDoc::SetSecurityKey(unsigned short key)
-{
-	Doc()->m_securityKey = key;
-}
-void CSharedDoc::RefreshItemListFromGuidList(unsigned char mode)
-{
-	std::list<sItemInfo>::iterator it;
-	std::list<unsigned long>::iterator itGuid;
-	std::list<unsigned short>::iterator itCount;
-
-	it = m_myItemList.begin();
-	while (it != m_myItemList.end())
-	{
-		itGuid = m_refreshGuidList.begin();
-		itCount = m_refreshCountList.begin();
-		for (; itGuid != m_refreshGuidList.end(); ++itGuid, ++itCount)
-		{
-			if ((*it).guid == *itGuid)
-				break;
+	data[length] = 0;
+	char *cursor = data;
+	for (;;) {
+		while (*cursor == '\n' || *cursor == '\r') {
+			cursor++;
 		}
-
-		if (itGuid == m_refreshGuidList.end())
-		{
-			it = m_myItemList.erase(it);
-			continue;
-		}
-
-		if (mode == 2 && (*it).Common[0] != *itCount)
-		{
-			(*it).Common[0] = *itCount;
-		}
-
-		it++;
-	}
-
-	if (mode == 2)
-	{
-		it = m_questDropList.begin();
-		while (it != m_questDropList.end())
-		{
-			itGuid = m_refreshGuidList.begin();
-			itCount = m_refreshCountList.begin();
-			for (; itGuid != m_refreshGuidList.end(); ++itGuid, ++itCount)
-			{
-				if ((*it).guid == *itGuid)
-					break;
-			}
-
-			if (itGuid == m_refreshGuidList.end())
-			{
-				it = m_questDropList.erase(it);
-				continue;
-			}
-
-			if ((*it).Common[0] != *itCount)
-			{
-				(*it).Common[0] = *itCount;
-			}
-
-			it++;
-		}
-	}
-
-	m_refreshGuidList.clear();
-	m_refreshCountList.clear();
-}
-
-void CSharedDoc::UpdateGachaTickets()
-{
-	unsigned long typeId[2];
-	unsigned short count[2];
-	sItemInfo item;
-	std::list<sItemInfo>::iterator it;
-
-	typeId[0] = 0x1a000080;
-	typeId[1] = 0x1a000083;
-	count[0] = m_gachaTicket[0];
-	count[1] = m_gachaTicket[1];
-
-	memset(&item, 0, sizeof(sItemInfo));
-
-	for (int i = 0; i < 2; i++)
-	{
-		for (it = Doc()->m_myItemList.begin(); it != Doc()->m_myItemList.end();)
-		{
-			if ((*it).tid == typeId[i])
-			{
-				if (count[i] == 0)
-					Doc()->m_myItemList.erase(it);
-				else
-					(*it).Common[0] = count[i];
-				break;
-			}
-
-			it++;
-		}
-
-		if (count[i] != 0)
-		{
-			if (it == Doc()->m_myItemList.end())
-			{
-				item.tid = typeId[i];
-				item.Common[0] = count[i];
-				Doc()->m_myItemList.push_back(item);
-			}
-		}
-	}
-}
-
-unsigned long CSharedDoc::GetMyDisconPangPenalty()
-{
-	unsigned long penalty = 0;
-
-	switch (Doc()->m_golfGame.gameType)
-	{
-	case GAME_TYPE_STROKE:
-		penalty = 100;
-		break;
-
-	case GAME_TYPE_MATCH:
-	case GAME_TYPE_SKINS:
-		penalty = 350;
-		break;
-
-	case GAME_TYPE_TEAM:
-		penalty = 300;
-		break;
-
-	case GAME_TYPE_30S:
-		penalty = 150;
-		break;
-
-	case GAME_TYPE_30S_TEAM:
-		penalty = 200;
-		break;
-	}
-
-	if (m_myInfo.stat.Level >= 6)
-	{
-		penalty += ((m_myInfo.stat.Level - 1) / 5) * 100;
-
-		if (m_myInfo.stat.dwGameCount > 50)
-			penalty += ((m_myInfo.stat.dwNoMannerGameCount * 100 /
-							m_myInfo.stat.dwGameCount) -
-						   10) *
-				10;
-	}
-
-	return penalty;
-}
-
-void CSharedDoc::LoadVisGroup(const char* filename)
-{
-	cFile* fp = g_resrcmng->GetCFile("visgroup.def", 0xffff);
-
-	if (fp)
-	{
-		std::vector<std::string> tokens;
-
-		int len = fp->Length();
-		char* buf = new char[len + 1];
-		fp->Read(buf, len);
-		CloseCFile(fp);
-
-		buf[len] = 0;
-		char* p = buf;
-
-		for (;;)
-		{
-			while (*p == '\n' || *p == '\r')
-				p++;
-
-			if (*p == 0)
-				break;
-
-			char line[256];
-			char* q = line;
-			while (*p != '\n' && *p != '\r' && *p != 0)
-			{
-				*q = *p++;
-				q++;
-			}
-
-			*q = 0;
-
-			LineParse(line, tokens);
-
-			if (tokens.size() > 1)
-			{
-				std::string& key = tokens[0];
-
-				for (unsigned int i = 1; i < tokens.size(); i++)
-					m_visGroupMap[key].push_back(tokens[i]);
-			}
-		}
-
-		delete[] buf;
-	}
-}
-
-void CSharedDoc::SetFileName(char* const filename)
-{
-	strcpy(m_fileName, filename);
-}
-
-void CSharedDoc::ReplaySavFileCheck()
-{
-	Doc()->m_recordedItemList.clear();
-
-	char fileName[32] = { 0 };
-
-	for (int i = 0; i < 100; i++)
-	{
-		sprintf(fileName, "save/pangya_%03d.sav", i);
-		FILE* fp = fopen(fileName, "rb");
-
-		if (fp == NULL)
-			continue;
-
-		unsigned long version = 0;
-		unsigned long uid = 0xffffffff;
-		unsigned char course = 0;
-		SYSTEMTIME date;
-		int mode = 0;
-
-		fread(&version, 4, 1, fp);
-		fread(&uid, 4, 1, fp);
-		fread(&course, 1, 1, fp);
-		fread(&date, sizeof(SYSTEMTIME), 1, fp);
-		fread(&mode, 4, 1, fp);
-
-		if (version == m_replayVersion && uid == MyUID())
-		{
-			sRecordedItemInfo info;
-
-			if (mode == 1)
-				info.itemInfo.tid = 0x1a000043;
-			else if (mode == 2)
-				info.itemInfo.tid = 0x1a000050;
-
-			info.itemInfo.Common[0] = 1;
-			info.course = course;
-			info.date = date;
-			info.bValid = 1;
-			strcpy(info.fileName, fileName);
-
-			Doc()->m_recordedItemList.push_back(info);
-		}
-
-		fclose(fp);
-
-		if (Doc()->m_recordedItemList.size() >= 10)
+		if (*cursor == 0) {
 			break;
+		}
+
+		char line[0x100];
+		char *dest = line;
+		while (*cursor != '\n' && *cursor != '\r' && *cursor != 0) {
+			*dest++ = *cursor++;
+		}
+		*dest = 0;
+
+		LineParse(line, tokens);
+		if (tokens.size() > 1) {
+			std::list<std::string> &group = m_visGroups[tokens[0]];
+			for (size_t i = 1; i < tokens.size(); i++) {
+				group.push_back(tokens[i]);
+			}
+		}
 	}
+	delete[] data;
 }
 
-std::list<std::string>* CSharedDoc::GetVisGroup(const char* name)
-{
-	std::map<std::string, std::list<std::string> >::iterator it =
-		m_visGroupMap.find(name);
+// shareddoc.cpp:4048
+void CSharedDoc::SetFileName(char *const fileName) {
+	strcpy(m_fileName, fileName);
+}
 
-	if (it == m_visGroupMap.end())
-		return NULL;
+// shareddoc.cpp:4118
+std::list<std::string> *CSharedDoc::GetVisGroup(const char *name) {
+	std::map<std::string, std::list<std::string> >::iterator it = m_visGroups.find(std::string(name));
+	if (it == m_visGroups.end()) {
+		return 0;
+	}
 
 	return &it->second;
 }
 
-bool CSharedDoc::CheckUnderLevelClubSet(unsigned long typeId)
-{
-	bool bRet = true;
-	IFF_STRUCT::sClubSet* pClubSet = Doc()->m_itemManager.FindClubSet(typeId);
+// shareddoc.cpp:4129, false when the club set needs a level above the
+// local player's.
+bool CSharedDoc::CheckUnderLevelClubSet(unsigned long typeId) {
+	bool result = true;
 
-	if (pClubSet->c.IsUnderLvl)
-	{
-		if (pClubSet->c.Level < m_myInfo.stat.Level)
-			bRet = false;
+	IFF_STRUCT::sClubSet *pClubSet = WSingleton<CSharedDoc>::Instance()->m_itemManager.FindClubSet(typeId);
+
+	if (pClubSet->m_level & 0x80) {
+		if ((pClubSet->m_level & 0x7F) < m_myLevel)
+			return false;
 	}
 
-	return bRet;
+	return result;
 }
 
-void CSharedDoc::InitMapEvent()
-{
+// shareddoc.cpp:4154
+void CSharedDoc::InitMapEvent(void) {
 }
 
-bool CSharedDoc::IsMapEventActive(int course)
-{
+// shareddoc.cpp:4173
+bool CSharedDoc::IsMapEventActive(int map) {
 	return false;
 }
 
-unsigned long CSharedDoc::GetMapEventPangRate(int course)
-{
+// shareddoc.cpp:4190
+unsigned long CSharedDoc::GetMapEventPangRate(int map) {
 	return 100;
 }
 
-unsigned long CSharedDoc::GetMapEventExpRate(int course)
-{
+// shareddoc.cpp:4204
+unsigned long CSharedDoc::GetMapEventExpRate(int map) {
 	return 100;
 }
 
-void CSharedDoc::SetIdentity(int identity)
-{
-	m_myInfo.info.dwIdentity = identity;
+// shareddoc.cpp:4245
+void CSharedDoc::SetIdentity(int identity) {
+	m_userInfo.identity = identity;
 }
 
-void CSharedDoc::AccumulateIdentity(int identity)
-{
-	m_myInfo.info.dwIdentity |= identity;
+// shareddoc.cpp:4250
+void CSharedDoc::AccumulateIdentity(int identity) {
+	m_userInfo.identity |= identity;
 }
 
-__int64 CSharedDoc::RemainOwnCash(unsigned long provider, __int64 cookie)
-{
-	__int64 remain = Doc()->m_cookie;
-
-	switch (provider)
-	{
+// shareddoc.cpp:4256
+__int64 CSharedDoc::RemainOwnCash(unsigned long buyType, __int64 price) {
+	__int64 remain = WSingleton<CSharedDoc>::Instance()->m_myCash;
+	switch (buyType) {
 	case 2:
 	case 4:
-		remain -= cookie;
+		remain -= price;
 		break;
 	}
 
 	return remain;
 }
 
-void CSharedDoc::RefreshAllCookie()
-{
-	Doc()->m_cookie =
-		S5::ExchangeOwnCashToCookie(Doc()->m_cash, Doc()->m_bonusCash, 100);
+// shareddoc.cpp:4301
+void CSharedDoc::RefreshAllCookie(void) {
+	WSingleton<CSharedDoc>::Instance()->m_myCash = S5::ExchangeOwnCashToCookie(WSingleton<CSharedDoc>::Instance()->m_outsideCash, WSingleton<CSharedDoc>::Instance()->m_myBonusCash, 100);
 }
 
-bool CSharedDoc::CanUseRookieChannelMap(unsigned int course)
-{
-	bool bRet = true;
-
-	IFF_STRUCT::sCourse* pCourse = ItemManager()->FindCourse(
-		(course > 127 && course != 0xfd ? course - 128 : course) | 0x28000000);
-	if (pCourse)
-	{
-		if (pCourse->Difficulty > 3)
+// shareddoc.cpp:4307
+bool CSharedDoc::CanUseRookieChannelMap(unsigned int map) {
+	bool canUse = true;
+	IFF_STRUCT::sCourse *pCourse = WSingleton<CSharedDoc>::Instance()->m_itemManager.FindCourse(((map > 0x7F && map != 0xFD) ? map - 0x80 : map) | 0x28000000);
+	if (pCourse) {
+		if ((pCourse->courseFlags & 0xF) > 3) {
 			return false;
+		}
 	}
 
-	if (course == 8 || course == 1 || course == 9 || course == 14 ||
-		course == 6)
-		bRet = false;
+	if (map == 8 || map == 1 || map == 9 || map == 0xE || map == 6)
+		canUse = false;
 
-	return bRet;
+	return canUse;
 }
 
-void CSharedDoc::SetServerTime(_SYSTEMTIME& time)
-{
-	Doc()->m_serverTime = time;
+// shareddoc.cpp:4330
+void CSharedDoc::SetServerTime(_SYSTEMTIME &time) {
+	WSingleton<CSharedDoc>::Instance()->m_serverTime = time;
 
-	if (IsLocalContent(S4_CARD_SYSTEM))
-	{
-		if (CCardManager::IsInstantiated())
-			CCardManager::Instance()->ResetSpecialBuffTick();
+	if (IsLocalContent((localContentType_t)0x51)) {
+		if (WSingleton<CCardManager>::IsInstantiated())
+			WSingleton<CCardManager>::Instance()->ResetSpecialBuffTick();
 	}
 
-	Doc()->m_serverTimeTick = GetTickCount();
+	WSingleton<CSharedDoc>::Instance()->m_serverTimeTick = GetTickCount();
 }
 
-SYSTEMTIME& CSharedDoc::GetServerTime()
-{
-	return Doc()->m_serverTime;
+// shareddoc.cpp:4344
+_SYSTEMTIME &CSharedDoc::GetServerTime(void) {
+	return Instance()->m_serverTime;
 }
 
-void CSharedDoc::SetDirectMoveRoomInfo(unsigned char type, unsigned short room,
-	unsigned long uid)
-{
-	m_directMoveType = type;
+// shareddoc.cpp:4350
+void CSharedDoc::SetDirectMoveRoomInfo(unsigned char server, unsigned short room, unsigned long uid) {
+	m_directMoveServer = server;
 	m_directMoveRoom = room;
 	m_directMoveUID = uid;
 }
 
-bool CSharedDoc::GetDirectMoveRoomInfo(unsigned char* type,
-	unsigned short* room, unsigned long* uid)
-{
-	if (m_directMoveUID == 0xffffffff || m_directMoveRoom == 0xffff)
+// shareddoc.cpp:4357
+bool CSharedDoc::GetDirectMoveRoomInfo(unsigned char *server, unsigned short *room, unsigned long *uid) {
+	if (m_directMoveUID == 0xFFFFFFFF || m_directMoveRoom == 0xFFFF)
 		return false;
 
-	*type = m_directMoveType;
+	*server = m_directMoveServer;
 	*room = m_directMoveRoom;
 	*uid = m_directMoveUID;
 
 	return true;
 }
 
-void CSharedDoc::ClearDirectMoveRoomInfo()
-{
-	m_directMoveType = 0xff;
-	m_directMoveRoom = 0xffff;
-	m_directMoveUID = 0xffffffff;
+// shareddoc.cpp:4370
+void CSharedDoc::ClearDirectMoveRoomInfo(void) {
+	m_directMoveServer = 0xFF;
+	m_directMoveRoom = 0xFFFF;
+	m_directMoveUID = 0xFFFFFFFF;
 }
 
-int CSharedDoc::FindUserInfoTimeUID(unsigned long uid,
-	std::map<unsigned long, sUserInfoTime>::iterator& it)
-{
+// shareddoc.cpp:4377
+int CSharedDoc::FindUserInfoTimeUID(unsigned long uid, std::map<unsigned long, sUserInfoTime>::iterator &it) {
 	it = m_userInfoTimeMap.find(uid);
-	return it != m_userInfoTimeMap.end() ? TRUE : FALSE;
+	return it == m_userInfoTimeMap.end() ? FALSE : TRUE;
 }
 
-int CSharedDoc::FindUserInfoTimeGUID(unsigned long guid,
-	std::map<unsigned long, sUserInfoTime>::iterator& it)
-{
-	if (!m_userInfoTimeMap.empty())
-	{
-		for (std::map<unsigned long, sUserInfoTime>::iterator i =
-				 m_userInfoTimeMap.begin();
-			i != m_userInfoTimeMap.end(); ++i)
-		{
-			if ((*i).second.info.info.dwGuid == guid)
-			{
+// shareddoc.cpp:4386, the map has no GUID key: a linear search.
+int CSharedDoc::FindUserInfoTimeGUID(unsigned long guid, std::map<unsigned long, sUserInfoTime>::iterator &it) {
+	if (m_userInfoTimeMap.size() > 0) {
+		for (std::map<unsigned long, sUserInfoTime>::iterator i = m_userInfoTimeMap.begin(); i != m_userInfoTimeMap.end(); ++i) {
+			if (i->second.m_userInfo.m_guid == guid) {
 				it = i;
 				return TRUE;
 			}
@@ -3109,16 +1733,14 @@ int CSharedDoc::FindUserInfoTimeGUID(unsigned long guid,
 	return FALSE;
 }
 
-int CSharedDoc::FindUserInfo(unsigned long uid,
-	std::map<unsigned long, sBriefUserInfo>::iterator& it)
-{
-	if (!m_briefUserInfoMap.empty())
-	{
-		std::map<unsigned long, sBriefUserInfo>::iterator i =
-			m_briefUserInfoMap.find(uid);
-		if (i != m_briefUserInfoMap.end())
-		{
-			it = i;
+// shareddoc.cpp:4405
+int CSharedDoc::FindUserInfo(unsigned long key, std::map<unsigned long, sBriefUserInfo>::iterator &it) {
+	int count = m_userMap.size();
+
+	if (count) {
+		std::map<unsigned long, sBriefUserInfo>::iterator found = m_userMap.find(key);
+		if (found != m_userMap.end()) {
+			it = found;
 			return TRUE;
 		}
 	}
@@ -3126,18 +1748,14 @@ int CSharedDoc::FindUserInfo(unsigned long uid,
 	return FALSE;
 }
 
-int CSharedDoc::FindUserInfoUID(unsigned long uid,
-	std::map<unsigned long, sBriefUserInfo>::iterator& it)
-{
-	if (m_briefUserInfoMap.empty())
+// shareddoc.cpp:4423
+int CSharedDoc::FindUserInfoUID(unsigned long uid, std::map<unsigned long, sBriefUserInfo>::iterator &it) {
+	if (m_userMap.size() == 0)
 		return FALSE;
 
-	for (std::map<unsigned long, sBriefUserInfo>::iterator i =
-			 m_briefUserInfoMap.begin();
-		i != m_briefUserInfoMap.end(); ++i)
-	{
-		if (uid == (*i).second.dwUid)
-		{
+	std::map<unsigned long, sBriefUserInfo>::iterator i = m_userMap.begin();
+	for (; i != m_userMap.end(); ++i) {
+		if (uid == (*i).second.id) {
 			it = i;
 			return TRUE;
 		}
@@ -3146,126 +1764,52 @@ int CSharedDoc::FindUserInfoUID(unsigned long uid,
 	return FALSE;
 }
 
-int CSharedDoc::FindUserInfoTimeUserID(const char* id,
-	std::map<unsigned long, sUserInfoTime>::iterator& it)
-{
-	if (!m_userInfoTimeMap.empty())
-	{
-		char* lwrId = strlwr((char*)id);
-
-		for (std::map<unsigned long, sUserInfoTime>::iterator i =
-				 m_userInfoTimeMap.begin();
-			i != m_userInfoTimeMap.end(); ++i)
-		{
-			char* lwr = strlwr((*i).second.info.info.sID);
-			if (strcmp(lwrId, lwr) == 0)
-			{
-				it = i;
-				return TRUE;
-			}
-		}
-	}
-
-	it = m_userInfoTimeMap.end();
-	return FALSE;
-}
-
-int CSharedDoc::InsertUserInfoTime(unsigned long uid, sUserInfoTime& info)
-{
+// shareddoc.cpp:4466
+int CSharedDoc::InsertUserInfoTime(unsigned long uid, sUserInfoTime &info) {
 	m_userInfoTimeMap[uid] = info;
 	return TRUE;
 }
 
-CPeriodContents* CSharedDoc::GetPeriodDoc()
-{
+// shareddoc.cpp:4488
+CPeriodContents *CSharedDoc::GetPeriodDoc(void) {
 	return m_pPeriodDoc;
 }
 
-void CSharedDoc::SetPeriodDoc()
-{
+// shareddoc.cpp:4499
+void CSharedDoc::SetPeriodDoc(void) {
 	m_pPeriodDoc = NULL;
-	CContentsDoc::Instance()->GetContainer((localContentType_t)0x92,
-		m_pPeriodDoc);
+	WSingleton<CContentsDoc>::Instance()->GetContainer((localContentType_t)0x92, m_pPeriodDoc);
 }
 
-const eApproachMissionType s_blindMissions[2] = {
-	(eApproachMissionType)4,
-	(eApproachMissionType)21,
-};
+// The approach missions played blind (IsCurrentMissionBlind).
+static const int s_blindMissions[] = { 4, 0x15 };
 
-bool CSharedDoc::IsCurrentMissionBlind()
-{
-	bool bRet = false;
-
-	if (Doc()->m_golfGame.gameType == GAME_TYPE_NEW_APPROACH)
-	{
-		for (int i = 0;
-			i < sizeof(s_blindMissions) / sizeof(s_blindMissions[0]); i++)
-		{
+// shareddoc.cpp:4506
+bool CSharedDoc::IsCurrentMissionBlind(void) {
+	bool blind = false;
+	if (WSingleton<CSharedDoc>::Instance()->m_roomType == 10) {
+		for (unsigned int i = 0; i < sizeof(s_blindMissions) / sizeof(s_blindMissions[0]); i++) {
 			if (s_blindMissions[i] == GOLFDOC()->GetApproachMissionType())
-			{
-				bRet = true;
-				break;
-			}
+				return true;
 		}
 	}
 
-	return bRet;
+	return blind;
 }
 
-int CSharedDoc::IsEquipParts(unsigned long uid, unsigned long typeId)
-{
-	std::map<unsigned int, sCharacterInfo>::iterator it;
-
-	if (typeId >> 26 == 2)
-	{
-		for (it = Doc()->m_charMap.begin(); it != Doc()->m_charMap.end(); ++it)
-		{
-			for (int i = 0; i < 24; i++)
-			{
-				if ((*it).second.tidParts[i] &&
-					uid == (*it).second.ItemIdList[i])
-					return TRUE;
-			}
-		}
-	}
-	else if (typeId >> 26 == 28)
-	{
-		for (it = Doc()->m_charMap.begin(); it != Doc()->m_charMap.end(); ++it)
-		{
-			for (int i = 0; i < 5; i++)
-			{
-				if ((*it).second.tidAuxParts[i] &&
-					typeId == (*it).second.tidAuxParts[i])
-					return TRUE;
-			}
-		}
-	}
-
-	return FALSE;
-}
-
-bool CSharedDoc::IsEquipParts(sCharacterInfo& info, unsigned long uid,
-	unsigned long typeId)
-{
-	if (typeId >> 26 == 2)
-	{
-		for (int i = 0; i < 24; i++)
-		{
-			if (info.tidParts[i])
-			{
-				if (uid == info.ItemIdList[i])
+// shareddoc.cpp:4565
+bool CSharedDoc::IsEquipParts(sCharacterInfo &characterInfo, unsigned long itemId, unsigned long typeId) {
+	if ((typeId >> 26) == 2) {
+		for (int i = 0; i < 24; i++) {
+			if (characterInfo.partTypeIds[i] != 0) {
+				if (itemId == characterInfo.partIds[i])
 					return true;
 			}
 		}
-	}
-	else if (typeId >> 26 == 28)
-	{
-		for (int i = 0; i < 5; i++)
-		{
-			if (info.tidAuxParts[i])
-			{
-				if (typeId == info.tidAuxParts[i])
+	} else if ((typeId >> 26) == 0x1C) {
+		for (int i = 0; i < 5; i++) {
+			if (characterInfo.auxParts.tids[i] != 0) {
+				if (typeId == characterInfo.auxParts.tids[i])
 					return true;
 			}
 		}
@@ -3274,74 +1818,21 @@ bool CSharedDoc::IsEquipParts(sCharacterInfo& info, unsigned long uid,
 	return false;
 }
 
-std::map<unsigned char, sMapStatistics>& CSharedDoc::GetMyPastMapStat(
-	unsigned char season)
-{
-	unsigned char index = 0;
+// shareddoc.cpp:5076
+void PerformPowerBarSetting(void) {
+	float position = CalcPowerBarPosition();
 
-	switch (season)
-	{
-	case 0:
-		index = 0;
-		break;
-	case 10:
-		index = 1;
-		break;
-	case 51:
-		index = 2;
-		break;
-	case 5:
-		index = 3;
-		break;
+	IActor *pScreen = AfxGetTask()->GetActor("Screen");
+	if (pScreen != 0) {
+		pScreen << MsgObject(0, 0xA1, (intptr_t)&position, 0, 0, 0, 0);
 	}
-
-	return m_pastMapStat[index];
 }
 
-float CalcPowerBarPosition()
-{
-	WVector cup = GetHoleCupPos();
-	WVector diff = GolfBall().m_pos - cup;
-	float range = GolfClub().GetRange() * 3.2f;
-
-	diff.y = 0.0f;
-	if (diff.Magnitude() > range)
-		return BAR_END;
-
-	char buf[32] = { 0 };
-	sPlayerData* pPlayer = PLAYER(GOLFDOC()->m_currentPlayer);
-	cup = GOLFDOC()->GetHoleData().pin;
-	WVector dist2 = cup - pPlayer->pos;
-	dist2.y = 0.0f;
-	float dist = sqrtf(dist2 * dist2) * 0.3125f;
-
-	if (dist < 100.0f)
-		sprintf(buf, "%.1f", dist);
-	else
-		sprintf(buf, "%.0f", dist);
-
-	float value = (float)atof(buf);
-	value *= 3.2f;
-
-	return (value / range) * BAR_LENGTH + BAR_START;
+// golfball.inl:2 (the ball singleton; the original's out-of-line copy of this
+// inline function sits in SharedDoc's object). Defined last: its guarded
+// static takes a slot of cl's _$E counter, and defining it earlier renumbers
+// the dynamic initializers paired in symbol_mappings.json.
+CGolfBall &GolfBall(void) {
+	static CGolfBall me;
+	return me;
 }
-
-void PerformPowerBarSetting()
-{
-	// HACK: these seem to be DCE'd dependencies in the original
-	if (0)
-	{
-		WFlags flag;
-		flag.Set(0);
-		flag.Reset();
-	}
-
-	float pos = CalcPowerBarPosition();
-
-	CTask* pTask = AfxGetTask();
-	IActor* pScreen = pTask->GetActor("Screen");
-	if (pScreen)
-		pScreen << MsgObject(NULL, 0xa1, (int)&pos, 0, 0, 0, 0);
-}
-
-ILFILLTU_SHAREDDOC

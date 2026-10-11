@@ -1,168 +1,181 @@
-#include "minatl.h"
-#include "projectg.h"
+// Original: d:\build\custom\temp\code\client\projectg\bubble.cpp
+#include "bubble.h"
+
+#include <new>
+
+#include "ObjectFactory.h"
+#include "talkbox.h"
+#include <string>
+#include "wview.h"
+#include "SharedDoc.h"
 #include "golfdoc.h"
 #include "golfball.h"
-#include "capturedbg.h"
-#include "chatmsg.h"
-#include "talkbox.h"
-#include "bubble.h"
+#include "CapturedBg.h"
+#include "ChatMsg.h"
+#include "ItemManager.h"
+#include "classdefine.h"
 
 extern WMatrix g_camera;
 
-IMPLEMENT_ACTOR(CBubble, IActor)
-
-CBubble::CBubble()
-{
-	m_dispPriority = DISP_PRIORITY_4;
-	m_bubble = NULL;
-	m_bShow = true;
-
-	AddSkipList(0x854c2);
+// talkbox.h:15
+bool CTalkBox::IsActive(void) {
+	return m_remainTime > 0.0f ? true : false;
 }
 
-void CBubble::OnDestroy()
-{
-	if (m_bubble)
-	{
-		for (int i = 0; i < 2; i++)
-		{
-			if (m_bubble[i].pTalkBox)
-			{
-				delete m_bubble[i].pTalkBox;
-				m_bubble[i].pTalkBox = NULL;
+// talkbox.h:19
+void CTalkBox::SetTransparency(float alpha) {
+	m_transparency = alpha;
+}
+
+// bubble.cpp:3
+CBubble::sBubble::sBubble(void) {
+}
+
+// bubble.cpp:20
+IObject* CBubbleMakeInstance(void) {
+	return new CBubble;
+}
+
+// bubble.cpp:20 (run-time type and factory registration of CBubble)
+const WRTTI CBubble::m_RTTI("CBubble", &IActor::m_RTTI);
+
+struct __impCBubble {
+	__impCBubble(void) {
+		ObjectFactory().AddObjectFunctor(CBubbleMakeInstance, "CBubble");
+		ActorFactory().AddActorClass("CBubble");
+	}
+};
+static __impCBubble s_impCBubble;
+
+// bubble.cpp:26
+CBubble::CBubble(void) {
+	m_priority = 4;
+	m_pBubbles = NULL;
+	m_bEnable = true;
+	AddSkipList(0x854C2);
+}
+
+// bubble.cpp:36
+void CBubble::OnDestroy(void) {
+	if (m_pBubbles) {
+		for (int i = 0; i < 2; i++) {
+			if (m_pBubbles[i].m_pTalkBox) { delete m_pBubbles[i].m_pTalkBox; m_pBubbles[i].m_pTalkBox = NULL; }
+		}
+		if (m_pBubbles) { delete[] m_pBubbles; m_pBubbles = NULL; }
+	}
+}
+
+// bubble.cpp:47
+void CBubble::OnLoad(void) {
+	m_pBubbles = new sBubble[2];
+
+	for (int i = 0; i < 2; i++) {
+		m_pBubbles[i].m_pTalkBox = new CTalkBox;
+		m_pBubbles[i].m_bShow = false;
+	}
+}
+
+// bubble.cpp:58
+void CBubble::OnProcess(float elapsed) {
+	if (!m_bEnable) {
+		return;
+	}
+
+	if (WSingleton<CCapturedBg>::Instance()->IsCaptured()) {
+		return;
+	}
+
+	for (int i = 0; i < 2; i++) {
+		if (m_pBubbles[i].m_pTalkBox->IsActive()) {
+			float fade = ((m_pBubbles[i].m_pos - g_camera.pivot).Magnitude() - 64.0f) * (1.0f / 256.0f);
+			if (fade < 0.0f) {
+				fade = 0.0f;
+			} else if (fade > 1.0f) {
+				fade = 1.0f;
 			}
-		}
-
-		if (m_bubble)
-		{
-			delete[] m_bubble;
-			m_bubble = NULL;
-		}
-	}
-}
-
-void CBubble::OnLoad()
-{
-	m_bubble = new sBubble[2];
-
-	for (int i = 0; i < 2; i++)
-	{
-		m_bubble[i].pTalkBox = new CTalkBox;
-		m_bubble[i].bTalking = false;
-	}
-}
-
-void CBubble::OnProcess(float delta)
-{
-	if (!m_bShow)
-		return;
-
-	if (CCapturedBg::Instance()->IsCaptured())
-		return;
-
-	for (int i = 0; i < 2; i++)
-	{
-		if (m_bubble[i].pTalkBox->IsActive())
-		{
-			m_bubble[i].pTalkBox->SetTransparency(1.0f -
-				Between(0.0f,
-					((m_bubble[i].pos - g_camera.pivot).Magnitude() - 64.0f) /
-						256.0f,
-					1.0f));
-			m_bubble[i].pTalkBox->Process(delta);
+			m_pBubbles[i].m_pTalkBox->SetTransparency(1.0f - fade);
+			m_pBubbles[i].m_pTalkBox->Process(elapsed);
 		}
 	}
 
-	if (!m_bubble[0].pTalkBox->IsActive() && m_bubble[0].bTalking)
-	{
-		m_bubble[0].bTalking = false;
-		SendMsg(this, "Caddie", 477, 0, 0, 0, 0);
+	if (!m_pBubbles[0].m_pTalkBox->IsActive() && m_pBubbles[0].m_bShow) {
+		m_pBubbles[0].m_bShow = false;
+		SendMsg(this, "Caddie", 0x1DD, 0, 0, 0, 0);
 	}
 }
 
-void CBubble::OnDisplay()
-{
-	if (!m_bShow)
+// bubble.cpp:82
+void CBubble::OnDisplay(void) {
+	if (!m_bEnable) {
 		return;
-
-	if ((GOLFDOC()->m_gameMode & 0x200) ||
-		CCapturedBg::Instance()->IsCaptured())
-		return;
-
-	if (m_bubble[1].pTalkBox->IsActive())
-	{
-		WVector pos = g_view->Projection(m_bubble[1].pos);
-
-		if (0.0f < pos.z && pos.z < 1.0f)
-			m_bubble[1].pTalkBox->Render(g_view, pos.x, pos.y, 1);
 	}
 
-	if (m_bubble[0].pTalkBox->IsActive())
-	{
-		WVector pos = g_view->Projection(m_bubble[0].pos);
+	if ((GOLFDOC()->GameMode() & 0x200) || WSingleton<CCapturedBg>::Instance()->IsCaptured()) {
+		return;
+	}
 
-		if (0.0f < pos.z && pos.z < 1.0f)
-		{
-			float offX, offY;
+	if (m_pBubbles[1].m_pTalkBox->IsActive()) {
+		WVector pos = g_view->Projection(m_pBubbles[1].m_pos);
+		if (0.0f < pos.z && pos.z < 1.0f) {
+			m_pBubbles[1].m_pTalkBox->Render(g_view, pos.x, pos.y, 1);
+		}
+	}
+
+	if (m_pBubbles[0].m_pTalkBox->IsActive()) {
+		WVector pos = g_view->Projection(m_pBubbles[0].m_pos);
+		if (0.0f < pos.z && pos.z < 1.0f) {
+			float offsetX;
+			float offsetY;
 			int align;
-			if (GolfBall().m_groundType == 2)
-			{
-				offX = -20.0f;
-				offY = -10.0f;
+			if (GolfBall().m_groundType == 2) {
+				offsetX = -20.0f;
+				offsetY = -10.0f;
 				align = 2;
-			}
-			else
-			{
-				offX = 0.0f;
-				offY = 0.0f;
+			} else {
+				offsetX = 0.0f;
+				offsetY = 0.0f;
 				align = 1;
 			}
 
-			m_bubble[0].pTalkBox->Render(g_view, pos.x + offX, pos.y + offY,
-				align);
+			m_pBubbles[0].m_pTalkBox->Render(g_view, pos.x + offsetX, pos.y + offsetY, align);
 		}
 	}
 }
 
-void CBubble::HandleMsg(const MsgObject& msg)
-{
-	switch (msg.message)
-	{
-	case 19:
-	{
-		std::string str;
-		IFF_STRUCT::sCaddie* pCaddie = ItemManager()->FindCaddie(
-			Doc()->m_userInfo[GOLFDOC()->m_currentPlayer].caddieInfo.tid);
-		if (pCaddie)
-		{
-			str = pCaddie->c.Name;
-			str += " : ";
-			str += (const char*)msg.param1;
-			CChatMsg::Instance()->AddChatMsg(str, 0xff00ff00, true, false);
-		}
-		else
-		{
-			str = (const char*)msg.param1;
+// bubble.cpp:140
+void CBubble::HandleMsg(const MsgObject& msg) {
+	switch (msg.m_msg) {
+	case 0x13: {
+		std::string text;
+		IFF_STRUCT::sCaddie* pCaddie = ItemManager()->FindCaddie(WSingleton<CSharedDoc>::Instance()->m_roomPlayers[GOLFDOC()->m_myPlayerIndex].m_caddieTypeId);
+		if (pCaddie) {
+			text = pCaddie->m_name;
+			text += " : ";
+			text += (const char*)msg.m_param1;
+			WSingleton<CChatMsg>::Instance()->AddChatMsg(text, 0xFF00FF00, true, false);
+		} else {
+			text = (const char*)msg.m_param1;
 		}
 
-		m_bubble[0].pTalkBox->SetText(str.c_str(), 3.0f);
-		m_bubble[0].pos = *(WVector*)msg.param2;
-		m_bubble[0].bTalking = true;
+		m_pBubbles[0].m_pTalkBox->SetText(text.c_str(), 3.0f);
+		m_pBubbles[0].m_pos = *(const WVector*)msg.m_param2;
+		m_pBubbles[0].m_bShow = true;
 		break;
 	}
-
-	case 501:
-		m_bubble[1].pTalkBox->SetText((const char*)msg.param1, 3.0f);
-		m_bubble[1].pos = *(WVector*)msg.param2;
-		m_bubble[1].bTalking = true;
+	case 0x1F5:
+		m_pBubbles[1].m_pTalkBox->SetText((const char*)msg.m_param1, 3.0f);
+		m_pBubbles[1].m_pos = *(const WVector*)msg.m_param2;
+		m_pBubbles[1].m_bShow = true;
 		break;
-
-	case 355:
-		m_bShow = true;
+	case 0x163:
+		m_bEnable = true;
 		break;
-
-	case 356:
-		m_bShow = false;
+	case 0x164:
+		m_bEnable = false;
 		break;
 	}
+}
+
+// actor.h:120
+void IActor::OnInit(void) {
 }

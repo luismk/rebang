@@ -1,8 +1,8 @@
-#include "minatl.h"
-#include "networkunit.h"
+// Original: d:\build\custom\temp\code\client\projectg\networkunit.cpp
+#include "NetworkUnit.h"
 
-NetworkUnit::NetworkUnit()
-{
+// networkunit.cpp:23
+NetworkUnit::NetworkUnit(void) {
 	m_fsm.addStateTransition(0, 1, 2);
 	m_fsm.addStateTransition(0, 2, 4);
 
@@ -22,96 +22,70 @@ NetworkUnit::NetworkUnit()
 	Init();
 }
 
-NetworkUnit::~NetworkUnit()
-{
+// networkunit.cpp:44
+NetworkUnit::~NetworkUnit(void) {
 }
 
-bool NetworkUnit::Init()
-{
+// networkunit.cpp:51
+bool NetworkUnit::Init(void) {
 	m_fsm.setCurrentState(1);
-	m_bConnectionComplete = FALSE;
-	m_socket.Close();
+
+	m_connectResult = 0; (&m_socket)->Close();
 	return true;
 }
 
-void NetworkUnit::setTransition(unsigned long state)
-{
-	if (state == 0 && m_fsm.getCurrentStateID() == 1)
-		m_bConnectionComplete = FALSE;
+// networkunit.cpp:60
+void NetworkUnit::setTransition(unsigned long input) {
+	if (input == 0 && m_fsm.getCurrentStateID() == 1)
+		m_connectResult = 0;
 
-	m_fsm.stateTransition(state);
+	m_fsm.stateTransition(input);
 }
 
-void NetworkUnit::setForceTransition(unsigned long state)
-{
-	m_fsm.setCurrentState(state);
+// networkunit.cpp:70
+void NetworkUnit::setForceTransition(unsigned long input) {
+	m_fsm.setCurrentState(input);
 }
 
-unsigned long NetworkUnit::getState()
-{
+// networkunit.cpp:76
+unsigned long NetworkUnit::getState(void) {
 	return m_fsm.getCurrentStateID();
 }
 
-bool NetworkUnit::Process()
-{
-	unsigned long state = getState();
+// networkunit.cpp:83
+bool NetworkUnit::Process(void) {
+	unsigned long state = m_fsm.getCurrentStateID();
 
-	switch (state)
-	{
+	switch (state) {
 	case 0:
-	{
 		return OnLine();
-	}
-	break;
-
 	case 1:
-	{
 		return OffLine();
-	}
-	break;
-
 	case 2:
-	{
 		return Connect();
-	}
-	break;
-
 	case 3:
-	{
 		return Connecting();
-	}
-	break;
-
 	case 4:
-	{
 		return Disconnecting();
-	}
-	break;
-
 	case 5:
-	{
 		ResetConnect();
-	}
-	break;
-
-	default:
 		break;
 	}
 
 	return true;
 }
 
-int NetworkUnit::IsConnected()
-{
+// networkunit.cpp:141
+int NetworkUnit::IsConnected(void) {
 	return m_socket.m_bConnected;
 }
 
-int NetworkUnit::IsConnectionComplete()
-{
-	return m_bConnectionComplete;
+// networkunit.cpp:146
+int NetworkUnit::IsConnectionComplete(void) {
+	return m_connectResult;
 }
 
-bool NetworkUnit::ResetConnect()
-{
+// networkunit.cpp:151
+bool NetworkUnit::ResetConnect(void) {
 	return true;
 }

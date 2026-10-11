@@ -1,98 +1,116 @@
-#include "minatl.h"
-#include "projectg.h"
-#include "woverlay.h"
-#include "clientsetting.h"
+// Original: d:\build\custom\temp\code\client\projectg\ani_overlay.cpp
 #include "ani_overlay.h"
 
-CAniOverlay::CAniOverlay(const char* filename, float width, float height)
-	: m_pOverlay(NULL)
-{
-	m_pOverlay = g_resrcmng->GetOverlay(filename, 0);
-	m_width = width;
-	m_height = height;
+#include "../client/Wangreal/include/woverlay.h"
+#include "../client/Wangreal/include/wresrcmng.h"
+#include "../client/Wangreal/include/wview.h"
+#include "ClientSetting.h"
 
-	m_cols = (int)(m_pOverlay->GetWidth() / m_width);
-	m_rows = (int)(m_pOverlay->GetHeight() / m_height);
-	m_frameNum = m_cols * m_rows;
+// ani_overlay.cpp:17
+CAniOverlay::CAniOverlay(const char* name, float frameWidth, float frameHeight) : m_pOverlay(NULL) {
+	m_pOverlay = g_resrcmng->GetOverlay(name, 0);
+	m_frameWidth = frameWidth;
+	m_frameHeight = frameHeight;
+
+	m_columns = (int)(m_pOverlay->GetWidth() / frameWidth);
+
+
+
+	m_rows = (int)(m_pOverlay->GetHeight() / frameHeight);
+	m_frameCount = m_columns * m_rows;
 }
 
-CAniOverlay::~CAniOverlay()
-{
-	if (m_pOverlay)
-	{
+// ani_overlay.cpp:29
+CAniOverlay::~CAniOverlay(void) {
+	if (m_pOverlay != NULL) {
+
 		g_resrcmng->Release(m_pOverlay);
 		m_pOverlay = NULL;
 	}
-}
-void CAniOverlay::Render(float x, float y, int frame, int mode, int color,
-	float scale)
-{
-	m_clipRect.x = x - m_width * scale * 0.5f;
-	m_clipRect.y = y - m_height * scale * 0.5f;
-	m_clipRect.w = m_width * scale;
-	m_clipRect.h = m_height * scale;
-	if (m_pOverlay)
-		m_pOverlay->SetClippingArea(&m_clipRect);
 
-	m_rect.x = m_clipRect.x - (frame % m_cols) * scale * m_width;
-	m_rect.y = m_clipRect.y - (frame / m_cols) * scale * m_height;
-	if (!m_pOverlay)
-		return;
-	m_rect.w = m_pOverlay->GetWidth() * scale;
-	m_rect.h = m_pOverlay->GetHeight() * scale;
-
-	m_pOverlay->Render(g_view, WRect(0, 0, 1.0f, 1.0f), m_rect, mode, color, 0,
-		0);
 }
 
-CEffectOverlay::CEffectOverlay()
-	: m_pAniOverlay(NULL), m_bActive(false)
-{
-	m_pAniOverlay = new CAniOverlay("bar-impact.jpg", 32.0f, 32.0f);
-}
+// ani_overlay.cpp:38
+void CAniOverlay::Render(float x, float y, int frame, int flags, int color, float scale) {
 
-CEffectOverlay::~CEffectOverlay()
-{
-	if (m_pAniOverlay)
-	{
-		delete (m_pAniOverlay);
-		(m_pAniOverlay) = 0;
+
+	float width = m_frameWidth * scale;
+
+	m_dstRect.x = x - 0.5f * width;
+	float height = m_frameHeight * scale;
+	m_dstRect.y = y - 0.5f * height;
+	m_dstRect.w = width;
+	m_dstRect.h = height;
+	if (m_pOverlay != NULL) {
+		m_pOverlay->SetClippingArea(&m_dstRect);
+	}
+	int column = frame % m_columns;
+	int row = frame / m_columns;
+
+	m_srcRect.x = m_dstRect.x - column * scale * m_frameWidth;
+	m_srcRect.y = m_dstRect.y - row * scale * m_frameHeight;
+	if (m_pOverlay != NULL) {
+		m_srcRect.w = m_pOverlay->GetWidth() * scale;
+		m_srcRect.h = m_pOverlay->GetHeight() * scale;
+
+
+
+
+		m_pOverlay->Render(g_view, WRect(0.0f, 0.0f, 1.0f, 1.0f), m_srcRect, flags, color, 0.0f, 0);
 	}
 }
 
-void CEffectOverlay::Process(float delta)
-{
-	if (!m_bActive)
-		return;
+// File-local accumulator of CEffectOverlay::Process (no symbol in the PDB).
+static float s_effectElapsed = 0.0f;
 
-	static float s_time = 0;
+// ani_overlay.cpp:64
+CEffectOverlay::CEffectOverlay(void) : m_pAniOverlay(NULL), m_active(false) {
+	m_pAniOverlay = new CAniOverlay("bar-impact.jpg", 32.0f, 32.0f);
+}
 
-	s_time += delta;
+// ani_overlay.cpp:69
+CEffectOverlay::~CEffectOverlay(void) {
+	if (m_pAniOverlay != NULL) {
+		delete m_pAniOverlay;
+		m_pAniOverlay = NULL;
+	}
+}
 
-	if (s_time > m_frameTime)
-	{
-		s_time -= m_frameTime;
-		m_frame++;
+// ani_overlay.cpp:74
+void CEffectOverlay::Process(float elapsed) {
+	if (m_active) {
 
-		if (m_frame == 8)
-		{
-			s_time = 0;
-			m_bActive = false;
+
+
+
+		s_effectElapsed += elapsed;
+
+		if (s_effectElapsed > m_frameTime) {
+
+			s_effectElapsed -= m_frameTime;
+			m_frame++;
+
+			if (m_frame == 8) {
+
+				s_effectElapsed = 0.0f;
+				m_active = false;
+			}
 		}
 	}
 }
 
-void CEffectOverlay::SetActive()
-{
-	m_bActive = true;
+// ani_overlay.cpp:96
+void CEffectOverlay::SetActive(void) {
+	m_active = true;
 	m_frame = 0;
-	m_frameTime = 1.0f / 16;
+	m_frameTime = 0.0625f;
 }
 
-void CEffectOverlay::Display()
-{
-	if (!m_bActive)
-		return;
-	m_pAniOverlay->Render(BAR_START, COption::Instance()->gGetBar_Y() - 8.0f,
-		m_frame, 0x800000, 0xffffffff, 1.0f);
+// ani_overlay.cpp:103
+void CEffectOverlay::Display(void) {
+	if (m_active) {
+
+
+		m_pAniOverlay->Render(140.0f, COption::Instance()->gGetBar_Y() - 8.0f, m_frame, 0x800000, -1, 1.0f);
+	}
 }

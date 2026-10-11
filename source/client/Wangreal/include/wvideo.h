@@ -1,26 +1,26 @@
-#pragma once
-#include <windows.h>
-#include <math.h>
+// Original: d:\build\custom\temp\code\client\wangreal\include\wvideo.h
+#ifndef PG_CLIENT_WANGREAL_INCLUDE_WVIDEO_H
+#define PG_CLIENT_WANGREAL_INCLUDE_WVIDEO_H
+
+#include "..\..\defines.h"
 #include "wmath.h"
-#include "wscene.h"
+#include "winput.h"
 
-enum WVDTRANSFORMSTATETYPE
-{
-	WVDTS_VIEW = 0x2,
-	WVDTS_PROJECTION = 0x3,
-	WVDTS_TEXTURE0 = 0x10,
-	WVDTS_TEXTURE1 = 0x11,
-	WVDTS_TEXTURE2 = 0x12,
-	WVDTS_TEXTURE3 = 0x13,
-	WVDTS_TEXTURE4 = 0x14,
-	WVDTS_TEXTURE5 = 0x15,
-	WVDTS_TEXTURE6 = 0x16,
-	WVDTS_TEXTURE7 = 0x17,
-	WVDTS_FORCE_DWORD = 0x7FFFFFFF,
+struct HWND__;
+struct tagBITMAPINFO;
+struct tagRECT;
+class WVector4;
+struct WxViewState;
+struct WRenderToTextureSizeInfo;
+struct WRenderToTextureParam;
+
+// Video device enums (PDB values).
+enum wVDevState {
+	W_VDEVSTATE_NORMAL,
+	W_VDEVSTATE_LOST,
+	NUM_W_VDEVSTATES
 };
-
-enum wVDevMessage
-{
+enum wVDevMessage {
 	W_VDEV_SETCLIPPER,
 	W_VDEV_ACTIVATEAPP,
 	W_VDEV_MOVE,
@@ -57,644 +57,359 @@ enum wVDevMessage
 	WX_VDEV_FILLMODE,
 	WX_VDEV_DRIVER_INFO,
 	WX_VDEV_GET_SORTBUFFER_SIZE,
-	WX_VDEV_GET_MERGEBUFFER_SIZE,
+	WX_VDEV_GET_MERGEBUFFER_SIZE
 };
-
-enum wWxVertexElem
-{
+enum wWxVertexElem {
 	WX_VELEM_POSITION,
 	WX_VELEM_NORMAL,
 	WX_VELEM_DIFFUSE,
 	WX_VELEM_TEX1,
-	WX_VELEM_TEX2,
+	WX_VELEM_TEX2
+};
+enum WVDTRANSFORMSTATETYPE {
+	WVDTS_VIEW = 2,
+	WVDTS_PROJECTION,
+	WVDTS_TEXTURE0 = 16,
+	WVDTS_TEXTURE1,
+	WVDTS_TEXTURE2,
+	WVDTS_TEXTURE3,
+	WVDTS_TEXTURE4,
+	WVDTS_TEXTURE5,
+	WVDTS_TEXTURE6,
+	WVDTS_TEXTURE7,
+	WVDTS_FORCE_DWORD = 2147483647
+};
+enum WVDRENDERSTATETYPE {
+	WVDRS_ZENABLE = 7,
+	WVDRS_FILLMODE,
+	WVDRS_SHADEMODE,
+	WVDRS_ZWRITEENABLE = 14,
+	WVDRS_ALPHATESTENABLE,
+	WVDRS_LASTPIXEL,
+	WVDRS_SRCBLEND = 19,
+	WVDRS_DESTBLEND,
+	WVDRS_CULLMODE = 22,
+	WVDRS_ZFUNC,
+	WVDRS_ALPHAREF,
+	WVDRS_ALPHAFUNC,
+	WVDRS_DITHERENABLE,
+	WVDRS_ALPHABLENDENABLE,
+	WVDRS_FOGENABLE,
+	WVDRS_SPECULARENABLE,
+	WVDRS_FOGCOLOR = 34,
+	WVDRS_FOGTABLEMODE,
+	WVDRS_FOGSTART,
+	WVDRS_FOGEND,
+	WVDRS_FOGDENSITY,
+	WVDRS_RANGEFOGENABLE = 48,
+	WVDRS_STENCILENABLE = 52,
+	WVDRS_STENCILFAIL,
+	WVDRS_STENCILZFAIL,
+	WVDRS_STENCILPASS,
+	WVDRS_STENCILFUNC,
+	WVDRS_STENCILREF,
+	WVDRS_STENCILMASK,
+	WVDRS_STENCILWRITEMASK,
+	WVDRS_TEXTUREFACTOR,
+	WVDRS_WRAP0 = 128,
+	WVDRS_WRAP1,
+	WVDRS_WRAP2,
+	WVDRS_WRAP3,
+	WVDRS_WRAP4,
+	WVDRS_WRAP5,
+	WVDRS_WRAP6,
+	WVDRS_WRAP7,
+	WVDRS_CLIPPING,
+	WVDRS_LIGHTING,
+	WVDRS_AMBIENT = 139,
+	WVDRS_FOGVERTEXMODE,
+	WVDRS_COLORVERTEX,
+	WVDRS_LOCALVIEWER,
+	WVDRS_NORMALIZENORMALS,
+	WVDRS_DIFFUSEMATERIALSOURCE = 145,
+	WVDRS_SPECULARMATERIALSOURCE,
+	WVDRS_AMBIENTMATERIALSOURCE,
+	WVDRS_EMISSIVEMATERIALSOURCE,
+	WVDRS_VERTEXBLEND = 151,
+	WVDRS_CLIPPLANEENABLE,
+	WVDRS_POINTSIZE = 154,
+	WVDRS_POINTSIZE_MIN,
+	WVDRS_POINTSPRITEENABLE,
+	WVDRS_POINTSCALEENABLE,
+	WVDRS_POINTSCALE_A,
+	WVDRS_POINTSCALE_B,
+	WVDRS_POINTSCALE_C,
+	WVDRS_MULTISAMPLEANTIALIAS,
+	WVDRS_MULTISAMPLEMASK,
+	WVDRS_PATCHEDGESTYLE,
+	WVDRS_DEBUGMONITORTOKEN = 165,
+	WVDRS_POINTSIZE_MAX,
+	WVDRS_INDEXEDVERTEXBLENDENABLE,
+	WVDRS_COLORWRITEENABLE,
+	WVDRS_TWEENFACTOR = 170,
+	WVDRS_BLENDOP,
+	WVDRS_POSITIONDEGREE,
+	WVDRS_NORMALDEGREE,
+	WVDRS_SCISSORTESTENABLE,
+	WVDRS_SLOPESCALEDEPTHBIAS,
+	WVDRS_ANTIALIASEDLINEENABLE,
+	WVDRS_MINTESSELLATIONLEVEL = 178,
+	WVDRS_MAXTESSELLATIONLEVEL,
+	WVDRS_ADAPTIVETESS_X,
+	WVDRS_ADAPTIVETESS_Y,
+	WVDRS_ADAPTIVETESS_Z,
+	WVDRS_ADAPTIVETESS_W,
+	WVDRS_ENABLEADAPTIVETESSELLATION,
+	WVDRS_TWOSIDEDSTENCILMODE,
+	WVDRS_CCW_STENCILFAIL,
+	WVDRS_CCW_STENCILZFAIL,
+	WVDRS_CCW_STENCILPASS,
+	WVDRS_CCW_STENCILFUNC,
+	WVDRS_COLORWRITEENABLE1,
+	WVDRS_COLORWRITEENABLE2,
+	WVDRS_COLORWRITEENABLE3,
+	WVDRS_BLENDFACTOR,
+	WVDRS_SRGBWRITEENABLE,
+	WVDRS_DEPTHBIAS,
+	WVDRS_WRAP8 = 198,
+	WVDRS_WRAP9,
+	WVDRS_WRAP10,
+	WVDRS_WRAP11,
+	WVDRS_WRAP12,
+	WVDRS_WRAP13,
+	WVDRS_WRAP14,
+	WVDRS_WRAP15,
+	WVDRS_SEPARATEALPHABLENDENABLE,
+	WVDRS_SRCBLENDALPHA,
+	WVDRS_DESTBLENDALPHA,
+	WVDRS_BLENDOPALPHA,
+	WVDRS_FORCE_DWORD = 2147483647
+};
+enum WVDTEXTURESTAGESTATETYPE {
+	WVDTSS_COLOROP = 1,
+	WVDTSS_COLORARG1,
+	WVDTSS_COLORARG2,
+	WVDTSS_ALPHAOP,
+	WVDTSS_ALPHAARG1,
+	WVDTSS_ALPHAARG2,
+	WVDTSS_BUMPENVMAT00,
+	WVDTSS_BUMPENVMAT01,
+	WVDTSS_BUMPENVMAT10,
+	WVDTSS_BUMPENVMAT11,
+	WVDTSS_TEXCOORDINDEX,
+	WVDTSS_BUMPENVLSCALE = 22,
+	WVDTSS_BUMPENVLOFFSET,
+	WVDTSS_TEXTURETRANSFORMFLAGS,
+	WVDTSS_COLORARG0 = 26,
+	WVDTSS_ALPHAARG0,
+	WVDTSS_RESULTARG,
+	WVDTSS_CONSTANT = 32,
+	WVDTSS_FORCE_DWORD = 2147483647
+};
+enum WVDSAMPLERSTATETYPE {
+	WVDSAMP_ADDRESSU = 1,
+	WVDSAMP_ADDRESSV,
+	WVDSAMP_ADDRESSW,
+	WVDSAMP_BORDERCOLOR,
+	WVDSAMP_MAGFILTER,
+	WVDSAMP_MINFILTER,
+	WVDSAMP_MIPFILTER,
+	WVDSAMP_MIPMAPLODBIAS,
+	WVDSAMP_MAXMIPLEVEL,
+	WVDSAMP_MAXANISOTROPY,
+	WVDSAMP_SRGBTEXTURE,
+	WVDSAMP_ELEMENTINDEX,
+	WVDSAMP_DMAPOFFSET,
+	WVDSAMP_FORCE_DWORD = 2147483647
+};
+enum WVDFXPARAMETERTYPE {
+	WVDFXPARAM_WORLDVIEWPROJECTION,
+	WVDFXPARAM_WORLD,
+	WVDFXPARAM_WORLDVIEW,
+	WVDFXPARAM_PREV_VIEW,
+	WVDFXPARAM_VIEW,
+	WVDFXPARAM_PROJECTION,
+	WVDFXPARAM_VIEWPROJECTION,
+	WVDFXPARAM_CONSTCOLOR,
+	WVDFXPARAM_LIGHT_DIFFUSE,
+	WVDFXPARAM_LIGHT_AMBIENT,
+	WVDFXPARAM_LIGHT_DIRECTION,
+	WVDFXPARAM_FOG_RANGE,
+	WVDFXPARAM_FOG_COLOR,
+	WVDFXPARAM_CAMERAPOSITION,
+	WVDFXPARAM_SHCOEFF,
+	WVDFXPARAM_EXTRATEXTURE,
+	WVDFXPARAM_REFTEXTURE,
+	WVDFXPARAM_MATERIALCOLOR,
+	WVDFXPARAM_TEXTURE_TRANSFORM,
+	WVDFXPARAM_BLUR_UVOFFSET,
+	WVDFXPARAM_SHADOW_COLOR,
+	WVDFXPARAM_NUM
 };
 
-enum WVDTEXTURESTAGESTATETYPE
-{
-	WVDTSS_COLOROP = 0x1,
-	WVDTSS_COLORARG1 = 0x2,
-	WVDTSS_COLORARG2 = 0x3,
-	WVDTSS_ALPHAOP = 0x4,
-	WVDTSS_ALPHAARG1 = 0x5,
-	WVDTSS_ALPHAARG2 = 0x6,
-	WVDTSS_BUMPENVMAT00 = 0x7,
-	WVDTSS_BUMPENVMAT01 = 0x8,
-	WVDTSS_BUMPENVMAT10 = 0x9,
-	WVDTSS_BUMPENVMAT11 = 0xA,
-	WVDTSS_TEXCOORDINDEX = 0xB,
-	WVDTSS_BUMPENVLSCALE = 0x16,
-	WVDTSS_BUMPENVLOFFSET = 0x17,
-	WVDTSS_TEXTURETRANSFORMFLAGS = 0x18,
-	WVDTSS_COLORARG0 = 0x1A,
-	WVDTSS_ALPHAARG0 = 0x1B,
-	WVDTSS_RESULTARG = 0x1C,
-	WVDTSS_CONSTANT = 0x20,
-	WVDTSS_FORCE_DWORD = 0x7FFFFFFF,
-};
+// A transformed, lit vertex (PDB layout, size 0x28).
+struct WTVertex {
+	void SetPosition(const WVector& v) { x = v.x; y = v.y; z = v.z; }   // wvideo.h:43
 
-enum WVDRENDERSTATETYPE
-{
-	WVDRS_ZENABLE = 0x7,
-	WVDRS_FILLMODE = 0x8,
-	WVDRS_SHADEMODE = 0x9,
-	WVDRS_ZWRITEENABLE = 0xE,
-	WVDRS_ALPHATESTENABLE = 0xF,
-	WVDRS_LASTPIXEL = 0x10,
-	WVDRS_SRCBLEND = 0x13,
-	WVDRS_DESTBLEND = 0x14,
-	WVDRS_CULLMODE = 0x16,
-	WVDRS_ZFUNC = 0x17,
-	WVDRS_ALPHAREF = 0x18,
-	WVDRS_ALPHAFUNC = 0x19,
-	WVDRS_DITHERENABLE = 0x1A,
-	WVDRS_ALPHABLENDENABLE = 0x1B,
-	WVDRS_FOGENABLE = 0x1C,
-	WVDRS_SPECULARENABLE = 0x1D,
-	WVDRS_FOGCOLOR = 0x22,
-	WVDRS_FOGTABLEMODE = 0x23,
-	WVDRS_FOGSTART = 0x24,
-	WVDRS_FOGEND = 0x25,
-	WVDRS_FOGDENSITY = 0x26,
-	WVDRS_RANGEFOGENABLE = 0x30,
-	WVDRS_STENCILENABLE = 0x34,
-	WVDRS_STENCILFAIL = 0x35,
-	WVDRS_STENCILZFAIL = 0x36,
-	WVDRS_STENCILPASS = 0x37,
-	WVDRS_STENCILFUNC = 0x38,
-	WVDRS_STENCILREF = 0x39,
-	WVDRS_STENCILMASK = 0x3A,
-	WVDRS_STENCILWRITEMASK = 0x3B,
-	WVDRS_TEXTUREFACTOR = 0x3C,
-	WVDRS_WRAP0 = 0x80,
-	WVDRS_WRAP1 = 0x81,
-	WVDRS_WRAP2 = 0x82,
-	WVDRS_WRAP3 = 0x83,
-	WVDRS_WRAP4 = 0x84,
-	WVDRS_WRAP5 = 0x85,
-	WVDRS_WRAP6 = 0x86,
-	WVDRS_WRAP7 = 0x87,
-	WVDRS_CLIPPING = 0x88,
-	WVDRS_LIGHTING = 0x89,
-	WVDRS_AMBIENT = 0x8B,
-	WVDRS_FOGVERTEXMODE = 0x8C,
-	WVDRS_COLORVERTEX = 0x8D,
-	WVDRS_LOCALVIEWER = 0x8E,
-	WVDRS_NORMALIZENORMALS = 0x8F,
-	WVDRS_DIFFUSEMATERIALSOURCE = 0x91,
-	WVDRS_SPECULARMATERIALSOURCE = 0x92,
-	WVDRS_AMBIENTMATERIALSOURCE = 0x93,
-	WVDRS_EMISSIVEMATERIALSOURCE = 0x94,
-	WVDRS_VERTEXBLEND = 0x97,
-	WVDRS_CLIPPLANEENABLE = 0x98,
-	WVDRS_POINTSIZE = 0x9A,
-	WVDRS_POINTSIZE_MIN = 0x9B,
-	WVDRS_POINTSPRITEENABLE = 0x9C,
-	WVDRS_POINTSCALEENABLE = 0x9D,
-	WVDRS_POINTSCALE_A = 0x9E,
-	WVDRS_POINTSCALE_B = 0x9F,
-	WVDRS_POINTSCALE_C = 0xA0,
-	WVDRS_MULTISAMPLEANTIALIAS = 0xA1,
-	WVDRS_MULTISAMPLEMASK = 0xA2,
-	WVDRS_PATCHEDGESTYLE = 0xA3,
-	WVDRS_DEBUGMONITORTOKEN = 0xA5,
-	WVDRS_POINTSIZE_MAX = 0xA6,
-	WVDRS_INDEXEDVERTEXBLENDENABLE = 0xA7,
-	WVDRS_COLORWRITEENABLE = 0xA8,
-	WVDRS_TWEENFACTOR = 0xAA,
-	WVDRS_BLENDOP = 0xAB,
-	WVDRS_POSITIONDEGREE = 0xAC,
-	WVDRS_NORMALDEGREE = 0xAD,
-	WVDRS_SCISSORTESTENABLE = 0xAE,
-	WVDRS_SLOPESCALEDEPTHBIAS = 0xAF,
-	WVDRS_ANTIALIASEDLINEENABLE = 0xB0,
-	WVDRS_MINTESSELLATIONLEVEL = 0xB2,
-	WVDRS_MAXTESSELLATIONLEVEL = 0xB3,
-	WVDRS_ADAPTIVETESS_X = 0xB4,
-	WVDRS_ADAPTIVETESS_Y = 0xB5,
-	WVDRS_ADAPTIVETESS_Z = 0xB6,
-	WVDRS_ADAPTIVETESS_W = 0xB7,
-	WVDRS_ENABLEADAPTIVETESSELLATION = 0xB8,
-	WVDRS_TWOSIDEDSTENCILMODE = 0xB9,
-	WVDRS_CCW_STENCILFAIL = 0xBA,
-	WVDRS_CCW_STENCILZFAIL = 0xBB,
-	WVDRS_CCW_STENCILPASS = 0xBC,
-	WVDRS_CCW_STENCILFUNC = 0xBD,
-	WVDRS_COLORWRITEENABLE1 = 0xBE,
-	WVDRS_COLORWRITEENABLE2 = 0xBF,
-	WVDRS_COLORWRITEENABLE3 = 0xC0,
-	WVDRS_BLENDFACTOR = 0xC1,
-	WVDRS_SRGBWRITEENABLE = 0xC2,
-	WVDRS_DEPTHBIAS = 0xC3,
-	WVDRS_WRAP8 = 0xC6,
-	WVDRS_WRAP9 = 0xC7,
-	WVDRS_WRAP10 = 0xC8,
-	WVDRS_WRAP11 = 0xC9,
-	WVDRS_WRAP12 = 0xCA,
-	WVDRS_WRAP13 = 0xCB,
-	WVDRS_WRAP14 = 0xCC,
-	WVDRS_WRAP15 = 0xCD,
-	WVDRS_SEPARATEALPHABLENDENABLE = 0xCE,
-	WVDRS_SRCBLENDALPHA = 0xCF,
-	WVDRS_DESTBLENDALPHA = 0xD0,
-	WVDRS_BLENDOPALPHA = 0xD1,
-	WVDRS_FORCE_DWORD = 0x7FFFFFFF,
-};
-
-enum WVDSAMPLERSTATETYPE
-{
-	WVDSAMP_ADDRESSU = 0x1,
-	WVDSAMP_ADDRESSV = 0x2,
-	WVDSAMP_ADDRESSW = 0x3,
-	WVDSAMP_BORDERCOLOR = 0x4,
-	WVDSAMP_MAGFILTER = 0x5,
-	WVDSAMP_MINFILTER = 0x6,
-	WVDSAMP_MIPFILTER = 0x7,
-	WVDSAMP_MIPMAPLODBIAS = 0x8,
-	WVDSAMP_MAXMIPLEVEL = 0x9,
-	WVDSAMP_MAXANISOTROPY = 0xA,
-	WVDSAMP_SRGBTEXTURE = 0xB,
-	WVDSAMP_ELEMENTINDEX = 0xC,
-	WVDSAMP_DMAPOFFSET = 0xD,
-	WVDSAMP_FORCE_DWORD = 0x7FFFFFFF,
-};
-
-enum wVDevState
-{
-	W_VDEVSTATE_NORMAL,
-	W_VDEVSTATE_LOST,
-	NUM_W_VDEVSTATES
-};
-
-#ifdef WANGREAL_DEVICE
-enum WVDFXPARAMETERTYPE
-#else
-enum WFxParameterType
-#endif
-{
-	WFxParamWorldViewProjection = 0x0,
-	WFxParamWorld = 0x1,
-	WFxParamWorldView = 0x2,
-	WFxParamPrevView = 0x3,
-	WFxParamView = 0x4,
-	WFxParamProjection = 0x5,
-	WFxParamViewProjection = 0x6,
-	WFxParamConstColor = 0x7,
-	WFxParamLightDiffuse = 0x8,
-	WFxParamLightAmbient = 0x9,
-	WFxParamLightDirection = 0xA,
-	WFxParamFogRange = 0xB,
-	WFxParamFogColor = 0xC,
-	WFxParamCameraPosition = 0xD,
-	WFxParamSphericalHarmonicsCoefficients = 0xE,
-	WFxParamExtraTexture = 0xF,
-	WFxParamRefTexture = 0x10,
-	WFxParamMaterialColor = 0x11,
-	WFxParamTextureTransform = 0x12,
-	WFxParamBlurUvOffset = 0x13,
-	WFxParamShadowColor = 0x14,
-	WFxParamNum = 0x15,
-};
-
-#ifdef WANGREAL_DEVICE
-#include "wsplash.h"
-#endif
-
-struct WRenderToTextureSizeInfo
-{
-	bool m_isAbsolute;
-	float m_width;
-	float m_height;
-
-	static const WRenderToTextureSizeInfo SIZE_FULL;
-	static const WRenderToTextureSizeInfo SIZE_HALF;
-	static const WRenderToTextureSizeInfo SIZE_ABS;
-
-#ifdef WANGREAL_DEVICE
-	WRenderToTextureSizeInfo()
-		: m_isAbsolute(true), m_width(0.0f), m_height(0.0f)
-	{
-	}
-#else
-	WRenderToTextureSizeInfo() { Reset(); }
-#endif
-	WRenderToTextureSizeInfo(bool isAbsolute, float width, float height)
-		: m_isAbsolute(isAbsolute), m_width(width), m_height(height)
-	{
-	}
-	void Reset()
-	{
-		m_isAbsolute = true;
-		m_width = 0.0f;
-		m_height = 0.0f;
-	}
-};
-
-struct WRenderToTextureParam
-{
-	enum
-	{
-		NUM_SIMULTANEOUSRTS = 2
+	union {
+		struct { float sx, sy, sz; };
+		struct { float x, y, z; };
 	};
-
-	struct RtTexInfo
-	{
-		int m_hTex;
-		bool m_needToClear;
-		ulong m_clearClr;
-
-		RtTexInfo()
-			: m_hTex(0), m_needToClear(false), m_clearClr(0)
-		{
-		}
-	};
-
-	struct DepthSurfInfo
-	{
-		enum SurfaceUsage
-		{
-			USE_NOT_NEEDED,
-			USE_MAIN_SURFACE,
-			USE_SHARED_SURFACE,
-			USE_EXCLUSIVE_SURFACE
-		};
-
-		SurfaceUsage m_surfUsage;
-		int m_hTex;
-		bool m_needToClear;
-		float m_clearZ;
-
-		DepthSurfInfo()
-			: m_surfUsage(USE_NOT_NEEDED),
-			  m_hTex(0),
-			  m_needToClear(false),
-			  m_clearZ(1.0f)
-		{
-		}
-	};
-
-#ifdef WANGREAL_DEVICE
-	RtTexInfo m_rtTexInfo[2];
-#else
-	RtTexInfo m_rtTexInfo0;
-	RtTexInfo m_rtTexInfo1;
-#endif
-	DepthSurfInfo m_depthSurfInfo;
-
-	int GetTexture(unsigned index) const
-	{
-		if (index < NUM_SIMULTANEOUSRTS)
-#ifdef WANGREAL_DEVICE
-			return m_rtTexInfo[index].m_hTex;
-#else
-			return (&m_rtTexInfo0)[index].m_hTex;
-#endif
-		return 0;
-	}
-#ifdef WANGREAL_DEVICE
-	bool CanClearAtOnce() const
-	{
-		for (int i = 1; i < NUM_SIMULTANEOUSRTS; ++i)
-		{
-			if (m_rtTexInfo[i].m_hTex &&
-				(m_rtTexInfo[i].m_needToClear != m_rtTexInfo[0].m_needToClear ||
-					m_rtTexInfo[i].m_clearClr != m_rtTexInfo[0].m_clearClr))
-				return false;
-		}
-		return true;
-	}
-#else
-	bool CanClearAtOnce() const;
-#endif
+	float rhw;                  // 0xc
+	unsigned long diffuse;      // 0x10
+	float tu;                   // 0x14
+	float tv;                   // 0x18
+	float lu;                   // 0x1c
+	float lv;                   // 0x20
+	float vz;                   // 0x24
 };
+CHECK_SIZE(WTVertex, 0x28);
+CHECK_FIELD(WTVertex, sx, 0x0);
+CHECK_FIELD(WTVertex, x, 0x0);
+CHECK_FIELD(WTVertex, y, 0x4);
+CHECK_FIELD(WTVertex, z, 0x8);
+CHECK_FIELD(WTVertex, rhw, 0xc);
+CHECK_FIELD(WTVertex, diffuse, 0x10);
+CHECK_FIELD(WTVertex, tu, 0x14);
+CHECK_FIELD(WTVertex, tv, 0x18);
+CHECK_FIELD(WTVertex, lu, 0x1c);
+CHECK_FIELD(WTVertex, lv, 0x20);
+CHECK_FIELD(WTVertex, vz, 0x24);
 
-#ifdef WANGREAL_DEVICE
-#include "wdevice.h"
-#else
-class WProc;
+// The render state of one batch of indexed triangles (PDB layout, size 0x5c).
+// xiFlag0 carries the texture handle and the render flags.
+struct WxBatchState {
+	WxBatchState() : xiFlag0(0), xiFlag1(0), xiBaseVtxIdx(0), xnVtxs(0), xiBaseIdxIdx(0), xnIdxs(0), xdwDiffuse(0xffffffff), xfDepth(3.402823466e+38F), xnmTransfs(0), xpapmW(0), xpapmO(0) {
+		xmW.Reset();   // xfDepth starts at FLT_MAX (float.h is not in the toolchain copy)
+	}
 
-class WDevice
-{
+	int xiFlag0;                        // 0x0
+	int xiFlag1;                        // 0x4
+	int xiBaseVtxIdx;                   // 0x8
+	int xnVtxs;                         // 0xc
+	int xiBaseIdxIdx;                   // 0x10
+	int xnIdxs;                         // 0x14
+	unsigned long xdwDiffuse;           // 0x18
+	WMatrix xmW;                        // 0x1c
+	float xfDepth;                      // 0x4c
+	int xnmTransfs;                     // 0x50
+	const WMatrix* const* xpapmW;       // 0x54
+	const WMatrix* const* xpapmO;       // 0x58
+};
+CHECK_SIZE(WxBatchState, 0x5c);
+CHECK_FIELD(WxBatchState, xiFlag0, 0x0);
+CHECK_FIELD(WxBatchState, xiFlag1, 0x4);
+CHECK_FIELD(WxBatchState, xiBaseVtxIdx, 0x8);
+CHECK_FIELD(WxBatchState, xnVtxs, 0xc);
+CHECK_FIELD(WxBatchState, xiBaseIdxIdx, 0x10);
+CHECK_FIELD(WxBatchState, xnIdxs, 0x14);
+CHECK_FIELD(WxBatchState, xdwDiffuse, 0x18);
+CHECK_FIELD(WxBatchState, xmW, 0x1c);
+CHECK_FIELD(WxBatchState, xfDepth, 0x4c);
+CHECK_FIELD(WxBatchState, xnmTransfs, 0x50);
+CHECK_FIELD(WxBatchState, xpapmW, 0x54);
+CHECK_FIELD(WxBatchState, xpapmO, 0x58);
+
+// The engine's abstract video device (PDB layout, size 0x14).
+class WVideoDev : public WDevice {
 public:
-	virtual ~WDevice();
-	virtual char* GetDeviceName();
-	virtual char* EnumModeName();
-	virtual WProc* ExternProc();
-};
-#endif
+	virtual ~WVideoDev();                                                                           // vtable 0x0
+	virtual wVDevState GetDeviceState() = 0;                                                        // vtable 0x10
+	virtual void SetMainThreadId(unsigned long id);                                                 // vtable 0x14
+	virtual void DrawPolygonFan(WTVertex** ppVtx, int nVtx, int a, int b, unsigned long c) = 0;     // vtable 0x18
+	virtual void DrawIndexedTriangles(WTVertex* pVtx, int nVtx, unsigned short* pIdx, int nIdx, int a, int b);  // vtable 0x1c
+	virtual void DrawLine(WTVertex** ppVtx, int nVtx) = 0;                                          // vtable 0x20
+	virtual int Command(wVDevMessage msg, int wParam, int lParam) = 0;                              // vtable 0x24
+	virtual int CreateTexture(tagBITMAPINFO* pInfo, int flags) = 0;                                 // vtable 0x28
+	virtual void UpdateTexture(int tex, tagBITMAPINFO* pInfo, void* pBits, unsigned long flags) = 0;  // vtable 0x2c
+	virtual void DestroyTexture(int tex) = 0;                                                       // vtable 0x30
+	virtual int UploadCompressedTexture(void* pData, unsigned int size, int flags) = 0;             // vtable 0x34
+	virtual void UpdateCompressedTexture(int tex, void* pData, unsigned int size, int flags) = 0;   // vtable 0x38
+	virtual void FixTexturePart(int tex, const tagRECT& rect, tagBITMAPINFO* pInfo, void* pBits, int flags) = 0;  // vtable 0x3c
+	virtual bool IsTextureFilled(int tex) = 0;                                                      // vtable 0x40
+	virtual int GetTextureWidth(int tex) = 0;                                                       // vtable 0x44
+	virtual int GetTextureHeight(int tex) = 0;                                                      // vtable 0x48
+	virtual void SetRenderTargetSizeInfo(int index, const WRenderToTextureSizeInfo& info) = 0;      // vtable 0x4c
+	virtual bool BeginScene() = 0;                                                                  // vtable 0x50
+	virtual void EndScene() = 0;                                                                    // vtable 0x54
+	virtual void Paint() = 0;                                                                       // vtable 0x58
+	virtual void SetGlobalRenderState(int state, int value) = 0;                                    // vtable 0x5c
+	virtual bool IsSupportVS() = 0;                                                                 // vtable 0x60
+	virtual bool IsSupportPS() = 0;                                                                 // vtable 0x64
+	virtual bool IsSupportMRT() = 0;                                                                // vtable 0x68
+	virtual bool IsSupportClipPlane() = 0;                                                          // vtable 0x6c
+	virtual void Clear(unsigned long color, int flags, float z) = 0;                                // vtable 0x70
+	virtual int GetWidth() = 0;                                                                     // vtable 0x74
+	virtual int GetHeight() = 0;                                                                    // vtable 0x78
+	virtual int GetBackBufferBpp() = 0;                                                             // vtable 0x7c
+	virtual bool IsWindowed() = 0;                                                                  // vtable 0x80
+	virtual bool IsFillScreenMode() = 0;                                                            // vtable 0x84
+	virtual float GetMonitorSupportFPS() = 0;                                                       // vtable 0x88
+	virtual bool SetFogEnable(bool enable) = 0;                                                     // vtable 0x8c
+	virtual void SetFogState(float start, float end, unsigned long color) = 0;                      // vtable 0x90
+	virtual WVideoDev* MakeClone(char* name, HWND__* hWnd, int flags) = 0;                          // vtable 0x94
+	virtual bool Reset(bool windowed, int width, int height, int bpp, long refresh, int flags) = 0;  // vtable 0x98
+	virtual unsigned long VertexSize(unsigned long fvf) = 0;                                        // vtable 0x9c
+	virtual unsigned char xGetStride(int type) = 0;                                                 // vtable 0xa0
+	virtual bool xHasVertexElem(unsigned long fvf, wWxVertexElem elem) = 0;                         // vtable 0xa4
+	virtual int xGetVertexElemOffset(unsigned long fvf, wWxVertexElem elem) = 0;                    // vtable 0xa8
+	virtual int xGetBlendWeightSize(unsigned long fvf) = 0;                                         // vtable 0xac
+	virtual unsigned long xDetermineFVF(int a, int b, int c) = 0;                                   // vtable 0xb0
+	virtual unsigned long xDetermineBufferUsage(unsigned long fvf) = 0;                             // vtable 0xb4
+	virtual int xCreateVertexBuffer(int size, unsigned long fvf, unsigned long usage) = 0;          // vtable 0xb8
+	virtual int xCreateIndexBuffer(int size, unsigned long usage) = 0;                              // vtable 0xbc
+	virtual void xReleaseVertexBuffer(int vb) = 0;                                                  // vtable 0xc0
+	virtual void xReleaseIndexBuffer(int ib) = 0;                                                   // vtable 0xc4
+	virtual unsigned char* xLockVertexBuffer(int vb, unsigned int offset, unsigned int size) = 0;   // vtable 0xc8
+	virtual unsigned char* xLockIndexBuffer(int ib, unsigned int offset, unsigned int size) = 0;    // vtable 0xcc
+	virtual void xUnlockVertexBuffer(int vb) = 0;                                                   // vtable 0xd0
+	virtual void xUnlockIndexBuffer(int ib) = 0;                                                    // vtable 0xd4
+	virtual void xDrawIndexedTriangles(const WxViewState& view, const WxBatchState& batch) = 0;     // vtable 0xd8
+	virtual void xSetTransform(WVDTRANSFORMSTATETYPE type, const WMatrix4& m) = 0;                  // vtable 0xdc
+	virtual void xSetPrevViewTransform(const WMatrix4& m) = 0;                                      // vtable 0xe0
+	virtual void SetShaderSource(const char* src) = 0;                                              // vtable 0xe4
+	virtual void BeginUsingCustomRenderState() = 0;                                                 // vtable 0xe8
+	virtual void SetCustomRenderState(WVDRENDERSTATETYPE state, unsigned long value) = 0;           // vtable 0xec
+	virtual void SetCustomTextureStageState(unsigned long stage, WVDTEXTURESTAGESTATETYPE type, unsigned long value) = 0;  // vtable 0xf0
+	virtual void SetCustomTransform(WVDTRANSFORMSTATETYPE type, const WMatrix4& m) = 0;             // vtable 0xf4
+	virtual void SetCustomTexture(unsigned long stage, int tex) = 0;                                // vtable 0xf8
+	virtual void SetCustomClipPlane(unsigned long index, const WPlane& plane) = 0;                  // vtable 0xfc
+	virtual void SetCustomSamplerState(unsigned long sampler, WVDSAMPLERSTATETYPE type, unsigned long value) = 0;  // vtable 0x100
+	virtual void SetCustomFxMacro(unsigned long macro) = 0;                                         // vtable 0x104
+	virtual void SetCustomFxParamInt(WVDFXPARAMETERTYPE param, int value) = 0;                      // vtable 0x108
+	virtual void SetCustomFxParamVector2(WVDFXPARAMETERTYPE param, const WVector2D& v) = 0;         // vtable 0x10c
+	virtual void SetCustomFxParamVector3(WVDFXPARAMETERTYPE param, const WVector& v) = 0;           // vtable 0x110
+	virtual void SetCustomFxParamVector4(WVDFXPARAMETERTYPE param, const WVector4& v) = 0;          // vtable 0x114
+	virtual void SetCustomFxParamMatrix(WVDFXPARAMETERTYPE param, const WMatrix4& m) = 0;           // vtable 0x118
+	virtual void SetCustomFxParamTexture(WVDFXPARAMETERTYPE param, int tex) = 0;                    // vtable 0x11c
+	virtual void EndUsingCustomRenderState() = 0;                                                   // vtable 0x120
+	virtual bool BeginRenderToTexture(const WRenderToTextureParam& param) = 0;                      // vtable 0x124
+	virtual void EndRenderToTexture(const WRenderToTextureParam& param) = 0;                        // vtable 0x128
+	virtual bool SupportRenderTargetFormat() = 0;                                                   // vtable 0x12c
+	virtual bool IsSupportedDisplayMode(bool windowed, int width, int height, int bpp) = 0;         // vtable 0x130
+	virtual bool GetWindowDisplayMode(int& width, int& height, int& bpp) = 0;                       // vtable 0x134
+	virtual int GetBufferingMeshNum() = 0;                                                          // vtable 0x138
+	virtual void SetViewPort(unsigned long x, unsigned long y, unsigned long width, unsigned long height) = 0;  // vtable 0x13c
 
-struct WTVertex
-{
-	union
-	{
-		struct
-		{
-			float sx, sy, sz;
-		};
-		struct
-		{
-			float x, y, z;
-		};
-	};
-	void SetPosition(const WVector& p)
-	{
-		x = p.x;
-		y = p.y;
-		z = p.z;
-	}
-	float rhw;
-	unsigned long diffuse;
-	float tu;
-	float tv;
-	float lu;
-	float lv;
-	float vz;
-};
-
-#ifdef WANGREAL_DEVICE
-class WVideoDev : public WDevice
-{
-	friend class WView;
-
-public:
-	virtual ~WVideoDev() { }
-	virtual wVDevState GetDeviceState() const = 0;
-	virtual void SetMainThreadId(unsigned long id) { m_mainThreadId = id; }
-	virtual void DrawPolygonFan(WTVertex**, int, int, int, unsigned long) = 0;
-	virtual void DrawIndexedTriangles(WTVertex*, int, unsigned short*, int, int,
-		int);
-	virtual void DrawLine(WTVertex**, int) = 0;
-	virtual int Command(wVDevMessage, int, int) = 0;
-	virtual int CreateTexture(tagBITMAPINFO*, int) = 0;
-	virtual void UpdateTexture(int, tagBITMAPINFO*, void*, unsigned long) = 0;
-	virtual void DestroyTexture(int) = 0;
-	virtual int UploadCompressedTexture(void*, unsigned int, int) = 0;
-	virtual void UpdateCompressedTexture(int, void*, unsigned int, int) = 0;
-	virtual void FixTexturePart(int, const tagRECT&, tagBITMAPINFO*, void*,
-		int) = 0;
-	virtual bool IsTextureFilled(int) const = 0;
-	virtual int GetTextureWidth(int) const = 0;
-	virtual int GetTextureHeight(int) const = 0;
-	virtual void SetRenderTargetSizeInfo(int,
-		const WRenderToTextureSizeInfo&) = 0;
-	virtual bool BeginScene() = 0;
-	virtual void EndScene() = 0;
-	virtual void Paint() = 0;
-	virtual void SetGlobalRenderState(int, int) = 0;
-	virtual bool IsSupportVS() const = 0;
-	virtual bool IsSupportPS() const = 0;
-	virtual bool IsSupportMRT() const = 0;
-	virtual bool IsSupportClipPlane() const = 0;
-	virtual void Clear(unsigned long, int, float) = 0;
-	virtual int GetWidth() const = 0;
-	virtual int GetHeight() const = 0;
-	virtual int GetBackBufferBpp() const = 0;
-	virtual bool IsWindowed() const = 0;
-	virtual bool IsFillScreenMode() const = 0;
-	virtual float GetMonitorSupportFPS() const = 0;
-	virtual bool SetFogEnable(bool) = 0;
-	virtual void SetFogState(float, float, unsigned long) = 0;
-	virtual WVideoDev* MakeClone(char*, HWND__*, int) = 0;
-	virtual bool Reset(bool, int, int, int, long, int) = 0;
-	virtual unsigned long VertexSize(unsigned long) = 0;
-	virtual unsigned char xGetStride(int) = 0;
-	virtual bool xHasVertexElem(unsigned long, wWxVertexElem) const = 0;
-	virtual int xGetVertexElemOffset(unsigned long, wWxVertexElem) const = 0;
-	virtual int xGetBlendWeightSize(unsigned long) const = 0;
-	virtual unsigned long xDetermineFVF(int, int, int) = 0;
-	virtual unsigned long xDetermineBufferUsage(unsigned long) = 0;
-	virtual int xCreateVertexBuffer(int, unsigned long, unsigned long) = 0;
-	virtual int xCreateIndexBuffer(int, unsigned long) = 0;
-	virtual void xReleaseVertexBuffer(int) = 0;
-	virtual void xReleaseIndexBuffer(int) = 0;
-	virtual unsigned char* xLockVertexBuffer(int, unsigned int,
-		unsigned int) = 0;
-	virtual unsigned char* xLockIndexBuffer(int, unsigned int,
-		unsigned int) = 0;
-	virtual void xUnlockVertexBuffer(int) = 0;
-	virtual void xUnlockIndexBuffer(int) = 0;
-	virtual void xDrawIndexedTriangles(const WxViewState&,
-		const WxBatchState&) = 0;
-	virtual void xSetTransform(WVDTRANSFORMSTATETYPE, const WMatrix4&) = 0;
-	virtual void xSetPrevViewTransform(const WMatrix4&) = 0;
-	virtual void SetShaderSource(const char*) = 0;
-	virtual void BeginUsingCustomRenderState() = 0;
-	virtual void SetCustomRenderState(WVDRENDERSTATETYPE, unsigned long) = 0;
-	virtual void SetCustomTextureStageState(unsigned long,
-		WVDTEXTURESTAGESTATETYPE, unsigned long) = 0;
-	virtual void SetCustomTransform(WVDTRANSFORMSTATETYPE, const WMatrix4&) = 0;
-	virtual void SetCustomTexture(unsigned long, int) = 0;
-	virtual void SetCustomClipPlane(unsigned long, const WPlane&) = 0;
-	virtual void SetCustomSamplerState(unsigned long, WVDSAMPLERSTATETYPE,
-		unsigned long) = 0;
-	virtual void SetCustomFxMacro(unsigned long) = 0;
-	virtual void SetCustomFxParamInt(WVDFXPARAMETERTYPE, int) = 0;
-	virtual void SetCustomFxParamVector2(WVDFXPARAMETERTYPE,
-		const WVector2D&) = 0;
-	virtual void SetCustomFxParamVector3(WVDFXPARAMETERTYPE,
-		const WVector&) = 0;
-	virtual void SetCustomFxParamVector4(WVDFXPARAMETERTYPE,
-		const WVector4&) = 0;
-	virtual void SetCustomFxParamMatrix(WVDFXPARAMETERTYPE,
-		const WMatrix4&) = 0;
-	virtual void SetCustomFxParamTexture(WVDFXPARAMETERTYPE, int) = 0;
-	virtual void EndUsingCustomRenderState() = 0;
-	virtual bool BeginRenderToTexture(const WRenderToTextureParam&) = 0;
-	virtual void EndRenderToTexture(const WRenderToTextureParam&) = 0;
-	virtual bool SupportRenderTargetFormat() const = 0;
-	virtual bool IsSupportedDisplayMode(bool, int, int, int) = 0;
-	virtual bool GetWindowDisplayMode(int&, int&, int&) = 0;
-	virtual int GetBufferingMeshNum() const = 0;
-	virtual void SetViewPort(unsigned long, unsigned long, unsigned long,
-		unsigned long) = 0;
+	unsigned long GetRenderCount();
+	void SetRenderCount(unsigned long count);
 
 protected:
-	unsigned long m_mainThreadId;
-	unsigned long m_renderCount;
-
-protected:
-	float m_clip_scale_z;
-	float m_clip_near_scale;
-};
-
-enum WVDFXMACROFLAG
-{
-	WVDFXMACRO_TEXTURE = 1,
-	WVDFXMACRO_NORMAL = 2,
-	WVDFXMACRO_VERTEX_COLOR = 4,
-	WVDFXMACRO_MATERIAL_COLOR = 8,
-	WVDFXMACRO_TEXTURE_STAGE2 = 16,
-	WVDFXMACRO_TEXTURE_STAGE2_ADD = 32,
-	WVDFXMACRO_USE_CONSTCOLOR = 64,
-	WVDFXMACRO_FOG = 128,
-	WVDFXMACRO_NO_LIGHTING = 256,
-	WVDFXMACRO_RIMLIGHTING = 512,
-	WVDFXMACRO_APPLY_SPHERICAL_HARMONICS = 1024,
-	WVDFXMACRO_POSTPROCESSING_DOF = 2048,
-	WVDFXMACRO_POSTPROCESSING_MOTIONBLUR = 4096,
-	WVDFXMACRO_OVERLAY = 8192,
-	WVDFXMACRO_MRT_VELOCITY = 16384,
-	WVDFXMACRO_MRT_DOF_FACTOR = 32768,
-	WVDFXMACRO_PROJ_TEXCOORD = 65536,
-	WVDFXMACRO_SHADOW_CASTER = 131072,
-	WVDFXMACRO_SHADOW_RECVER = 262144,
-	WVDFXMACRO_BLURRING = 524288,
-	WVDFXMACRO_PERPIXEL_LIGHTING = 268435456,
-	WVDFXMACRO_NO_VERTEXSHADER = 536870912,
-	WVDFXMACRO_NO_PIXELSHADER = 1073741824,
-	WVDFXMACRO_PARAM_SHARING = -2147483648,
-	WVDFXMACRO_PS_EXTEND = 63488,
-	WVDFXMACRO_SHADER_EXTEND = 65024,
-};
-
-#else
-class WVideoDev : public WDevice
-{
-	friend class WView;
+	unsigned long m_mainThreadId;   // 0x4
+	unsigned long m_renderCount;    // 0x8
 
 public:
-	virtual ~WVideoDev();
-	virtual wVDevState GetDeviceState() = 0;
-	virtual void SetMainThreadId(unsigned int threadId);
-	virtual void DrawPolygonFan(WTVertex** p, int iType, int iNum, int iType2,
-		unsigned int dwVertexTypeDesc) = 0;
-	virtual void DrawIndexedTriangles(WTVertex* p, int pNum,
-		unsigned short* fList, int fNum, unsigned int iType,
-		unsigned int iType2);
-	virtual void DrawLine(WTVertex** p, int type) = 0;
-	virtual int Command(wVDevMessage message, int param1, int param2) = 0;
-	virtual int CreateTexture(LPBITMAPINFO src, int type) = 0;
-	virtual void UpdateTexture(int texHandle, LPBITMAPINFO src, LPVOID data,
-		unsigned int type) = 0;
-	virtual void DestroyTexture(int texHandle) = 0;
-	virtual int UploadCompressedTexture(void* pSrc, size_t srcSize,
-		int type) = 0;
-	virtual void UpdateCompressedTexture(int texHandle, void* pSrcData,
-		size_t srcDataSize, int type) = 0;
-	virtual void FixTexturePart(int texHandle, const RECT& rc, BITMAPINFO* src,
-		void* data, int type) = 0;
-	virtual bool IsTextureFilled(int handle) = 0;
-	virtual int GetTextureWidth(int hTex) = 0;
-	virtual int GetTextureHeight(int hTex) = 0;
-	virtual void SetRenderTargetSizeInfo(int handle,
-		const WRenderToTextureSizeInfo& sizeInfo) = 0;
-	virtual bool BeginScene() = 0;
-	virtual void EndScene() = 0;
-	virtual void Paint() = 0;
-	virtual void SetGlobalRenderState(int rs, int rsEx) = 0;
-	virtual bool IsSupportVs() = 0;
-	virtual bool IsSupportPs() = 0;
-	virtual bool IsSupportMrt() = 0;
-	virtual bool IsSupportClipPlane() = 0;
-	virtual void Clear(unsigned int color, int flags, float z) = 0;
-	virtual int GetWidth() = 0;
-	virtual int GetHeight() = 0;
-	virtual int GetBackBufferBpp() const = 0;
-	virtual bool IsWindowed() = 0;
-	virtual bool IsFillScreenMode() = 0;
-	virtual float GetMonitorSupportFps() const = 0;
-	virtual bool SetFogEnable(bool enable) = 0;
-	virtual void SetFogState(float fogStart, float fogEnd,
-		unsigned int fogColor) = 0;
-	virtual WVideoDev* MakeClone(char* modeName, HWND hWnd, int iTnL) = 0;
-	virtual bool Reset(bool bWindowed, int iWidth, int iHeight, int iColor,
-		int lWndStyle, int fillMode) = 0;
+	float m_clip_scale_z;           // 0xc
+	float m_clip_near_scale;        // 0x10
 
-	virtual unsigned long VertexSize(unsigned long dwVertexTypeDesc) = 0;
-
-	virtual BYTE xGetStride(int hVb) = 0;
-	virtual bool xHasVertexElem(unsigned long fvf,
-		wWxVertexElem elem) const = 0;
-	virtual int xGetVertexElemOffset(unsigned long fvf,
-		wWxVertexElem elem) const = 0;
-	virtual int xGetBlendWeightSize(unsigned long fvf) const = 0;
-	virtual unsigned long xDetermineFVF(int iDrawFlag, int iDrawFlag2,
-		int iMaxBoneNum) = 0;
-	virtual unsigned long xDetermineBufferUsage(unsigned long fvf) = 0;
-	virtual int xCreateVertexBuffer(int numVertices, unsigned long fvf,
-		unsigned long dwUsage) = 0;
-	virtual int xCreateIndexBuffer(int numIndices, unsigned long dwUsage) = 0;
-	virtual void xReleaseVertexBuffer(int hVb) = 0;
-	virtual void xReleaseIndexBuffer(int hIb) = 0;
-	virtual unsigned char* xLockVertexBuffer(int hVb, unsigned int uiOffset,
-		unsigned int uiSize) = 0;
-	virtual unsigned char* xLockIndexBuffer(int hIb, unsigned int uiOffset,
-		unsigned int uiSize) = 0;
-	virtual void xUnlockVertexBuffer(int hVb) = 0;
-	virtual void xUnlockIndexBuffer(int hIb) = 0;
-	virtual void xDrawIndexedTriangles(const WxViewState& viewState,
-		const WxBatchState& batchState) = 0;
-	virtual void xSetTransform(WVDTRANSFORMSTATETYPE state,
-		const WMatrix4& matrix) = 0;
-	virtual void xSetPrevViewTransform(const WMatrix4& matrix) = 0;
-	virtual void SetShaderSource(const char* shaderSrc) = 0;
-	virtual void BeginUsingCustomRenderState() = 0;
-	virtual void SetCustomRenderState(WVDRENDERSTATETYPE state,
-		unsigned int value) = 0;
-	virtual void SetCustomTextureStageState(unsigned int stage,
-		WVDTEXTURESTAGESTATETYPE type, unsigned int value) = 0;
-	virtual void SetCustomTransform(WVDTRANSFORMSTATETYPE state,
-		const WMatrix4& matrix) = 0;
-	virtual void SetCustomTexture(unsigned int stage, int hTex) = 0;
-	virtual void SetCustomClipPlane(unsigned int index,
-		const WPlane& value) = 0;
-	virtual void SetCustomSamplerState(unsigned int sampler,
-		WVDSAMPLERSTATETYPE type, unsigned int value) = 0;
-	virtual void SetCustomFxMacro(unsigned int fxMacro) = 0;
-	virtual void SetCustomFxParamInt(WFxParameterType paramType, int value) = 0;
-	virtual void SetCustomFxParamVector2(WFxParameterType paramType,
-		const WVector2D& value) = 0;
-	virtual void SetCustomFxParamVector3(WFxParameterType paramType,
-		const WVector& value) = 0;
-	virtual void SetCustomFxParamVector4(WFxParameterType paramType,
-		const WVector4& value) = 0;
-	virtual void SetCustomFxParamMatrix(WFxParameterType paramType,
-		const WMatrix4& value) = 0;
-	virtual void SetCustomFxParamTexture(WFxParameterType paramType,
-		int hTex) = 0;
-	virtual void EndUsingCustomRenderState() = 0;
-	virtual bool BeginRenderToTexture(WRenderToTextureParam* param) = 0;
-	virtual void EndRenderToTexture(WRenderToTextureParam* param) = 0;
-	virtual bool SupportRenderTargetFormat() = 0;
-	virtual bool IsSupportedDisplayMode(bool bWindowed, int iWidth, int iHeight,
-		int iColor) = 0;
-	virtual bool GetWindowDisplayMode(int& iWidth, int& iHeight,
-		int& iColor) = 0;
-	virtual int GetBufferingMeshNum() const = 0;
-	ulong GetRenderCount() { return m_renderCount; }
-	void SetRenderCount(ulong count) { m_renderCount = count; }
-	virtual void SetViewPort(unsigned int x, unsigned int y, unsigned int w,
-		unsigned int h) = 0;
-
-protected:
-	ulong m_mainThreadId;
-	ulong m_renderCount;
-	float m_clip_scale_z;
-	float m_clip_near_scale;
+	LAYOUT_CHECK_FRIEND;
 };
+CHECK_SIZE(WVideoDev, 0x14);
+BEGIN_LAYOUT_CHECK(WVideoDev)
+	CHECK_FIELD(WVideoDev, m_mainThreadId, 0x4);
+	CHECK_FIELD(WVideoDev, m_renderCount, 0x8);
+	CHECK_FIELD(WVideoDev, m_clip_scale_z, 0xc);
+	CHECK_FIELD(WVideoDev, m_clip_near_scale, 0x10);
+END_LAYOUT_CHECK
 
-class WInputDev : public WDevice
-{
-public:
-	virtual ~WInputDev();
-	virtual bool InitDevice(HWND window, bool active);
-	virtual void SetActive(bool active);
-	virtual void Reset();
-	virtual void Update(unsigned long time);
-	virtual int GetState(int type, int index);
-	virtual unsigned long GetEventTime(int index);
-	virtual bool IsAlphaNumericMode();
-	virtual void SetAlphaNumericMode(bool enabled);
-	virtual void SetAlphaNumericMode();
-	virtual bool IsUpdated();
-	virtual unsigned long GetLastInputTime();
-	virtual void ResetInputTime();
-	virtual void SetState(int type, int value);
-	virtual void SetOpenStatus(bool open);
-	virtual WInputDev* MakeClone(char* mode, HWND window);
-
-protected:
-	bool active;
-	bool bUpdated;
-	unsigned long dwLastInputTime;
-};
-#endif
+#endif // PG_CLIENT_WANGREAL_INCLUDE_WVIDEO_H

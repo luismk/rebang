@@ -1,65 +1,111 @@
-#include "minatl.h"
-#include "tikimagicboxdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\tikimagicboxdlg.cpp
+#include <stdio.h>
+
+#include "TikiMagicBoxDlg.h"
+#include "ObjectFactory.h"
+#include "fresh.h"
 #include "frbutton.h"
+#include "frgraphicinterface.h"
 #include "frlistbox.h"
 #include "frwndmanager.h"
-#include "frgraphicinterface.h"
-#include "fresh.h"
+#include "../client/Wangreal/include/bitmap.h"
 
-extern Fresh* g_pFresh;
+// tikimagicboxdlg.cpp:21 (run-time type and factory registration of FrTikiMagicBoxDlg)
+const WRTTI FrTikiMagicBoxDlg::m_RTTI("FrTikiMagicBoxDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrTikiMagicBoxDlg, FrForm)
+IObject* FrTikiMagicBoxDlgMakeInstance(void) {
+	return new FrTikiMagicBoxDlg;
+}
 
-BEGIN_FRESH_MSGMAP(FrTikiMagicBoxDlg, FrForm)
+struct __sFrTikiMagicBoxDlg {
+	__sFrTikiMagicBoxDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrTikiMagicBoxDlgMakeInstance, "FrTikiMagicBoxDlg");
+	}
+};
+static __sFrTikiMagicBoxDlg s_registerFrTikiMagicBoxDlg;
 
-ON_FRESH_VI("back_img", FRCMD_OWNERDRAW,
-	FrTikiMagicBoxDlg::OnBackImageOwnerDraw)
-ON_FRESH_VI("myitem_list", FRCMD_INIT, FrTikiMagicBoxDlg::OnMyItemListInit)
-ON_FRESH_VI("myitem_list", FRCMD_OWNERDRAW,
-	FrTikiMagicBoxDlg::OnMyItemListOwnerDraw)
-ON_FRESH_VV("myitem_list", FRCMD_DBLCLICK,
-	FrTikiMagicBoxDlg::OnMyItemListDBClick)
-ON_FRESH_VV("myitem_list", FRCMD_LBUTTONDOWN,
-	FrTikiMagicBoxDlg::OnMyItemListLBDown)
-ON_FRESH_VV("myitem_list", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnMyItemListLBUp)
-ON_FRESH_VI("mtr_list", FRCMD_INIT, FrTikiMagicBoxDlg::OnMtrListInit)
-ON_FRESH_VI("mtr_list", FRCMD_OWNERDRAW, FrTikiMagicBoxDlg::OnMtrListOwnerDraw)
-ON_FRESH_VV("mtr_list", FRCMD_DBLCLICK, FrTikiMagicBoxDlg::OnMtrListDBClick)
-ON_FRESH_VV("mtr_list", FRCMD_LBUTTONDOWN, FrTikiMagicBoxDlg::OnMtrListLBDown)
-ON_FRESH_VV("mtr_list", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnMtrListLBUp)
-ON_FRESH_VI("category_list", FRCMD_INIT, FrTikiMagicBoxDlg::OnCategoryListInit)
-ON_FRESH_VI("category_list", FRCMD_OWNERDRAW,
-	FrTikiMagicBoxDlg::OnCategoryListOwnerDraw)
-ON_FRESH_VV("category_list", FRCMD_LBUTTONDOWN,
-	FrTikiMagicBoxDlg::OnCategoryListLBDown)
-ON_FRESH_VI("character_list", FRCMD_INIT,
-	FrTikiMagicBoxDlg::OnCharacterListInit)
-ON_FRESH_VI("character_list", FRCMD_OWNERDRAW,
-	FrTikiMagicBoxDlg::OnCharacterListOwnerDraw)
-ON_FRESH_VV("character_list", FRCMD_LBUTTONDOWN,
-	FrTikiMagicBoxDlg::OnCharacterListLBDown)
-ON_FRESH_VI("help_btn", FRCMD_INIT, FrTikiMagicBoxDlg::OnHelpBtnInit)
-ON_FRESH_VV("help_btn", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnHelpBtnLBUp)
-ON_FRESH_VI("close_btn", FRCMD_INIT, FrTikiMagicBoxDlg::OnCloseBtnInit)
-ON_FRESH_VV("close_btn", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnCloseBtnLBUp)
-ON_FRESH_VI("char_tab", FRCMD_INIT, FrTikiMagicBoxDlg::OnCharTabInit)
-ON_FRESH_VV("char_tab", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnCharTabLBUp)
-ON_FRESH_VI("item_tab", FRCMD_INIT, FrTikiMagicBoxDlg::OnItemTabInit)
-ON_FRESH_VV("item_tab", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnItemTabLBUp)
-ON_FRESH_VI("insert_btn", FRCMD_INIT, FrTikiMagicBoxDlg::OnInsertBtnInit)
-ON_FRESH_VV("insert_btn", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnInsertBtnLBUp)
-ON_FRESH_VI("mix_btn", FRCMD_INIT, FrTikiMagicBoxDlg::OnMixBtnInit)
-ON_FRESH_VV("mix_btn", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnMixBtnLBUp)
-ON_FRESH_VI("cancel_btn", FRCMD_INIT, FrTikiMagicBoxDlg::OnCancelInit)
-ON_FRESH_VV("cancel_btn", FRCMD_LBUTTONUP, FrTikiMagicBoxDlg::OnCancelLBUp)
+// tikimagicboxdlg.cpp:23
+const sFRESH_MSGMAP* FrTikiMagicBoxDlg::GetMessageMap(void) const {
+	return &FrTikiMagicBoxDlg::_MsgMap;
+}
 
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrTikiMagicBoxDlg::_MsgMap = { &FrForm::_MsgMap, &FrTikiMagicBoxDlg::_MsgEntries[0] };
 
-void FrTikiMagicBoxDlg::OnBackImageOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
+// tikimagicboxdlg.cpp:25
+sFRESH_ENTRY FrTikiMagicBoxDlg::_MsgEntries[] = {
+	// tikimagicboxdlg.cpp:26
+	{ "back_img", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnBackImageOwnerDraw },
+	// tikimagicboxdlg.cpp:27
+	{ "myitem_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnMyItemListInit },
+	// tikimagicboxdlg.cpp:28
+	{ "myitem_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnMyItemListOwnerDraw },
+	// tikimagicboxdlg.cpp:29
+	{ "myitem_list", FRCMD_DBLCLICK, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnMyItemListDBClick },
+	// tikimagicboxdlg.cpp:30
+	{ "myitem_list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnMyItemListLBDown },
+	// tikimagicboxdlg.cpp:31
+	{ "myitem_list", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnMyItemListLBUp },
+	// tikimagicboxdlg.cpp:33
+	{ "mtr_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnMtrListInit },
+	// tikimagicboxdlg.cpp:34
+	{ "mtr_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnMtrListOwnerDraw },
+	// tikimagicboxdlg.cpp:35
+	{ "mtr_list", FRCMD_DBLCLICK, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnMtrListDBClick },
+	// tikimagicboxdlg.cpp:36
+	{ "mtr_list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnMtrListLBDown },
+	// tikimagicboxdlg.cpp:37
+	{ "mtr_list", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnMtrListLBUp },
+	// tikimagicboxdlg.cpp:39
+	{ "category_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnCategoryListInit },
+	// tikimagicboxdlg.cpp:40
+	{ "category_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnCategoryListOwnerDraw },
+	// tikimagicboxdlg.cpp:41
+	{ "category_list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnCategoryListLBDown },
+	// tikimagicboxdlg.cpp:43
+	{ "character_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnCharacterListInit },
+	// tikimagicboxdlg.cpp:44
+	{ "character_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnCharacterListOwnerDraw },
+	// tikimagicboxdlg.cpp:45
+	{ "character_list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnCharacterListLBDown },
+	// tikimagicboxdlg.cpp:47
+	{ "help_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnHelpBtnInit },
+	// tikimagicboxdlg.cpp:48
+	{ "help_btn", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnHelpBtnLBUp },
+	// tikimagicboxdlg.cpp:49
+	{ "fy_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnCloseBtnInit },
+	// tikimagicboxdlg.cpp:50
+	{ "fy_btn", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnCloseBtnLBUp },
+	// tikimagicboxdlg.cpp:51
+	{ "char_tab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnCharTabInit },
+	// tikimagicboxdlg.cpp:52
+	{ "char_tab", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnCharTabLBUp },
+	// tikimagicboxdlg.cpp:53
+	{ "item_tab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnItemTabInit },
+	// tikimagicboxdlg.cpp:54
+	{ "item_tab", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnItemTabLBUp },
+	// tikimagicboxdlg.cpp:55
+	{ "insert_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnInsertBtnInit },
+	// tikimagicboxdlg.cpp:56
+	{ "insert_btn", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnInsertBtnLBUp },
+	// tikimagicboxdlg.cpp:57
+	{ "mix_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnMixBtnInit },
+	// tikimagicboxdlg.cpp:58
+	{ "mix_btn", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnMixBtnLBUp },
+	// tikimagicboxdlg.cpp:59
+	{ "ok_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTikiMagicBoxDlg::OnCancelInit },
+	// tikimagicboxdlg.cpp:60
+	{ "ok_btn", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTikiMagicBoxDlg::OnCancelLBUp },
+
+	// tikimagicboxdlg.cpp:62
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// tikimagicboxdlg.cpp:67
+void FrTikiMagicBoxDlg::OnBackImageOwnerDraw(int param) {
+	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
+	if (pDevice == 0) {
 		return;
+	}
 
 	DrawBitmapOnDlg(0.0f, 0.0f, "tiki_bg_1");
 	DrawBitmapOnDlg(256.0f, 0.0f, "tiki_bg_2");
@@ -67,219 +113,216 @@ void FrTikiMagicBoxDlg::OnBackImageOwnerDraw(int param)
 	DrawBitmapOnDlg(0.0f, 256.0f, "tiki_bg_4");
 	DrawBitmapOnDlg(256.0f, 256.0f, "tiki_bg_5");
 	DrawBitmapOnDlg(512.0f, 256.0f, "tiki_bg_6");
+
 	DrawBitmapOnDlg(480.0f, 17.0f, "tiki_x_l");
+
 	DrawBitmapOnDlg(38.0f, 137.0f, "tiki_tab_box_left");
 	DrawBitmapOnDlg(257.0f, 137.0f, "tiki_tab_box_right");
 
-	char buf[128] = "\0";
-	sprintf(buf,
-		"%d\xb9\xf8\xc2\xb0 \xc0\xe7\xb7\xe1 \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xbb \xb3\xd6\xbe\xee \xc1\xd6\xbc\xbc\xbf\xe4.",
-		m_mtrIndex + 1);
-	pGDI->SetTextStyle(1);
-	PrintTextOnDlg(215.0f, 285.0f, buf, 0xffff0000);
-	pGDI->SetTextStyle(0);
+	// "Please insert the %dth material item." (EUC-KR)
+	char szText[128] = "\0";
+	sprintf(szText, "%d\xb9\xf8\xc2\xb0 \xc0\xe7\xb7\xe1 \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xbb \xb3\xd6\xbe\xee \xc1\xd6\xbc\xbc\xbf\xe4.", m_mtrIndex + 1);
+
+	pDevice->SetTextStyle(1);
+	PrintTextOnDlg(215.0f, 285.0f, szText, 0xffff0000);
+	pDevice->SetTextStyle(0);
 }
 
-void FrTikiMagicBoxDlg::OnMyItemListInit(int param)
-{
+// tikimagicboxdlg.cpp:100
+void FrTikiMagicBoxDlg::OnMyItemListInit(intptr_t param) {
 	BindListBox(m_pMyItemList, param);
 }
 
-void FrTikiMagicBoxDlg::OnMyItemListOwnerDraw(int param)
-{
+// tikimagicboxdlg.cpp:105
+void FrTikiMagicBoxDlg::OnMyItemListOwnerDraw(int param) {
 }
 
-void FrTikiMagicBoxDlg::OnMyItemListDBClick()
-{
+// tikimagicboxdlg.cpp:110
+void FrTikiMagicBoxDlg::OnMyItemListDBClick(void) {
 }
 
-void FrTikiMagicBoxDlg::OnMyItemListLBDown()
-{
+// tikimagicboxdlg.cpp:114
+void FrTikiMagicBoxDlg::OnMyItemListLBDown(void) {
 }
 
-void FrTikiMagicBoxDlg::OnMyItemListLBUp()
-{
+// tikimagicboxdlg.cpp:118
+void FrTikiMagicBoxDlg::OnMyItemListLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnMtrListInit(int param)
-{
+// tikimagicboxdlg.cpp:124
+void FrTikiMagicBoxDlg::OnMtrListInit(int param) {
 	BindListBox(m_pMtrList, param);
 }
 
-void FrTikiMagicBoxDlg::OnMtrListOwnerDraw(int param)
-{
+// tikimagicboxdlg.cpp:129
+void FrTikiMagicBoxDlg::OnMtrListOwnerDraw(int param) {
 }
 
-void FrTikiMagicBoxDlg::OnMtrListDBClick()
-{
+// tikimagicboxdlg.cpp:133
+void FrTikiMagicBoxDlg::OnMtrListDBClick(void) {
 }
 
-void FrTikiMagicBoxDlg::OnMtrListLBDown()
-{
+// tikimagicboxdlg.cpp:137
+void FrTikiMagicBoxDlg::OnMtrListLBDown(void) {
 }
 
-void FrTikiMagicBoxDlg::OnMtrListLBUp()
-{
+// tikimagicboxdlg.cpp:141
+void FrTikiMagicBoxDlg::OnMtrListLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnCategoryListInit(int param)
-{
+// tikimagicboxdlg.cpp:147
+void FrTikiMagicBoxDlg::OnCategoryListInit(int param) {
 	BindListBox(m_pCategoryList, param);
 }
 
-void FrTikiMagicBoxDlg::OnCategoryListOwnerDraw(int param)
-{
+// tikimagicboxdlg.cpp:152
+void FrTikiMagicBoxDlg::OnCategoryListOwnerDraw(int param) {
 }
 
-void FrTikiMagicBoxDlg::OnCategoryListLBDown()
-{
+// tikimagicboxdlg.cpp:156
+void FrTikiMagicBoxDlg::OnCategoryListLBDown(void) {
 }
 
-void FrTikiMagicBoxDlg::OnCharacterListInit(int param)
-{
+// tikimagicboxdlg.cpp:162
+void FrTikiMagicBoxDlg::OnCharacterListInit(int param) {
 	BindListBox(m_pCharacterList, param);
 }
 
-void FrTikiMagicBoxDlg::OnCharacterListOwnerDraw(int param)
-{
+// tikimagicboxdlg.cpp:167
+void FrTikiMagicBoxDlg::OnCharacterListOwnerDraw(int param) {
 }
 
-void FrTikiMagicBoxDlg::OnCharacterListLBDown()
-{
+// tikimagicboxdlg.cpp:171
+void FrTikiMagicBoxDlg::OnCharacterListLBDown(void) {
 }
 
-void FrTikiMagicBoxDlg::OnHelpBtnInit(int param)
-{
+// tikimagicboxdlg.cpp:178
+void FrTikiMagicBoxDlg::OnHelpBtnInit(intptr_t param) {
 	BindButton(m_pHelpBtn, param);
 }
 
-void FrTikiMagicBoxDlg::OnHelpBtnLBUp()
-{
+// tikimagicboxdlg.cpp:183
+void FrTikiMagicBoxDlg::OnHelpBtnLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnCloseBtnInit(int param)
-{
+// tikimagicboxdlg.cpp:189
+void FrTikiMagicBoxDlg::OnCloseBtnInit(intptr_t param) {
 	BindButton(m_pCloseBtn, param);
 }
 
-void FrTikiMagicBoxDlg::OnCloseBtnLBUp()
-{
+// tikimagicboxdlg.cpp:194
+void FrTikiMagicBoxDlg::OnCloseBtnLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnCharTabInit(int param)
-{
+// tikimagicboxdlg.cpp:200
+void FrTikiMagicBoxDlg::OnCharTabInit(int param) {
 	BindButton(m_pCharTab, param);
 }
 
-void FrTikiMagicBoxDlg::OnCharTabLBUp()
-{
+// tikimagicboxdlg.cpp:205
+void FrTikiMagicBoxDlg::OnCharTabLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnItemTabInit(int param)
-{
+// tikimagicboxdlg.cpp:211
+void FrTikiMagicBoxDlg::OnItemTabInit(int param) {
 	BindButton(m_pItemTab, param);
 }
 
-void FrTikiMagicBoxDlg::OnItemTabLBUp()
-{
+// tikimagicboxdlg.cpp:216
+void FrTikiMagicBoxDlg::OnItemTabLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnInsertBtnInit(int param)
-{
+// tikimagicboxdlg.cpp:221
+void FrTikiMagicBoxDlg::OnInsertBtnInit(int param) {
 	BindButton(m_pInsertBtn, param);
 }
 
-void FrTikiMagicBoxDlg::OnInsertBtnLBUp()
-{
+// tikimagicboxdlg.cpp:226
+void FrTikiMagicBoxDlg::OnInsertBtnLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnMixBtnInit(int param)
-{
+// tikimagicboxdlg.cpp:232
+void FrTikiMagicBoxDlg::OnMixBtnInit(int param) {
 	BindButton(m_pMixBtn, param);
 }
 
-void FrTikiMagicBoxDlg::OnMixBtnLBUp()
-{
+// tikimagicboxdlg.cpp:237
+void FrTikiMagicBoxDlg::OnMixBtnLBUp(void) {
 }
 
-void FrTikiMagicBoxDlg::OnCancelInit(int param)
-{
+// tikimagicboxdlg.cpp:243
+void FrTikiMagicBoxDlg::OnCancelInit(intptr_t param) {
 	BindButton(m_pCancel, param);
 }
 
-void FrTikiMagicBoxDlg::OnCancelLBUp()
-{
+// tikimagicboxdlg.cpp:248
+void FrTikiMagicBoxDlg::OnCancelLBUp(void) {
 }
 
-FrTikiMagicBoxDlg::FrTikiMagicBoxDlg()
-{
+// tikimagicboxdlg.cpp:257
+FrTikiMagicBoxDlg::FrTikiMagicBoxDlg(void) {
 	m_mtrIndex = 0;
 }
 
-FrTikiMagicBoxDlg::~FrTikiMagicBoxDlg()
-{
+// tikimagicboxdlg.cpp:263
+FrTikiMagicBoxDlg::~FrTikiMagicBoxDlg(void) {
 }
 
-void FrTikiMagicBoxDlg::BindButton(FrButton*& pButton, int param)
-{
-	pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
-	{
+// tikimagicboxdlg.cpp:270
+void FrTikiMagicBoxDlg::BindButton(FrButton*& pButton, int param) {
+	pButton = DYNAMIC_CAST(FrButton, param);
+
+	if (pButton) {
 		pButton->SetPushDelay(0.1f);
-		m_ctrlList.push_back(pButton);
+		m_bindList.push_back(pButton);
 	}
 }
 
-void FrTikiMagicBoxDlg::BindListBox(FrListBox*& pListBox, int param)
-{
-	pListBox = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (pListBox)
-	{
+// tikimagicboxdlg.cpp:284
+void FrTikiMagicBoxDlg::BindListBox(FrListBox*& pListBox, int param) {
+	pListBox = DYNAMIC_CAST(FrListBox, param);
+
+	if (pListBox) {
 		pListBox->ClearItem();
-		m_ctrlList.push_back(pListBox);
+		m_bindList.push_back(pListBox);
 	}
 }
 
-void FrTikiMagicBoxDlg::DrawBitmapOnDlg(float x, float y, const char* name)
-{
-	if (name == NULL)
-		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
-
-	const Bitmap* pBitmap = g_pFresh->GetBitmap(name);
-	if (pBitmap)
-	{
-		WPoint pos = GetRect().TopLeft();
-		WRect rect(pos.x + x, pos.y + y, pBitmap->Width(), pBitmap->Height());
-		pGDI->DrawTexture(pBitmap, rect, 0xffffffff, 0);
+// tikimagicboxdlg.cpp:298
+void FrTikiMagicBoxDlg::DrawBitmapOnDlg(float x, float y, const char* name) {
+	if (name) {
+		FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
+		if (pDevice) {
+			const Bitmap* pBitmap = g_pFresh->GetBitmap(name);
+			if (pBitmap) {
+				WRect wndRect = GetRect();
+				WRect rect(wndRect.x + x, wndRect.y + y, pBitmap->Width(), pBitmap->Height());
+				pDevice->DrawTexture(pBitmap, rect, 0xffffffff, 0);
+			}
+		}
 	}
 }
 
-void FrTikiMagicBoxDlg::PrintTextOnDlg(float x, float y, const char* text,
-	unsigned long color)
-{
-	if (text == NULL)
-		return;
+// tikimagicboxdlg.cpp:317
+void FrTikiMagicBoxDlg::PrintTextOnDlg(float x, float y, const char* text, unsigned long color) {
+	if (text) {
+		FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
+		if (pDevice) {
+			WRect rect = GetRect();
 
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
-
-	WRect rect = GetRect();
-	pGDI->SetTextColor(color, 0xffffffff);
-	pGDI->PrintText(WPoint(rect.x + x, rect.y + y), 0, text, 0);
-	pGDI->SetTextColor(0xff000000, 0xffffffff);
+			pDevice->SetTextColor(color, 0xffffffff);
+			pDevice->PrintText(WPoint(rect.x + x, rect.y + y), 0, text, 0);
+			pDevice->SetTextColor(0xff000000, 0xffffffff);
+		}
+	}
 }
 
-int FrTikiMagicBoxDlg::InsertMaterial(const sTikiMagicBoxMtr& mtr)
-{
+// tikimagicboxdlg.cpp:343
+int FrTikiMagicBoxDlg::InsertMaterial(const sTikiMagicBoxMtr& mtr) {
 	return 0;
 }
 
-int FrTikiMagicBoxDlg::DeleteMaterial(const sTikiMagicBoxMtr& mtr)
-{
+// tikimagicboxdlg.cpp:352
+int FrTikiMagicBoxDlg::DeleteMaterial(const sTikiMagicBoxMtr& mtr) {
 	return 0;
 }

@@ -1,35 +1,41 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\gatewayinterface.h
+#ifndef PG_CLIENT_PROJECTG_GATEWAYINTERFACE_H
+#define PG_CLIENT_PROJECTG_GATEWAYINTERFACE_H
 
-#include <map>
-#include "actor.h"
-#include "contentsdoc.h"
+#include "..\..\defines.h"
 #include "wtemplate.h"
+#include "frcmdtarget.h"
 
-namespace _gateway
-{
-	class CGatewayHandler : public FunctionMapper, public FrCmdTarget
-	{
-	public:
-		CGatewayHandler()
-			: m_pDocument(NULL)
-		{
-		}
-		virtual ~CGatewayHandler() { }
+class MsgObject;
+struct IContentsDataContainer;
 
-		virtual bool Initialize() = 0;
-		virtual bool Execute(const MsgObject& msg) = 0;
+namespace _gateway {
 
-		template <class T>
-		T GetDocument()
-		{
-			return (T)m_pDocument;
-		}
-		void SetDocument(IContentsDataContainer* pDocument)
-		{
-			m_pDocument = pDocument;
-		}
+// Handler of one gateway content: dispatches through its FunctionMapper and
+// reads its document. Vtable from ??_7CGatewayHandler@_gateway@@6BFunctionMapper@@@
+// (slots 1-2 pure).
+class CGatewayHandler : public FunctionMapper, public FrCmdTarget {
+public:
+	// gatewayinterface.h:21
+	CGatewayHandler(void) : m_pDocument(0) {}
+	// gatewayinterface.h:22
+	virtual ~CGatewayHandler(void) {}
 
-	protected:
-		IContentsDataContainer* m_pDocument;
-	};
+	virtual bool Initialize(void) = 0;
+	virtual bool Execute(const MsgObject& msg) = 0;
+
+	// gatewayinterface.h:29
+	void SetDocument(IContentsDataContainer* pDocument) { m_pDocument = pDocument; }
+
+	template <class T>
+	T GetDocument(void) { return (T)m_pDocument; }
+
+	IContentsDataContainer* m_pDocument; // 0x18
+};
+
+CHECK_FIELD(CGatewayHandler, m_pDocument, 0x18);
+CHECK_SIZE(CGatewayHandler, 0x1C);
+
 }
+
+#endif // PG_CLIENT_PROJECTG_GATEWAYINTERFACE_H

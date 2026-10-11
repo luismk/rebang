@@ -1,94 +1,82 @@
-#include "minatl.h"
-#include "shopunit.h"
+// Original: d:\build\custom\temp\code\client\projectg\shopunit.cpp
+#include "ShopUnit.h"
+#include "Packet.h"
+#include "SharedDoc.h"
 
-ShopUnit::ShopUnit()
-{
+// shopunit.cpp:24
+ShopUnit::ShopUnit(void) {
 }
 
-ShopUnit::~ShopUnit()
-{
+// shopunit.cpp:29
+ShopUnit::~ShopUnit(void) {
 }
 
-bool ShopUnit::Init()
-{
+// shopunit.cpp:37
+bool ShopUnit::Init(void) {
 	NetworkUnit::Init();
 	return true;
 }
 
-void ShopUnit::ShutDown()
-{
+// shopunit.cpp:45
+void ShopUnit::ShutDown(void) {
 }
 
-bool ShopUnit::OnLine()
-{
+// shopunit.cpp:52
+bool ShopUnit::OnLine(void) {
 	return true;
 }
 
-bool ShopUnit::OffLine()
-{
+// shopunit.cpp:59
+bool ShopUnit::OffLine(void) {
 	return true;
 }
 
-bool ShopUnit::Connect()
-{
-	if (m_socket.m_bConnected)
-	{
+// shopunit.cpp:70
+bool ShopUnit::Connect(void) {
+	if (m_socket.m_bConnected) {
 		setTransition(0);
-	}
-	else
-	{
-		m_socket.SetEventMsg(WM_USER + 11);
-		if (m_socket.Connect(inet_addr("127.0.0.1"), htons(7777)) == 0)
-		{
-			m_bConnectionComplete = TRUE;
-			return false;
-		}
-
-		if (OnConnect())
-		{
+	} else {
+		m_socket.m_asyncMessage = 0x40B;
+		if (m_socket.Connect(inet_addr("127.0.0.1"), htons(7777)) == 0) {
+			m_connectResult = 1;
+		} else if (OnConnect()) {
 			m_socket.AsyncSelect(FD_READ | FD_WRITE | FD_CLOSE);
 			setTransition(0);
 			return true;
 		}
-
 		return false;
 	}
-
 	return true;
 }
 
-bool ShopUnit::Connecting()
-{
+// shopunit.cpp:117
+bool ShopUnit::Connecting(void) {
 	setTransition(0);
-	m_bConnectionComplete = TRUE;
+	m_connectResult = 1;
 	return true;
 }
 
-bool ShopUnit::Disconnecting()
-{
-	if (m_socket.m_bConnected)
-	{
-		m_socket.Close();
-
+// shopunit.cpp:127
+bool ShopUnit::Disconnecting(void) {
+	if (m_socket.m_bConnected) {
+		GetSocket()->Close();
 		setTransition(2);
-	}
-	else
-	{
+	} else {
 		setForceTransition(2);
 	}
 	return true;
 }
 
-int ShopUnit::OnConnect()
-{
-	std::string id = MyId();
+// shopunit.cpp:147
+int ShopUnit::OnConnect(void) {
+	std::string id = WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().id;
 
-	WSendPacket send((enumClientPacket)2);
+	WSendPacket packet(2);
 
-	send.Encode1(0);
-	send.EncodeStr(id);
-	send.EncodeStr(std::string("hohoho"));
-	send.Send(TO_SHOP);
+	packet.Encode1(0);
+	packet.EncodeStr(id);
+	packet.EncodeStr(std::string("hohoho"));
+	packet.Send((eSendTo)2);
 
-	return TRUE;
+	return 1;
 }

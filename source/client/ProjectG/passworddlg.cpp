@@ -1,47 +1,70 @@
-#include "minatl.h"
-#include "passworddlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\passworddlg.cpp
+#include "PasswordDlg.h"
+#include "ObjectFactory.h"
 #include "fredit.h"
 
-IMPLEMENT_OBJECT(FrPasswordDlg, FrForm)
+// passworddlg.cpp:20 (run-time type and factory registration of FrPasswordDlg)
+const WRTTI FrPasswordDlg::m_RTTI("FrPasswordDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrPasswordDlg, FrForm)
-
-ON_FRESH_VI("password", FRCMD_INIT, FrPasswordDlg::OnPasswordInit)
-ON_FRESH_BI("password", FRCMD_ENTERKEY, FrPasswordDlg::OnPasswordEnterKey)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrPasswordDlg::OnOkBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrPasswordDlg::FrPasswordDlg()
-	: m_pPassword(NULL)
-{
+IObject* FrPasswordDlgMakeInstance(void) {
+	return new FrPasswordDlg;
 }
 
-void FrPasswordDlg::InitContent()
-{
-	SetMessage(
-		"\xc5\xb8\xc0\xce\xc0\xc7 \xbe\xc7\xbf\xeb\xc0\xbb \xb9\xe6\xc1\xf6\xc7\xcf\xb1\xe2 \xc0\xa7\xc7\xcf\xbf\xa9 \xc1\xd6\xb9\xce\xb9\xf8\xc8\xa3 \xb5\xda\xc0\xc7 7\xc0\xda\xb8\xae\xb8\xa6 \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbc\xbc\xbf\xe4.",
-		false);
+struct __sFrPasswordDlg {
+	__sFrPasswordDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrPasswordDlgMakeInstance, "FrPasswordDlg");
+	}
+};
+static __sFrPasswordDlg s_registerFrPasswordDlg;
+
+// passworddlg.cpp:22
+const sFRESH_MSGMAP* FrPasswordDlg::GetMessageMap(void) const {
+	return &FrPasswordDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrPasswordDlg::_MsgMap = { &FrForm::_MsgMap, &FrPasswordDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrPasswordDlg::_MsgEntries[] = {
+	// passworddlg.cpp:24
+	{ "password", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrPasswordDlg::OnPasswordInit },
+	// passworddlg.cpp:25
+	{ "password", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&FrPasswordDlg::OnPasswordEnterKey },
+	// passworddlg.cpp:26
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrPasswordDlg::OnOkBtnUp },
+
+	// passworddlg.cpp:28
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// passworddlg.cpp:32
+FrPasswordDlg::FrPasswordDlg(void) {
+	m_pPassword = 0;
+}
+
+// passworddlg.cpp:36
+void FrPasswordDlg::InitContent(void) {
+	// "Please enter the last 7 digits of your resident registration number
+	// to prevent misuse by others."
+	SetMessage("\xC5\xB8\xC0\xCE\xC0\xC7 \xBE\xC7\xBF\xEB\xC0\xBB \xB9\xE6\xC1\xF6\xC7\xCF\xB1\xE2 \xC0\xA7\xC7\xCF\xBF\xA9 \xC1\xD6\xB9\xCE\xB9\xF8\xC8\xA3 \xB5\xDA\xC0\xC7 7\xC0\xDA\xB8\xAE\xB8\xA6 \xC0\xD4\xB7\xC2\xC7\xD8\xC1\xD6\xBC\xBC\xBF\xE4.", false);
 
 	m_pPassword->SetCharLimit(7, false);
-	m_pPassword->IsEnabled();
 }
 
-void FrPasswordDlg::OnPasswordInit(int param)
-{
+// passworddlg.cpp:59
+void FrPasswordDlg::OnPasswordInit(intptr_t param) {
 	m_pPassword = DYNAMIC_CAST(FrEdit, param);
 	m_pPassword->SetKeyFocus(true);
 }
 
-bool FrPasswordDlg::OnPasswordEnterKey(int param)
-{
-	if (m_pPassword && !m_pPassword->GetStyle().GetFlag(FWS_DISABLED))
+// passworddlg.cpp:69
+bool FrPasswordDlg::OnPasswordEnterKey(int param) {
+	if (m_pPassword && !m_pPassword->GetStyle().GetFlag(0x2)) {
 		OnFreshOkay();
-
+	}
 	return false;
 }
 
-void FrPasswordDlg::OnOkBtnUp()
-{
+// passworddlg.cpp:77
+void FrPasswordDlg::OnOkBtnUp(void) {
 	OnFreshOkay();
 }

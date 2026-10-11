@@ -1,346 +1,240 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\shared\s5\sharedutilities.cpp
+#include "../shared/s5/SharedUtilities.h"
+
 #include <ctype.h>
-#include <tchar.h>
+#include <mbstring.h>
+#include <string.h>
 
-#include "sharedutilities.h"
+#include "../client/ProjectG/SharedDoc.h"
 
-static const unsigned long l_CLASSIC_CLEARBONUS[20][3] = {
-	{ 20, 40,  60  },
-	{ 50, 100, 140 },
-	{ 55, 105, 145 },
-	{ 80, 150, 190 },
-	{ 65, 120, 170 },
-	{ 24, 48,  72  },
-	{ 50, 100, 140 },
-	{ 70, 125, 175 },
-	{ 40, 80,  120 },
-	{ 55, 105, 145 },
-	{ 40, 80,  120 },
-	{ 20, 40,  60  },
-	{ 0,  0,   0   },
-	{ 80, 150, 190 },
-	{ 20, 40,  60  },
-	{ 20, 40,  60  },
-	{ 40, 80,  120 },
-	{ 40, 80,  120 },
-	{ 0,  0,   0   },
-	{ 40, 80,  120 },
-};
+// The clear bonus of each course (20) and difficulty (3); data with no symbol.
+// Provide default definitions to satisfy link when original data is absent.
+const unsigned long data_00a2b138[20][3] = { {0} };
+// The hole-in-one bonus of each course (20), and the one of an unknown
+// course; provide zero-initialized defaults (can be replaced with real
+// table values later).
+const sHoleInBonus data_00a2b228[20] = { {0} };
+const sHoleInBonus data_00a2b5e8 = { 0 };
 
-static const sHoleInBonus l_CLASSIC_HOLEINBONUS[20] = {
-	{ 158, 158, 93,  55,  37, 0 },
-	{ 243, 243, 143, 84,  56, 0 },
-	{ 256, 256, 150, 89,  59, 0 },
-	{ 351, 351, 207, 122, 81, 0 },
-	{ 256, 256, 150, 89,  59, 0 },
-	{ 145, 145, 85,  50,  34, 0 },
-	{ 243, 243, 143, 84,  56, 0 },
-	{ 280, 280, 164, 97,  65, 0 },
-	{ 156, 156, 92,  54,  36, 0 },
-	{ 256, 256, 150, 89,  59, 0 },
-	{ 176, 176, 103, 61,  41, 0 },
-	{ 182, 182, 107, 63,  42, 0 },
-	{ 0,   0,   0,   0,   0,  0 },
-	{ 340, 340, 200, 118, 79, 0 },
-	{ 104, 104, 61,  36,  24, 0 },
-	{ 100, 100, 59,  35,  23, 0 },
-	{ 173, 173, 102, 60,  40, 0 },
-	{ 800, 800, 520, 260, 90, 0 },
-	{ 0,   0,   0,   0,   0,  0 },
-	{ 173, 173, 102, 60,  40, 0 },
-};
+namespace S5 {
 
-static const sHoleInBonus l_NULL_HOLEINBONUS = { 0, 0, 0, 0, 0, 0 };
+namespace CLASSICSRV {
 
-static sHoleInBonus l_HOLEINBONUS[20] = {
-	{ 50,  50,  30,  12,  3,  0 },
-	{ 100, 100, 60,  30,  11, 0 },
-	{ 110, 110, 65,  32,  12, 0 },
-	{ 180, 180, 98,  59,  20, 0 },
-	{ 150, 150, 85,  43,  16, 0 },
-	{ 55,  55,  36,  17,  5,  0 },
-	{ 100, 100, 60,  30,  11, 0 },
-	{ 150, 150, 85,  43,  16, 0 },
-	{ 80,  80,  52,  26,  9,  0 },
-	{ 110, 110, 65,  32,  12, 0 },
-	{ 80,  80,  52,  26,  9,  0 },
-	{ 50,  50,  30,  12,  3,  0 },
-	{ 0,   0,   0,   0,   0,  0 },
-	{ 180, 180, 98,  59,  20, 0 },
-	{ 50,  50,  30,  12,  3,  0 },
-	{ 50,  50,  30,  12,  3,  0 },
-	{ 80,  80,  52,  26,  9,  0 },
-	{ 800, 800, 520, 260, 90, 0 },
-	{ 0,   0,   0,   0,   0,  0 },
-	{ 80,  80,  52,  26,  9,  0 },
-};
+// sharedutilities.cpp:403
+unsigned long GetClearBonus(unsigned char level, unsigned char course) {
+	int levelIndex = level - 2 < 0 ? 0 : level - 2;
+	int courseIndex = (course > 0x7F && course != 0xFD) ? course - 0x80 : course;
 
-namespace S5
-{
-	namespace CLASSICSRV
-	{
-		unsigned long GetClearBonus(unsigned char numPlayer,
-			unsigned char mapType)
-		{
-			int players = numPlayer - 2 < 0 ? 0 : numPlayer - 2;
-			int map =
-				(mapType <= 0x7f || mapType == 0xfd) ? mapType : mapType - 0x80;
-
-			if (players < 0 || players > 2 || map < 0 || map >= 20)
-			{
-				return 0;
-			}
-
-			return l_CLASSIC_CLEARBONUS[map][players];
-		}
-
-		const sHoleInBonus* GetCourseHoleInBonus(unsigned char mapType)
-		{
-			int map =
-				(mapType <= 0x7f || mapType == 0xfd) ? mapType : mapType - 0x80;
-			if (map < 0 || map >= 20)
-				return &l_NULL_HOLEINBONUS;
-
-			return &l_CLASSIC_HOLEINBONUS[map];
-		}
+	if (levelIndex < 0 || levelIndex > 2 || courseIndex < 0 || courseIndex >= 20) {
+		return 0;
 	}
+	return data_00a2b138[courseIndex][levelIndex];
+}
 
-	namespace RENTALPARTS
-	{
-		int IsRentableParts(unsigned long typeId)
-		{
-			IFF_STRUCT::sPart* part = ItemManager()->FindPart(typeId);
-			if (part == NULL)
-				return FALSE;
-			return part->RentalPrice > 0;
-		}
-
-		int GetRentalPrice(unsigned long typeId)
-		{
-			if (IsRentableParts(typeId))
-			{
-				IFF_STRUCT::sPart* part = ItemManager()->FindPart(typeId);
-				return part->RentalPrice;
-			}
-
-			return 0x7fffffff;
-		}
-
-		void CollectRentalItem(std::list<sItemInfo>& rentalItems,
-			const std::list<sItemInfo>& items)
-		{
-			for (std::list<sItemInfo>::const_iterator it = items.begin();
-				it != items.end(); ++it)
-			{
-				if ((*it).ItemType == 6)
-					rentalItems.push_back(*it);
-			}
-		}
-
-		int IsExistExpiredRentalItem(const std::list<sItemInfo>& items)
-		{
-			for (std::list<sItemInfo>::const_iterator it = items.begin();
-				it != items.end(); ++it)
-			{
-				if ((*it).ItemType == 6 && (*it).Expired)
-					return TRUE;
-			}
-
-			return FALSE;
-		}
+// sharedutilities.cpp:416
+const sHoleInBonus *GetCourseHoleInBonus(unsigned char course) {
+	int courseIndex = (course > 0x7F && course != 0xFD) ? course - 0x80 : course;
+	if (courseIndex < 0 || courseIndex >= 20) {
+		return &data_00a2b5e8;
 	}
+	return &data_00a2b228[courseIndex];
+}
 
-	__int64 ExchangeOwnCashToCookie(__int64 cash, __int64 cookie, int rate)
-	{
-		return cash / rate + cookie;
+} // namespace CLASSICSRV
+
+namespace RENTALPARTS {
+
+// sharedutilities.cpp:438
+int IsRentableParts(unsigned long typeId) {
+	IFF_STRUCT::sPart *part = ItemManager()->FindPart(typeId);
+	if (part == 0) {
+		return 0;
 	}
+	return part->m_rentalPrice > 0;
+}
 
-	__int64 ExchangeOwnCookieToCash(__int64 cookie, int rate)
-	{
-		return rate * cookie;
+// sharedutilities.cpp:444
+int GetRentalPrice(unsigned long typeId) {
+	if (IsRentableParts(typeId)) {
+		IFF_STRUCT::sPart *part = ItemManager()->FindPart(typeId);
+		return part->m_rentalPrice;
+	}
+	return 0x7FFFFFFF;
+}
+
+// sharedutilities.cpp:454
+void CollectRentalItem(std::list<sItemInfo>& rentalList, const std::list<sItemInfo>& itemList) {
+	for (std::list<sItemInfo>::const_iterator it = itemList.begin(); it != itemList.end(); ++it) {
+		if (it->m_stateBits.kind == 6) {
+			rentalList.push_back(*it);
+		}
 	}
 }
 
-namespace _util
-{
-	ePwdErrorCode VerifyInputPassword(const std::string& password)
-	{
-		ePwdErrorCode ret = PWD_OK;
-
-		ret = VerifyLength(password, 5, 8);
-		if (ret != PWD_OK)
-		{
-			return ret;
+// sharedutilities.cpp:464
+int IsExistExpiredRentalItem(const std::list<sItemInfo>& itemList) {
+	for (std::list<sItemInfo>::const_iterator it = itemList.begin(); it != itemList.end(); ++it) {
+		if (it->m_stateBits.kind == 6 && it->m_stateBits.expired) {
+			return 1;
 		}
+	}
+	return 0;
+}
 
-		ret = VerifyStringContents_IsNumber(password);
-		if (ret != PWD_OK)
-		{
-			return ret;
+} // namespace RENTALPARTS
+
+// sharedutilities.cpp:544
+__int64 ExchangeOwnCashToCookie(__int64 cash, __int64 cookie, int rate) {
+	return cash / rate + cookie;
+}
+
+// sharedutilities.cpp:557
+__int64 ExchangeOwnCookieToCash(__int64 cookie, int rate) {
+	return cookie * rate;
+}
+
+} // namespace S5
+
+namespace _util {
+
+// sharedutilities.cpp:569
+ePwdErrorCode VerifyInputPassword(const std::string &password) {
+	ePwdErrorCode result = VerifyLength(password, 5, 8);
+	if (result != PWD_OK) {
+		return result;
+	}
+	return VerifyStringContents_IsNumber(password);
+}
+
+// sharedutilities.cpp:588
+ePwdErrorCode VerifyLength(const std::string &text, int minLength, int maxLength) {
+	int length = text.length();
+	if (length == 0) {
+		return PWD_EMPTY;
+	}
+	if (minLength > length) {
+		return PWD_TOO_SHORT;
+	}
+	if (maxLength < length) {
+		return PWD_TOO_LONG;
+	}
+	return PWD_OK;
+}
+
+// sharedutilities.cpp:609
+ePwdErrorCode VerifyStringContents_IsNumber(const std::string &text) {
+	int length = text.length();
+	for (int i = 0; i < length; ++i) {
+		if (!isdigit(text.at(i))) {
+			return PWD_NOT_NUMBER;
 		}
+	}
+	return PWD_OK;
+}
 
-		return PWD_OK;
+// sharedutilities.cpp:623
+ePwdErrorCode VerifyStringContents_Limit(const std::string &text) {
+	int length = text.length();
+
+	char input[9] = { 0, };
+
+	_mbsnbcpy((unsigned char *)input, (const unsigned char *)text.c_str(), 8);
+
+	char digits[10] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+
+	int start;
+	for (start = 0; start < 10; ++start) {
+		if (input[0] == digits[start]) {
+			break;
+		}
 	}
 
-	ePwdErrorCode VerifyLength(const std::string& str, int minLength,
-		int maxLength)
-	{
-		int len = str.length();
-		if (len == 0)
-		{
-			return PWD_EMPTY;
-		}
+	char pattern[9];
+	int k;
+	memset(pattern, 0, sizeof(pattern)); for (k = 0; k < 8; ++k) pattern[k] = digits[start];
 
-		if (minLength > len)
-		{
-			return PWD_TOO_SHORT;
+	bool same = true;
+	int i;
+	for (i = 0; i < length; ++i) {
+		if (input[i] != pattern[i]) {
+			same = false;
+			break;
 		}
-
-		if (maxLength < len)
-		{
-			return PWD_TOO_LONG;
-		}
-
-		return PWD_OK;
+	}
+	if (same) {
+		return PWD_SAME_DIGITS;
 	}
 
-	ePwdErrorCode VerifyStringContents_IsNumber(const std::string& str)
-	{
-		int len = str.length();
-		for (int i = 0; i < len; i++)
-		{
-			if (!isdigit(str.at(i)))
-			{
-				return PWD_NOT_NUMBER;
-			}
+	if (start < 6) {
+		memset(pattern, 0, sizeof(pattern));
+		int j;
+		for (k = 0, j = start; k < 8 && j < 10; ++k, ++j) {
+			pattern[k] = digits[j];
 		}
 
-		return PWD_OK;
-	}
-
-	ePwdErrorCode VerifyStringContents_Limit(const std::string& str)
-	{
-		int len = str.length();
-
-		char password[9] = {
-			0,
-		};
-		_tcsncpy(password, str.c_str(), 8);
-
-		char numbers[10] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
-		int start;
-		for (start = 0; start < 10; start++)
-		{
-			if (password[0] == numbers[start])
-				break;
-		}
-
-		char check[9];
-		memset(check, 0, sizeof(check));
-		for (int i = 0; i < 8; i++)
-			check[i] = numbers[start];
-
-		bool same = true;
-		for (int i = 0; i < len; i++)
-		{
-			if (password[i] != check[i])
-			{
-				same = false;
+		bool ascending = true;
+		for (i = 0; i < length; ++i) {
+			if (input[i] != pattern[i]) {
+				ascending = false;
 				break;
 			}
 		}
-
-		if (same)
-			return PWD_SAME_CHARS;
-
-		if (start < 6)
-		{
-			memset(check, 0, sizeof(check));
-			for (int n = start, i = 0; i < 8 && n < 10; i++, n++)
-			{
-				check[i] = numbers[n];
-			}
-
-			same = true;
-			for (int i = 0; i < len; i++)
-			{
-				if (password[i] != check[i])
-				{
-					same = false;
-					break;
-				}
-			}
-
-			if (same)
-				return PWD_ASCENDING;
+		if (ascending) {
+			return PWD_ASCENDING;
 		}
-
-		if (start > 3)
-		{
-			memset(check, 0, sizeof(check));
-			for (int n = start, i = 0; i < 8 && n >= 0; i++, n--)
-			{
-				check[i] = numbers[n];
-			}
-
-			same = true;
-			for (int i = 0; i < len; i++)
-			{
-				if (password[i] != check[i])
-				{
-					same = false;
-					break;
-				}
-			}
-
-			if (same)
-				return PWD_DESCENDING;
-		}
-
-		return PWD_OK;
 	}
+
+	if (start > 3) {
+		memset(pattern, 0, sizeof(pattern));
+		int j;
+		for (k = 0, j = start; k < 8 && j >= 0; ++k, --j) {
+			pattern[k] = digits[j];
+		}
+
+		bool descending = true;
+		for (i = 0; i < length; ++i) {
+			if (input[i] != pattern[i]) {
+				descending = false;
+				break;
+			}
+		}
+		if (descending) {
+			return PWD_DESCENDING;
+		}
+	}
+
+	return PWD_OK;
 }
 
-namespace S5
-{
-	bool IsSpecialGameStyle(eGameStyle style)
-	{
-		switch (style)
-		{
-		case GAME_STYLE_SPECIAL1:
-		case GAME_STYLE_SPECIAL2:
-			return true;
-		}
-		return false;
+} // namespace _util
+
+namespace S5 {
+
+// sharedutilities.cpp:744
+bool IsSpecialGameStyle(eGameStyle style) {
+	if (style > 0 && style <= 2) {
+		return true;
 	}
-
-	bool IsSpecialGame(unsigned char gameType, eGameStyle style)
-	{
-		if (gameType == 14)
-		{
-			return true;
-		}
-
-		switch (style)
-		{
-		case GAME_STYLE_SPECIAL1:
-		case GAME_STYLE_SPECIAL2:
-			return true;
-		}
-
-		return false;
-	}
-
-	SYSTEMTIME MakeSysTime(unsigned short year, unsigned short month,
-		unsigned short day, unsigned short hour)
-	{
-		SYSTEMTIME st;
-		memset(&st, 0, sizeof(st));
-		st.wYear = year;
-		st.wMonth = month;
-		st.wDay = day;
-		st.wHour = hour;
-
-		return st;
-	}
+	return false;
 }
+
+// sharedutilities.cpp:755
+bool IsSpecialGame(unsigned char gameType, eGameStyle style) {
+	if (gameType == 14) {
+		return true;
+	}
+	if (style > 0 && style <= 2) {
+		return true;
+	}
+	return false;
+}
+
+// sharedutilities.cpp:780
+_SYSTEMTIME MakeSysTime(unsigned short year, unsigned short month, unsigned short day, unsigned short hour) {
+	SYSTEMTIME time;
+	memset(&time, 0, sizeof(time)); time.wYear = year;
+	time.wMonth = month; time.wDay = day; time.wHour = hour;
+	return time;
+}
+
+} // namespace S5

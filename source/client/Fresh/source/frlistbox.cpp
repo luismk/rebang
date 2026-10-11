@@ -1,216 +1,191 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frlistbox.cpp
 #include <stdio.h>
 #include <string.h>
-#include "frscrollbar.h"
+
 #include "frlistbox.h"
-#include "frwndmanager.h"
+#include "ObjectFactory.h"
 #include "frelement.h"
 #include "frgraphicinterface.h"
-#include "chatmsg.h"
-#include "commonutil.h"
+#include "frscrollbar.h"
+#include "frwndmanager.h"
+#include "../client/ProjectG/ChatMsg.h"
+#include "../client/ProjectG/commonutil.h"
 
-// HACK: workaround to preserve emission order
-inline float FrWnd::GetAlpha() const
-{
-	return m_wndAlpha;
-}
-inline FrListItem::FrListItem()
-	: pData(NULL), underCursor(false), selected(false)
-{
-	noRBtnIdxList.clear();
-}
-inline FrListItem::~FrListItem()
-{
-	noRBtnIdxList.clear();
-}
+// frlistbox.cpp:16 (run-time type and factory registration of FrListBox)
+const WRTTI FrListBox::m_RTTI("FrListBox", &FrWnd::m_RTTI);
 
-class FrListBoxGreater
-{
-public:
-	FrListBoxGreater(bool (*compare)(const void*, const void*))
-		: m_compare(compare)
-	{
-	}
-	bool operator()(FrListItem* const& left, FrListItem* const& right) const
-	{
-		return m_compare(left->pData, right->pData);
-	}
-
-private:
-	bool (*m_compare)(const void*, const void*);
-};
-
-IObject* FrListBoxMakeInstance()
-{
+IObject* FrListBoxMakeInstance(void) {
 	return new FrListBox;
 }
 
-struct __sFrListBox
-{
-	__sFrListBox()
-	{
+struct __sFrListBox {
+	__sFrListBox(void) {
 		ObjectFactory().AddObjectFunctor(FrListBoxMakeInstance, "FrListBox");
 	}
 };
+static __sFrListBox s_registerFrListBox;
 
-const WRTTI FrListBox::m_RTTI("FrListBox", &FrWnd::m_RTTI);
-static __sFrListBox __implFrListBox;
+// frlistbox.cpp:18
+const sFRESH_MSGMAP* FrListBox::GetMessageMap(void) const {
+	return &FrListBox::_MsgMap;
+}
 
-BEGIN_FRESH_MSGMAP(FrListBox, FrWnd)
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrListBox::_MsgMap = { &FrCmdTarget::_MsgMap, &FrListBox::_MsgEntries[0] };
 
-FrListBox::FrListBox()
-{
-	m_pItem = NULL;
-	m_pItemUnderCursor = NULL;
-	m_pSelected = NULL;
+sFRESH_ENTRY FrListBox::_MsgEntries[] = {
+	// frlistbox.cpp:21
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// frlistbox.cpp:29
+FrListBox::FrListBox(void) {
+	m_pItem = 0;
+	m_pItemUnderCursor = 0;
+	m_pSelected = 0;
 	m_multiSelect = false;
 	m_useRightButton = false;
 	m_dummyCount = 0;
 	m_useDummy = false;
-	m_pPreviousSelected = NULL;
-	m_listBgImg = NULL;
+	m_pPreviousSelected = 0;
+	m_listBgImg = 0;
 	m_rollOver = true;
 	m_szPushSound = "ui_icon_click";
 }
 
-FrListBox::~FrListBox()
-{
+// frlistbox.cpp:48
+FrListBox::~FrListBox(void) {
 	ClearItem();
+
 	m_noRButtonMap.clear();
 }
 
-void FrListBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent)
-{
+// frlistbox.cpp:55
+void FrListBox::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
 	FrElementDoc* pDoc = pManager->GetDocument();
 	std::map<std::string, std::string>& param = item.m_param;
 	if (param.find("itemsize") != param.end())
-		sscanf(param["itemsize"].c_str(), "%d %d", &m_itemSize.w,
-			&m_itemSize.h);
+		sscanf(param["itemsize"].c_str(), "%d %d", &m_itemSize.w, &m_itemSize.h);
+
 	if (param.find("column") != param.end())
 		sscanf(param["column"].c_str(), "%d", &m_colCapacity);
-	bool showScrollBar = true;
-	if (param.find("show_scrollbar") != param.end())
-	{
+
+	bool barOn = true;
+	if (param.find("show_scrollbar") != param.end()) {
 		int show;
 		sscanf(param["show_scrollbar"].c_str(), "%d", &show);
-		showScrollBar = show != 0;
+		barOn = show != 0;
 	}
+
 	if (item.m_param.find("listbg") != item.m_param.end())
 		m_listBgImg = pDoc->GetBitmap(item.m_param["listbg"]);
+
 	bool useKey = false;
 	if (param.find("use_key") != param.end())
-	{
 		useKey = strcmpi(param["use_key"].c_str(), "true") == 0;
-	}
-	m_pItem = &item;
-	unsigned long keyFlag = useKey ? FWS_KEYEVENT : 0;
 
-	Create(item.m_caption.c_str(), item.m_name.c_str(), pManager,
-		(FWS_VISIBLE | keyFlag),
-		WRect((float)item.m_rect.left, (float)item.m_rect.top,
-			(short)(item.m_rect.right - item.m_rect.left),
+	m_pItem = &item;
+
+	unsigned long keyFlag = useKey ? 0x80 : 0;
+
+	Create(item.m_caption.c_str(), item.m_name.c_str(), pManager, 0x1 | keyFlag,
+		WRect((float)item.m_rect.left, (float)item.m_rect.top, (short)(item.m_rect.right - item.m_rect.left),
 			(short)(item.m_rect.bottom - item.m_rect.top)),
 		pParent);
+
 	m_prevTopRow = 0;
-	int rowCapacity = m_itemSize.h ? (int)m_rect.h / m_itemSize.h : 0;
-	if (!m_pScrBar)
-	{
+	int tf = m_itemSize.h ? (int)m_rect.h / m_itemSize.h : 0;
+
+	if (m_pScrBar == 0) {
 		m_pScrBar = new FrScrollBar;
-		m_pScrBar->Init(pManager, this, 0, rowCapacity, m_colCapacity, false);
-		EnableScrollBar(showScrollBar);
-		m_pScrBar->Resize(rowCapacity, m_colCapacity, false);
+		m_pScrBar->Init(pManager, this, 0, tf, m_colCapacity, false);
+		EnableScrollBar(barOn);
+		m_pScrBar->Resize(tf, m_colCapacity, false);
 		m_pScrBar->FollowBottom(false);
 	}
+
 	RecalcTopBottom();
 }
 
-void FrListBox::Resize(int w, int h)
-{
-	m_itemSize.w = w;
-	m_itemSize.h = h;
-	int scrollWidth =
-		m_pScrBar && m_pScrBar->IsVisible() ? (int)m_pScrBar->GetRect().w : 0;
-	int colCapacity =
-		m_itemSize.w ? ((int)m_rect.w - scrollWidth) / m_itemSize.w : 1;
-	if (colCapacity < 1)
-		colCapacity = 1;
-	m_colCapacity = colCapacity;
+// frlistbox.cpp:128
+void FrListBox::Resize(int item_w, int item_h) {
+	m_itemSize.w = item_w;
+	m_itemSize.h = item_h;
+
+	int scrollBarW = (m_pScrBar && m_pScrBar->IsVisible()) ? (int)m_pScrBar->GetRect().w : 0;
+	int colCapacity = m_itemSize.w ? ((int)m_rect.w - scrollBarW) / m_itemSize.w : 1;
+	m_colCapacity = colCapacity < 1 ? 1 : colCapacity;
 	RecalcTopBottom();
+
 	OnResize();
 }
 
-void FrListBox::RecalcColCapacity(bool b)
-{
-	int scrollWidth =
-		m_pScrBar && m_pScrBar->IsVisible() ? (int)m_pScrBar->GetRect().w : 0;
-	int colCapacity =
-		m_itemSize.w ? ((int)m_rect.w - scrollWidth) / m_itemSize.w : 1;
-	if (!b)
+// frlistbox.cpp:139
+void FrListBox::RecalcColCapacity(bool update) {
+	int scrollBarW = (m_pScrBar && m_pScrBar->IsVisible()) ? (int)m_pScrBar->GetRect().w : 0;
+	int colCapacity = m_itemSize.w ? ((int)m_rect.w - scrollBarW) / m_itemSize.w : 1;
+
+	if (!update) {
 		colCapacity = colCapacity > m_colCapacity ? m_colCapacity : colCapacity;
-	if (colCapacity < 1)
-		colCapacity = 1;
-	m_colCapacity = colCapacity;
+	}
+	m_colCapacity = colCapacity < 1 ? 1 : colCapacity;
 }
 
-const Bitmap* FrListBox::GetBitmap(const char* name)
-{
+// frlistbox.cpp:151
+const Bitmap* FrListBox::GetBitmap(const char* name) {
 	FrElementDoc* pDoc = m_pWndManager->GetDocument();
 	return pDoc->GetBitmap(name);
 }
 
-void FrListBox::SelectItem(FrListItem* item, bool b)
-{
-	if (item)
-		item->selected = true;
-	if (!m_multiSelect && m_pSelected && m_pSelected != item)
+// frlistbox.cpp:159
+void FrListBox::SelectItem(FrListItem* pItem, bool setSelected) {
+	if (pItem) {
+		pItem->selected = true;
+	}
+	if (!m_multiSelect && m_pSelected && m_pSelected != pItem) {
 		m_pSelected->selected = false;
-	if (b)
-	{
+	}
+	if (setSelected) {
 		m_pPreviousSelected = m_pSelected;
-		m_pSelected = item;
+		m_pSelected = pItem;
+
 		int pos = -1;
-		int n = 0;
-		for (ITEM_LIST::iterator it = m_itemList.begin();
-			it != m_itemList.end(); ++it, ++n)
-		{
-			if (it == m_itemTop)
+		int no = 0;
+		for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i, ++no) {
+			if (i == m_itemTop) {
 				pos = 0;
-			if (it == m_itemBottom)
+			}
+			if (i == m_itemBottom) {
 				pos = 1;
-			if (*it == item)
-			{
-				if (pos == -1)
-				{
-					int capacity = m_pScrBar->GetRowCapacity() *
-						m_pScrBar->GetColCapacity();
-					if (!capacity)
-						break;
-					capacity /= 2;
-					if (!capacity)
-						break;
-					int count = (m_pScrBar->GetCurTopRow_Int() *
-										m_pScrBar->GetColCapacity() -
-									n - 1 + capacity) /
-						capacity;
-					for (int i = 0; i < count; ++i)
-						m_pScrBar->ScrollUp(-1);
-				}
-				else if (pos == 1)
-				{
-					int capacity = m_pScrBar->GetRowCapacity() *
-						m_pScrBar->GetColCapacity();
-					if (!capacity)
-						break;
-					capacity /= 2;
-					if (!capacity)
-						break;
-					int count = (n -
-									m_pScrBar->GetCurTopRow_Int() *
-										m_pScrBar->GetColCapacity() -
-									capacity) /
-						capacity;
-					for (int i = 0; i < count; ++i)
-						m_pScrBar->ScrollDown(-1);
+			}
+			if (*i == pItem) {
+				if (pos == -1) {
+					int colCapacity = m_pScrBar->GetColCapacity();
+					int rowCapacity = m_pScrBar->GetRowCapacity();
+
+					int pageSize = rowCapacity * colCapacity;
+					if (pageSize) {
+						int halfPage = pageSize / 2;
+						if (halfPage) {
+							int count = (m_pScrBar->GetCurTopRow_Int() * colCapacity - no + halfPage - 1) / halfPage;
+							for (int j = 0; j < count; ++j) {
+								m_pScrBar->ScrollUp(-1);
+							}
+						}
+					}
+				} else if (pos == 1) {
+					int colCapacity = m_pScrBar->GetColCapacity();
+					int rowCapacity = m_pScrBar->GetRowCapacity();
+
+					int pageSize = rowCapacity * colCapacity;
+					if (pageSize) {
+						int halfPage = pageSize / 2;
+						if (halfPage) {
+							int count = (no - m_pScrBar->GetCurTopRow_Int() * colCapacity - halfPage) / halfPage;
+							for (int j = 0; j < count; ++j) {
+								m_pScrBar->ScrollDown(-1);
+							}
+						}
+					}
 				}
 				break;
 			}
@@ -218,437 +193,464 @@ void FrListBox::SelectItem(FrListItem* item, bool b)
 	}
 }
 
-void FrListBox::UnselectItem(FrListItem* item)
-{
-	if (item)
-	{
-		item->selected = false;
-		if (m_pSelected == item)
-			m_pSelected = NULL;
+// frlistbox.cpp:228
+void FrListBox::UnselectItem(FrListItem* pItem) {
+	if (pItem) {
+		pItem->selected = false;
+		if (m_pSelected == pItem) {
+			m_pSelected = 0;
+		}
 	}
 }
 
-void FrListBox::UnselectAllItem()
-{
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it)
-		UnselectItem(*it);
+// frlistbox.cpp:239
+void FrListBox::UnselectAllItem(void) {
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+		UnselectItem(*i);
+	}
 }
 
-void FrListBox::ToggleItem(FrListItem* item)
-{
-	if (item->selected)
-		UnselectItem(item);
-	else
-		SelectItem(item, true);
+// frlistbox.cpp:247
+void FrListBox::ToggleItem(FrListItem* pItem) {
+	if (pItem->selected) {
+		UnselectItem(pItem);
+	} else {
+		SelectItem(pItem, true);
+	}
 }
 
-FrListItem* FrListBox::AddItem(void* data)
-{
+// frlistbox.cpp:255
+FrListItem* FrListBox::AddItem(void* pData) {
 	FrListItem* pItem = new FrListItem;
-	pItem->pData = data;
+	pItem->pData = pData;
 	pItem->idx = m_itemList.size();
-	if (!data)
-		++m_dummyCount;
+
+	// An item without data is a dummy row.
+	if (!pData)
+		m_dummyCount++;
+
 	m_itemList.push_back(pItem);
+
 	if (m_pScrBar)
 		m_pScrBar->AddItem();
+
 	RecalcTopBottom();
+
 	return pItem;
 }
 
-FrListItem* FrListBox::FindItem(FrListItem* item)
-{
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it)
-		if (*it == item)
-			return *it;
-	return NULL;
+// frlistbox.cpp:273
+FrListItem* FrListBox::FindItem(FrListItem* pSelected) {
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+		if (*i == pSelected) {
+			return *i;
+		}
+	}
+	return 0;
 }
 
-FrListItem* FrListBox::FindItem(void* data)
-{
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it)
-		if ((*it)->pData == data)
-			return *it;
-	return NULL;
+// frlistbox.cpp:284
+FrListItem* FrListBox::FindItem(void* pData) {
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+		if ((*i)->pData == pData) {
+			return *i;
+		}
+	}
+	return 0;
 }
 
-FrListItem* FrListBox::FindItem(void* data, int size)
-{
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it)
-		if ((*it)->pData && !memcmp((*it)->pData, data, size))
-			return *it;
-	return NULL;
-}
-
-FrListItem* FrListBox::GetItem(int no)
-{
-	int n = 0;
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it, ++n)
-		if ((*it)->pData && no == n)
-			return *it;
-	return NULL;
-}
-
-FrListBox::ITEM_LIST::iterator FrListBox::_DelItem(ITEM_LIST::iterator it)
-{
-	FrListItem* pItem = *it;
-	if (!pItem->pData)
-		--m_dummyCount;
-	if (pItem == m_pItemUnderCursor)
-		m_pItemUnderCursor = NULL;
-	if (pItem == m_pSelected)
-	{
-		if (!m_multiSelect)
-		{
-			ITEM_LIST::iterator next = it;
-			++next;
-			if (next != m_itemList.end())
-				SelectItem(*next, true);
-			else
-			{
-				next--;
-				if (next != m_itemList.begin())
-					SelectItem(*--next, true);
-				else
-					m_pSelected = NULL;
+// frlistbox.cpp:295
+FrListItem* FrListBox::FindItem(void* pData, int cmpLen) {
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+		if ((*i)->pData) {
+			if (memcmp((*i)->pData, pData, cmpLen) == 0) {
+				return *i;
 			}
 		}
-		else
-			m_pSelected = NULL;
 	}
+	return 0;
+}
+
+// frlistbox.cpp:309
+FrListItem* FrListBox::GetItem(int iLineNum) {
+	int lineNum = 0;
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i, ++lineNum) {
+		if ((*i)->pData) {
+			if (iLineNum == lineNum) {
+				return *i;
+			}
+		}
+	}
+	return 0;
+}
+
+// frlistbox.cpp:324
+FrListBox::ITEM_LIST::iterator FrListBox::_DelItem(ITEM_LIST::iterator i) {
+	FrListItem* pItem = *i;
+
+	if (!pItem->pData) {
+		--m_dummyCount;
+	}
+	if (pItem == m_pItemUnderCursor) {
+		m_pItemUnderCursor = 0;
+	}
+	if (pItem == m_pSelected) {
+		if (!m_multiSelect) {
+			ITEM_LIST::iterator next = i;
+			++next;
+			if (next != m_itemList.end()) {
+				SelectItem(*next, true);
+			} else {
+				--next;
+				if (next != m_itemList.begin()) {
+					--next;
+					SelectItem(*next, true);
+				} else {
+					m_pSelected = 0;
+				}
+			}
+		} else {
+			m_pSelected = 0;
+		}
+	}
+
 	delete pItem;
-	it = m_itemList.erase(it);
-	if (m_pScrBar)
+	i = m_itemList.erase(i);
+
+	if (m_pScrBar) {
 		m_pScrBar->DelItem();
+	}
 	RecalcTopBottom();
-	return it;
+	return i;
 }
 
-void FrListBox::DelItem(FrListItem* item)
-{
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it)
-		if (*it == item)
-		{
-			_DelItem(it);
-			break;
-		}
-}
-
-void FrListBox::DelItem(void* data)
-{
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it)
-		if ((*it)->pData == data)
-		{
-			_DelItem(it);
-			break;
-		}
-}
-
-void FrListBox::DelItem(void* data, int size)
-{
-	if (!data)
-		return;
-	for (ITEM_LIST::iterator it = m_itemList.begin(); it != m_itemList.end();
-		++it)
-	{
-		FrListItem* pItem = *it;
-		if (pItem->pData && !memcmp(pItem->pData, data, size))
-		{
-			_DelItem(it);
-			break;
+// frlistbox.cpp:377
+void FrListBox::DelItem(FrListItem* pSelected) {
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+		if (*i == pSelected) {
+			_DelItem(i);
+			return;
 		}
 	}
 }
 
-void FrListBox::ClearItem()
-{
-	if (!m_itemList.empty())
-	{
+// frlistbox.cpp:389
+void FrListBox::DelItem(void* pData) {
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+		if ((*i)->pData == pData) {
+			_DelItem(i);
+			return;
+		}
+	}
+}
+
+// frlistbox.cpp:401
+void FrListBox::DelItem(void* pData, int cmpLen) {
+	if (!pData) {
+		return;
+	}
+
+	for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+		FrListItem* pItem = *i;
+
+		if (pItem->pData) {
+			if (memcmp(pItem->pData, pData, cmpLen) == 0) {
+				_DelItem(i);
+				return;
+			}
+		}
+	}
+}
+
+// frlistbox.cpp:421
+void FrListBox::ClearItem(void) {
+	if (m_itemList.size()) {
+		// Deletes every item, then empties the list.
 		sequence_delete(m_itemList.begin(), m_itemList.end());
 		m_itemList.clear();
 	}
-	m_pItemUnderCursor = NULL;
-	m_pSelected = NULL;
-	if (m_pScrBar)
+
+	m_pItemUnderCursor = 0;
+	m_pSelected = 0;
+
+	if (m_pScrBar) {
 		m_pScrBar->ClearItem();
+	}
+
 	RecalcTopBottom();
 }
 
-void FrListBox::SortItem(bool (*compare)(const void*, const void*))
-{
-	if (compare)
-	{
+// frlistbox.cpp:439
+void FrListBox::SortItem(bool (*compare)(const void*, const void*)) {
+	if (compare) {
 		m_itemList.sort(FrListBoxGreater(compare));
 		RecalcTopBottom();
 	}
 }
 
-void FrListBox::RecalcTopBottom()
-{
+// frlistbox.cpp:448
+void FrListBox::RecalcTopBottom(void) {
 	int skip = m_pScrBar ? m_pScrBar->GetCurTopRow_Int() * m_colCapacity : 0;
-	ITEM_LIST::iterator it = m_itemList.begin();
-	for (; skip > 0 && it != m_itemList.end(); ++it, --skip)
-	{
+
+	ITEM_LIST::iterator i = m_itemList.begin();
+	while (skip > 0 && i != m_itemList.end()) {
+		++i;
+		--skip;
 	}
-	m_itemTop = it;
-	int x = 0, y = 0;
-	for (; it != m_itemList.end(); ++it)
-	{
-		if (x / m_itemSize.w >= m_colCapacity)
-		{
+
+	m_itemTop = i;
+	int x = 0;
+	int y = 0;
+	for (; i != m_itemList.end(); ++i) {
+		if (x / m_itemSize.w >= m_colCapacity) {
 			y += m_itemSize.h;
 			x = 0;
-			if (y + m_itemSize.h > m_rect.h)
+
+			if (y + m_itemSize.h > m_rect.h) {
 				break;
+			}
 		}
 		x += m_itemSize.w;
 	}
-	m_itemBottom = it;
+
+	m_itemBottom = i;
 }
 
-void FrListBox::EnableScrollBar(bool enable)
-{
-	if (m_pScrBar)
-	{
+// frlistbox.cpp:482
+void FrListBox::EnableScrollBar(bool enable) {
+	if (m_pScrBar) {
 		m_pScrBar->SetVisible(enable);
 		m_pScrBar->Enable(enable);
 	}
 	RecalcColCapacity(false);
 }
 
-void FrListBox::SetCursorToFirstItem()
-{
-	ITEM_LIST::iterator it = m_itemList.begin();
-	if (it != m_itemList.end())
-	{
-		FrListItem* pItem = *it;
+// frlistbox.cpp:492
+void FrListBox::SetCursorToFirstItem(void) {
+	ITEM_LIST::iterator i = m_itemList.begin();
+	if (i != m_itemList.end()) {
+		FrListItem* pItem = *i;
 		pItem->underCursor = true;
 		m_pItemUnderCursor = pItem;
 	}
 }
 
-void FrListBox::SetCursorToLastItem()
-{
-	ITEM_LIST::iterator it = m_itemList.end();
-	if (--it != m_itemList.end())
-	{
-		FrListItem* pItem = *it;
+// frlistbox.cpp:504
+void FrListBox::SetCursorToLastItem(void) {
+	ITEM_LIST::iterator i = m_itemList.end();
+	if (--i != m_itemList.end()) {
+		FrListItem* pItem = *i;
 		pItem->underCursor = true;
 		m_pItemUnderCursor = pItem;
 	}
 }
 
-void FrListBox::OnDraw()
-{
+// frlistbox.cpp:516
+void FrListBox::OnDraw(void) {
 	FrWnd::OnDraw();
-	if (!m_pItem)
+
+	if (!m_pItem) {
 		return;
-	if (m_listBgImg)
-	{
-		float alpha = GDI()->GetAlpha();
-		GDI()->SetAlpha(GetAlpha());
-		GDI()->DrawTexture(m_listBgImg, m_rect, 0xffffffff, 0);
-		GDI()->SetAlpha(alpha);
 	}
-	SendCmdToOwnerTarget(FRCMD_OWNERDRAW, 0, NULL);
-	int x = 0, y = 0, n = 0;
-	for (ITEM_LIST::iterator it = m_itemTop;
-		it != m_itemBottom && it != m_itemList.end(); ++it)
-	{
-		if (!m_itemSize.w || x / m_itemSize.w >= m_colCapacity)
-		{
-			x = 0;
-			y += m_itemSize.h;
+
+	if (m_listBgImg) {
+		float fOldAlpha = GDI()->GetAlpha();
+		GDI()->SetAlpha(GetAlpha());
+
+		GDI()->DrawTexture(m_listBgImg, m_rect, 0xffffffff, 0);
+
+		GDI()->SetAlpha(fOldAlpha);
+	}
+
+	SendCmdToOwnerTarget(FRCMD_OWNERDRAW, 0, 0);
+
+	int xPos = 0;
+	int yPos = 0;
+	int count = 0;
+	for (ITEM_LIST::iterator i = m_itemTop; i != m_itemBottom && i != m_itemList.end(); ++i) {
+		if (!m_itemSize.w || xPos / m_itemSize.w >= m_colCapacity) {
+			xPos = 0;
+			yPos += m_itemSize.h;
 		}
-		(*it)->no = n++;
-		(*it)->pos = WPoint(m_rect.x, m_rect.y) + WPoint((float)x, (float)y);
-		x += m_itemSize.w;
-		SendCmdToOwnerTarget(FRCMD_OWNERDRAW, (int)*it, NULL);
+		(*i)->no = count++;
+		(*i)->pos = WPoint(m_rect.x, m_rect.y) + WPoint((float)xPos, (float)yPos);
+		xPos += m_itemSize.w;
+		SendCmdToOwnerTarget(FRCMD_OWNERDRAW, (intptr_t)*i, 0);
 	}
 }
 
-void FrListBox::OnProc(float deltaTime)
-{
-	if (m_pScrBar && m_prevTopRow != m_pScrBar->GetCurTopRow_Int())
-	{
+// frlistbox.cpp:560
+void FrListBox::OnProc(const float deltaTime) {
+	if (m_pScrBar && m_prevTopRow != m_pScrBar->GetCurTopRow_Int()) {
 		m_prevTopRow = m_pScrBar->GetCurTopRow_Int();
 		RecalcTopBottom();
 	}
 }
 
-void FrListBox::SetClientRect(const WRect& rect)
-{
+// frlistbox.cpp:569
+void FrListBox::SetClientRect(const WRect& rect) {
 	FrWnd::SetClientRect(rect);
 	OnResize();
 }
 
-void FrListBox::OnResize()
-{
+// frlistbox.cpp:575
+void FrListBox::OnResize(void) {
 	RecalcTopBottom();
-	if (m_pScrBar)
-	{
-		int rows = m_itemSize.h ? (int)m_rect.h / m_itemSize.h : 0;
-		m_pScrBar->Resize(rows, m_colCapacity, false);
+
+	if (m_pScrBar) {
+		int rowCapacity = m_itemSize.h ? (int)m_rect.h / m_itemSize.h : 0;
+		m_pScrBar->Resize(rowCapacity, m_colCapacity, false);
 	}
 }
 
-int FrListBox::GetCurrentItemSize(bool b)
-{
-	int size = m_itemList.size();
-	if (!b)
-		size -= m_dummyCount;
-	return size;
+// frlistbox.cpp:586
+int FrListBox::GetCurrentItemSize(bool bDummy) {
+	if (bDummy) {
+		return m_itemList.size();
+	} else {
+		return m_itemList.size() - m_dummyCount;
+	}
 }
 
-void FrListBox::OnMouseMove(const WPoint& point)
-{
+// frlistbox.cpp:594
+void FrListBox::OnMouseMove(const WPoint& mousePos) {
 	bool found = false;
-	for (ITEM_LIST::iterator it = m_itemTop;
-		it != m_itemBottom && it != m_itemList.end(); ++it)
-	{
-		if ((*it)->pos.x <= point.x && point.x < (*it)->pos.x + m_itemSize.w &&
-			(*it)->pos.y <= point.y && point.y < (*it)->pos.y + m_itemSize.h)
-		{
-			(*it)->underCursor = true;
-			m_pItemUnderCursor = *it;
-			if (!m_useDummy || (*it)->pData)
+
+	for (ITEM_LIST::iterator i = m_itemTop; i != m_itemBottom && i != m_itemList.end(); ++i) {
+		if ((*i)->pos.x <= mousePos.x && mousePos.x < (*i)->pos.x + m_itemSize.w &&
+			(*i)->pos.y <= mousePos.y && mousePos.y < (*i)->pos.y + m_itemSize.h) {
+			(*i)->underCursor = true;
+			m_pItemUnderCursor = *i;
+
+			if (!m_useDummy || (*i)->pData) {
 				found = true;
+			}
+		} else {
+			(*i)->underCursor = false;
 		}
-		else
-			(*it)->underCursor = false;
 	}
-	SendCmdToOwnerTarget(FRCMD_MOUSEMOVE, 0, NULL);
-	if (!found)
-		m_pItemUnderCursor = NULL;
+
+	SendCmdToOwnerTarget(FRCMD_MOUSEMOVE, 0, 0);
+
+	if (!found) {
+		m_pItemUnderCursor = 0;
+	}
 }
 
-void FrListBox::AddNoRButtonRect(const WRect& rect, int idx)
-{
-	m_noRButtonMap[idx] = rect;
+// frlistbox.cpp:629
+void FrListBox::AddNoRButtonRect(const WRect& rect, int index) {
+	m_noRButtonMap[index] = rect;
 }
 
-void FrListBox::OnSetCursor(bool active, const WPoint& point)
-{
-	if (active)
-	{
-		if (m_pItemUnderCursor && m_rollOver)
-		{
-			if (m_useRightButton)
-			{
-				std::list<int>::iterator it;
-				for (it = m_pItemUnderCursor->noRBtnIdxList.begin();
-					it != m_pItemUnderCursor->noRBtnIdxList.end(); ++it)
-				{
+// frlistbox.cpp:634
+void FrListBox::OnSetCursor(bool bInClient, const WPoint& mousePos) {
+	if (bInClient) {
+		if (m_pItemUnderCursor && m_rollOver) {
+			if (m_useRightButton) {
+				std::list<int>::iterator i;
+				for (i = m_pItemUnderCursor->noRBtnIdxList.begin();
+					i != m_pItemUnderCursor->noRBtnIdxList.end(); ++i) {
 					WRect rect;
-					rect = m_noRButtonMap[*it];
-					if (point.x > rect.x + m_pItemUnderCursor->pos.x &&
-						point.x < rect.w + m_pItemUnderCursor->pos.x + rect.x &&
-						point.y > rect.y + m_pItemUnderCursor->pos.y &&
-						point.y < rect.h + m_pItemUnderCursor->pos.y + rect.y)
-					{
+					rect = m_noRButtonMap[*i];
+
+					if (mousePos.x > rect.x + m_pItemUnderCursor->pos.x &&
+						mousePos.x < rect.w + m_pItemUnderCursor->pos.x + rect.x &&
+						mousePos.y > rect.y + m_pItemUnderCursor->pos.y &&
+						mousePos.y < rect.h + m_pItemUnderCursor->pos.y + rect.y) {
 						SetCursor(1);
 						return;
 					}
 				}
 				SetCursor(7);
-			}
-			else
+			} else {
 				SetCursor(1);
+			}
 		}
-	}
-	else if (!m_dwStyle.GetFlag(FWS_KEYEVENT) && m_pItemUnderCursor)
-	{
+	} else if (!m_dwStyle.GetFlag(0x80) && m_pItemUnderCursor) {
 		m_pItemUnderCursor->underCursor = false;
-		m_pItemUnderCursor = NULL;
+		m_pItemUnderCursor = 0;
 	}
 }
 
-bool FrListBox::OnLButtonDown(const WPoint& point)
-{
-	OnMouseMove(point);
-	if (m_pItemUnderCursor)
-	{
+// frlistbox.cpp:671
+bool FrListBox::OnLButtonDown(const WPoint& mousePos) {
+	OnMouseMove(mousePos);
+
+	if (m_pItemUnderCursor) {
 		ToggleItem(m_pItemUnderCursor);
 		PlayPushSound();
 	}
-	SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, 0, NULL);
+
+	SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, 0, 0);
 	return false;
 }
 
-bool FrListBox::OnLButtonUp(const WPoint& point)
-{
-	OnMouseMove(point);
-	if (m_pItemUnderCursor)
-		SendCmdToOwnerTarget(FRCMD_LBUTTONUP, 0, NULL);
+// frlistbox.cpp:685
+bool FrListBox::OnLButtonUp(const WPoint& mousePos) {
+	OnMouseMove(mousePos);
+	if (m_pItemUnderCursor) {
+		SendCmdToOwnerTarget(FRCMD_LBUTTONUP, 0, 0);
+	}
 	return false;
 }
 
-bool FrListBox::OnRButtonDown(const WPoint& point)
-{
-	if (m_useRightButton)
-	{
-		OnMouseMove(point);
-		if (m_pItemUnderCursor)
-		{
+// frlistbox.cpp:693
+bool FrListBox::OnRButtonDown(const WPoint& mousePos) {
+	if (m_useRightButton) {
+		OnMouseMove(mousePos);
+
+		if (m_pItemUnderCursor) {
 			ToggleItem(m_pItemUnderCursor);
 			PlayPushSound();
 		}
-		SendCmdToOwnerTarget(FRCMD_RBUTTONDOWN, 0, NULL);
+
+		SendCmdToOwnerTarget(FRCMD_RBUTTONDOWN, 0, 0);
 	}
 	return false;
 }
 
-bool FrListBox::OnRButtonUp(const WPoint& point)
-{
-	if (m_useRightButton)
-	{
-		OnMouseMove(point);
-		if (m_pItemUnderCursor)
-			SendCmdToOwnerTarget(FRCMD_RBUTTONUP, 0, NULL);
+// frlistbox.cpp:710
+bool FrListBox::OnRButtonUp(const WPoint& mousePos) {
+	if (m_useRightButton) {
+		OnMouseMove(mousePos);
+		if (m_pItemUnderCursor) {
+			SendCmdToOwnerTarget(FRCMD_RBUTTONUP, 0, 0);
+		}
 	}
 	return false;
 }
 
-void FrListBox::OnDblClick(const WPoint& point)
-{
-	OnMouseMove(point);
-	SendCmdToOwnerTarget(FRCMD_DBLCLICK, 0, NULL);
+// frlistbox.cpp:723
+void FrListBox::OnDblClick(const WPoint& mousePos) {
+	OnMouseMove(mousePos);
+	SendCmdToOwnerTarget(FRCMD_DBLCLICK, 0, 0);
 }
 
-void FrListBox::EnableKeyFocus(FrInputState& input)
-{
-	FrWnd::EnableKeyFocus(input);
-	if (!m_pItemUnderCursor)
+// frlistbox.cpp:729
+void FrListBox::EnableKeyFocus(FrInputState& istate) {
+	FrWnd::EnableKeyFocus(istate);
+	if (!m_pItemUnderCursor) {
 		SetCursorToFirstItem();
+	}
 }
 
-void FrListBox::OnKeyFocus(CChatMsg* im)
-{
-	if (!im->IsActive())
+// frlistbox.cpp:737
+void FrListBox::OnKeyFocus(CChatMsg* im) {
+	if (!im->IsActive()) {
 		return;
+	}
+
 	im->Process(0.01f);
-	if (im->GetConsolKeyCode() == 4)
-	{
-		if (!m_pItemUnderCursor)
+
+	if (im->GetConsolKeyCode() == 4) {
+		if (!m_pItemUnderCursor) {
 			SetCursorToFirstItem();
-		else
-		{
-			for (ITEM_LIST::iterator it = m_itemList.begin();
-				it != m_itemList.end(); ++it)
-			{
-				if (*it == m_pItemUnderCursor)
-				{
-					--it;
-					if (it != m_itemList.end())
-					{
-						FrListItem* pItem = *it;
+		} else {
+			for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+				if (*i == m_pItemUnderCursor) {
+					--i;
+					if (i != m_itemList.end()) {
+						FrListItem* pItem = *i;
 						m_pItemUnderCursor->underCursor = false;
 						pItem->underCursor = true;
 						m_pItemUnderCursor = pItem;
@@ -658,21 +660,16 @@ void FrListBox::OnKeyFocus(CChatMsg* im)
 			}
 		}
 	}
-	if (im->GetConsolKeyCode() == 5)
-	{
-		if (!m_pItemUnderCursor)
+
+	if (im->GetConsolKeyCode() == 5) {
+		if (!m_pItemUnderCursor) {
 			SetCursorToFirstItem();
-		else
-		{
-			for (ITEM_LIST::iterator it = m_itemList.begin();
-				it != m_itemList.end(); ++it)
-			{
-				if (*it == m_pItemUnderCursor)
-				{
-					++it;
-					if (it != m_itemList.end())
-					{
-						FrListItem* pItem = *it;
+		} else {
+			for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+				if (*i == m_pItemUnderCursor) {
+					++i;
+					if (i != m_itemList.end()) {
+						FrListItem* pItem = *i;
 						m_pItemUnderCursor->underCursor = false;
 						pItem->underCursor = true;
 						m_pItemUnderCursor = pItem;
@@ -682,24 +679,17 @@ void FrListBox::OnKeyFocus(CChatMsg* im)
 			}
 		}
 	}
-	if (im->GetConsolKeyCode() == 6)
-	{
-		if (!m_pItemUnderCursor)
+
+	if (im->GetConsolKeyCode() == 6) {
+		if (!m_pItemUnderCursor) {
 			SetCursorToFirstItem();
-		else
-		{
-			for (ITEM_LIST::iterator it = m_itemList.begin();
-				it != m_itemList.end(); ++it)
-			{
-				if (*it == m_pItemUnderCursor)
-				{
-					for (int n = 0; it != m_itemList.end() && n < m_colCapacity;
-						--it, ++n)
-					{
+		} else {
+			for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+				if (*i == m_pItemUnderCursor) {
+					for (int n = 0; i != m_itemList.end() && n < m_colCapacity; --i, ++n) {
 					}
-					if (it != m_itemList.end())
-					{
-						FrListItem* pItem = *it;
+					if (i != m_itemList.end()) {
+						FrListItem* pItem = *i;
 						m_pItemUnderCursor->underCursor = false;
 						pItem->underCursor = true;
 						m_pItemUnderCursor = pItem;
@@ -709,24 +699,17 @@ void FrListBox::OnKeyFocus(CChatMsg* im)
 			}
 		}
 	}
-	if (im->GetConsolKeyCode() == 7)
-	{
-		if (!m_pItemUnderCursor)
+
+	if (im->GetConsolKeyCode() == 7) {
+		if (!m_pItemUnderCursor) {
 			SetCursorToFirstItem();
-		else
-		{
-			for (ITEM_LIST::iterator it = m_itemList.begin();
-				it != m_itemList.end(); ++it)
-			{
-				if (*it == m_pItemUnderCursor)
-				{
-					for (int n = 0; it != m_itemList.end() && n < m_colCapacity;
-						++it, ++n)
-					{
+		} else {
+			for (ITEM_LIST::iterator i = m_itemList.begin(); i != m_itemList.end(); ++i) {
+				if (*i == m_pItemUnderCursor) {
+					for (int n = 0; i != m_itemList.end() && n < m_colCapacity; ++i, ++n) {
 					}
-					if (it != m_itemList.end())
-					{
-						FrListItem* pItem = *it;
+					if (i != m_itemList.end()) {
+						FrListItem* pItem = *i;
 						m_pItemUnderCursor->underCursor = false;
 						pItem->underCursor = true;
 						m_pItemUnderCursor = pItem;
@@ -738,46 +721,52 @@ void FrListBox::OnKeyFocus(CChatMsg* im)
 	}
 }
 
-bool FrListBox::MoveTopItem(int n)
-{
-	bool result = true;
-	ITEM_LIST::iterator it = m_itemTop;
-	if (n > 0)
-	{
-		if (++it == m_itemList.end())
+// frlistbox.cpp:857
+bool FrListBox::MoveTopItem(int dir) {
+	bool moved = true;
+	ITEM_LIST::iterator i = m_itemTop;
+
+	if (dir > 0) {
+		if (++i == m_itemList.end()) {
 			return false;
-	}
-	else
-	{
-		if (it == m_itemList.begin())
+		}
+	} else {
+		if (i == m_itemList.begin()) {
 			return false;
-		--it;
-		if (it == m_itemList.begin())
-			result = false;
+		}
+		--i;
+		if (i == m_itemList.begin()) {
+			moved = false;
+		}
 	}
-	m_itemTop = it;
-	int x = 0, y = 0;
-	for (; it != m_itemList.end(); ++it)
-	{
-		if (x / m_itemSize.w >= m_colCapacity)
-		{
+
+	m_itemTop = i;
+	int x = 0;
+	int y = 0;
+	for (; i != m_itemList.end(); ++i) {
+		if (x / m_itemSize.w >= m_colCapacity) {
 			y += m_itemSize.h;
 			x = 0;
-			if (y + m_itemSize.h > m_rect.h)
+
+			if (y + m_itemSize.h > m_rect.h) {
 				break;
+			}
 		}
 		x += m_itemSize.w;
 	}
-	m_itemBottom = it;
-	if (n > 0 && it == m_itemList.end())
-		result = false;
-	return result;
+	m_itemBottom = i;
+
+	if (dir > 0 && i == m_itemList.end()) {
+		moved = false;
+	}
+	return moved;
 }
 
-void FrListBox::SetMouseEvent(bool active)
-{
-	if (active)
-		m_dwStyle.Disable(FWS_NOMOUSEEVENT);
-	else
-		m_dwStyle.Enable(FWS_NOMOUSEEVENT);
+// frlistbox.cpp:911
+void FrListBox::SetMouseEvent(bool active) {
+	if (active) {
+		m_dwStyle.Disable(0x40);
+	} else {
+		m_dwStyle.Enable(0x40);
+	}
 }

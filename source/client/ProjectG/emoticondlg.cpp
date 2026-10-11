@@ -1,68 +1,92 @@
-#include "minatl.h"
-#include "emoticondlg.h"
-#include "frlistbox.h"
-#include "frframe.h"
+// Original: d:\build\custom\temp\code\client\projectg\emoticondlg.cpp
+#include <windows.h>
+#include <mmsystem.h>
+#include <string.h>
+
+#include "EmoticonDlg.h"
+#include "ObjectFactory.h"
+#include "InputManager.h"
+#include "Localize.h"
+#include "commonutil.h"
 #include "fremoticon.h"
 #include "fresh.h"
+#include "frframe.h"
+#include "frlistbox.h"
 #include "frwndmanager.h"
-#include "inputmanager.h"
-#include "../../shared/localize.h"
-#include "wlocalize.h"
 
-extern Fresh* g_pFresh;
+// Emoticon code delimiters of the IsLocalCountry(30) build ("-" marks the
+// flipped icon, drawn when shift is held). Reading them from a const variable
+// makes the static locals below dynamically initialized (guard bits), as in
+// the original.
+static const char* const EMOTICON_OPEN = "(";
+static const char* const EMOTICON_CLOSE = ")";
+static const char* const EMOTICON_FLIP = "-";
 
-IMPLEMENT_OBJECT(FrEmoticonDlg, FrForm)
+// emoticondlg.cpp:19 (run-time type and factory registration of FrEmoticonDlg)
+const WRTTI FrEmoticonDlg::m_RTTI("FrEmoticonDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrEmoticonDlg, FrForm)
-
-ON_FRESH_VI("list", FRCMD_INIT, FrEmoticonDlg::OnListInit)
-ON_FRESH_VI("list", FRCMD_OWNERDRAW, FrEmoticonDlg::OnListOwnerDraw)
-ON_FRESH_VV("list", FRCMD_LBUTTONUP, FrEmoticonDlg::OnListBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrEmoticonDlg::FrEmoticonDlg()
-{
-	m_pList = NULL;
-	m_selectedIcon[0] = '\0';
+IObject* FrEmoticonDlgMakeInstance(void) {
+	return new FrEmoticonDlg;
 }
 
-FrEmoticonDlg::~FrEmoticonDlg()
-{
+struct __sFrEmoticonDlg {
+	__sFrEmoticonDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrEmoticonDlgMakeInstance, "FrEmoticonDlg");
+	}
+};
+static __sFrEmoticonDlg s_registerFrEmoticonDlg;
+
+// emoticondlg.cpp:21
+const sFRESH_MSGMAP* FrEmoticonDlg::GetMessageMap(void) const {
+	return &FrEmoticonDlg::_MsgMap;
 }
-void FrEmoticonDlg::OnOK()
 
-{
-	FrEmoticon* pEmo = g_pFresh->GetManager()->GetEmoticon();
-	FrListItem* pItem = m_pList->GetItemUnderCursor();
+sFRESH_MSGMAP FrEmoticonDlg::_MsgMap = { &FrForm::_MsgMap, &FrEmoticonDlg::_MsgEntries[0] };
 
-	if (pEmo && pItem)
-	{
-		const char* name = pEmo->GetIconName((int)pItem->pData);
-		if (name)
-		{
-			if (IsLocalCountry(30))
-			{
-				static const char* szOpen = K2L_Compatibility("(");
-				static const char* szClose = K2L_Compatibility(")");
+sFRESH_ENTRY FrEmoticonDlg::_MsgEntries[] = {
+	// emoticondlg.cpp:23
+	{ "list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrEmoticonDlg::OnListInit },
+	{ "list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrEmoticonDlg::OnListOwnerDraw },
+	{ "list", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrEmoticonDlg::OnListBtnUp },
 
-				static const char* szFlip = K2L_Compatibility("-");
+	// emoticondlg.cpp:27
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
 
-				strcpy(m_selectedIcon, szOpen);
-				if (g_input->Get("LSHIFT", false) ||
-					g_input->Get("RSHIFT", false))
-					strcat(m_selectedIcon, szFlip);
-				strcat(m_selectedIcon, name);
-				strcat(m_selectedIcon, szClose);
-			}
-			else
-			{
-				strcpy(m_selectedIcon, "(");
-				if (g_input->Get("LSHIFT", false) ||
-					g_input->Get("RSHIFT", false))
-					strcat(m_selectedIcon, "-");
-				strcat(m_selectedIcon, name);
-				strcat(m_selectedIcon, ")");
+// emoticondlg.cpp:33
+FrEmoticonDlg::FrEmoticonDlg(void) {
+	m_pList = 0;
+	m_szSelectedIcon[0] = 0;
+}
+
+// emoticondlg.cpp:40
+FrEmoticonDlg::~FrEmoticonDlg(void) {
+}
+
+// emoticondlg.cpp:45
+void FrEmoticonDlg::OnOK(void) {
+	FrEmoticon* pEmoticon = g_pFresh->GetManager()->GetEmoticon();
+
+	if (pEmoticon && m_pList->GetItemUnderCursor()) {
+		const char* name = pEmoticon->GetIconName((intptr_t)m_pList->GetItemUnderCursor()->pData);
+		if (name) {
+			if (IsLocalCountry(30)) {
+				static const char* szOpen = EMOTICON_OPEN;
+				static const char* szClose = EMOTICON_CLOSE;
+
+				static const char* szFlip = EMOTICON_FLIP;
+
+				strcpy(m_szSelectedIcon, szOpen);
+				if (g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false))
+					strcat(m_szSelectedIcon, szFlip);
+				strcat(m_szSelectedIcon, name);
+				strcat(m_szSelectedIcon, szClose);
+			} else {
+				strcpy(m_szSelectedIcon, "(");
+				if (g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false))
+					strcat(m_szSelectedIcon, "-");
+				strcat(m_szSelectedIcon, name);
+				strcat(m_szSelectedIcon, ")");
 			}
 		}
 	}
@@ -70,128 +94,105 @@ void FrEmoticonDlg::OnOK()
 	FrForm::OnOK();
 }
 
-bool FrEmoticonDlg::OnInit()
-
-{
+// emoticondlg.cpp:83
+bool FrEmoticonDlg::OnInit(void) {
 	if (m_pBaseFrm)
 		m_pBaseFrm->UseEmoAtDesc(false);
 
 	return true;
 }
 
-void FrEmoticonDlg::OnListInit(int param)
-
-{
+// emoticondlg.cpp:92
+void FrEmoticonDlg::OnListInit(intptr_t param) {
 	m_pList = DYNAMIC_CAST(FrListBox, param);
 	if (!m_pList)
 		return;
 
-	FrEmoticon* pEmo = g_pFresh->GetManager()->GetEmoticon();
-	if (!pEmo)
+	FrEmoticon* pEmoticon = g_pFresh->GetManager()->GetEmoticon();
+	if (!pEmoticon)
 		return;
 
-	int num = pEmo->GetIconNum();
+	int count = pEmoticon->GetIconNum();
 
-	for (int i = 0; i < num; i++)
+	for (int i = 0; i < count; i++)
 		m_pList->AddItem((void*)i);
 
-	m_startTime = timeGetTime();
+	m_dwOpenTime = timeGetTime();
 
 	m_pList->SetKeyFocus(true);
 }
 
-void FrEmoticonDlg::OnListOwnerDraw(int param)
-
-{
-	FrEmoticon* pEmo = g_pFresh->GetManager()->GetEmoticon();
-	if (!pEmo)
+// emoticondlg.cpp:114
+void FrEmoticonDlg::OnListOwnerDraw(int param) {
+	FrEmoticon* pEmoticon = g_pFresh->GetManager()->GetEmoticon();
+	if (!pEmoticon)
 		return;
-
-	if (!param)
-		return;
-
-	pEmo->SetAnim(true);
-	pEmo->SetAnimTime(m_startTime);
 
 	FrListItem* pItem = (FrListItem*)param;
-	int icon = (int)pItem->pData;
+	if (!pItem)
+		return;
 
-	if (m_pList->GetItemUnderCursor() == pItem)
-	{
-		pEmo->Draw(icon,
-			WRect(pItem->pos.x - 3.0f, pItem->pos.y - 3.0f,
-				pEmo->GetWidth() + 6.0f, pEmo->GetHeight() + 6.0f),
-			0xffffffff,
-			g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false));
+	pEmoticon->SetAnim(true);
+	pEmoticon->SetAnimTime(m_dwOpenTime);
 
-		const char* name = pEmo->GetIconName(icon);
-		if (name)
-		{
-			if (IsLocalCountry(30))
-			{
-				static const char* szOpen = K2L_Compatibility("(");
-				static const char* szClose = K2L_Compatibility(")");
+	if (m_pList->GetItemUnderCursor() == pItem) {
+		pEmoticon->Draw((intptr_t)pItem->pData, WRect(pItem->pos.x - 3.0f, pItem->pos.y - 3.0f, (float)pEmoticon->GetWidth() + 6.0f, (float)pEmoticon->GetHeight() + 6.0f), 0xffffffff, g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false));
 
-				static const char* szFlip = K2L_Compatibility("-");
+		const char* name = pEmoticon->GetIconName((intptr_t)pItem->pData);
+		if (name) {
+			if (IsLocalCountry(30)) {
+				static const char* szOpen = EMOTICON_OPEN;
+				static const char* szClose = EMOTICON_CLOSE;
 
-				if (g_input->Get("LSHIFT", false) ||
-					g_input->Get("RSHIFT", false))
+				static const char* szFlip = EMOTICON_FLIP;
+
+				if (g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false))
 					SetDesc(MakeStr("%s%s%s%s", szOpen, szFlip, name, szClose));
 				else
 					SetDesc(MakeStr("%s%s%s", szOpen, name, szClose));
-			}
-			else
-			{
-				if (g_input->Get("LSHIFT", false) ||
-					g_input->Get("RSHIFT", false))
+			} else {
+				if (g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false))
 					SetDesc(MakeStr("(-%s)", name));
 				else
 					SetDesc(MakeStr("(%s)", name));
 			}
 		}
+	} else {
+		pEmoticon->Draw((intptr_t)pItem->pData, pItem->pos.x, pItem->pos.y, 0xffffffff, g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false));
 	}
-	else
 
-		pEmo->Draw(icon, pItem->pos.x, pItem->pos.y, 0xffffffff,
-			g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false));
-
-	pEmo->SetAnim(false);
+	pEmoticon->SetAnim(false);
 }
 
-void FrEmoticonDlg::OnListBtnUp()
-
-{
-	FrEmoticon* pEmo = g_pFresh->GetManager()->GetEmoticon();
-	if (!pEmo)
+// emoticondlg.cpp:172
+void FrEmoticonDlg::OnListBtnUp(void) {
+	FrEmoticon* pEmoticon = g_pFresh->GetManager()->GetEmoticon();
+	if (!pEmoticon)
 		return;
 
 	FrListItem* pItem = m_pList->GetItemUnderCursor();
 	if (!pItem)
 		return;
 
-	const char* name = pEmo->GetIconName((int)pItem->pData);
-	if (name)
-	{
-		if (IsLocalCountry(30))
-		{
-			static const char* szOpen = K2L_Compatibility("(");
-			static const char* szClose = K2L_Compatibility(")");
+	const char* name = pEmoticon->GetIconName((intptr_t)pItem->pData);
+	if (name) {
+		if (IsLocalCountry(30)) {
+			static const char* szOpen = EMOTICON_OPEN;
+			static const char* szClose = EMOTICON_CLOSE;
 
-			static const char* szFlip = K2L_Compatibility("-");
+			static const char* szFlip = EMOTICON_FLIP;
 
-			strcpy(m_selectedIcon, szOpen);
+			strcpy(m_szSelectedIcon, szOpen);
 			if (g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false))
-				strcat(m_selectedIcon, szFlip);
-			strcat(m_selectedIcon, name);
-			strcat(m_selectedIcon, szClose);
-		}
-		else
-		{
-			strcpy(m_selectedIcon, "(");
+				strcat(m_szSelectedIcon, szFlip);
+			strcat(m_szSelectedIcon, name);
+			strcat(m_szSelectedIcon, szClose);
+		} else {
+			strcpy(m_szSelectedIcon, "(");
 			if (g_input->Get("LSHIFT", false) || g_input->Get("RSHIFT", false))
-				strcat(m_selectedIcon, "-");
-			strcat(m_selectedIcon, name);
-			strcat(m_selectedIcon, ")");
+				strcat(m_szSelectedIcon, "-");
+			strcat(m_szSelectedIcon, name);
+			strcat(m_szSelectedIcon, ")");
 		}
 	}
 

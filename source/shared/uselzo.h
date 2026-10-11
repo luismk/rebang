@@ -1,41 +1,41 @@
-#pragma once
+// Original: d:\build\custom\temp\code\shared\uselzo.h
+#ifndef PG_SHARED_USELZO_H
+#define PG_SHARED_USELZO_H
 
-#include "minilzo.h"
+#include "..\defines.h"
 
-#define IN_LEN (128 * 1024ul)
-#define OUT_LEN (IN_LEN + IN_LEN / 16 + 64 + 3)
-
-class CCompressBuffer
-{
+// Compresses a buffer with miniLZO 2.02 (or stores it as is when the library
+// failed to initialise) into an owned buffer headed by a 4-byte header.
+class CCompressBuffer {
 public:
-	CCompressBuffer();
-	~CCompressBuffer();
+	CCompressBuffer(void);    // uselzo.cpp:20
+	~CCompressBuffer(void);   // uselzo.cpp:25
 
-	void Init();
-	int Compress(unsigned char* pSrc, int srcSize);
-	int Decompress(unsigned char* pSrc, int srcSize);
-	unsigned char* GetNewBuffer();
-	int GetNewSize();
-
-	enum
-	{
-		MAX_BUF_LEN = 4096
-	};
-	enum
-	{
-		eHeaderLen = 4
-	};
-	enum
-	{
-		eCompressed,
-		eNotCompressed
-	};
+	void Init(void);                                     // uselzo.cpp:34
+	int Compress(unsigned char *pSrc, int nSize);        // uselzo.cpp:48
+	int Decompress(unsigned char *pSrc, int nSize);      // uselzo.cpp:137
+	unsigned char *GetNewBuffer(void);                   // uselzo.cpp:262
+	int GetNewSize(void);                                // uselzo.cpp:274
 
 private:
-	int Max(int a, int b) { return a > b ? a : b; }
+	LAYOUT_CHECK_FRIEND;
 
-	unsigned char* m_Buffer;
-	bool m_bBufferUsed;
-	int m_bInitialized;
-	int m_iSize;
+	int Max(int a, int b) {   // uselzo.h:72
+		return a > b ? a : b;
+	}
+
+	unsigned char *m_pNewBuffer;   // 0x0, new[]'d, header + data
+	bool m_bUsed;                  // 0x4, set once Compress/Decompress ran
+	int m_nLzoInit;                // 0x8, lzo_init()'s result (LZO_E_OK = 0)
+	int m_nNewSize;                // 0xC, bytes in m_pNewBuffer
 };
+
+BEGIN_LAYOUT_CHECK(CCompressBuffer)
+	CHECK_SIZE(CCompressBuffer, 0x10);
+	CHECK_FIELD(CCompressBuffer, m_pNewBuffer, 0x0);
+	CHECK_FIELD(CCompressBuffer, m_bUsed, 0x4);
+	CHECK_FIELD(CCompressBuffer, m_nLzoInit, 0x8);
+	CHECK_FIELD(CCompressBuffer, m_nNewSize, 0xC);
+END_LAYOUT_CHECK
+
+#endif // PG_SHARED_USELZO_H

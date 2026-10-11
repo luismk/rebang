@@ -1,291 +1,311 @@
-#include "minatl.h"
-#include "compounddlg.h"
-#include "frwndinl.h"
+// Original: d:\build\custom\temp\code\client\projectg\compounddlg.cpp
+#include "CompoundDlg.h"
+#include "ObjectFactory.h"
+#include "Packet.h"
 #include "frarea.h"
 #include "frbutton.h"
-#include "frgaugebar.h"
 #include "fredit.h"
-#include "fresh.h"
-#include "soundmanager.h"
-#include "projectg.h"
-#include "../../Wangreal/include/wfont.h"
-#include "../../Wangreal/include/wresrcmng.h"
+#include "frgaugebar.h"
+#include "commonutil.h"
+#include "SharedDoc.h"
+#include "SoundManager.h"
+#include "UccManager.h"
+#include "wfont.h"
+#include "wview.h"
+#include "wmath.h"
+#include "wresrcmng.h"
 
-IMPLEMENT_OBJECT(FrCompoundDlg, FrForm)
+// Texture file of the title font of FrCompoundDlg (no symbol; contents not
+// read yet).
+extern "C" char* data_aa87d0[];
 
-BEGIN_FRESH_MSGMAP(FrCompoundDlg, FrForm)
+// compounddlg.cpp:20 (run-time type and factory registration of FrCompoundDlg)
+const WRTTI FrCompoundDlg::m_RTTI("FrCompoundDlg", &FrForm::m_RTTI);
 
-ON_FRESH_VI("yes", FRCMD_INIT, FrCompoundDlg::OnYesInit)
-ON_FRESH_VV("yes", FRCMD_LBUTTONUP, FrCompoundDlg::OnYesBtnUp)
-ON_FRESH_VI("no", FRCMD_INIT, FrCompoundDlg::OnNoInit)
-ON_FRESH_VV("no", FRCMD_LBUTTONUP, FrCompoundDlg::OnNoBtnUp)
-ON_FRESH_VI("ok", FRCMD_INIT, FrCompoundDlg::OnOKInit)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrCompoundDlg::OnOKBtnUp)
-ON_FRESH_VI("gauge", FRCMD_INIT, FrCompoundDlg::OnGaugeBarInit)
-ON_FRESH_VI("etext", FRCMD_INIT, FrCompoundDlg::OnTextEditInit)
-ON_FRESH_VI("compres", FRCMD_INIT, FrCompoundDlg::OnCompResInit)
-ON_FRESH_VV("compres", FRCMD_OWNERDRAW, FrCompoundDlg::OnCompResOwnerDraw)
+IObject* FrCompoundDlgMakeInstance(void) {
+	return new FrCompoundDlg;
+}
 
-END_FRESH_MSGMAP()
+struct __sFrCompoundDlg {
+	__sFrCompoundDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrCompoundDlgMakeInstance, "FrCompoundDlg");
+	}
+};
+static __sFrCompoundDlg s_registerFrCompoundDlg;
 
-FrCompoundDlg::FrCompoundDlg()
-{
+// compounddlg.cpp:22
+const sFRESH_MSGMAP* FrCompoundDlg::GetMessageMap(void) const {
+	return &FrCompoundDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrCompoundDlg::_MsgMap = { &FrForm::_MsgMap, &FrCompoundDlg::_MsgEntries[0] };
+
+// The control names are inferred from the handler names (the data is not
+// scored); the order and lines come from the entries' initializer.
+sFRESH_ENTRY FrCompoundDlg::_MsgEntries[] = {
+	// compounddlg.cpp:24
+	{ "yes", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCompoundDlg::OnYesInit },
+	// compounddlg.cpp:25
+	{ "yes", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrCompoundDlg::OnYesBtnUp },
+	// compounddlg.cpp:26
+	{ "no", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCompoundDlg::OnNoInit },
+	// compounddlg.cpp:27
+	{ "no", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrCompoundDlg::OnNoBtnUp },
+	// compounddlg.cpp:28
+	{ "ok", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCompoundDlg::OnOKInit },
+	// compounddlg.cpp:29
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrCompoundDlg::OnOKBtnUp },
+	// compounddlg.cpp:30
+	{ "gauge", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCompoundDlg::OnGaugeBarInit },
+	// compounddlg.cpp:31
+	{ "etext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCompoundDlg::OnTextEditInit },
+	// compounddlg.cpp:32
+	{ "compres", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCompoundDlg::OnCompResInit },
+	// compounddlg.cpp:33
+	{ "compres", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrCompoundDlg::OnCompResOwnerDraw },
+
+	// compounddlg.cpp:35
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// compounddlg.cpp:39
+FrCompoundDlg::FrCompoundDlg(void) {
 	memset(&m_quest, 0, sizeof(m_quest));
-	m_pCompRes = NULL;
-	m_bShowResult = false;
+	m_pCompRes = 0;
+	m_bShowRes = false;
 	memset(m_pBtn, 0, sizeof(m_pBtn));
-	m_pGaugeBar = NULL;
-	m_pTextEdit = NULL;
-	m_result = 0xff;
-	memset(&m_resultItem, 0, sizeof(m_resultItem));
+	m_pGaugeBar = 0;
+	m_pTextEdit = 0;
+	m_compoundRes = 0xff;
+	memset(&m_resItem, 0, sizeof(m_resItem));
 
-	static char* s_fontFile[] = { "[font_wind.jpg" };
-	WTITLEFONT info;
+	tagWTITLEFONT info;
 	memset(&info, 0, sizeof(info));
-	info.filename = s_fontFile;
+	info.filename = data_aa87d0;
 	info.fontw = 16;
 	info.fonth = 16;
 	info.numPages = 1;
 	info.texw = 128;
 	info.texh = 64;
 	info.pCharSet = "1234567890ym%-.?/:";
-	m_pFont = g_resrcmng->GetTitleFont();
-	m_pFont->Create(&info);
+	m_pTitleFont = g_resrcmng->GetTitleFont();
+	m_pTitleFont->Create(&info);
 }
 
-FrCompoundDlg::~FrCompoundDlg()
-{
-	if (g_resrcmng && m_pFont)
-	{
-		g_resrcmng->Release(m_pFont);
-		m_pFont = NULL;
-	}
+// compounddlg.cpp:67
+FrCompoundDlg::~FrCompoundDlg(void) {
+	if (g_resrcmng && m_pTitleFont) { g_resrcmng->Release(m_pTitleFont); m_pTitleFont = 0; }
 }
 
-void FrCompoundDlg::SetCompound(IFF_STRUCT::sQuest& quest)
-{
+// compounddlg.cpp:72
+void FrCompoundDlg::SetCompound(IFF_STRUCT::sQuest& quest) {
 	m_quest = quest;
 
-	if (m_pTextEdit)
+	if (m_pTextEdit) {
 		m_pTextEdit->ClearLine();
-
-	IFF_STRUCT::sQuestDrop* pDrop =
-		ItemManager()->FindQuestDrop(m_quest.DropTid[0]);
-
-	if (m_pTextEdit)
-	{
-		m_pTextEdit->AddText(
-			MakeStr(
-				"\\c0xffff0000\\c\xc0\xaf\xb4\xcf\xc5\xa9 \xbe\xc6\xc0\xcc\xc5\xdb\\c0xff000000\\c\xc0\xc7 \xc1\xb6\xc7\xd5\xbf\xa1\n\\c0xffff0000\\c%s %d\\c0xff000000\\c\xb0\xb3\xb0\xa1 \xbc\xd2\xba\xf1\xb5\xcb\xb4\xcf\xb4\xd9.",
-				pDrop ? pDrop->c.Name : "??", m_quest.DropNum[0]),
-			false, true);
 	}
 
-	if (Doc()->CanCompound(m_quest.TypeId))
-	{
-		m_pTextEdit->AddText(
-			"\xc1\xb6\xc7\xd5\xc0\xbb \xc7\xcf\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-			false, true);
+	IFF_STRUCT::sQuestDrop* pDrop = ItemManager()->FindQuestDrop(m_quest.questDropId);
 
-		if (m_pBtn[0])
-			m_pBtn[0]->SetVisible(true);
-		if (m_pBtn[1])
-			m_pBtn[1]->SetVisible(true);
+	if (m_pTextEdit) {
+		// "Combining the unique item: %s x%d will be consumed."
+		m_pTextEdit->AddText(MakeStr("\\c0xffff0000\\c\xc0\xaf\xb4\xcf\xc5\xa9 \xbe\xc6\xc0\xcc\xc5\xdb\\c0xff000000\\c\xc0\xc7 \xc1\xb6\xc7\xd5\xbf\xa1\n\\c0xffff0000\\c%s %d\\c0xff000000\\c\xb0\xb3\xb0\xa1 \xbc\xd2\xba\xf1\xb5\xcb\xb4\xcf\xb4\xd9.",
+			pDrop ? pDrop->m_name : "??", m_quest.questDropCount), false, true);
 	}
-	else
-	{
-		m_pTextEdit->AddText(
-			MakeStr(
-				"\\c0xffff0000\\c%s\\c0xff000000\\c\xb0\xa1 \xba\xce\xc1\xb7\xc7\xd5\xb4\xcf\xb4\xd9.",
-				pDrop ? pDrop->c.Name : "??"),
-			false, true);
 
-		if (m_pBtn[2])
-			m_pBtn[2]->SetVisible(true);
+	if (WSingleton<CSharedDoc>::Instance()->CanCompound(m_quest.m_typeId)) {
+		// "Combine?"
+		m_pTextEdit->AddText("\xc1\xb6\xc7\xd5\xc0\xbb \xc7\xcf\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?", false, true);
+
+		if (m_pBtn[BTN_YES]) {
+			m_pBtn[BTN_YES]->SetVisible(true);
+		}
+		if (m_pBtn[BTN_NO]) {
+			m_pBtn[BTN_NO]->SetVisible(true);
+		}
+	} else {
+		// "%s is missing."
+		m_pTextEdit->AddText(MakeStr("\\c0xffff0000\\c%s\\c0xff000000\\c\xb0\xa1 \xba\xce\xc1\xb7\xc7\xd5\xb4\xcf\xb4\xd9.", pDrop ? pDrop->m_name : "??"), false, true);
+
+		if (m_pBtn[BTN_OK]) {
+			m_pBtn[BTN_OK]->SetVisible(true);
+		}
 	}
 }
 
-void FrCompoundDlg::SetCompoundRes(unsigned char result, sItemInfo& itemInfo)
-{
-	m_result = result;
-	m_resultItem = itemInfo;
+// compounddlg.cpp:106
+void FrCompoundDlg::SetCompoundRes(unsigned char res, sItemInfo& itemInfo) {
+	m_compoundRes = res;
+	m_resItem = itemInfo;
 }
 
-void FrCompoundDlg::OnProc(const float time)
-{
-	if (m_pGaugeBar == NULL)
-		return;
+// compounddlg.cpp:112
+void FrCompoundDlg::OnProc(const float dt) {
+	if (m_pGaugeBar) {
 
-	if (WisEqual(m_pGaugeBar->GetPos(), 100.0f, g_EPSILON) && !m_bShowResult)
-	{
-		if (m_result != 0xff)
-		{
-			m_bShowResult = true;
+		if (WAbsBySign(m_pGaugeBar->GetPos() - 100.0f) < WMATH_EPSILON && !m_bShowRes && m_compoundRes != 0xff) {
 
-			if (m_pBtn[2])
-				m_pBtn[2]->Enable(true);
 
-			if (m_pTextEdit)
-			{
+
+			m_bShowRes = true;
+			if (m_pBtn[BTN_OK]) {
+				m_pBtn[BTN_OK]->Enable(true);
+			}
+			if (m_pTextEdit) {
+
 				m_pTextEdit->ClearLine();
 
-				switch (m_result)
-				{
+				switch (m_compoundRes) {
 				case 0:
-					m_pTextEdit->AddText(
-						"\xc1\xb6\xc7\xd5\xbf\xa1 \xbd\xc7\xc6\xd0\xc7\xdf\xbd\xc0\xb4\xcf\xb4\xd9.",
-						false, true);
+
+
+					m_pTextEdit->AddText("\xC1\xB6\xC7\xD5\xBF\xA1 \xBD\xC7\xC6\xD0\xC7\xDF\xBD\xC0\xB4\xCF\xB4\xD9.", false, true);
 					break;
+				case 1: {
 
-				case 1:
-				{
-					const char* name =
-						ItemManager()->GetItemName(m_resultItem.tid);
-					if (name == NULL)
-						name = "??";
-					m_pTextEdit->AddText(
-						MakeStr(
-							"\xc3\xe0\xc7\xcf\xc7\xd5\xb4\xcf\xb4\xd9!\n\\c0xffff0000\\c%s\\c0xff000000\\c\xb8\xa6 \xc8\xb9\xb5\xe6\xc7\xcf\xbc\xcc\xbd\xc0\xb4\xcf\xb4\xd9.\n'\xb8\xb6\xc0\xcc\xb7\xeb > \xc0\xc7\xbb\xf3\xbd\xc7'\xbf\xa1\xbc\xad \xc8\xae\xc0\xce\xc7\xcf\xbc\xbc\xbf\xe4.",
-							name),
-						false, true);
 
-					if (m_pCompRes)
-					{
-						IFF_ITEM_COMMON* pItem =
-							ItemManager()->FindCommonItem(m_resultItem.tid);
-						if (pItem)
-							m_pCompRes->SetBgImg(pItem->Icon);
+
+
+					const char* name = ItemManager()->GetItemName(m_resItem.m_typeId);
+
+					m_pTextEdit->AddText(MakeStr("\xC3\xE0\xC7\xCF\xC7\xD5\xB4\xCF\xB4\xD9!\n\\c0xffff0000\\c%s\\c0xff000000\\c\xB8\xA6 \xC8\xB9\xB5\xE6\xC7\xCF\xBC\xCC\xBD\xC0\xB4\xCF\xB4\xD9.\n'\xB8\xB6\xC0\xCC\xB7\xEB > \xC0\xC7\xBB\xF3\xBD\xC7'\xBF\xA1\xBC\xAD \xC8\xAE\xC0\xCE\xC7\xCF\xBC\xBC\xBF\xE4.", name ? name : "??"), false, true);
+
+					if (m_pCompRes) {
+
+						IFF_ITEM_COMMON* pCommon = ItemManager()->FindCommonItem(m_resItem.m_typeId);
+						if (pCommon) {
+							m_pCompRes->SetBgImg(pCommon->m_icon);
+						}
 						m_pCompRes->SetAlpha(0.0f);
 					}
 
-					g_audio->PlaySfx("ui_desktop_icon_click");
+
+					g_audio->PlaySfx("ui_desktop_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+
 					break;
 				}
 				}
 			}
 		}
-	}
 
-	if (m_bShowResult && m_pCompRes)
-	{
-		float alpha = time + m_pCompRes->GetAlpha();
-		if (1.0f < alpha)
-			alpha = 1.0f;
-		m_pCompRes->SetAlpha(alpha);
+
+
+
+		if (m_bShowRes && m_pCompRes) {
+			m_pCompRes->SetAlpha(min(dt + m_pCompRes->GetAlpha(), 1.0f));
+		}
 	}
 }
 
-void FrCompoundDlg::OnYesInit(int param)
-{
-	m_pBtn[0] = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pBtn[0])
-		m_pBtn[0]->SetVisible(false);
+// compounddlg.cpp:160
+void FrCompoundDlg::OnYesInit(intptr_t param) {
+	m_pBtn[BTN_YES] = DYNAMIC_CAST(FrButton, param);
+	if (m_pBtn[BTN_YES]) {
+		m_pBtn[BTN_YES]->SetVisible(false);
+	}
 }
 
-void FrCompoundDlg::OnYesBtnUp()
-{
-	if (m_pBtn[0])
-		m_pBtn[0]->SetVisible(false);
-	if (m_pBtn[1])
-		m_pBtn[1]->SetVisible(false);
+// compounddlg.cpp:167
+void FrCompoundDlg::OnYesBtnUp(void) {
+	if (m_pBtn[BTN_YES]) {
+		m_pBtn[BTN_YES]->SetVisible(false);
+	}
+	if (m_pBtn[BTN_NO]) {
+		m_pBtn[BTN_NO]->SetVisible(false);
+	}
+	if (m_pBtn[BTN_OK]) {
 
-	if (m_pBtn[2])
-	{
-		m_pBtn[2]->SetVisible(true);
-		m_pBtn[2]->Enable(false);
+		m_pBtn[BTN_OK]->SetVisible(true);
+		m_pBtn[BTN_OK]->Enable(false);
 	}
 
-	if (m_pGaugeBar)
-	{
+	if (m_pGaugeBar) {
+
 		m_pGaugeBar->SetVisible(true);
 		m_pGaugeBar->SetDestPos(100, false);
 		m_pGaugeBar->SetColor(0xffff0000);
 	}
 
-	if (m_pTextEdit)
-	{
-		IFF_STRUCT::sQuestDrop* pDrop =
-			ItemManager()->FindQuestDrop(m_quest.DropTid[0]);
+	if (m_pTextEdit) {
+
+		IFF_STRUCT::sQuestDrop* pDrop = ItemManager()->FindQuestDrop(m_quest.questDropId);
+
 		m_pTextEdit->ClearLine();
-		m_pTextEdit->AddText(
-			MakeStr(
-				"\\c0xffff0000\\c%s\\c0xff000000\\c\xc0\xbb \xc1\xb6\xc7\xd5 \xc1\xdf \xc0\xd4\xb4\xcf\xb4\xd9.\n\xc0\xe1\xbd\xc3\xb8\xb8 \xb1\xe2\xb4\xd9\xb7\xc1 \xc1\xd6\xbc\xbc\xbf\xe4.",
-				pDrop ? pDrop->c.Name : ""),
-			false, true);
+		m_pTextEdit->AddText(MakeStr("\\c0xffff0000\\c%s\\c0xff000000\\c\xC0\xBB \xC1\xB6\xC7\xD5 \xC1\xDF \xC0\xD4\xB4\xCF\xB4\xD9.\n\xC0\xE1\xBD\xC3\xB8\xB8 \xB1\xE2\xB4\xD9\xB7\xC1 \xC1\xD6\xBC\xBC\xBF\xE4.", pDrop ? pDrop->m_name : ""), false, true);
 	}
 
+
 	WSendPacket packet(0x68);
-	packet.Encode4(m_quest.TypeId);
-	packet.Send(TO_GAME);
+	packet.Encode4(m_quest.m_typeId);
+	packet.Send((eSendTo)0);
 }
 
-void FrCompoundDlg::OnNoInit(int param)
-{
-	m_pBtn[1] = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pBtn[1])
-		m_pBtn[1]->SetVisible(false);
+// compounddlg.cpp:202
+void FrCompoundDlg::OnNoInit(intptr_t param) {
+	m_pBtn[BTN_NO] = DYNAMIC_CAST(FrButton, param);
+	if (m_pBtn[BTN_NO]) {
+		m_pBtn[BTN_NO]->SetVisible(false);
+	}
 }
 
-void FrCompoundDlg::OnNoBtnUp()
-{
+// compounddlg.cpp:209
+void FrCompoundDlg::OnNoBtnUp(void) {
 	Close(FrCANCEL, true);
 }
 
-void FrCompoundDlg::OnOKInit(int param)
-{
-	m_pBtn[2] = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pBtn[2])
-		m_pBtn[2]->SetVisible(false);
+// compounddlg.cpp:214
+void FrCompoundDlg::OnOKInit(intptr_t param) {
+	m_pBtn[BTN_OK] = DYNAMIC_CAST(FrButton, param);
+	if (m_pBtn[BTN_OK]) {
+		m_pBtn[BTN_OK]->SetVisible(false);
+	}
 }
 
-void FrCompoundDlg::OnOKBtnUp()
-{
+// compounddlg.cpp:221
+void FrCompoundDlg::OnOKBtnUp(void) {
 	Close(FrOK, true);
 }
 
-void FrCompoundDlg::OnGaugeBarInit(int param)
-{
-	m_pGaugeBar = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	if (m_pGaugeBar)
-	{
+// compounddlg.cpp:226
+void FrCompoundDlg::OnGaugeBarInit(intptr_t param) {
+	m_pGaugeBar = DYNAMIC_CAST(FrGaugeBar, param);
+	if (m_pGaugeBar) {
+
 		m_pGaugeBar->SetVisible(false);
+
+
+
 		m_pGaugeBar->SetBarSpeed(10.0f);
 	}
 }
 
-void FrCompoundDlg::OnTextEditInit(int param)
-{
-	m_pTextEdit = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// compounddlg.cpp:241
+void FrCompoundDlg::OnTextEditInit(intptr_t param) {
+	m_pTextEdit = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrCompoundDlg::OnCompResInit(int param)
-{
-	m_pCompRes = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// compounddlg.cpp:247
+void FrCompoundDlg::OnCompResInit(intptr_t param) {
+	m_pCompRes = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrCompoundDlg::OnCompResOwnerDraw()
-{
-	if (!m_bShowResult)
-		return;
+// compounddlg.cpp:252
+void FrCompoundDlg::OnCompResOwnerDraw(void) {
+	if (m_bShowRes && m_pCompRes && WAbsBySign(m_pCompRes->GetAlpha() - 1.0f) < WMATH_EPSILON) {
 
-	if (m_pCompRes && WisEqual(m_pCompRes->GetAlpha(), 1.0f, g_EPSILON))
-	{
-		int type = m_resultItem.tid >> 26;
-		if (type == 5 || type == 28)
-		{
-			float x = m_pCompRes->GetRect().x + 68.0f -
-				m_pFont->GetTextWidth(g_view,
-					MakeStr("%d", m_resultItem.Common[0]));
-			m_pFont->Print(g_view, x, m_pCompRes->GetRect().y + 63.0f,
-				MakeStr("%d", m_resultItem.Common[0]), 0, 0xffffffff, NULL);
+		if ((m_resItem.m_typeId >> 26) == 5 || (m_resItem.m_typeId >> 26) == 0x1c) {
+
+			float x = m_pCompRes->GetRect().x + 68.0f;
+			x -= m_pTitleFont->GetTextWidth(g_view, MakeStr("%d", m_resItem.m_count));
+			m_pTitleFont->Print(g_view, x, m_pCompRes->GetRect().y + 63.0f, MakeStr("%d", m_resItem.m_count), 0, 0xffffffff, 0);
 		}
 	}
 }
 
-void FrCompoundDlg::SetDlgText(const char* text)
-{
-	if (m_pTextEdit)
-	{
+// compounddlg.cpp:265
+void FrCompoundDlg::SetDlgText(const char* text) {
+	if (m_pTextEdit) {
+
 		m_pTextEdit->ClearLine();
 		m_pTextEdit->AddText(text, false, true);
 	}

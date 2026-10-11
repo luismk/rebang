@@ -1,72 +1,70 @@
-#include "minatl.h"
-#include "shufflebonus.h"
-#include "projectg.h"
-#include "golfdoc.h"
-#include "chatmsg.h"
-#include "woverlay.h"
-#include "../../shared/localize.h"
+// Original: d:\build\custom\temp\code\client\projectg\shufflebonus.cpp
+#include <windows.h>
+#include <string>
 
-CShuffleBonus::CShuffleBonus()
-{
+#include "ShuffleBonus.h"
+#include "SharedDoc.h"
+#include "GolfDoc.h"
+#include "ChatMsg.h"
+#include "../shared/Localize.h"
+#include "../client/Wangreal/include/woverlay.h"
+#include "../client/Wangreal/include/wview.h"
+
+// shufflebonus.cpp:9
+CShuffleBonus::CShuffleBonus(void) {
 }
 
-CShuffleBonus::~CShuffleBonus()
-{
+// shufflebonus.cpp:13
+CShuffleBonus::~CShuffleBonus(void) {
 }
 
-void CShuffleBonus::Render(WOverlay* pOverlay, float alpha)
-{
-	if (!pOverlay)
+// shufflebonus.cpp:22
+void CShuffleBonus::Render(WOverlay* pOverlay, float alpha) {
+	if (pOverlay == 0) {
 		return;
+	}
 
-	if (_Validity(VAILDTYPE_0))
-	{
-		pOverlay->Render(g_view, WRect(0, 0, 1.0f, 1.0f),
-			WRect(g_view->GetWidth() * 0.5f - 127.0f, 160, 264, 36), 0,
-			((int)alpha << 24) | 0xffffff, 0, 0);
+	if (_Validity(eVaild_FirstHole)) {
+		WRECT texRect = { 0.0f, 0.0f, 1.0f, 1.0f };
+		WRECT screenRect = { g_view->GetWidth() * 0.5f - 127.0f, 160.0f, 264.0f, 36.0f };
+		pOverlay->Render(g_view, texRect, screenRect, 0, ((int)alpha << 24) | 0xFFFFFF, 0.0f, 0);
 	}
 }
 
-void CShuffleBonus::ShowNoticeMsg()
-{
-	if (_Validity(VAILDTYPE_0))
-	{
-		CChatMsg::Instance()->AddChatMsg(
-			"(\xbe\xcb\xb8\xb2) \xb0\xd4\xc0\xd3 \xbf\xcf\xc1\xd6\xbd\xc3 Shuffle Bonus\xb7\xce "
-			"\xc6\xce\xc0\xbb 10% \xc3\xdf\xb0\xa1 \xc1\xf6\xb1\xde \xb9\xde\xbd\xc0\xb4\xcf\xb4\xd9.",
-			0xffff7878, true, false);
+// shufflebonus.cpp:40
+void CShuffleBonus::ShowNoticeMsg(void) {
+	if (_Validity(eVaild_FirstHole)) {
+		// "(Event) Shuffle Bonus pays 10% extra Pang on game completion."
+		WSingleton<CChatMsg>::Instance()->AddChatMsg(std::string("(\276\313\270\262) \260\324\300\323 \277\317\301\326\275\303 Shuffle Bonus\267\316 \306\316\300\273 10% \303\337\260\241 \301\366\261\336 \271\336\275\300\264\317\264\331."), 0xFFFF7878, true, false);
 	}
 }
 
-bool CShuffleBonus::_Validity(eVaildType type)
-{
-	if (!OnlinePlay())
+// shufflebonus.cpp:55
+bool CShuffleBonus::_Validity(eVaildType type) {
+	if (!OnlinePlay()) {
 		return false;
-
-	unsigned char order = Doc()->m_holeOrder[0];
-	bool bValid = false;
-	if (type == VAILDTYPE_0)
-	{
-		if (order != GOLFDOC()->m_currentHole)
-			return false;
 	}
 
-	if (IsLocalContent(S3_SHUFFLE_BONUS))
-	{
-		switch (Doc()->m_golfGame.gameType)
-		{
+	bool result = false;
+	if (type == eVaild_FirstHole) {
+		CSharedDoc* pDoc = WSingleton<CSharedDoc>::Instance();
+		if (pDoc->m_holeOrder[0] != GOLFDOC()->m_currentHole) {
+			return false;
+		}
+	}
+
+	if (IsLocalContent((localContentType_t)0x11)) {
+		switch (WSingleton<CSharedDoc>::Instance()->m_roomType) {
 		case 0:
 		case 1:
 		case 4:
 		case 5:
 		case 6:
-			if (Doc()->m_holeType == 3)
-			{
-				bValid = true;
+			if (WSingleton<CSharedDoc>::Instance()->m_gameKind == 3) {
+				result = true;
 			}
 			break;
 		}
 	}
-
-	return bValid;
+	return result;
 }

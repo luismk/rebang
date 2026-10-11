@@ -1,245 +1,253 @@
-#include "minatl.h"
-#include "replaydlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\replaydlg.cpp
+#include "ReplayDlg.h"
+#include "ObjectFactory.h"
+#include "frbutton.h"
+#include "SharedDoc.h"
+#include "InputManager.h"
 #include "mousecursor.h"
-#include "projectg.h"
+#include "wview.h"
 
-IMPLEMENT_OBJECT(FrReplayControlDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrReplayControlDlg, FrForm)
-
-ON_FRESH_VI("replay_play", FRCMD_INIT, FrReplayControlDlg::OnPlayInit)
-ON_FRESH_VV("replay_play", FRCMD_LBUTTONUP, FrReplayControlDlg::OnPlayBtnUp)
-ON_FRESH_VI("replay_before", FRCMD_INIT,
-	FrReplayControlDlg::OnBeforeShotBtnInit)
-ON_FRESH_VV("replay_before", FRCMD_LBUTTONUP,
-	FrReplayControlDlg::OnBeforeShotBtnUp)
-ON_FRESH_VI("replay_next", FRCMD_INIT, FrReplayControlDlg::OnNextShotBtnInit)
-ON_FRESH_VV("replay_next", FRCMD_LBUTTONUP, FrReplayControlDlg::OnNextShotBtnUp)
-ON_FRESH_VI("replay_exit", FRCMD_INIT, FrReplayControlDlg::OnExitBtnInit)
-ON_FRESH_VV("replay_exit", FRCMD_LBUTTONUP, FrReplayControlDlg::OnExitBtnUp)
-ON_FRESH_VI("replay_minimize", FRCMD_INIT,
-	FrReplayControlDlg::OnMinimizeBtnInit)
-ON_FRESH_VV("replay_minimize", FRCMD_LBUTTONUP,
-	FrReplayControlDlg::OnMinimizeBtnUp)
-ON_FRESH_VI("replay_record", FRCMD_INIT, FrReplayControlDlg::OnRecordBtnInit)
-ON_FRESH_VV("replay_record", FRCMD_LBUTTONUP, FrReplayControlDlg::OnRecordBtnUp)
-
-END_FRESH_MSGMAP()
-
-void FrReplayControlDlg::Init()
-{
+// replaydlg.h:109
+int CReplayControlManager::GetFadeType(void) {
+	return m_nFadeType;
 }
 
-FrReplayControlDlg::FrReplayControlDlg()
-{
-	m_pPlay = NULL;
-	m_bPlay = true;
+// replaydlg.h:110
+void CReplayControlManager::SetFadeType(int nFadeType) {
+	m_nFadeType = nFadeType;
+}
+
+// replaydlg.h:112
+WRect CReplayControlManager::GetControlRect(void) {
+	return m_rcControl;
+}
+
+// replaydlg.h:113
+void CReplayControlManager::SetControlRect(WRect rc) {
+	m_rcControl = rc;
+}
+
+// replaydlg.cpp:20 (run-time type and factory registration of FrReplayControlDlg)
+const WRTTI FrReplayControlDlg::m_RTTI("FrReplayControlDlg", &FrForm::m_RTTI);
+
+IObject* FrReplayControlDlgMakeInstance(void) {
+	return new FrReplayControlDlg;
+}
+
+struct __sFrReplayControlDlg {
+	__sFrReplayControlDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrReplayControlDlgMakeInstance, "FrReplayControlDlg");
+	}
+};
+static __sFrReplayControlDlg s_registerFrReplayControlDlg;
+
+// replaydlg.cpp:22
+const sFRESH_MSGMAP* FrReplayControlDlg::GetMessageMap(void) const {
+	return &FrReplayControlDlg::_MsgMap;
+}
+
+// replaydlg.cpp:44
+void FrReplayControlDlg::Init(void) {
+}
+
+// replaydlg.cpp:49
+FrReplayControlDlg::FrReplayControlDlg(void) {
+	m_pPlay = 0;
+
 	m_alpha = 0.0f;
+	m_bPlaying = true;
 }
 
-FrReplayControlDlg::~FrReplayControlDlg()
-{
+// replaydlg.cpp:56
+FrReplayControlDlg::~FrReplayControlDlg(void) {
 }
 
-bool FrReplayControlDlg::OnInit()
-{
+// replaydlg.cpp:61
+bool FrReplayControlDlg::OnInit(void) {
 	FrForm::OnInit();
 
 	EnableDrag(false);
 	return true;
 }
 
-void FrReplayControlDlg::OnPlayInit(int param)
-{
+// replaydlg.cpp:69
+void FrReplayControlDlg::OnPlayInit(intptr_t param) {
 	m_pPlay = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrReplayControlDlg::TogglePlayButton()
-{
-	if (m_bPlay)
-	{
-		Doc()->m_replayState = 4;
-
+// replaydlg.cpp:74
+void FrReplayControlDlg::TogglePlayButton(void) {
+	if (m_bPlaying) {
+		WSingleton<CSharedDoc>::Instance()->m_replayState = 4;
 		m_pPlay->SetButtonImg("replay_play_n", FrButton::NORMAL);
 		m_pPlay->SetButtonImg("replay_btn_o_big", FrButton::OVER);
 		m_pPlay->SetButtonImg("replay_play_n", FrButton::PRESSED);
 		m_pPlay->SetButtonBelowImg("replay_play_n", FrButton::OVER);
-	}
-	else
-	{
-		Doc()->m_replayState = Doc()->m_replayShotIndex >= 2 ? 2 : 1;
-
+	} else {
+		if (WSingleton<CSharedDoc>::Instance()->m_replayStartB < 2) {
+			WSingleton<CSharedDoc>::Instance()->m_replayState = 1;
+		} else {
+			WSingleton<CSharedDoc>::Instance()->m_replayState = 2;
+		}
 		m_pPlay->SetButtonImg("replay_stop_n", FrButton::NORMAL);
 		m_pPlay->SetButtonImg("replay_btn_o_big", FrButton::OVER);
 		m_pPlay->SetButtonImg("replay_stop_n", FrButton::PRESSED);
 		m_pPlay->SetButtonBelowImg("replay_stop_n", FrButton::OVER);
 	}
 
-	m_bPlay = !m_bPlay;
+	m_bPlaying = !m_bPlaying;
 }
 
-void FrReplayControlDlg::OnPlayBtnUp()
-{
+// replaydlg.cpp:104
+void FrReplayControlDlg::OnPlayBtnUp(void) {
 	TogglePlayButton();
 }
 
-void FrReplayControlDlg::OnBeforeShotBtnInit(int param)
-{
-	m_pBeforeShot = DYNAMIC_CAST(FrButton, param);
-
-	m_pBeforeShot->Enable(false);
+// replaydlg.cpp:109
+void FrReplayControlDlg::OnBeforeShotBtnInit(int param) {
+	m_pBeforeShotBtn = DYNAMIC_CAST(FrButton, param);
+	m_pBeforeShotBtn->Enable(false);
 }
 
-void FrReplayControlDlg::OnBeforeShotBtnUp()
-{
-	if (!m_bPlay)
-	{
+// replaydlg.cpp:120
+void FrReplayControlDlg::OnBeforeShotBtnUp(void) {
+	if (!m_bPlaying) {
 		TogglePlayButton();
 	}
 
-	Doc()->m_replayState = 11;
+	WSingleton<CSharedDoc>::Instance()->m_replayState = 11;
 }
 
-void FrReplayControlDlg::OnNextShotBtnInit(int param)
-{
-	m_pNextShot = DYNAMIC_CAST(FrButton, param);
-
-	m_pNextShot->Enable(false);
+// replaydlg.cpp:130
+void FrReplayControlDlg::OnNextShotBtnInit(int param) {
+	m_pNextShotBtn = DYNAMIC_CAST(FrButton, param);
+	m_pNextShotBtn->Enable(false);
 }
 
-void FrReplayControlDlg::OnNextShotBtnUp()
-{
-	if (Doc()->m_replayPlayType == 2)
-	{
-		if (!m_bPlay)
-		{
+// replaydlg.cpp:140
+void FrReplayControlDlg::OnNextShotBtnUp(void) {
+	if (WSingleton<CSharedDoc>::Instance()->m_replayPlayType == 2) {
+		if (!m_bPlaying) {
 			TogglePlayButton();
 		}
 
-		Doc()->m_replayState = 12;
+		WSingleton<CSharedDoc>::Instance()->m_replayState = 12;
 	}
 }
 
-void FrReplayControlDlg::OnExitBtnInit(int param)
-{
-	m_pExit = DYNAMIC_CAST(FrButton, param);
+// replaydlg.cpp:155
+void FrReplayControlDlg::OnExitBtnInit(intptr_t param) {
+	m_pExitBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrReplayControlDlg::OnExitBtnUp()
-{
-	Doc()->m_replayShotIndex = 0;
-	Doc()->m_curChannel.Type = Doc()->m_replayTick;
-	Doc()->m_replayTick = 0;
+// replaydlg.cpp:160
+void FrReplayControlDlg::OnExitBtnUp(void) {
+	WSingleton<CSharedDoc>::Instance()->m_replayStartB = 0;
+	WSingleton<CSharedDoc>::Instance()->m_currentChannel.flags = WSingleton<CSharedDoc>::Instance()->m_replayChannelFlags;
+	WSingleton<CSharedDoc>::Instance()->m_replayChannelFlags = 0;
 
-	Doc()->m_replayPlayType = 0;
+	WSingleton<CSharedDoc>::Instance()->m_replayPlayType = 0;
 
-	Doc()->m_replayState = 5;
+	WSingleton<CSharedDoc>::Instance()->m_replayState = 5;
 	Close(true);
 }
 
-void FrReplayControlDlg::OnMinimizeBtnInit(int param)
-{
-	m_pMinimize = DYNAMIC_CAST(FrButton, param);
+// replaydlg.cpp:172
+void FrReplayControlDlg::OnMinimizeBtnInit(int param) {
+	m_pMinimizeBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrReplayControlDlg::OnMinimizeBtnUp()
-{
-	CMouseCursor::Instance()->ForceMove(g_view->GetWidth() * 0.5f,
-		g_view->GetHeight() * 0.5f, -1.0f);
+// replaydlg.cpp:177
+void FrReplayControlDlg::OnMinimizeBtnUp(void) {
+	CMouseCursor::Instance()->ForceMove(g_view->GetWidth() * 0.5f, g_view->GetHeight() * 0.5f, -1.0f);
 	SetVisible(false);
 }
 
-void FrReplayControlDlg::OnRecordBtnInit(int param)
-{
-	m_pRecord = DYNAMIC_CAST(FrButton, param);
+// replaydlg.cpp:184
+void FrReplayControlDlg::OnRecordBtnInit(int param) {
+	m_pRecordBtn = DYNAMIC_CAST(FrButton, param);
+	m_pRecordBtn->Enable(false);
 
-	m_pRecord->Enable(false);
-
-	if (Doc()->m_replayState == 9)
-		m_pRecord->Enable(false);
-}
-
-void FrReplayControlDlg::OnRecordBtnUp()
-{
-	Doc()->m_replayState = 6;
-}
-
-void FrReplayControlDlg::OnProc(const float delta)
-
-{
-	if (CMouseCursor::Instance()->InArea(m_rect))
-	{
-		m_alpha += delta * 2.0f;
-		if (m_alpha > 1.0f)
-			m_alpha = 1.0f;
+	if (WSingleton<CSharedDoc>::Instance()->m_replayState == 9) {
+		m_pRecordBtn->Enable(false);
 	}
-	else
-	{
-		m_alpha -= delta * 2.0f;
-		if (m_alpha < 0.6f)
+}
+
+// replaydlg.cpp:197
+void FrReplayControlDlg::OnRecordBtnUp(void) {
+	WSingleton<CSharedDoc>::Instance()->m_replayState = 6;
+}
+
+// replaydlg.cpp:230
+void FrReplayControlDlg::OnProc(const float dt) {
+	bool bInArea = CMouseCursor::Instance()->InArea(m_rect);
+
+	if (bInArea) {
+		m_alpha += dt * 2;
+		if (m_alpha > 1.0f) {
+			m_alpha = 1.0f;
+		}
+	} else {
+		m_alpha -= dt * 2;
+		if (m_alpha < 0.6f) {
 			m_alpha = 0.6f;
+		}
 	}
 
 	SetAlpha2ToChild(m_alpha);
 }
 
-void CReplayControlManager::Init()
+// replaydlg.cpp:262
+void CReplayControlManager::Init(void) {
+	m_rcControl.x = g_view->GetWidth();
+	m_rcControl.y = g_view->GetHeight() - 560.0f;
+	m_rcControl.w = 335.0f;
+	m_rcControl.h = 101.0f;
 
-{
-	m_controlRect.x = g_view->GetWidth();
-	m_controlRect.y = g_view->GetHeight() - 560.0f;
-	m_controlRect.w = 335.0f;
-	m_controlRect.h = 101.0f;
-
-	m_ratio = 0.7f;
-	m_reserved = 0;
+	m_fadeAlpha = 0.7f;
+	m_fadeTime = 0.0f;
 }
 
-CReplayControlManager::CReplayControlManager()
-	: m_fadeType(0)
-{
-	m_controlRect.x = 10.0f;
-	m_controlRect.y = 10.0f;
-	m_controlRect.w = 335.0f;
-	m_controlRect.h = 101.0f;
+// replaydlg.cpp:278
+CReplayControlManager::CReplayControlManager(void) {
+	m_nFadeType = 0;
+	m_rcControl.x = 10.0f;
+	m_rcControl.y = 10.0f;
+	m_rcControl.w = 335.0f;
+	m_rcControl.h = 101.0f;
 
-	m_ratio = 0.5f;
-	m_reserved = 0;
+	m_fadeAlpha = 0.5f;
+	m_fadeTime = 0.0f;
 }
 
-CReplayControlManager::~CReplayControlManager()
-{
+// replaydlg.cpp:296
+CReplayControlManager::~CReplayControlManager(void) {
 }
 
-bool CReplayControlManager::CalcReplayControlPos()
-{
-	WRect rect = GetControlRect();
-	WVector mouse = g_input->GetMousePoint();
+// replaydlg.cpp:304
+bool CReplayControlManager::CalcReplayControlPos(void) {
+	WRect rc = m_rcControl;
+	WVector mousePos = g_input->GetMousePoint();
 
-	float limit = g_view->GetWidth() - 340.0f;
-	if (limit < mouse.x && mouse.x < g_view->GetWidth() && 0.0f < mouse.y &&
-		mouse.y < 140.0f)
-	{
-		if (rect.x > limit)
-			rect.x -= 15.0f;
+	float showX = g_view->GetWidth() - 340.0f;
+	if (showX < mousePos.x && mousePos.x < g_view->GetWidth() && 0.0f < mousePos.y && mousePos.y < 140.0f) {
+		if (rc.x > showX) {
+			rc.x -= 15.0f;
+		}
+		m_rcControl = WRect(rc.x, rc.y, rc.w, rc.h);
 
-		SetControlRect(rect);
-
-		if (500.0f < rect.x)
-			SetFadeType(2);
-
+		if (500.0f < rc.x) {
+			m_nFadeType = 2;
+		}
 		return true;
-	}
-	else if (GetFadeType() == 2)
-	{
-		if (rect.x >= g_view->GetWidth())
-			SetFadeType(0);
-		else
-			SetFadeType(2);
+	} else if (m_nFadeType == 2) {
+		if (rc.x >= g_view->GetWidth()) {
+			m_nFadeType = 0;
+		} else {
+			m_nFadeType = 2;
+		}
 
-		rect.x += 15.0f;
-		SetControlRect(rect);
-
+		m_rcControl = WRect(rc.x + 15.0f, rc.y, rc.w, rc.h);
 		return true;
 	}
 

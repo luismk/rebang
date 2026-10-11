@@ -1,168 +1,95 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\wangreal\include\wresrccache.h
+#ifndef PG_CLIENT_WANGREAL_INCLUDE_WRESRCCACHE_H
+#define PG_CLIENT_WANGREAL_INCLUDE_WRESRCCACHE_H
+
+#include "..\..\defines.h"
 #include "wlist.h"
-#include "wresource.h"
-#include <string.h>
+#include "wmemblock.h"
 
+// A named cache of resources: each origin (a loaded resource, by name) and
+// the resources cloned from it (PDB layout, size 0x40).
 template <class T>
-class WResrcCache
-{
+class WResrcCache {
+	LAYOUT_CHECK_FRIEND;
 public:
-	struct w_origin
-	{
-		T resource;
-		int count;
-		int checkflag;
-		char name[1];
+	struct w_origin {
+		T resource;         // 0x0
+		int count;          // 0x4
+		int checkflag;      // 0x8
+		char name[1];       // 0xc
+	};
+	struct w_cache {
+		w_origin* origin;   // 0x0
+		T resource;         // 0x4
 	};
 
-	struct w_cache
-	{
-		w_origin* origin;
-		T resource;
-	};
+	WResrcCache(void) : resrcList(32, 32), originList(16, 32) {}           // wresrccache.h:28
 
-	__declspec(nothrow) WResrcCache()
-		: resrcList(32, 32), originList(16, 32)
-	{
-	}
 
-	__declspec(nothrow) ~WResrcCache()
-	{
+	~WResrcCache(void) {                                                   // wresrccache.h:32
+
+
+
 		w_origin* origin = originList.Start();
-		while (origin)
-		{
-			g_mem.Free(origin);
-			origin = originList.Next();
+		while (origin) {
+
+			g_mem.Free(origin); origin = originList.Next();
 		}
+
+
+
+
 		w_cache* cache = resrcList.Start();
-		while (cache)
-		{
-			g_mem.Free(cache);
-			cache = resrcList.Next();
+		while (cache) {
+
+			g_mem.Free(cache); cache = resrcList.Next();
 		}
-	}
 
-	T FirstOrigin()
-	{
-		w_origin* origin = originList.Start();
-		if (origin)
-			return origin->resource;
-		return 0;
-	}
 
-	T NextOrigin()
-	{
-		w_origin* origin = originList.Next();
-		if (origin)
-			return origin->resource;
-		return 0;
-	}
 
-	T FirstResource()
-	{
-		w_cache* cache = resrcList.Start();
-		if (cache)
-			return cache->resource;
-		return 0;
-	}
 
-	T NextResource()
-	{
-		w_cache* cache = resrcList.Next();
-		if (cache)
-			return cache->resource;
-		return 0;
 	}
-
-	T FindOrigin(const char* name)
-	{
-		w_origin* origin = originList.Find(name);
-		if (origin)
-			return origin->resource;
-		return 0;
-	}
-
-	char* FindIdleOrigin(char* first, int count)
-	{
-		for (w_origin* origin = originList.Start(); origin;
-			origin = originList.Next())
-		{
-			if (origin->count == 0)
-			{
-				if (first)
-				{
-					if (strcmp(origin->name, first) == 0)
-						first = 0;
-				}
-				else
-				{
-					if (origin->checkflag >= count)
-						return origin->name;
-					origin->checkflag++;
-				}
-			}
-		}
-		return 0;
-	}
-
-	void ClearOrigin(const char* name)
-	{
-		w_origin* origin = originList.Find(name);
-		originList -= origin;
-		g_mem.Free(origin);
-	}
-
-	bool AddResource(const char* name, T resrc)
-	{
-		w_origin* origin = originList.Find(name);
-		if (!origin)
-		{
-			AddOrigin(name, resrc);
-			origin = originList.Find(name);
-		}
-		w_cache* cache = (w_cache*)g_mem.Alloc(sizeof(w_cache));
-		cache->origin = origin;
-		cache->resource = resrc;
-		origin->count++;
-		origin->checkflag = 0;
-		resrcList.AddItem(cache, origin->name, false);
-		if (origin->count > 1)
-			return false;
-		return true;
-	}
-
-	bool DeleteResource(T resrc)
-	{
-		for (w_cache* cache = resrcList.Start(); cache;
-			cache = resrcList.Next())
-		{
-			if (cache->resource == resrc)
-			{
-				w_origin* origin = cache->origin;
-				resrcList -= cache;
-				g_mem.Free(cache);
-				origin->count--;
-				if (origin->resource != resrc)
-					return true;
-				return false;
-			}
-		}
-		return false;
-	}
+	T FindResource(const char* name);
+	T FirstOrigin(void);
+	T NextOrigin(void);
+	T FirstResource(T resource);
+	T FirstResource(const char* name);
+	T FirstResource(void);
+	T NextResource(T resource);
+	T NextResource(const char* name);
+	T NextResource(void);
+	T FindOrigin(T resource);
+	T FindOrigin(const char* name);
+	bool IsOrigin(T resource);
+	const char* GetOriginName(T resource);
+	const char* GetName(T resource);
+	char* FindIdleOrigin(char* first, int count);
+	void ClearOrigin(const char* name);
+	bool AddResource(const char* name, T resource);
+	bool DeleteResource(T resource);
 
 private:
-	void AddOrigin(const char* name, T resrc)
-	{
-		w_origin* origin =
-			(w_origin*)g_mem.Alloc((int)strlen(name) + sizeof(w_origin));
-		strcpy(origin->name, name);
-		origin->resource = resrc;
-		origin->count = 0;
-		origin->checkflag = 0;
-		originList.AddItem(origin, origin->name, false);
-	}
+	void AddOrigin(const char* name, T resource);
 
-public:
-	WList<w_cache*> resrcList;
-	WList<w_origin*> originList;
+	WList<w_cache*> resrcList;      // 0x0
+	WList<w_origin*> originList;    // 0x20
 };
+
+// wresrccache.h:159
+template <class T>
+T WResrcCache<T>::FindOrigin(const char* name) {
+	w_origin* origin = originList.Find(name);
+	return origin ? origin->resource : NULL;
+}
+
+// wresrccache.h:241
+template <class T>
+void WResrcCache<T>::ClearOrigin(const char* name) {
+	w_origin* origin = originList.Find(name);
+
+	originList -= origin;
+
+	g_mem.Free(origin);
+}
+
+#endif // PG_CLIENT_WANGREAL_INCLUDE_WRESRCCACHE_H

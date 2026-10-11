@@ -1,80 +1,74 @@
-#include <windows.h>
-#include <vfw.h>
+// Original: d:\build\custom\temp\code\client\projectg\vcomp.cpp
 #include "vcomp.h"
 
-namespace ntg
-{
+#include <string.h>
 
-	VideoCompressor::VideoCompressor()
-	{
-		memset(&m_compvars, 0, sizeof(m_compvars));
-		memset(&m_format, 0, sizeof(m_format));
-	}
+namespace ntg {
 
-	VideoCompressor::~VideoCompressor()
-	{
-	}
-
-	bool VideoCompressor::init(const BITMAPINFO* format, int quality)
-	{
-		memcpy(&m_format, format, sizeof(m_format));
-
-		memset(&m_compvars, 0, sizeof(m_compvars));
-		m_compvars.cbSize = sizeof(m_compvars);
-		m_compvars.dwFlags = ICMF_COMPVARS_VALID;
-		m_compvars.fccType = ICTYPE_VIDEO;
-		m_compvars.fccHandler = mmioFOURCC('m', 's', 'v', 'c');
-		m_compvars.lQ = quality * 100;
-
-		m_compvars.hic = ICOpen(m_compvars.fccType, m_compvars.fccHandler,
-			ICMODE_FASTCOMPRESS);
-
-		if (m_compvars.hic == NULL)
-			return false;
-
-		return true;
-	}
-
-	void VideoCompressor::cleanup()
-	{
-		ICCompressorFree(&m_compvars);
-
-		if (m_compvars.hic)
-		{
-			ICClose(m_compvars.hic);
-			m_compvars.hic = NULL;
-		}
-	}
-
-	bool VideoCompressor::start()
-	{
-		return ICSeqCompressFrameStart(&m_compvars, &m_format) == TRUE;
-	}
-
-	void VideoCompressor::stop()
-	{
-		ICSeqCompressFrameEnd(&m_compvars);
-	}
-
-	void* VideoCompressor::compress(void* data, int* size)
-	{
-		BOOL key;
-		LONG compressed_size;
-		void* result;
-
-		result =
-			ICSeqCompressFrame(&m_compvars, 0, data, &key, &compressed_size);
-
-		if (result)
-			*size = compressed_size;
-
-		return result;
-	}
-
-	bool VideoCompressor::get_format(BITMAPINFO* format)
-	{
-		return ICCompressGetFormat(m_compvars.hic, &m_format, format) ==
-			ICERR_OK;
-	}
-
+// vcomp.cpp:32
+VideoCompressor::VideoCompressor(void) {
+	memset(&m_cv, 0, sizeof(m_cv));
+	memset(&m_bmiIn, 0, sizeof(m_bmiIn));
 }
+
+// vcomp.cpp:38
+VideoCompressor::~VideoCompressor(void) {
+}
+
+// vcomp.cpp:42
+bool VideoCompressor::init(BITMAPINFO const *pInFormat, int nQuality) {
+	m_bmiIn = *pInFormat;
+
+	memset(&m_cv, 0, sizeof(m_cv));
+
+	m_cv.cbSize = sizeof(m_cv);
+	m_cv.dwFlags = ICMF_COMPVARS_VALID;
+	m_cv.fccType = ICTYPE_VIDEO;
+	m_cv.fccHandler = mmioFOURCC('m', 's', 'v', 'c');
+	m_cv.lQ = nQuality * 100;
+
+	m_cv.hic = ICOpen(ICTYPE_VIDEO, mmioFOURCC('m', 's', 'v', 'c'), ICMODE_FASTCOMPRESS);
+
+	return m_cv.hic != 0 ? true : false;
+}
+
+// vcomp.cpp:66
+void VideoCompressor::cleanup(void) {
+	ICCompressorFree(&m_cv);
+
+	if (m_cv.hic) {
+		ICClose(m_cv.hic);
+		m_cv.hic = 0;
+	}
+}
+
+// vcomp.cpp:76
+bool VideoCompressor::start(void) {
+	return ICSeqCompressFrameStart(&m_cv, &m_bmiIn) == TRUE;
+}
+
+// vcomp.cpp:81
+void VideoCompressor::stop(void) {
+	ICSeqCompressFrameEnd(&m_cv);
+}
+
+// vcomp.cpp:86
+void *VideoCompressor::compress(void *pBits, int *pSize) {
+	BOOL bKey;
+	LONG lSize;
+
+	void *pResult = ICSeqCompressFrame(&m_cv, 0, pBits, &bKey, &lSize);
+
+	if (pResult) {
+		*pSize = lSize;
+	}
+
+	return pResult;
+}
+
+// vcomp.cpp:102
+bool VideoCompressor::get_format(BITMAPINFO *pOutFormat) {
+	return ICCompressGetFormat(m_cv.hic, &m_bmiIn, pOutFormat) == ICERR_OK;
+}
+
+} // namespace ntg

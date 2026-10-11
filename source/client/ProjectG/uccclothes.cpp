@@ -1,10 +1,10 @@
-#include "minatl.h"
-#include "uccclothes.h"
+// Original: d:\build\custom\temp\code\client\projectg\uccclothes.cpp
+#include "UccClothes.h"
 
-CUccClothes::CUccClothes()
-{
+// uccclothes.cpp:6
+CUccClothes::CUccClothes(void) {
 }
 
-CUccClothes::~CUccClothes()
-{
+// uccclothes.cpp:10
+CUccClothes::~CUccClothes(void) {
 }

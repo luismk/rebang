@@ -1,69 +1,76 @@
-#include "minatl.h"
-#include "networkmonitor.h"
+// Original: d:\build\custom\temp\code\client\projectg\networkmonitor.cpp
+#include "../client/ProjectG/networkmonitor.h"
 
-const float s_graphLeft = 10.0f;
-const float s_graphTop = 200.0f;
-const float s_graphHeight = 50.0f;
-const float s_graphLimit = 100.0f;
+#include <string.h>
 
-CNetworkMonitor::CNetworkMonitor()
-	: m_bShow(true)
-{
+#include "../client/Wangreal/include/wview.h"
+
+// Graph placement and scale.
+static const float kGraphX = 10.0f;
+static const float kGraphY = 200.0f;
+static const float kGraphHeight = 50.0f;
+static const float kMaxBytes = 100.0f;   // bytes drawn at full height
+
+// networkmonitor.cpp:25
+CNetworkMonitor::CNetworkMonitor(void) : m_bShow(true) {
 }
 
-CNetworkMonitor::~CNetworkMonitor()
-{
+// networkmonitor.cpp:29
+CNetworkMonitor::~CNetworkMonitor(void) {
 }
 
-void CNetworkMonitor::Init()
-{
+// networkmonitor.cpp:33
+void CNetworkMonitor::Init(void) {
 	memset(m_inBytes, 0, sizeof(m_inBytes));
 	memset(m_outBytes, 0, sizeof(m_outBytes));
 
-	m_elapsed = 0.0f;
-	m_index = 0;
+	m_elapsed = 0;
+	m_current = 0;
 }
 
-void CNetworkMonitor::TraceInBytes(unsigned int bytes)
-{
-	m_inBytes[m_index] += bytes;
+// networkmonitor.cpp:42
+void CNetworkMonitor::TraceInBytes(unsigned int bytes) {
+	m_inBytes[m_current] += bytes;
 }
 
-void CNetworkMonitor::TraceOutBytes(unsigned int bytes)
-{
-	m_outBytes[m_index] += bytes;
+// networkmonitor.cpp:47
+void CNetworkMonitor::TraceOutBytes(unsigned int bytes) {
+	m_outBytes[m_current] += bytes;
 }
 
-void CNetworkMonitor::Render(WView* pView) const
-{
-	if (!m_bShow)
-		return;
-	for (int i = 0; i < NETMON_SECONDS; ++i)
-	{
-		float inBytes = (float)m_inBytes[(m_index + i + 1) % NETMON_SECONDS];
-		float outBytes = (float)m_outBytes[(m_index + i + 1) % NETMON_SECONDS];
+// networkmonitor.cpp:52
+void CNetworkMonitor::Render(WView* view) const {
+	if (m_bShow) {
+		for (int i = 0; i < HISTORY_SIZE; i++) {
+			int index = (m_current + i + 1) % HISTORY_SIZE;
+			float in = (float)m_inBytes[index];
+			float out = (float)m_outBytes[index];
 
-		inBytes = min(inBytes, s_graphLimit);
-		outBytes = min(outBytes, s_graphLimit);
-		float y = s_graphTop + s_graphHeight;
-		float inTop = y - ((inBytes / s_graphLimit) * s_graphHeight);
-		float outTop = inTop - ((outBytes / s_graphLimit) * s_graphHeight) - 1;
-		float x = s_graphLeft + i;
+			in = (in < kMaxBytes) ? in : kMaxBytes;
+			out = (out < kMaxBytes) ? out : kMaxBytes;
 
-		pView->DrawLine2D(WPoint(x, y + 1), WPoint(x, inTop), 0xffff0000, 0);
+			in = in / kMaxBytes;
 
-		pView->DrawLine2D(WPoint(x, inTop), WPoint(x, outTop), 0xff0000ff, 0);
+			float y = kGraphY + kGraphHeight - in * kGraphHeight;
+			float x = kGraphX + i;
+			_WPOINT a = { x, kGraphY + kGraphHeight + 1.0f };
+			_WPOINT b = { x, y };
+			view->DrawLine2D(a, b, 0xFFFF0000, 0);
+
+			_WPOINT c = { x, y };
+			_WPOINT d = { x, y - out / kMaxBytes * kGraphHeight - 1.0f };
+			view->DrawLine2D(c, d, 0xFF0000FF, 0);
+		}
 	}
 }
 
-void CNetworkMonitor::Process(float delta)
-{
-	m_elapsed += delta;
-	if (m_elapsed >= 1.0f)
-	{
+// networkmonitor.cpp:76
+void CNetworkMonitor::Process(float elapsed) {
+	m_elapsed += elapsed;
+	if (m_elapsed >= 1.0f) {
 		m_elapsed -= 1.0f;
-		m_index = (m_index + 1) % NETMON_SECONDS;
-		m_inBytes[m_index] = 0;
-		m_outBytes[m_index] = 0;
+		m_current = (m_current + 1) % HISTORY_SIZE;
+		m_inBytes[m_current] = 0;
+		m_outBytes[m_current] = 0;
 	}
 }

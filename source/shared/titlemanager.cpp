@@ -1,37 +1,35 @@
-#include "minatl.h"
-#include "titles_client.h"
+// Original: d:\build\custom\temp\code\shared\titlemanager.cpp
+#include "../shared/TitleManager.h"
+#include "../client/ProjectG/Titles_Client.h"
 
-TitleManager::TitleManager()
-{
+// titlemanager.cpp:10
+TitleManager::TitleManager(void) {
 }
 
-TitleManager::~TitleManager()
-{
-	TITLEITR Itr = TitleMap.begin();
-	for (; Itr != TitleMap.end(); ++Itr)
-	{
-		delete Itr->second;
+// titlemanager.cpp:13
+TitleManager::~TitleManager(void) {
+	std::map<eTitle, Title *>::iterator it = m_titles.begin();
+	for (; it != m_titles.end(); ++it) {
+		delete it->second;
 	}
-	TitleMap.clear();
+	m_titles.clear();
 }
 
-void TitleManager::Register(eTitle TitleNum, Title* ClassPtr)
-{
-	TITLEITR Iter = TitleMap.find(TitleNum);
-	if (Iter == TitleMap.end())
-	{
-		TitleMap.insert(TITLEMAP::value_type(TitleNum, ClassPtr));
+// titlemanager.cpp:24
+void TitleManager::Register(eTitle title, Title *instance) {
+	std::map<eTitle, Title *>::iterator it = m_titles.find(title);
+	if (it == m_titles.end()) {
+		m_titles.insert(std::map<eTitle, Title *>::value_type(title, instance));
+	} else {
+		delete instance;
 	}
-	else
-		delete ClassPtr;
 }
 
-Title* TitleManager::GetTitle(eTitle TitleNum)
-{
-	TITLEITR Itr = TitleMap.find(TitleNum);
-	if (Itr == TitleMap.end())
-	{
+// titlemanager.cpp:35
+Title *TitleManager::GetTitle(eTitle title) {
+	std::map<eTitle, Title *>::iterator it = m_titles.find(title);
+	if (it == m_titles.end()) {
 		return NULL;
 	}
-	return Itr->second;
+	return it->second;
 }

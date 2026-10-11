@@ -1,31 +1,44 @@
-#pragma once
-#include "../../Wangreal/include/wtypes.h"
+// Original: d:\build\custom\temp\code\client\fresh\include\frcursor.h
+#ifndef PG_CLIENT_FRESH_INCLUDE_FRCURSOR_H
+#define PG_CLIENT_FRESH_INCLUDE_FRCURSOR_H
 
-class FrCursor
-{
+#include "..\..\..\defines.h"
+
+class WPoint;
+
+class FrCursor {
 public:
-	enum eCursor
-	{
-		UNSELECT,
+	enum eCursor {
+		UNSELECT = 0,
 		NORMAL = 0,
-		ROLL_OVER,
-		SELECT,
-		WRONG,
-		UP,
-		DOWN,
-		ZOOM,
-		INFO
+		ROLL_OVER = 1,
+		SELECT = 2,
+		WRONG = 3,
+		UP = 4,
+		DOWN = 5,
+		ZOOM = 6,
+		INFO = 7,
 	};
 
 	FrCursor();
-	virtual ~FrCursor();
-	void Init();
-	void SetCursor(eCursor id);
-	int GetCursor();
-	void MoveCursor(const WPoint& point);
-	void ShowCursor(bool bShow);
+	virtual ~FrCursor();    // vtable slot 0 (??_G)
 
-private:
-	int m_cursorIndex;
-	bool m_bShow;
+	void Init();
+	void SetCursor(eCursor cursor);
+	int GetCursor();
+	void MoveCursor(const WPoint& pt);
+	void ShowCursor(bool show);
+
+protected:
+	int m_cursorIndex;      // 0x4
+	bool m_bShow;           // 0x8
+
+	LAYOUT_CHECK_FRIEND;
 };
+CHECK_SIZE(FrCursor, 0xc);
+BEGIN_LAYOUT_CHECK(FrCursor)
+	CHECK_FIELD(FrCursor, m_cursorIndex, 0x4);
+	CHECK_FIELD(FrCursor, m_bShow, 0x8);
+END_LAYOUT_CHECK
+
+#endif

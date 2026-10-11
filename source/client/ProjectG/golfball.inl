@@ -1,86 +1,22 @@
-inline CGolfBall& GolfBall()
-{
-	static CGolfBall me;
-	return me;
-}
+// Original: d:\build\custom\temp\code\client\projectg\golfball.inl
+// Inline members of CGolfBall, included at the end of golfball.h.
 
-inline const CGolfBall::sExpected* CGolfBall::PreData(int index) const
-{
-	if (index < 0 || index > m_renderNum)
-	{
-		return NULL;
+// golfball.inl:8
+GOLFRULE_GOLFBALL_INLINE const CGolfBall::sExpected* CGolfBall::PreData(int index) const {
+	if (index < 0 || index > m_preDataCount) {
+		return 0;
 	}
 
-	if (index < MAX_EXPECTED)
-		return &m_expected[index];
-	else
-		return &m_pExtra[index - MAX_EXPECTED];
+	if (index < 1500) {
+		return &m_preData[index];
+	}
+	return &m_pPreDataOverflow[index - 1500];
 }
 
-inline CGolfBall::sExpected* CGolfBall::PreDataToWrite(int index)
-{
-	if (index < 0 || index > m_renderNum)
-		return NULL;
-
-	if (index < MAX_EXPECTED)
-		return &m_expected[index];
-
-	if ((index -= MAX_EXPECTED) == m_extraNum * EXTRA_EXPECTED)
-	{
-		++m_extraNum;
-
-		if (index == 0)
-		{
-			m_pExtra = new sExpected[EXTRA_EXPECTED];
-			memset(m_pExtra, 0, sizeof(sExpected) * EXTRA_EXPECTED);
-		}
-		else
-		{
-			sExpected* temp = new sExpected[index];
-			memcpy(temp, m_pExtra, sizeof(sExpected) * index);
-
-			delete[] m_pExtra;
-			m_pExtra = new sExpected[index + EXTRA_EXPECTED];
-			memcpy(m_pExtra, temp, sizeof(sExpected) * index);
-			memset(m_pExtra + index, 0, sizeof(sExpected) * EXTRA_EXPECTED);
-
-			delete[] temp;
-		}
+// golfball.inl:80 (out-of-line copy in SharedDoc's object)
+inline CGolfBall::~CGolfBall(void) {
+	if (m_pPreDataOverflow) {
+		delete[] m_pPreDataOverflow;
+		m_pPreDataOverflow = 0;
 	}
-
-	return &m_pExtra[index];
-}
-
-inline void CGolfBall::operator=(const CGolfBall& ball)
-{
-	if (m_pExtra)
-	{
-		delete[] m_pExtra;
-		m_pExtra = NULL;
-	}
-
-	memcpy(this, &ball, sizeof(CGolfBall));
-	if (ball.m_pExtra)
-	{
-		sExpected* temp = new sExpected[ball.m_extraNum * EXTRA_EXPECTED];
-		memcpy(temp, ball.m_pExtra,
-			sizeof(sExpected) * EXTRA_EXPECTED * ball.m_extraNum);
-
-		m_pExtra = temp;
-	}
-}
-
-inline CGolfBall::~CGolfBall()
-{
-	if (m_pExtra)
-	{
-		delete[] m_pExtra;
-		m_pExtra = NULL;
-	}
-}
-
-inline CGolfBall::sExpected* CGolfBall::NewPreData()
-{
-	++m_renderNum;
-	return PreDataToWrite(m_renderNum);
 }

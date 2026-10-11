@@ -1,77 +1,74 @@
-#include "minatl.h"
-#include "rc4.h"
+// Original: d:\build\custom\temp\code\client\projectg\rc4.cpp
+#include "RC4.h"
+
 #include <stdlib.h>
+#include <string.h>
 
-#define swap_byte(a, b) \
-	{ \
-		unsigned char swapByte = *(a); \
-		*(a) = *(b); \
-		*(b) = swapByte; \
-	}
-
-CRC4::CRC4()
-{
-	m_pKeyData = (unsigned char*)malloc(17);
+// rc4.cpp:17
+CRC4::CRC4(void) {
+	m_key = (unsigned char *)malloc(0x11);
 }
 
-CRC4::CRC4(unsigned char* key, int len)
-{
+// rc4.cpp:22
+CRC4::CRC4(unsigned char *key, int keyLength) {
 }
 
-CRC4::~CRC4()
-{
-	free(m_pKeyData);
+// rc4.cpp:26
+CRC4::~CRC4(void) {
+	free(m_key);
 }
 
-void CRC4::SetKey(unsigned char* key)
-{
-	memcpy(m_pKeyData, key, 4);
+// rc4.cpp:31
+void CRC4::SetKey(unsigned char *key) {
+	memcpy(m_key, key, 4);
 }
 
-void CRC4::PrepareKey(unsigned char* key, int len)
-{
-	unsigned char index1, index2;
-	unsigned char* state;
+// rc4.cpp:36
+void CRC4::PrepareKey(unsigned char *key, int keyLength) {
+	unsigned char swapByte;
+	unsigned char index1;
+	unsigned char index2;
+	unsigned char *state = &m_state[0];
 	short counter;
-	state = &m_key.state[0];
 	for (counter = 0; counter < 256; counter++)
 		state[counter] = (unsigned char)counter;
 
-	m_key.x = m_key.y = 0;
+	m_x = m_y = 0;
 	index1 = 0;
 	index2 = 0;
 
-	for (counter = 0; counter < 256; counter++)
-	{
-		index2 = (state[counter] + key[index1] + index2) % 256;
-		swap_byte(&state[counter], &state[index2]);
-		index1 = (index1 + 1) % len;
+	for (counter = 0; counter < 256; counter++) {
+		index2 = (state[counter] + index2 + key[index1]) % 256;
+		swapByte = state[counter]; state[counter] = state[index2]; state[index2] = swapByte;
+
+		index1 = (index1 + 1) % keyLength;
 	}
 }
 
-void CRC4::Conversion(unsigned char* buffer, int len)
-{
-	PrepareKey(m_pKeyData, 4);
+// rc4.cpp:57
+void CRC4::Conversion(unsigned char *buffer, int length) {
+	PrepareKey(m_key, 4);
 
 	unsigned char x;
 	unsigned char y;
-	unsigned char* state;
+	unsigned char *state;
 	unsigned char xorIndex;
 	int counter;
-	x = m_key.x;
-	y = m_key.y;
+	x = m_x;
+	y = m_y;
 
-	state = &m_key.state[0];
+	state = &m_state[0];
+	unsigned char swapByte;
 
-	for (counter = 0; counter < len; counter++)
-	{
+	for (counter = 0; counter < length; counter++) {
 		x = (x + 1) % 256;
 		y = (state[x] + y) % 256;
-		swap_byte(&state[x], &state[y]);
+		swapByte = state[x]; state[x] = state[y]; state[y] = swapByte;
+
 		xorIndex = state[x] + state[y] % 256;
 		buffer[counter] ^= state[xorIndex];
 	}
 
-	m_key.x = 0;
-	m_key.y = 0;
+	m_x = 0;
+	m_y = 0;
 }

@@ -1,9 +1,13 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\fresh\include\frwndmanager.h
+#ifndef PG_CLIENT_FRESH_INCLUDE_FRWNDMANAGER_H
+#define PG_CLIENT_FRESH_INCLUDE_FRWNDMANAGER_H
+
 #include <list>
 #include <string>
-#include "../../Wangreal/include/wtypes.h"
-#include "frelement.h"
-#include "chatmsg.h"
+
+#include "..\..\defines.h"
+#include "../client/Wangreal/include/wtypes.h"
+#include "../client/ProjectG/ChatMsg.h"
 
 class Bitmap;
 class CChatMsg;
@@ -11,117 +15,152 @@ class FrCmdTarget;
 class FrCursor;
 class FrDesktop;
 class FrEdit;
+class FrElementDoc;
 class FrEmoticon;
 class FrGraphicInterface;
+class FrGuiItem;
 class FrScrollBar;
 class FrWnd;
-class WSize;
 
-struct FrInputState
-{
-	unsigned long mouse;
-	bool hoverChecked;
-	WPoint mousePos;
-	WPoint oldMousePos;
-	float wheelDelta;
-	FrWnd* keyFocused;
-	FrScrollBar* wheelFocused;
-	CChatMsg* im;
+// The mouse and keyboard state the window manager hands to the windows (PDB
+// layout, size 0x28). Declared here, next to its only owner; no inline code
+// of it carries line marks.
+struct FrInputState {
+	unsigned long mouse;        // 0x0
+	bool hoverChecked;          // 0x4
+	WPoint mousePos;            // 0x8
+	WPoint oldMousePos;         // 0x10
+	float wheelDelta;           // 0x18
+	FrWnd* keyFocused;          // 0x1c
+	FrScrollBar* wheelFocused;  // 0x20
+	CChatMsg* im;               // 0x24
 };
 
-class FrWndManager
-{
+CHECK_SIZE(FrInputState, 0x28);
+CHECK_FIELD(FrInputState, mouse, 0x0);
+CHECK_FIELD(FrInputState, hoverChecked, 0x4);
+CHECK_FIELD(FrInputState, mousePos, 0x8);
+CHECK_FIELD(FrInputState, oldMousePos, 0x10);
+CHECK_FIELD(FrInputState, wheelDelta, 0x18);
+CHECK_FIELD(FrInputState, keyFocused, 0x1c);
+CHECK_FIELD(FrInputState, wheelFocused, 0x20);
+CHECK_FIELD(FrInputState, im, 0x24);
+
+// The window manager of Fresh: desktop, focus, capture, topmost list and
+// layouts. Layout, access and methods from the PDB (size 0x90, vfptr at 0,
+// virtual destructor in slot 0). The bodies written here are the inline ones
+// whose COMDATs carry frwndmanager.h line marks (lines 70-111).
+class FrWndManager {
+	LAYOUT_CHECK_FRIEND;
 public:
-	enum eFadeState
-	{
-		OPENING = 0x0,
-		OPENED = 0x1,
+	enum eFadeState {
+		OPENING = 0,
+		OPENED = 1
 	};
 
 	FrWndManager(FrElementDoc* pDoc);
-	virtual ~FrWndManager();
+	virtual ~FrWndManager(void);
 
 	bool Init(const char* wallPaper, bool exclusiveKey);
 	void Display(bool drawDesktop);
 	void Process(const float deltaTime);
-	FrElementDoc* GetDocument() const;
+	FrElementDoc* GetDocument(void) const;
 	const Bitmap* GetBitmap(const char* resource, const char* id) const;
-	void CreateToolTip();
-	void DestroyToolTip();
-	bool CreateLayout(const char* layout, FrCmdTarget* owner, bool firstTime);
-	void CloseLayout();
+	void CreateToolTip(void);
+	void DestroyToolTip(void);
+	bool CreateLayout(const char* layout, FrCmdTarget* pOwner, bool first);
+	void CloseLayout(void);
 	bool IsValidWindow(FrWnd* pWnd);
 	bool AddTopmostWindow(FrWnd* pWnd);
 	bool DeleteTopmostWindow(FrWnd* pWnd);
-	FrWnd* GetModalForm();
-	FrWnd* DoCreate(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent,
-		FrCmdTarget* pOwner);
-	__forceinline FrDesktop* GetDesktop() { return this->m_pDesktop; }
-	unsigned int& RefIndex() { return m_nRefIndex; }
-	FrGraphicInterface* GetGDI() { return m_pDevice; }
-	const WPoint& GetMousePos() const { return m_istate.mousePos; }
-	FrEmoticon* GetEmoticon() { return m_pEmoticon; }
-	FrWnd* HandOverViewFocus();
+	FrWnd* GetModalForm(void);
+	FrWnd* DoCreate(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent, FrCmdTarget* pOwner);
+
+	FrDesktop* GetDesktop(void) { return m_pDesktop; }                    // frwndmanager.h:70
+	unsigned int& RefIndex(void) { return m_nRefIndex; }                  // frwndmanager.h:71
+	FrGraphicInterface* GetGDI(void) { return m_pDevice; }                // frwndmanager.h:72
+	const WPoint& GetMousePos(void) const { return m_istate.mousePos; }   // frwndmanager.h:73
+	FrEmoticon* GetEmoticon(void) { return m_pEmoticon; }                 // frwndmanager.h:74
+	FrWnd* HandOverViewFocus(void);
 	bool SetKeyFocus(FrWnd* pWnd, bool resetPrevImeData);
-	FrWnd* GetKeyFocused() { return m_istate.keyFocused; }
+	FrWnd* GetKeyFocused(void) { return m_istate.keyFocused; }            // frwndmanager.h:77
 	bool CanGetKeyFocus(FrWnd* pWnd);
 	bool ResetKeyFocus(FrWnd* pWnd);
 	bool MoveKeyFocusToNext(bool resetPrevImeData);
-	FrScrollBar* GetWheelFocus() { return m_istate.wheelFocused; }
+	FrScrollBar* GetWheelFocus(void) { return m_istate.wheelFocused; }    // frwndmanager.h:81
 	void SetWheelFocus(FrScrollBar* pScrBar);
-	void SetCursor(int hCursor) { m_cursorIndex = hCursor; }
-	int GetCursor() { return m_cursorIndex; }
+	void SetCursor(int hCursor) { m_cursorIndex = hCursor; }              // frwndmanager.h:83
+	int GetCursor(void) { return m_cursorIndex; }                         // frwndmanager.h:84
 	void MoveCursor(FrWnd* pParent, const char* name);
-	__forceinline const char* GetLayoutID() { return this->m_layoutID.c_str(); }
+	const char* GetLayoutID(void) { return m_layoutID.c_str(); }          // frwndmanager.h:86
 	bool SetCapture(FrWnd* pWnd);
-	FrWnd* GetCapture() { return m_pCaptured; }
+	FrWnd* GetCapture(void) { return m_pCaptured; }                       // frwndmanager.h:88
 	bool ReleaseCapture(FrWnd* pWnd);
 	WPoint GetCreatePosition(const WSize& rectSize);
 	void ConfineRect(WRect& dr);
-	void RemoveFade();
+	void RemoveFade(void);
 	void CloseWindow(FrWnd* pWnd, bool bFade);
 	void CloseForm(bool bFade);
-	bool HasEscKeyWindow();
-	bool HasValidWindow();
+	bool HasEscKeyWindow(void);
+	bool HasValidWindow(void);
 	void SetExclusiveKey(bool set);
-	bool IsKeyExclusive() { return m_exclusiveKey; }
-	void ResetKey()
-	{
-		if (m_istate.im)
-			m_istate.im->Reset();
+	bool IsKeyExclusive(void) { return m_exclusiveKey; }                  // frwndmanager.h:98
+	void ResetKey(void) {                                                 // frwndmanager.h:99
+		if (m_istate.im) m_istate.im->Reset();
 	}
-	void ResetTopFocus();
+	void ResetTopFocus(void);
 	float GetTextWidth(const char* text);
-	float PrintText(const WPoint& pos, unsigned long align, const char* text,
-		float limit, unsigned long emoDiffuse);
-	float PrintText11(const WPoint& pos, unsigned long align, const char* text,
-		float limit, unsigned long emoDiffuse);
-	FrInputState* GetInputState();
+	float PrintText(const WPoint& pos, unsigned long align, const char* text, float limit, unsigned long emoDiffuse);
+	float PrintText11(const WPoint& pos, unsigned long align, const char* text, float limit, unsigned long emoDiffuse);
+	FrInputState* GetInputState(void) { return &m_istate; }             // never emitted; body inferred
 	void IME_ShowCandWindow(FrEdit* pFocusedEdit, WPoint& caretPos);
-	std::list<FrWnd*>& GetTopWndList() { return m_topmostList; }
-	__forceinline void HidePrivacy(bool hide) { this->m_hidePrivacy = hide; }
-	__forceinline bool HidePrivacy() { return this->m_hidePrivacy; }
+	std::list<FrWnd*>& GetTopWndList(void) { return m_topmostList; }      // frwndmanager.h:108
+	void HidePrivacy(bool hide) { m_hidePrivacy = hide; }                 // frwndmanager.h:110
+	bool HidePrivacy(void) { return m_hidePrivacy; }                      // frwndmanager.h:111
 
 protected:
-	void CheckSystemStatus();
-	void ProcessHotKey();
+	void CheckSystemStatus(void);
+	void ProcessHotKey(void);
 	void ProcessKey(FrWnd* pOldKeyFocused);
 
-	FrElementDoc* m_pDoc;
-	FrDesktop* m_pDesktop;
-	FrCursor* m_pCursor;
-	FrInputState m_istate;
-	bool m_exclusiveKey;
-	std::list<FrWnd*> m_topmostList;
-	std::string m_layoutID;
-	FrWnd* m_pCaptured;
-	FrGraphicInterface* m_pDevice;
-	unsigned int m_nRefIndex;
-	int m_cursorIndex;
-	FrEmoticon* m_pEmoticon;
-	float m_fadeoutAlpha;
-	eFadeState m_state;
-	FrEdit* m_pFocusedEdit;
-	WPoint m_caretPos;
-	bool m_hidePrivacy;
+	FrElementDoc* m_pDoc;                 // 0x4
+	FrDesktop* m_pDesktop;                // 0x8
+	FrCursor* m_pCursor;                  // 0xc
+	FrInputState m_istate;                // 0x10
+	bool m_exclusiveKey;                  // 0x38
+	std::list<FrWnd*> m_topmostList;      // 0x3c
+	std::string m_layoutID;               // 0x48
+	FrWnd* m_pCaptured;                   // 0x64
+	FrGraphicInterface* m_pDevice;        // 0x68
+	unsigned int m_nRefIndex;             // 0x6c
+	int m_cursorIndex;                    // 0x70
+	FrEmoticon* m_pEmoticon;              // 0x74
+	float m_fadeoutAlpha;                 // 0x78
+	eFadeState m_state;                   // 0x7c
+	FrEdit* m_pFocusedEdit;               // 0x80
+	WPoint m_caretPos;                    // 0x84
+	bool m_hidePrivacy;                   // 0x8c
 };
+
+CHECK_SIZE(FrWndManager, 0x90);
+BEGIN_LAYOUT_CHECK(FrWndManager)
+	CHECK_FIELD(FrWndManager, m_pDoc, 0x4);
+	CHECK_FIELD(FrWndManager, m_pDesktop, 0x8);
+	CHECK_FIELD(FrWndManager, m_pCursor, 0xc);
+	CHECK_FIELD(FrWndManager, m_istate, 0x10);
+	CHECK_FIELD(FrWndManager, m_exclusiveKey, 0x38);
+	CHECK_FIELD(FrWndManager, m_topmostList, 0x3c);
+	CHECK_FIELD(FrWndManager, m_layoutID, 0x48);
+	CHECK_FIELD(FrWndManager, m_pCaptured, 0x64);
+	CHECK_FIELD(FrWndManager, m_pDevice, 0x68);
+	CHECK_FIELD(FrWndManager, m_nRefIndex, 0x6c);
+	CHECK_FIELD(FrWndManager, m_cursorIndex, 0x70);
+	CHECK_FIELD(FrWndManager, m_pEmoticon, 0x74);
+	CHECK_FIELD(FrWndManager, m_fadeoutAlpha, 0x78);
+	CHECK_FIELD(FrWndManager, m_state, 0x7c);
+	CHECK_FIELD(FrWndManager, m_pFocusedEdit, 0x80);
+	CHECK_FIELD(FrWndManager, m_caretPos, 0x84);
+	CHECK_FIELD(FrWndManager, m_hidePrivacy, 0x8c);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_FRESH_INCLUDE_FRWNDMANAGER_H

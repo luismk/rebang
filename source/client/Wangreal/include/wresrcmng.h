@@ -1,187 +1,181 @@
-#pragma once
-#include <windows.h>
-#include "wtypes.h"
-#include "cfile.h"
+// Original: d:\build\custom\temp\code\client\wangreal\include\wresrcmng.h
+#ifndef PG_CLIENT_WANGREAL_INCLUDE_WRESRCMNG_H
+#define PG_CLIENT_WANGREAL_INCLUDE_WRESRCMNG_H
+
+#include <stddef.h>
+
+#include "..\..\defines.h"
+#include "..\..\padding.h"
 #include "wlist.h"
 #include "wlock.h"
-#include "wresource.h"
 #include "wresrccache.h"
 
 class Bitmap;
-class WVideoDev;
+class cFile;
+class W3dAniSpr;
+class W3dSpr;
 class WAudioDev;
 class WFont;
 class WOverlay;
-class WProc;
 class WPuppet;
-class WPuppetEd;
 class WResource;
-class WResourceManager;
-class WSkyBox;
 class WSoundFx;
-class WStreamSFX;
 class WTitleFont;
+class WVideoDev;
 class WView;
-class W3dSpr;
-class W3dAniSpr;
 class WxStaticPuppetGrp;
-struct WTVertex;
 
-enum rmlType_t
-{
+// A texture of the cache; texname runs past the end of the record.
+struct w_texlist {
+	int width;              // 0x0
+	int height;             // 0x4
+	int count;              // 0x8
+	int texhandle;          // 0xc
+	unsigned long size;     // 0x10
+	char texname[1];        // 0x14
+};
+CHECK_SIZE(w_texlist, 0x18);
+CHECK_FIELD(w_texlist, width, 0x0);
+CHECK_FIELD(w_texlist, height, 0x4);
+CHECK_FIELD(w_texlist, count, 0x8);
+CHECK_FIELD(w_texlist, texhandle, 0xc);
+CHECK_FIELD(w_texlist, size, 0x10);
+CHECK_FIELD(w_texlist, texname, 0x14);
+
+enum rmlType_t {
 	RML_TEXTURE_LOADING = 0,
 	RML_BITMAP_LOADING = 1,
-	RML_PUPPET_LOADING = 2
+	RML_PUPPET_LOADING = 2,
+	RML_COUNT = 3
 };
 
-struct w_texlist
-{
-	int width;
-	int height;
-	int count;
-	int texhandle;
-	unsigned long size;
-	char texname[1];
-};
-
-void __cdecl EnumFileList(WList<char*>* list);
-
-class WResourceManager
-{
+// Wangreal's resource cache (PDB layout, size 0x1d4). Texture handles are
+// plain ints (0 = none).
+class WResourceManager {
+	LAYOUT_CHECK_FRIEND;
 public:
-	struct w_match_filename
-	{
-		char fullname[1];
+	struct w_match_filename {
+		char fullname[1];   // 0x0
 	};
 
-	WResourceManager();
-	~WResourceManager();
+	WResourceManager(void);
+	~WResourceManager(void);
 
-	void SetVideoReference(WVideoDev* dev) { video = dev; }
-	void SetAudioReference(WAudioDev* dev) { audio = dev; }
-	WVideoDev* VideoReference() const { return video; }
-	WAudioDev* AudioReference() const { return audio; }
+	void SetVideoReference(WVideoDev* v) { video = v; }
+	WVideoDev* VideoReference(void) const { return video; }
 
 	void Lock(rmlType_t type);
 	void Unlock(rmlType_t type);
 	void UnlockAllByThread(unsigned long threadID);
-	void SetUseLessVideoRam(int level);
-	WOverlay* GetOverlay(const char* filename, unsigned long flag);
-	WOverlay* GetOverlay(const char* name, Bitmap* bitmap, unsigned long flag);
-	WFont* GetTexFont(const char* filename);
-	WFont* GetTrueFont(const char* filename, int fontsize, int fontindex);
-	WFont* GetFntFont(const char* filename);
-	WFont* GetFixedFont(const char* filename);
-	WTitleFont* GetTitleFont();
-	WView* GetView(const char* type);
-	WPuppet* GetPuppet(const char* f, bool alphatest, bool bNeedTnLBuf,
-		bool bForceLegacy);
-	WPuppetEd* GetPuppetEd(const char*, int);
-	WxStaticPuppetGrp* xGetStaticPuppetGrp(int nSPets, const char* filename,
-		WPuppet** ppaSPets);
-	W3dSpr* Get3DSpr(const char* filename, int type);
-	W3dAniSpr* Get3DAniSpr(const char* filename, int type, float fSprSizeX,
-		float fSprSizeY);
-	WSkyBox* GetSkyBox(const char*);
-	WSoundFx* GetSoundFx(const char*, bool, bool, float);
-	WStreamSFX* GetStreamSFX(const char*);
-	void Release(WResource* resrc);
-	void Release(WPuppet* puppet, bool bForceDeleteOrigin);
-	void Release(int texhandle);
-	void Release(WFont* font);
+	void SetUseLessVideoRam(int use);
+
+	WOverlay* GetOverlay(const char* name, Bitmap* bitmap, unsigned long type);
+	WOverlay* GetOverlay(const char* name, unsigned long type);
+	WFont* GetTexFont(const char* name);
+	WFont* GetTrueFont(const char* name, int size, int weight);
+	WFont* GetFntFont(const char* name);
+	WFont* GetFixedFont(const char* name);
+	WTitleFont* GetTitleFont(void);
+	WView* GetView(const char* name);
+	WPuppet* GetPuppet(const char* name, bool a, bool b, bool c);
+	WxStaticPuppetGrp* xGetStaticPuppetGrp(int index, const char* name, WPuppet** puppet);
+	W3dSpr* Get3DSpr(const char* name, int type);
+	W3dAniSpr* Get3DAniSpr(const char* name, int type, float a, float b);
+
 	void Release(WTitleFont* font);
-	void ReleaseAllPets();
-	void ReleaseIdleResources(int cnt);
-	const WList<w_texlist*>& GetTextureList() const { return texList; }
-	w_texlist* FindTexture(int texHandle);
-	w_texlist* FindTexture(const char* texName);
-	int GetTextureWidth(int texHandle);
-	int GetTextureHeight(int texHandle);
-	unsigned long GetTextureUsedBytes() const { return m_nByteUsedTexture; }
-	int UploadTexture(const char* texName, Bitmap* bitmap, unsigned long type,
-		RECT* rect);
-	void FixTexture(int texHandle, Bitmap* bitmap, unsigned long type,
-		RECT* rect);
-	bool CheckTexture(const char* name)
-	{
-		return FindTexture(name) ? true : false;
-	}
-	int LoadTexture(const char* filename, unsigned long type, int level,
-		const char* texname);
-	int LoadTexture(Bitmap* bitmap, const char* filename, int type, int level);
-	int LoadTexture_DDS(unsigned char* dds, unsigned int size,
-		const char* filename, int type, int level);
-	bool ChangeTexturePart(char* dstName, char* srcName, Bitmap** ppBmp,
-		RECT* pRc);
-	void ChangeTexturePart(char* dstName, Bitmap* pBmp, const RECT& rc);
-	bool ChangeTexturePart(int hDstTex, char* srcName, Bitmap** ppBmp,
-		RECT* pRc);
-	void ChangeTexturePart(int hDstTex, Bitmap* pBmp, const RECT& rc);
-	int GetBlankTexture();
-	void ReloadTextures();
-	bool CheckMaskTexture(Bitmap** ppBitmap, const char* filename);
-	WList<char*>& MissingTextureList() { return m_missingTextureList; }
-	Bitmap* LoadBitmap(const char* filename, int level, bool bNet);
-	Bitmap* LoadBitmapPart(char* dstName, char* srcName);
+	void Release(WFont* font);
+	void Release(int texhandle);
+	void Release(WPuppet* puppet, bool a);
+	void Release(WResource* resource);
+	void ReleaseAllPets(void);
+	void ReleaseIdleResources(int a);
+
+	const WList<w_texlist*>& GetTextureList(void) const { return texList; }
+	w_texlist* FindTexture(const char* texname);
+	w_texlist* FindTexture(int texhandle);
+	int GetTextureWidth(int texhandle);
+	int GetTextureHeight(int texhandle);
+	int UploadTexture(const char* texname, Bitmap* bitmap, unsigned long type, tagRECT* rect);
+	void FixTexture(int texhandle, Bitmap* bitmap, unsigned long type, tagRECT* rect);
+	bool CheckTexture(const char* texname) { return FindTexture(texname) ? true : false; }
+	int LoadTexture(Bitmap* bitmap, const char* texname, int a, int b);
+	int LoadTexture(const char* filename, unsigned long type, int level, const char* texname);
+	int LoadTexture_DDS(unsigned char* buff, unsigned int size, const char* texname, int a, int b);
+	void ChangeTexturePart(int texhandle, Bitmap* bitmap, const tagRECT& rect);
+	bool ChangeTexturePart(int texhandle, char* filename, Bitmap** bitmap, tagRECT* rect);
+	void ChangeTexturePart(char* texname, Bitmap* bitmap, const tagRECT& rect);
+	bool ChangeTexturePart(char* texname, char* filename, Bitmap** bitmap, tagRECT* rect);
+	int GetBlankTexture(void);
+	void ReloadTextures(void);
+	bool CheckMaskTexture(Bitmap** bitmap, const char* filename);
+	Bitmap* LoadBitmap(const char* filename, int a, bool b);   // LoadBitmapA once windows.h renames it
+	Bitmap* LoadBitmapPart(char* filename, char* part);
 	Bitmap* LoadBMP(const char* filename);
 	Bitmap* LoadJPG(const char* filename);
 	Bitmap* LoadTGA(const char* filename);
-	Bitmap* LoadPNG(const char* filename, bool bFromMem, bool bNet);
-	Bitmap* LoadBRES(const char* zipname, const char* filename);
+	Bitmap* LoadPNG(const char* filename, bool a, bool b);
+	Bitmap* LoadBRES(const char* filename, const char* name);
 	Bitmap* MakeQuarterBitmap(Bitmap* bitmap);
-	Bitmap* Combine4Alpha(Bitmap* bitmap, Bitmap* alpha);
-	Bitmap* Combine(Bitmap* dest, Bitmap* src);
-	bool IsOrigin(WResource* resrc);
-	cFile* GetCFile(const char* filename, int len);
+	Bitmap* Combine4Alpha(Bitmap* a, Bitmap* b);
+	Bitmap* Combine(Bitmap* a, Bitmap* b);
+	bool IsOrigin(WResource* resource);
+	cFile* GetCFile(const char* filename, int a);
 	bool FindFileInZip(const char* zipname, const char* filename);
-	void SetAutoMatchDirectory(const char* directory);
+	void SetAutoMatchDirectory(const char* dir);
 	const char* FindMatchFile(const char* filename);
 
 protected:
-	WVideoDev* video;
-	WAudioDev* audio;
+	WVideoDev* video;                               // 0x0
+	WAudioDev* audio;                               // 0x4
 
 private:
-	w_texlist* AddTexture(const char* texturename, int texhandle, int width,
-		int height);
-	void AddMissingTexture(const char* filename);
-	bool GetRectInSourceTexture(const BITMAPINFO* src, const void* data,
-		RECT& rc) const;
-	WFont* GetFntClone(const char* filename);
+	w_texlist* AddTexture(const char* texname, int a, int b, int c);
+	void AddMissingTexture(const char* texname);
+	bool GetRectInSourceTexture(const tagBITMAPINFO* info, const void* bits, tagRECT& rect) const;
+	WFont* GetFntClone(const char* name);
 	void AddMatchList(const char* filename);
-	void UpdateMatchList(const char* directory);
-	void StrcpyLower(char* out, const char* src);
-	void LoadMatchList(const char* directory);
+	void UpdateMatchList(const char* filename);
+	void StrcpyLower(char* dst, const char* src);
+	void LoadMatchList(const char* filename);
 	void SaveMatchCacheList(const char* filename);
 	void LoadMatchCacheList(const char* filename);
-	void ReleaseMatchList();
-	void AddOriginList(WResource* resrc);
-	WSoundFx* FindOriginSoundFx(WSoundFx*);
-	WSoundFx* FindIdleSoundFx(WSoundFx*);
-	WSoundFx* FindIdleSoundFx();
-	WSoundFx* DuplicateSoundFx(WSoundFx*);
-	WSoundFx* CreateSoundFx(const char*, bool, bool, float);
-	bool ReloadOriginSoundFx(WSoundFx*);
-	void RestoreSoundFx(WSoundFx*);
+	void ReleaseMatchList(void);
+	void AddOriginList(WResource* resource);
 
-	unsigned long m_nByteUsedTexture;
-	int m_blankTexture;
-	bool m_savemem[3];
-	bool m_matchDirectory;
-	WList<char*> m_missingTextureList;
-	WList<w_match_filename*> m_matchList;
-	WList<w_texlist*> texList;
-	WResrcCache<WPuppet*> puppetList;
-	WResrcCache<WSoundFx*> soundList;
-	WResrcCache<WFont*> fontList;
-	WList<WSoundFx*> voiceList;
-	WList<WResource*> originList;
-	WLock m_lock[3];
-
-	friend class WView;
-	friend class WOverlay;
-	friend class WxPuppet;
-	friend class WxStaticPuppetGrp;
+	unsigned long m_nByteUsedTexture;               // 0x8
+	int m_blankTexture;                             // 0xc
+	bool m_savemem[3];                              // 0x10
+	bool m_matchDirectory;                          // 0x13
+	WList<char*> m_missingTextureList;              // 0x14
+	WList<w_match_filename*> m_matchList;           // 0x34
+	WList<w_texlist*> texList;                      // 0x54
+	WResrcCache<WPuppet*> puppetList;               // 0x74
+	WResrcCache<WSoundFx*> soundList;               // 0xb4
+	WResrcCache<WFont*> fontList;                   // 0xf4
+	WList<WSoundFx*> voiceList;                     // 0x134
+	WList<WResource*> originList;                   // 0x154
+	WLock m_lock[3];                                // 0x174
 };
+CHECK_SIZE(WResourceManager, 0x1d4);
+CHECK_SIZE(WResrcCache<WFont*>, 0x40);
+BEGIN_LAYOUT_CHECK(WResourceManager)
+	CHECK_FIELD(WResourceManager, video, 0x0);
+	CHECK_FIELD(WResourceManager, audio, 0x4);
+	CHECK_FIELD(WResourceManager, m_nByteUsedTexture, 0x8);
+	CHECK_FIELD(WResourceManager, m_blankTexture, 0xc);
+	CHECK_FIELD(WResourceManager, m_savemem, 0x10);
+	CHECK_FIELD(WResourceManager, m_matchDirectory, 0x13);
+	CHECK_FIELD(WResourceManager, m_missingTextureList, 0x14);
+	CHECK_FIELD(WResourceManager, m_matchList, 0x34);
+	CHECK_FIELD(WResourceManager, texList, 0x54);
+	CHECK_FIELD(WResourceManager, puppetList, 0x74);
+	CHECK_FIELD(WResourceManager, soundList, 0xb4);
+	CHECK_FIELD(WResourceManager, fontList, 0xf4);
+	CHECK_FIELD(WResourceManager, voiceList, 0x134);
+	CHECK_FIELD(WResourceManager, originList, 0x154);
+	CHECK_FIELD(WResourceManager, m_lock, 0x174);
+END_LAYOUT_CHECK
 
 extern WResourceManager* g_resrcmng;
+
+#endif // PG_CLIENT_WANGREAL_INCLUDE_WRESRCMNG_H

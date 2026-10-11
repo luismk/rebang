@@ -1,628 +1,647 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frgaugebar.cpp
 #include "frgaugebar.h"
 #include "frbutton.h"
 #include "frwndmanager.h"
+#include "frelement.h"
 #include "frgraphicinterface.h"
-#include <stdio.h>
-#include "wutil.h"
+#include "../client/Wangreal/include/bitmap.h"
+#include "../client/Wangreal/include/wutil.h"
 
-typedef std::map<std::string, std::string> FrParamMap;
+// frgaugebar.cpp:16 (run-time type and factory registration of FrGaugeBar)
+const WRTTI FrGaugeBar::m_RTTI("FrGaugeBar", &FrWnd::m_RTTI);
 
-IObject* FrGaugeBarMakeInstance()
-{
+IObject* FrGaugeBarMakeInstance(void) {
 	return new FrGaugeBar;
 }
-struct __sFrGaugeBar
-{
-	__sFrGaugeBar()
-	{
+
+struct __sFrGaugeBar {
+	__sFrGaugeBar(void) {
 		ObjectFactory().AddObjectFunctor(FrGaugeBarMakeInstance, "FrGaugeBar");
 	}
 };
-const WRTTI FrGaugeBar::m_RTTI("FrGaugeBar", &FrWnd::m_RTTI);
-static __sFrGaugeBar __implFrGaugeBar;
+static __sFrGaugeBar s_registerFrGaugeBar;
 
-FrGaugeBar::FrGaugeBar()
-{
-	m_exColor[0] = 0xff707070;
-	m_exColor[1] = 0xff707070;
+// frgaugebar.cpp:23
+FrGaugeBar::FrGaugeBar(void) {
 	m_color = 0xffffffff;
 	m_bgColor = 0xff404040;
+	m_exColor[0] = 0xff707070;
+	m_exColor[1] = 0xff707070;
 	m_thickness = 2;
 	m_lower = 0;
 	m_upper = 100;
 	m_origin = 0;
-	m_expand = 0.0f;
-	m_pos = 0.0f;
-	m_srcPos = 0.0f;
-	m_destPos = 0.0f;
+	m_pos = m_expand = 0;
+	m_destPos = m_srcPos = 0;
 	m_speed = 65.0f;
+
 	CalcBarRect(0);
 }
 
-FrGaugeBar::~FrGaugeBar()
-{
+// frgaugebar.cpp:41
+FrGaugeBar::~FrGaugeBar(void) {
 }
 
-void FrGaugeBar::Init(FrGuiItem& item, FrWndManager* manager, FrWnd* parent)
-{
-	manager->GetDocument();
+// frgaugebar.cpp:46
+void FrGaugeBar::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
+	pManager->GetDocument();
+
 	m_pItem = &item;
-	FrParamMap& param = item.m_param;
+
+	std::map<std::string, std::string>& param = item.m_param;
 	if (param.find("color") != param.end())
 		sscanf(param["color"].c_str(), "%x", &m_color);
+
 	if (param.find("bgcolor") != param.end())
 		sscanf(param["bgcolor"].c_str(), "%x", &m_bgColor);
+
 	if (param.find("excolor1") != param.end())
 		sscanf(param["excolor1"].c_str(), "%x", &m_exColor[0]);
+
 	if (param.find("excolor2") != param.end())
 		sscanf(param["excolor2"].c_str(), "%x", &m_exColor[1]);
+
 	if (param.find("border_thickness") != param.end())
 		sscanf(param["border_thickness"].c_str(), "%d", &m_thickness);
-	WRect bounds;
-	bounds.x = (float)item.m_rect.left;
-	bounds.y = (float)item.m_rect.top;
-	bounds.w = (float)(short)(item.m_rect.right - item.m_rect.left);
-	bounds.h = (float)(short)(item.m_rect.bottom - item.m_rect.top);
-	Create(item.m_caption.c_str(), item.m_name.c_str(), manager, 1, bounds,
-		parent);
+
+	WRect rect((float)item.m_rect.left, (float)item.m_rect.top,
+		(short)(item.m_rect.right - item.m_rect.left),
+		(short)(item.m_rect.bottom - item.m_rect.top));
+
+	Create(item.m_caption.c_str(), item.m_name.c_str(), pManager, 1, rect, pParent);
 }
 
-void FrGaugeBar::SetRange(int lower, int upper, int origin)
-{
+// frgaugebar.cpp:76
+void FrGaugeBar::SetRange(int lower, int upper, int origin) {
 	m_lower = lower;
 	m_upper = upper;
-	if (origin < lower)
+
+	if (origin < lower) {
 		m_origin = lower;
-	else if (origin > upper)
+	} else if (origin > upper) {
 		m_origin = upper;
-	else
+	} else {
 		m_origin = origin;
-	if (m_pos > (float)upper)
+	}
+
+	if (m_pos > upper) {
 		m_pos = (float)upper;
-	else if (m_pos < (float)lower)
+	} else if (m_pos < lower) {
 		m_pos = (float)lower;
-	if (m_destPos > (float)upper)
+	}
+
+	if (m_destPos > upper) {
 		m_destPos = (float)upper;
-	else if (m_destPos < (float)lower)
+	} else if (m_destPos < lower) {
 		m_destPos = (float)lower;
+	}
+
 	CalcBarRect(0);
 }
 
-void FrGaugeBar::SetPos(int pos)
-{
-	if (pos > m_upper)
+// frgaugebar.cpp:109
+void FrGaugeBar::SetPos(int pos) {
+	if (pos > m_upper) {
 		m_pos = (float)m_upper;
-	else if (pos < m_lower)
+	} else if (pos < m_lower) {
 		m_pos = (float)m_lower;
-	else
+	} else {
 		m_pos = (float)pos;
+	}
+
 	m_destPos = m_pos;
 	CalcBarRect(0);
 }
 
-void FrGaugeBar::SetExpand(int expand)
-{
+// frgaugebar.cpp:124
+void FrGaugeBar::SetExpand(int expand) {
 	m_expand = (float)expand;
 }
 
-void FrGaugeBar::SetDestPos(int pos, bool achilles)
-{
-	m_achillesRun = achilles;
-	if (pos > m_upper)
+// frgaugebar.cpp:129
+void FrGaugeBar::SetDestPos(int pos, bool achillesRun) {
+	m_achillesRun = achillesRun;
+
+	if (pos > m_upper) {
 		m_destPos = (float)m_upper;
-	else if (pos < m_lower)
+	} else if (pos < m_lower) {
 		m_destPos = (float)m_lower;
-	else
+	} else {
 		m_destPos = (float)pos;
+	}
 }
 
-void FrGaugeBar::MoveWindow(const WPoint& point)
-{
-	FrWnd::MoveWindow(point);
-	m_barRect.x = (float)m_thickness + m_rect.x;
-	m_barRect.y = (float)m_thickness + m_rect.y;
+// frgaugebar.cpp:143
+void FrGaugeBar::MoveWindow(const WPoint& pos) {
+	FrWnd::MoveWindow(pos);
+
+	m_barRect.x = m_rect.x + m_thickness;
+	m_barRect.y = m_rect.y + m_thickness;
 }
 
-void FrGaugeBar::CalcBarRect(const WRect* rectangle)
-{
-	if (rectangle == 0)
+// frgaugebar.cpp:151
+void FrGaugeBar::CalcBarRect(const WRect* pRect) {
+	if (pRect == 0)
 		m_barRect = m_rect;
 	else
-		m_barRect = *rectangle;
-	float thick = (float)(m_thickness * 2);
-	float scale = (m_barRect.w - thick) / (float)(m_upper - m_lower);
-	float origin = (float)m_origin;
-	if (origin < m_pos)
-	{
-		m_barRect.x = (float)(m_origin - m_lower) * scale + m_barRect.x;
-		m_barRect.w = (m_pos - origin) * scale;
+		m_barRect = *pRect;
+
+	float ratio = (m_barRect.w - m_thickness * 2) / (m_upper - m_lower);
+
+	if (m_origin < m_pos) {
+		m_barRect.x += (m_origin - m_lower) * ratio;
+		m_barRect.w = (m_pos - m_origin) * ratio;
+	} else {
+		m_barRect.x += (m_pos - m_lower) * ratio;
+		m_barRect.w = (m_origin - m_pos) * ratio;
 	}
-	else
-	{
-		m_barRect.x = (m_pos - (float)m_lower) * scale + m_barRect.x;
-		m_barRect.w = (origin - m_pos) * scale;
-	}
-	m_barRect.x = (float)m_thickness + m_barRect.x;
-	m_barRect.y = (float)m_thickness + m_barRect.y;
-	m_barRect.h = m_barRect.h - thick;
+
+	m_barRect.x += m_thickness;
+	m_barRect.y += m_thickness;
+	m_barRect.h -= m_thickness * 2;
 }
 
-void FrGaugeBar::OnProc(float elapsed)
-{
+// frgaugebar.cpp:177
+void FrGaugeBar::OnProc(const float delta) {
 	float step;
 	if (m_achillesRun && m_destPos != m_srcPos)
-		step = (m_destPos - m_pos) * m_speed * elapsed / (m_destPos - m_srcPos);
+		step = (m_destPos - m_pos) * m_speed * delta / (m_destPos - m_srcPos);
 	else
-		step = elapsed * m_speed;
-	if (m_pos > m_destPos)
-	{
-		step = m_pos - step;
-		m_pos = step > m_destPos ? step : m_destPos;
+		step = delta * m_speed;
+
+	if (m_pos > m_destPos) {
+		float pos = m_pos - step;
+		m_pos = pos > m_destPos ? pos : m_destPos;
+	} else if (m_pos < m_destPos) {
+		float pos = m_pos + step;
+		m_pos = pos < m_destPos ? pos : m_destPos;
 	}
-	else if (m_pos < m_destPos)
-	{
-		step = step + m_pos;
-		m_pos = step < m_destPos ? step : m_destPos;
-	}
+
 	CalcBarRect(0);
 }
 
-void FrGaugeBar::OnDraw()
-{
+// frgaugebar.cpp:202
+void FrGaugeBar::OnDraw(void) {
 	FrWnd::OnDraw();
-	GDI()->Box(m_rect, m_bgColor);
-	float value = m_expand * m_rect.w / (float)(m_upper - m_lower);
-	float expand = value > 0 ? value : -value;
-	if (m_expand > 0.0f)
-	{
-		expand = Between(0.0f, expand,
-			m_rect.x + m_rect.w - m_thickness - (m_barRect.x + m_barRect.w));
-		GDI()->Box(m_barRect, m_color);
-		GDI()->Box(
-			WRect(m_barRect.x + m_barRect.w, m_barRect.y, expand, m_barRect.h),
-			m_exColor[0]);
-	}
-	else if (m_expand < 0.0f)
-	{
+
+	GDI()->Box(m_rect, m_bgColor, 0, 0);
+
+	float expand = Abs(m_expand * m_rect.w / (m_upper - m_lower));
+
+	if (m_expand > 0) {
+		expand = Between(0.0f, expand, m_rect.x + m_rect.w - m_thickness - (m_barRect.x + m_barRect.w));
+
+		GDI()->Box(m_barRect, m_color, 0, 0);
+		GDI()->Box(WRect(m_barRect.x + m_barRect.w, m_barRect.y, expand, m_barRect.h), m_exColor[0], 0, 0);
+	} else if (m_expand < 0) {
 		expand = Min(m_barRect.w, expand);
-		GDI()->Box(
-			WRect(m_barRect.x, m_barRect.y, m_barRect.w - expand, m_barRect.h),
-			m_color);
-		GDI()->Box(WRect(m_barRect.x + m_barRect.w - expand, m_barRect.y,
-					   expand, m_barRect.h),
-			m_exColor[1]);
-	}
-	else
-	{
-		GDI()->Box(m_barRect, m_color);
+
+		GDI()->Box(WRect(m_barRect.x, m_barRect.y, m_barRect.w - expand, m_barRect.h), m_color, 0, 0);
+		GDI()->Box(WRect(m_barRect.x + m_barRect.w - expand, m_barRect.y, expand, m_barRect.h), m_exColor[1], 0, 0);
+	} else {
+		GDI()->Box(m_barRect, m_color, 0, 0);
 	}
 }
 
-IObject* FrGaugeBarExMakeInstance()
-{
+// frgaugebar.cpp:231 (run-time type and factory registration of FrGaugeBarEx)
+const WRTTI FrGaugeBarEx::m_RTTI("FrGaugeBarEx", &FrGaugeBar::m_RTTI);
+
+IObject* FrGaugeBarExMakeInstance(void) {
 	return new FrGaugeBarEx;
 }
-struct __sFrGaugeBarEx
-{
-	__sFrGaugeBarEx()
-	{
-		ObjectFactory().AddObjectFunctor(FrGaugeBarExMakeInstance,
-			"FrGaugeBarEx");
+
+struct __sFrGaugeBarEx {
+	__sFrGaugeBarEx(void) {
+		ObjectFactory().AddObjectFunctor(FrGaugeBarExMakeInstance, "FrGaugeBarEx");
 	}
 };
-const WRTTI FrGaugeBarEx::m_RTTI("FrGaugeBarEx", &FrGaugeBar::m_RTTI);
-static __sFrGaugeBarEx __implFrGaugeBarEx;
+static __sFrGaugeBarEx s_registerFrGaugeBarEx;
 
-BEGIN_FRESH_MSGMAP(FrGaugeBarEx, FrGaugeBar)
-ON_FRESH_VV("left", FRCMD_LBUTTONDOWN, FrGaugeBarEx::OnLLButtonDown)
-ON_FRESH_VV("right", FRCMD_LBUTTONDOWN, FrGaugeBarEx::OnRLButtonDown)
-END_FRESH_MSGMAP()
+// frgaugebar.cpp:234
+const sFRESH_MSGMAP* FrGaugeBarEx::GetMessageMap(void) const {
+	return &FrGaugeBarEx::_MsgMap;
+}
 
-FrGaugeBarEx::FrGaugeBarEx()
-{
+sFRESH_MSGMAP FrGaugeBarEx::_MsgMap = { &FrCmdTarget::_MsgMap, &FrGaugeBarEx::_MsgEntries[0] };
+
+sFRESH_ENTRY FrGaugeBarEx::_MsgEntries[] = {
+	// frgaugebar.cpp:236
+	{ "left", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrGaugeBarEx::OnLLButtonDown },
+	// frgaugebar.cpp:237
+	{ "right", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrGaugeBarEx::OnRLButtonDown },
+
+	// frgaugebar.cpp:239
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// frgaugebar.cpp:246
+FrGaugeBarEx::FrGaugeBarEx(void) {
 	m_borderColor = 0xff808080;
 	m_color2 = 0xffffffff;
 	m_thickness = 3;
-	m_fPos = 0.0f;
+	m_fPos = 0;
 	m_steps = 1;
 	m_pLButton = 0;
 	m_pRButton = 0;
+
 	CalcBarRect(0);
 }
 
-FrGaugeBarEx::~FrGaugeBarEx()
-{
+// frgaugebar.cpp:259
+FrGaugeBarEx::~FrGaugeBarEx(void) {
 }
 
-void FrGaugeBarEx::Init(FrGuiItem& item, FrWndManager* manager, FrWnd* parent)
-{
-	FrGaugeBar::Init(item, manager, parent);
-	FrElementDoc* document = manager->GetDocument();
-	FrParamMap& param = m_pItem->m_param;
+// frgaugebar.cpp:263
+void FrGaugeBarEx::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
+	FrGaugeBar::Init(item, pManager, pParent);
+
+	FrElementDoc* pDoc = pManager->GetDocument();
+
+	std::map<std::string, std::string>& param = m_pItem->m_param;
+
 	if (param.find("bordercolor") != param.end())
 		sscanf(param["bordercolor"].c_str(), "%x", &m_borderColor);
+
 	if (param.find("color2") != param.end())
 		sscanf(param["color2"].c_str(), "%x", &m_color2);
 	else
 		m_color2 = m_color;
+
 	if (param.find("steps") != param.end())
 		sscanf(param["steps"].c_str(), "%d", &m_steps);
+
 	m_gaugeRect = m_rect;
-	if (param.find("left") != param.end() && param["left"] == "true")
-	{
+
+	if (param.find("left") != param.end() && param["left"] == "true") {
 		m_pLButton = new FrButton;
-		if (m_pLButton)
-		{
+		if (m_pLButton) {
 			FrGuiItem& info = m_LButtonInfo;
 			info = item;
 			info.m_caption = "left";
 			info.m_name = "left";
-			info.m_rect.bottom = 0;
-			info.m_rect.right = 0;
-			info.m_rect.top = 0;
-			info.m_rect.left = 0;
+			info.m_rect.left = info.m_rect.top = info.m_rect.right = info.m_rect.bottom = 0;
+
 			m_pLButton->SetOwner(this);
-			m_pLButton->Init(info, manager, this, true);
+			m_pLButton->Init(info, pManager, this, true);
+
 			m_pLButton->UseDblClick(false);
 			m_pLButton->SetPushDelay(0.0f);
-			WRect bounds = m_pLButton->GetRect();
-			m_gaugeRect.x = bounds.w + m_gaugeRect.x + 2.0f;
-			m_gaugeRect.w = m_gaugeRect.w - (bounds.w + 2.0f);
-			bounds.x = bounds.x + 2.0f;
-			bounds.y =
-				(float)(int)((m_rect.h - bounds.h + 1.0f) * 0.5f) + bounds.y;
-			m_pLButton->SetRect(bounds);
+			WRect rect = m_pLButton->GetRect();
+			m_gaugeRect.x = rect.w + m_gaugeRect.x + 2.0f;
+			m_gaugeRect.w = m_gaugeRect.w - (rect.w + 2.0f);
+			rect.x = rect.x + 2.0f;
+			rect.y = (float)(int)((m_rect.h - rect.h + 1.0f) * 0.5f) + rect.y;
+			m_pLButton->SetRect(rect);
 		}
 	}
-	if (param.find("right") != param.end() && param["right"] == "true")
-	{
+
+	if (param.find("right") != param.end() && param["right"] == "true") {
 		m_pRButton = new FrButton;
-		if (m_pRButton)
-		{
+		if (m_pRButton) {
 			FrGuiItem& info = m_RButtonInfo;
 			info = item;
 			info.m_caption = "right";
 			info.m_name = "right";
-			info.m_rect.bottom = 0;
-			info.m_rect.right = 0;
-			info.m_rect.top = 0;
-			info.m_rect.left = 0;
+			info.m_rect.left = info.m_rect.top = info.m_rect.right = info.m_rect.bottom = 0;
+
 			m_pRButton->SetOwner(this);
-			m_pRButton->Init(info, manager, this, false);
+			m_pRButton->Init(info, pManager, this, false);
 			m_pRButton->UseDblClick(false);
 			m_pRButton->SetPushDelay(0.0f);
-			FrParamMap& skins = m_pItem->m_param;
+
+			std::map<std::string, std::string>& skin = m_pItem->m_param;
 			FrButton::eButStyle style = FrButton::BT_NORMAL;
-			FrButton::eButPushStyle push = FrButton::BP_PUSHBUTTON;
+			FrButton::eButPushStyle pushStyle = FrButton::BP_PUSHBUTTON;
 			const Bitmap* pBmp[3];
-			pBmp[0] = document->GetBitmap(skins["rnormal"]);
-			pBmp[1] = document->GetBitmap(skins["rover"]);
-			pBmp[2] = document->GetBitmap(skins["rselected"]);
-			if (skins.find("style") != skins.end())
-				style = (FrButton::eButStyle)atoi(skins["style"].c_str());
-			if (skins.find("pushstyle") != skins.end())
-				push =
-					(FrButton::eButPushStyle)atoi(skins["pushstyle"].c_str());
-			m_pRButton->InitExtern(pBmp[0], pBmp[1], pBmp[2], style, push);
-			WRect bounds = m_pRButton->GetRect();
-			bounds.x = (m_rect.w - bounds.w - 2.0f) + bounds.x;
-			bounds.y =
-				(float)(int)((m_rect.h - bounds.h + 1.0f) * 0.5f) + bounds.y;
-			m_gaugeRect.w = m_gaugeRect.w - (bounds.w + 2.0f);
-			m_pRButton->SetRect(bounds);
+
+			pBmp[0] = pDoc->GetBitmap(skin["rnormal"]);
+			pBmp[1] = pDoc->GetBitmap(skin["rover"]);
+			pBmp[2] = pDoc->GetBitmap(skin["rselected"]);
+
+			if (skin.find("style") != skin.end())
+				style = (FrButton::eButStyle)atoi(skin["style"].c_str());
+			if (skin.find("pushstyle") != skin.end())
+				pushStyle = (FrButton::eButPushStyle)atoi(skin["pushstyle"].c_str());
+
+			m_pRButton->InitExtern(pBmp[0], pBmp[1], pBmp[2], style, pushStyle);
+
+			WRect rect = m_pRButton->GetRect();
+			rect.x = (m_rect.w - rect.w - 2.0f) + rect.x;
+			rect.y = (float)(int)((m_rect.h - rect.h + 1.0f) * 0.5f) + rect.y;
+
+			m_gaugeRect.w = m_gaugeRect.w - (rect.w + 2.0f);
+			m_pRButton->SetRect(rect);
 		}
 	}
 }
 
-void FrGaugeBarEx::SetPos(int pos)
-{
+// frgaugebar.cpp:361
+void FrGaugeBarEx::SetPos(int pos) {
 	FrGaugeBar::SetPos(pos);
+
 	m_fPos = m_pos;
 }
 
-void FrGaugeBarEx::SetSteps(int steps)
-{
-	m_steps = Max(1, steps);
+// frgaugebar.cpp:368
+void FrGaugeBarEx::SetSteps(int steps) {
+	m_steps = steps > 1 ? steps : 1;
 }
 
-int FrGaugeBarEx::GetSteps()
-{
+// frgaugebar.cpp:373
+int FrGaugeBarEx::GetSteps(void) {
 	return m_steps;
 }
 
-void FrGaugeBarEx::OnDraw()
-{
-	unsigned long rainbow[4];
-	rainbow[0] = m_color;
-	rainbow[1] = m_colorP;
-	rainbow[2] = m_color;
-	rainbow[3] = m_colorP;
+// frgaugebar.cpp:378
+void FrGaugeBarEx::OnDraw(void) {
+	unsigned long aDiffuse[4];
+	aDiffuse[0] = m_color; aDiffuse[1] = m_colorP;
+	aDiffuse[2] = m_color; aDiffuse[3] = m_colorP;
+
 	FrWnd::OnDraw();
-	if (m_dwStyle & FWS_DISABLED)
-	{
-		for (int i = 0; i < 4; ++i)
-			rainbow[i] = Modulate(rainbow[i], 0xb0b0b0) | 0x50000000;
+
+	if (m_dwStyle & 0x2) {
+		for (int i = 0; i < 4; i++)
+			aDiffuse[i] = Modulate(aDiffuse[i], 0xb0b0b0) | 0x50000000;
 	}
-	GDI()->Box(m_rect, m_bgColor);
-	WRect box(m_rect.x, m_rect.y, m_rect.w - 1.0f, m_rect.h - 1.0f);
-	GDI()->LineBox(box, m_borderColor);
-	GDI()->RainbowBox(m_barRect, rainbow);
-	float pitch =
-		(m_gaugeRect.w - m_thickness * 2.0f - (m_steps - 1.0f) * 2.0f) /
-		m_steps;
-	box.x = (float)m_thickness + m_gaugeRect.x + pitch;
-	box.y = (float)m_thickness + m_gaugeRect.y;
-	box.h = m_gaugeRect.h - m_thickness * 2.0f;
-	box.w = 2.0f;
-	for (int step = 0; step < m_steps - 1; ++step)
-	{
-		GDI()->Box(box, m_bgColor, 0, 0.0f);
-		box.x += pitch + 2.0f;
+
+	GDI()->Box(m_rect, m_bgColor, 0, 0);
+
+	WRect rect(m_rect.x, m_rect.y, m_rect.w - 1.0f, m_rect.h - 1.0f);
+	GDI()->LineBox(rect, m_borderColor, 0, 0);
+
+	GDI()->RainbowBox(m_barRect, aDiffuse, 0, 0);
+
+	float fStep = (m_gaugeRect.w - m_thickness * 2.0f - (m_steps - 1.0f) * 2.0f) / m_steps;
+	rect.x = (float)m_thickness + m_gaugeRect.x + fStep;
+	rect.y = (float)m_thickness + m_gaugeRect.y;
+	rect.h = m_gaugeRect.h - m_thickness * 2.0f;
+	rect.w = 2.0f;
+
+	for (int step = 0; step < m_steps - 1; step++) {
+		GDI()->Box(rect, m_bgColor, 0, 0);
+		rect.x += fStep + 2.0f;
 	}
 }
 
-void FrGaugeBarEx::CalcBarRect(const WRect*)
-{
+// frgaugebar.cpp:428
+void FrGaugeBarEx::CalcBarRect(const WRect* pRect) {
 	FrGaugeBar::CalcBarRect(&m_gaugeRect);
-	float fade = 1.0f - m_fPos * 0.01f;
-	unsigned long packed;
-	float v;
-	v = (float)((m_color >> 24) & 0xff) * fade;
-	v += (float)((m_color2 >> 24) & 0xff) * m_fPos * 0.01f;
-	packed = (unsigned char)v;
-	packed <<= 8;
-	v = (float)((m_color >> 16) & 0xff) * fade;
-	v += (float)((m_color2 >> 16) & 0xff) * m_fPos * 0.01f;
-	packed |= (unsigned char)v;
-	packed <<= 8;
-	v = (float)((m_color >> 8) & 0xff) * fade;
-	v += (float)((m_color2 >> 8) & 0xff) * m_fPos * 0.01f;
-	packed |= (unsigned char)v;
-	packed <<= 8;
-	v = (float)(m_color & 0xff) * fade;
-	v += (float)(m_color2 & 0xff) * m_fPos * 0.01f;
-	packed |= (unsigned char)v;
-	m_colorP = packed;
+
+	float inv = 1.0f - m_fPos * 0.01f;
+	unsigned long color;
+	float value;
+
+	value = (float)((m_color >> 24) & 0xff) * inv;
+	value += (float)((m_color2 >> 24) & 0xff) * m_fPos * 0.01f;
+	color = (unsigned char)value;
+	color <<= 8;
+	value = (float)((m_color >> 16) & 0xff) * inv;
+	value += (float)((m_color2 >> 16) & 0xff) * m_fPos * 0.01f;
+	color |= (unsigned char)value;
+	color <<= 8;
+	value = (float)((m_color >> 8) & 0xff) * inv;
+	value += (float)((m_color2 >> 8) & 0xff) * m_fPos * 0.01f;
+	color |= (unsigned char)value;
+	color <<= 8;
+	value = (float)(m_color & 0xff) * inv;
+	value += (float)(m_color2 & 0xff) * m_fPos * 0.01f;
+	color |= (unsigned char)value;
+	m_colorP = color;
 }
 
-void FrGaugeBarEx::OnLLButtonDown()
-{
-	m_fPos = m_fPos - (float)(m_upper - m_lower) / m_steps;
-	if (m_fPos < (float)m_lower)
-		m_fPos = (float)m_lower;
-	m_pos = m_fPos;
-	m_destPos = m_pos;
+// frgaugebar.cpp:446
+void FrGaugeBarEx::OnLLButtonDown(void) {
+	int lower = m_lower;
+	int range = m_upper - lower;
+
+	m_fPos -= (float)range / m_steps;
+
+	if (m_fPos < (float)lower)
+		m_fPos = (float)lower;
+
+	m_destPos = m_pos = m_fPos;
+
 	CalcBarRect(0);
 }
 
-void FrGaugeBarEx::OnRLButtonDown()
-{
-	m_fPos = (float)(m_upper - m_lower) / m_steps + m_fPos;
-	if (m_fPos > (float)m_upper)
-		m_fPos = (float)m_upper;
-	m_pos = m_fPos;
-	m_destPos = m_pos;
+// frgaugebar.cpp:462
+void FrGaugeBarEx::OnRLButtonDown(void) {
+	int upper = m_upper;
+	int range = upper - m_lower;
+
+	m_fPos += (float)range / m_steps;
+
+	if (m_fPos > (float)upper)
+		m_fPos = (float)upper;
+
+	m_destPos = m_pos = m_fPos;
+
 	CalcBarRect(0);
 }
 
-void FrGaugeBarEx::Enable(bool enabled)
-{
-	if (!enabled)
-		m_dwStyle.Enable(FWS_DISABLED);
-	else
-		m_dwStyle.Disable(FWS_DISABLED);
+// frgaugebar.cpp:478
+void FrGaugeBarEx::Enable(bool enable) {
+	FrGaugeBar::Enable(enable);
 	if (m_pLButton)
-	{
-		m_pLButton->Enable(enabled);
-	}
+		m_pLButton->Enable(enable);
 	if (m_pRButton)
-	{
-		m_pRButton->Enable(enabled);
-	}
+		m_pRButton->Enable(enable);
 }
 
-void FrGaugeBarEx::MoveWindow(const WPoint& point)
-{
+// frgaugebar.cpp:487
+void FrGaugeBarEx::MoveWindow(const WPoint& pos) {
 	float offset = m_gaugeRect.x - m_rect.x;
-	FrWnd::MoveWindow(point);
+	FrWnd::MoveWindow(pos);
+
 	m_gaugeRect.x = offset + m_rect.x;
 	m_gaugeRect.y = m_rect.y;
-	m_barRect.x = (float)m_thickness + m_gaugeRect.x;
-	m_barRect.y = (float)m_thickness + m_gaugeRect.y;
+	m_barRect.x = m_gaugeRect.x + m_thickness;
+	m_barRect.y = m_gaugeRect.y + m_thickness;
 }
 
-IObject* FrGaugeBarImageMakeInstance()
-{
+// frgaugebar.cpp:500 (run-time type and factory registration of FrGaugeBarImage)
+const WRTTI FrGaugeBarImage::m_RTTI("FrGaugeBarImage", &FrGaugeBar::m_RTTI);
+
+IObject* FrGaugeBarImageMakeInstance(void) {
 	return new FrGaugeBarImage;
 }
-struct __sFrGaugeBarImage
-{
-	__sFrGaugeBarImage()
-	{
-		ObjectFactory().AddObjectFunctor(FrGaugeBarImageMakeInstance,
-			"FrGaugeBarImage");
+
+struct __sFrGaugeBarImage {
+	__sFrGaugeBarImage(void) {
+		ObjectFactory().AddObjectFunctor(FrGaugeBarImageMakeInstance, "FrGaugeBarImage");
 	}
 };
-const WRTTI FrGaugeBarImage::m_RTTI("FrGaugeBarImage", &FrGaugeBar::m_RTTI);
-static __sFrGaugeBarImage __implFrGaugeBarImage;
+static __sFrGaugeBarImage s_registerFrGaugeBarImage;
 
-FrGaugeBarImage::FrGaugeBarImage()
-{
+// frgaugebar.cpp:504
+FrGaugeBarImage::FrGaugeBarImage(void) {
+	m_thickness = 1;
 	m_pBitImage[0] = 0;
 	m_pBitImage[1] = 0;
+
 	m_BitMask = 0;
-	m_start = 0.0f;
+
+	m_start = 0;
 	m_iPixelCounter = 0;
 	m_bOwnerDraw = false;
-	m_complete = 0.0f;
-	m_thickness = 1;
+	m_complete = 0;
 }
 
-FrGaugeBarImage::~FrGaugeBarImage()
-{
+// frgaugebar.cpp:518
+FrGaugeBarImage::~FrGaugeBarImage(void) {
 	GDI()->InvalidateCache(*m_BitMask);
-	if (m_BitMask)
-	{
+	if (m_BitMask) {
 		delete m_BitMask;
 		m_BitMask = 0;
 	}
 }
 
-void FrGaugeBarImage::Init(FrGuiItem& item, FrWndManager* manager,
-	FrWnd* parent)
-{
-	FrGaugeBar::Init(item, manager, parent);
-	FrElementDoc* document = manager->GetDocument();
-	FrParamMap& param = m_pItem->m_param;
+// frgaugebar.cpp:539
+void FrGaugeBarImage::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent) {
+	FrGaugeBar::Init(item, pManager, pParent);
+
+	FrElementDoc* pDoc = pManager->GetDocument();
+
+	std::map<std::string, std::string>& param = m_pItem->m_param;
+
 	m_bOwnerDraw = atoi(param["drawstyle"].c_str()) == 1;
-	m_pBitImage[0] = document->GetBitmap(param["normal"]);
-	m_pBitImage[1] = document->GetBitmap(param["mask"]);
-	if (m_pBitImage[0] == 0 || m_pBitImage[1] == 0)
-		MessageBoxA(0,
-			"\300\314\271\314\301\366 \306\304\300\317\300\314 "
-			"\276\370\275\300\264\317\264\331.",
-			"\260\346\260\355", 0);
-	long width0 = m_pBitImage[0]->bi->bmiHeader.biWidth;
-	if (width0 != m_pBitImage[1]->bi->bmiHeader.biWidth)
-		MessageBoxA(0,
-			"\270\266\275\272\305\251\300\307 \263\320\300\314\260\241 "
-			"\306\262\270\263\264\317\264\331.",
-			"\260\346\260\355", 0);
+
+	m_pBitImage[GAUGE_NORMAL] = pDoc->GetBitmap(param["normal"]);
+	m_pBitImage[GAUGE_MASK] = pDoc->GetBitmap(param["mask"]);
+
+	if (m_pBitImage[GAUGE_NORMAL] == 0 || m_pBitImage[GAUGE_MASK] == 0) {
+		// "Image file not found."
+		MessageBoxA(0, "\300\314\271\314\301\366 \306\304\300\317\300\314 \276\370\275\300\264\317\264\331.", "\260\346\260\355", 0);
+	}
+
+	if (m_pBitImage[GAUGE_NORMAL]->Width() != m_pBitImage[GAUGE_MASK]->Width()) {
+		// "The mask width differs."
+		MessageBoxA(0, "\270\266\275\272\305\251\300\307 \263\320\300\314\260\241 \306\262\270\263\264\317\264\331.", "\260\346\260\355", 0);
+	}
+
 	m_gaugeRect.x = m_rect.x;
 	m_gaugeRect.y = m_rect.y;
-	unsigned long w = m_pBitImage[0]->bi->bmiHeader.biWidth;
-	m_gaugeRect.w = (float)w;
-	m_gaugeRect.h =
-		(float)(unsigned long)m_pBitImage[0]->bi->bmiHeader.biHeight;
+	m_gaugeRect.w = m_pBitImage[GAUGE_NORMAL]->Width();
+	m_gaugeRect.h = m_pBitImage[GAUGE_NORMAL]->Height();
+
 	m_BitMask = new Bitmap;
-	m_BitMask->Create(m_pBitImage[1]->bi->bmiHeader.biWidth,
-		m_pBitImage[1]->bi->bmiHeader.biHeight,
-		m_pBitImage[1]->bi->bmiHeader.biBitCount);
-	memcpy(m_BitMask->vram, m_pBitImage[1]->vram,
-		m_pBitImage[1]->Height() * m_pBitImage[1]->pitch);
-	m_start = 0.0f;
+	m_BitMask->Create(m_pBitImage[GAUGE_MASK]->bi->bmiHeader.biWidth, m_pBitImage[GAUGE_MASK]->bi->bmiHeader.biHeight, m_pBitImage[GAUGE_MASK]->bi->bmiHeader.biBitCount);
+	memcpy(m_BitMask->vram, m_pBitImage[GAUGE_MASK]->vram, m_pBitImage[GAUGE_MASK]->Size());
+
+	m_start = 0;
 	SetRange(0, (int)m_gaugeRect.w, 0);
 }
 
-const Bitmap* FrGaugeBarImage::GetGaugeSkin(int skin)
-{
-	if (skin == 1)
-		return m_BitMask;
-	return m_pBitImage[0];
+// frgaugebar.cpp:583
+const Bitmap* FrGaugeBarImage::GetGaugeSkin(int type) {
+	const Bitmap* pSkin;
+	if (type == GAUGE_MASK)
+		pSkin = m_BitMask;
+	else
+		pSkin = m_pBitImage[GAUGE_NORMAL];
+	return pSkin;
 }
 
-void FrGaugeBarImage::ResetGauge()
-{
-	memcpy(m_BitMask->vram, m_pBitImage[1]->vram,
-		m_pBitImage[1]->Height() * m_pBitImage[1]->pitch);
+// frgaugebar.cpp:598
+void FrGaugeBarImage::ResetGauge(void) {
+	memcpy(m_BitMask->vram, m_pBitImage[GAUGE_MASK]->vram, m_pBitImage[GAUGE_MASK]->Size());
+
 	GDI()->RefreshTextureCacheInfo(m_BitMask);
-	m_start = 0.0f;
-	m_pos = 0.0f;
+
+	m_start = 0;
+	m_pos = 0;
 	m_gaugeRect.x = m_rect.x;
 	m_gaugeRect.y = m_rect.y;
+
 	m_iPixelCounter = 0;
 }
 
-int FrGaugeBarImage::GetPixelPerHeight()
-{
+// frgaugebar.cpp:617
+int FrGaugeBarImage::GetPixelPerHeight(void) {
 	return m_iPixelCounter;
 }
 
-float FrGaugeBarImage::GetComplete()
-{
+// frgaugebar.cpp:622
+float FrGaugeBarImage::GetComplete(void) {
 	return m_complete;
 }
 
-void FrGaugeBarImage::OnDraw()
-{
-	if (m_pBitImage[0] != 0 && m_pBitImage[1] != 0)
-	{
-		FrWnd::OnDraw();
-		if (!m_bOwnerDraw)
-		{
-			const Bitmap* skin = m_pBitImage[0];
-			unsigned long h = skin->Height();
-			unsigned long w = skin->Width();
-			WRect box;
-			box.x = m_gaugeRect.x;
-			box.y = m_gaugeRect.y;
-			box.w = (float)w;
-			box.h = (float)h;
-			GDI()->DrawTexture(skin, box, 0xffffffff, 0);
-			skin = m_BitMask;
-			h = skin->Height();
-			w = skin->Width();
-			box.x = m_gaugeRect.x;
-			box.y = m_gaugeRect.y;
-			box.w = (float)w;
-			box.h = (float)h;
-			GDI()->DrawTexture(skin, box, 0xffffffff, 0);
-		}
-		else
-		{
-			SendCmdToOwnerTarget(FRCMD_OWNERDRAW, 0, 0);
-		}
+// frgaugebar.cpp:627
+void FrGaugeBarImage::OnDraw(void) {
+	if (m_pBitImage[GAUGE_NORMAL] == 0)
+		return;
+	if (m_pBitImage[GAUGE_MASK] == 0)
+		return;
+
+	FrWnd::OnDraw();
+
+	if (!m_bOwnerDraw) {
+		GDI()->DrawTexture(m_pBitImage[GAUGE_NORMAL], WRect(m_gaugeRect.x, m_gaugeRect.y, m_pBitImage[GAUGE_NORMAL]->Width(), m_pBitImage[GAUGE_NORMAL]->Height()), 0xffffffff, 0);
+		GDI()->DrawTexture(m_BitMask, WRect(m_gaugeRect.x, m_gaugeRect.y, m_BitMask->Width(), m_BitMask->Height()), 0xffffffff, 0);
+	} else {
+		SendCmdToOwnerTarget(FRCMD_OWNERDRAW, 0, 0);
 	}
 }
 
-void FrGaugeBarImage::CalcBarRect(const WRect*)
-{
+// frgaugebar.cpp:646
+void FrGaugeBarImage::CalcBarRect(const WRect* pRect) {
 	m_barRect = m_gaugeRect;
-	float thick = (float)(m_thickness * 2);
-	float scale = (m_barRect.w - thick) / (float)(m_upper - m_lower);
-	float origin = (float)m_origin;
-	if (origin < m_pos)
-	{
-		m_barRect.x = (float)(m_origin - m_lower) * scale + m_barRect.x;
-		m_barRect.w = (m_pos - origin) * scale;
+
+	float ratio = (m_barRect.w - m_thickness * 2) / (m_upper - m_lower);
+
+	if (m_origin < m_pos) {
+		m_barRect.x += (m_origin - m_lower) * ratio;
+		m_barRect.w = (m_pos - m_origin) * ratio;
+	} else {
+		m_barRect.x += (m_pos - m_lower) * ratio;
+		m_barRect.w = (m_origin - m_pos) * ratio;
 	}
-	else
-	{
-		m_barRect.x = (m_pos - (float)m_lower) * scale + m_barRect.x;
-		m_barRect.w = (origin - m_pos) * scale;
-	}
-	m_barRect.x = (float)m_thickness + m_barRect.x;
-	m_barRect.y = (float)m_thickness + m_barRect.y;
-	m_barRect.h = m_barRect.h - thick;
-	if (m_start != m_barRect.w && m_pBitImage[1] != 0)
-	{
-		int column = (int)floor(m_start);
-		while (column < (int)m_barRect.w)
-		{
-			for (unsigned int row = 0; row < m_pBitImage[1]->Height(); ++row)
-				m_BitMask->SetAlpha(column, row, 0);
-			m_iPixelCounter = m_iPixelCounter + 1;
-			column = column + 1;
+
+	m_barRect.x += m_thickness;
+	m_barRect.y += m_thickness;
+	m_barRect.h -= m_thickness * 2;
+
+	if (m_start != m_barRect.w) {
+		if (m_pBitImage[GAUGE_MASK] != 0) {
+			int i = (int)floor(m_start);
+			while (i < (int)m_barRect.w) {
+				for (unsigned int y = 0; y < m_pBitImage[GAUGE_MASK]->Height(); y++)
+					m_BitMask->SetAlpha(i, y, 0);
+				m_iPixelCounter++;
+				i++;
+			}
+
+			m_start = m_barRect.w;
+			m_complete = (m_start * 100.0f) / m_barRect.w;
+			GDI()->RefreshTextureCacheInfo(m_BitMask);
 		}
-		m_start = m_barRect.w;
-		m_complete = (m_start * 100.0f) / m_barRect.w;
-		GDI()->RefreshTextureCacheInfo(m_BitMask);
 	}
 }
 
-void FrGaugeBarImage::OnProc(float elapsed)
-{
+// frgaugebar.cpp:688
+void FrGaugeBarImage::OnProc(const float delta) {
 	float step;
 	if (m_achillesRun && m_destPos != m_srcPos)
-		step = (m_destPos - m_pos) * m_speed * elapsed / (m_destPos - m_srcPos);
+		step = (m_destPos - m_pos) * m_speed * delta / (m_destPos - m_srcPos);
 	else
-		step = elapsed * m_speed;
-	if (m_pos > m_destPos)
-	{
-		step = m_pos - step;
-		m_pos = step > m_destPos ? step : m_destPos;
+		step = delta * m_speed;
+
+	if (m_pos > m_destPos) {
+		float pos = m_pos - step;
+		m_pos = pos > m_destPos ? pos : m_destPos;
+	} else if (m_pos < m_destPos) {
+		float pos = m_pos + step;
+		m_pos = pos < m_destPos ? pos : m_destPos;
 	}
-	else if (m_pos < m_destPos)
-	{
-		step = step + m_pos;
-		m_pos = step < m_destPos ? step : m_destPos;
-	}
+
 	CalcBarRect(0);
 }
 
-void FrGaugeBarImage::MoveWindow(const WPoint& point)
-{
-	FrWnd::MoveWindow(point);
-	m_gaugeRect.x = point.x;
-	m_gaugeRect.y = point.y;
+// frgaugebar.cpp:713
+void FrGaugeBarImage::MoveWindow(const WPoint& pos) {
+	FrWnd::MoveWindow(pos);
+
+	m_gaugeRect.x = pos.x;
+	m_gaugeRect.y = pos.y;
 }

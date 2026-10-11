@@ -1,231 +1,238 @@
-#include "minatl.h"
-#include "msnunit.h"
-#include "networksystem.h"
-#include "projectg.h"
+// Original: d:\build\custom\temp\code\client\projectg\msnunit.cpp
+#include "MSNUnit.h"
+#include "Packet.h"
+#include "ProjectG.h"
+#include "NetworkSystem.h"
 #include "messengerdlg.h"
+#include "SharedDoc.h"
 
-MSNUnit::MSNUnit()
-{
-	m_connectTryTime = 0;
-	m_serverListRequestTime = 0;
+// msnunit.cpp:29
+MSNUnit::MSNUnit(void) {
+	m_connectTick = 0;
+	m_serverListTick = 0;
 }
 
-MSNUnit::~MSNUnit()
-{
+// msnunit.cpp:36
+MSNUnit::~MSNUnit(void) {
 }
 
-bool MSNUnit::Init()
-{
-	m_bConnectTried = false;
-	MESSENGER()->SetComplete((eConnectStatus)0);
-	WNetworkSystem::Instance()->SetParseKey(WNetworkSystem::NET_MSN, false);
+// msnunit.cpp:43
+bool MSNUnit::Init(void) {
+	m_connectStarted = false;
+
+	WSingleton<CMessengerInfo>::Instance()->m_serverListRequest = 0;
+	WSingleton<WNetworkSystem>::Instance()->SetParseKey(WNetworkSystem::NET_UNIT_MSN, false);
+
 	NetworkUnit::Init();
+
 	return true;
 }
 
-void MSNUnit::ShutDown()
-{
+// msnunit.cpp:58
+void MSNUnit::ShutDown(void) {
 	m_socket.Close();
+
 	Init();
-	MESSENGER()->m_serverList.clear();
+
+	WSingleton<CMessengerInfo>::Instance()->m_serverList.clear();
 }
 
-bool MSNUnit::OnLine()
-{
+// msnunit.cpp:73
+bool MSNUnit::OnLine(void) {
 	WReceivedPacket packet;
 
-	if (m_socket.GetPacket(packet) == 3)
-	{
-		CProjectG::Instance()->OnPacket(packet);
+	if (m_socket.GetPacket(packet) == 3) {
+		WSingleton<CProjectG>::Instance()->OnPacket(packet);
 	}
-
 	return true;
 }
 
-bool MSNUnit::OffLine()
-{
-	if (CProjectG::Instance()->m_bMsnOffline != true)
-	{
-		m_connectTryTime = 0;
+// msnunit.cpp:96
+bool MSNUnit::OffLine(void) {
+	if (WSingleton<CProjectG>::Instance()->m_loginDlgFlag != true) {
+		m_connectTick = 0;
 		return false;
 	}
 
-	if (NET()->IsConnected(WNetworkSystem::NET_GAME) &&
-		NET()->IsConnectionComplete(WNetworkSystem::NET_GAME))
-	{
-		if (!IsConnectionComplete() ||
-			GetTickCount() - m_connectTryTime > 60000)
-		{
+	if (WSingleton<WNetworkSystem>::Instance()->IsConnected(WNetworkSystem::NET_UNIT_DEFAULT) && WSingleton<WNetworkSystem>::Instance()->IsConnectionComplete(WNetworkSystem::NET_UNIT_DEFAULT)) {
+		if (IsConnectionComplete() == 0 || GetTickCount() - m_connectTick > 60000) {
 			Init();
 			setTransition(0);
 		}
 	}
+
 	return true;
 }
 
-bool MSNUnit::Connect()
-{
-	if (m_socket.m_bConnected)
-	{
+// msnunit.cpp:141
+bool MSNUnit::Connect(void) {
+	if (m_socket.m_bConnected) {
 		setForceTransition(0);
-		m_bConnectionComplete = TRUE;
-		return true;
-	}
-
-	if (!m_bConnectTried)
+		m_connectResult = 1;
+	} else if (!m_connectStarted) {
 		ConnectToMSNServer();
-
+	}
 	return true;
 }
 
-bool MSNUnit::Connecting()
-{
-	if (m_bConnectTried)
-	{
-		m_connectTime = GetTickCount();
-		m_bConnectTried = false;
+// msnunit.cpp:186
+bool MSNUnit::Connecting(void) {
+	if (m_connectStarted) {
+		m_connectingTick = GetTickCount();
+		m_connectStarted = false;
 	}
 
-	if (GetTickCount() - m_connectTime > 10000 || !m_socket.TryRead())
-	{
+	if (GetTickCount() - m_connectingTick > 10000 || m_socket.TryRead() == 0) {
 		setForceTransition(5);
-		m_socket.Close();
+		GetSocket()->Close();
 		return false;
 	}
 
 	WReceivedPacket packet;
-	if (m_socket.GetPacket(packet) == 3)
-	{
-		if (OnConnect(packet))
-		{
-			m_socket.AsyncSelect(FD_READ | FD_WRITE | FD_CLOSE);
+	if (m_socket.GetPacket(packet) == 3) {
+		if (OnConnect(packet)) {
+			m_socket.AsyncSelect(0x23);
 			setForceTransition(0);
-			m_bConnectionComplete = TRUE;
+			m_connectResult = 1;
+			return true;
 		}
-		else
-			return false;
+		return false;
+	}
+	return true;
+}
+
+// msnunit.cpp:239
+int MSNUnit::OnConnect(WReceivedPacket &packet) {
+	packet.Decode1();
+
+	if (packet.Decode2() != 0x2C) {
+		return 0;
 	}
 
-	return true;
+	WSingleton<CMessengerInfo>::Instance()->m_serverListRequest = 1;
+
+	packet.Decode1();
+	packet.Decode1();
+
+	int parseKey = packet.Decode4();
+
+	m_socket.SetParseKey(parseKey);
+
+	WSingleton<WNetworkSystem>::Instance()->SetParseKey(WNetworkSystem::NET_UNIT_MSN, true);
+
+	std::string id = WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().id;
+	std::string server = WSingleton<CSharedDoc>::Instance()->m_loginServerAddress;
+
+	WSendPacket send(0x12);
+	send.Encode4(WSingleton<CSharedDoc>::Instance()->m_myUID);
+	send.EncodeStr(WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().nickname);
+	send.Send((eSendTo)1);
+
+	return 1;
 }
 
-int MSNUnit::OnConnect(WReceivedPacket& packet)
-{
-	packet.Decode1();
-
-	if (packet.Decode2() != 44)
-		return FALSE;
-
-	MESSENGER()->SetComplete((eConnectStatus)1);
-
-	packet.Decode1();
-	packet.Decode1();
-	m_socket.SetParseKey(packet.Decode4());
-
-	NET()->SetParseKey(WNetworkSystem::NET_MSN, true);
-
-	std::string id = MyId();
-	std::string password = Doc()->m_password;
-
-	WSendPacket send(18);
-	send.Encode4(MyUID());
-	send.EncodeStr(MyNick());
-	send.Send(TO_MSN);
-
-	return TRUE;
-}
-
-bool MSNUnit::Disconnecting()
-{
-	if (!m_socket.m_bConnected)
+// msnunit.cpp:301
+bool MSNUnit::Disconnecting(void) {
+	if (m_socket.m_bConnected == 0) {
 		setForceTransition(1);
-	else
-		m_socket.Close();
+	} else {
+		GetSocket()->Close();
+	}
 	return true;
 }
 
-void MSNUnit::ConnectToMSNServer()
-{
-	std::string ip = "";
+// msnunit.cpp:314
+void MSNUnit::ConnectToMSNServer(void) {
+	std::string address = "";
 	int port = 0;
 
-	if (!GetConnectServerInfo(&ip, &port))
-	{
+	if (!GetConnectServerInfo(&address, &port)) {
 		RequestMSNServerList();
 		setForceTransition(1);
-		m_bConnectionComplete = TRUE;
+		m_connectResult = 1;
 		return;
 	}
 
-	m_socket.SetEventMsg(WM_USER + 12);
-	m_socket.AsyncSelect(FD_CONNECT);
+	m_socket.m_asyncMessage = 0x40C;
+	m_socket.AsyncSelect(0x10);
 
-	hostent* host = gethostbyname(ip.c_str());
-	char szIP[21] = "\0";
-	wsprintf(szIP, "%s", inet_ntoa(*(in_addr*)host->h_addr_list[0]));
-	m_socket.Connect(inet_addr(szIP), htons(port));
+	hostent *host = gethostbyname(address.c_str());
+	char ip[21] = "\0";
+	wsprintfA(ip, "%s", inet_ntoa(*(in_addr *)host->h_addr_list[0]));
 
-	m_bConnectTried = true;
-	m_connectTryTime = GetTickCount();
+	m_socket.Connect(inet_addr(ip), htons(port));
+
+	m_connectStarted = true;
+	m_connectTick = GetTickCount();
 }
 
-bool MSNUnit::GetConnectServerInfo(std::string* ip, int* port)
-{
-	int minUser = 100000;
-	if ((int)MESSENGER()->m_serverList.size() < 1)
+// msnunit.cpp:379
+bool MSNUnit::GetConnectServerInfo(std::string *address, int *port) {
+	int serverCount = WSingleton<CMessengerInfo>::Instance()->m_serverList.size();
+	int minUsers = 100000;
+	if (serverCount < 1) {
 		return false;
+	}
 
-	int selected = -1;
+	int found = -1;
 	int index = 0;
-	std::list<MSNServerInfo>::iterator it;
-	for (it = MESSENGER()->m_serverList.begin();
-		it != MESSENGER()->m_serverList.end(); ++it, ++index)
-	{
-		if ((*it).bInvalid)
+	for (std::list<MSNServerInfo>::iterator it = WSingleton<CMessengerInfo>::Instance()->m_serverList.begin();
+			it != WSingleton<CMessengerInfo>::Instance()->m_serverList.end(); ++it, ++index) {
+		if (it->m_tried) {
 			continue;
+		}
 
 		sGameServerInfo info = *it;
-		if (info.curUser >= info.maxUser - 150 && rand() % 3)
-		{
-			(*it).bInvalid = true;
+
+		// A nearly full server is tried only one time in three.
+		if (info.m_curUsers >= info.m_maxUsers - 150 && rand() % 3 != 0) {
+			it->m_tried = true;
+			continue;
 		}
-		else if (minUser > info.curUser)
-		{
-			*ip = std::string(info.addr);
-			*port = info.port;
-			minUser = info.curUser;
-			selected = index;
+
+		if (minUsers > info.m_curUsers) {
+			*address = std::string(info.m_address);
+			*port = info.m_port;
+			minUsers = info.m_curUsers;
+			found = index;
 		}
 	}
 
-	if (selected == -1)
+	if (found == -1) {
 		return false;
+	}
 
-	MESSENGER()->SetCurrentServerIndex(selected);
+	WSingleton<CMessengerInfo>::Instance()->SetCurrentServerIndex(found);
+
 	return true;
 }
 
-bool MSNUnit::ResetConnect()
-{
-	m_bConnectTried = false;
-	MESSENGER()->InvalidateCurrentServer();
-	setTransition(0);
+// msnunit.cpp:463
+bool MSNUnit::ResetConnect(void) {
+	m_connectStarted = false;
+
+	WSingleton<CMessengerInfo>::Instance()->InvalidateCurrentServer();
+
+	setTransition(NetworkUnit::EVENT_NEXT);
 	return true;
 }
 
-void MSNUnit::RequestMSNServerList()
-{
-	if (NET()->IsGetParseKey(WNetworkSystem::NET_GAME) &&
-		!MESSENGER()->IsWaitingForServerList())
-	{
-		unsigned long now = GetTickCount();
-		if (now - m_serverListRequestTime > 30000)
-		{
-			MESSENGER()->m_serverList.clear();
-			WSendPacket send((enumClientPacket)0x88);
-			send.Send(TO_GAME);
-			MESSENGER()->SetServerListWaitingState(true);
-			m_serverListRequestTime = now;
+// msnunit.cpp:473
+void MSNUnit::RequestMSNServerList(void) {
+	if (WSingleton<WNetworkSystem>::Instance()->IsGetParseKey(WNetworkSystem::NET_UNIT_DEFAULT)) {
+		if (!WSingleton<CMessengerInfo>::Instance()->IsWaitingForServerList()) {
+			unsigned long tick = GetTickCount();
+
+			if (tick - m_serverListTick > 30000) {
+				WSingleton<CMessengerInfo>::Instance()->m_serverList.clear();
+
+				WSendPacket packet((enumClientPacket)0x88);
+				packet.Send(SEND_TO_DEFAULT);
+
+				WSingleton<CMessengerInfo>::Instance()->m_waitingForServerList = true;
+
+				m_serverListTick = tick;
+			}
 		}
 	}
 }

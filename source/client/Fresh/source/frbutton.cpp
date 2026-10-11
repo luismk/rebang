@@ -1,31 +1,33 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frbutton.cpp
 #include <stdlib.h>
 #include <string.h>
-#include "bitmap.h"
-#include "frbutton.h"
-#include "frwndmanager.h"
-#include "frelement.h"
-#include "frgraphicinterface.h"
-#include "frcursor.h"
-#include "capturedbg.h"
 
-IObject* FrButtonMakeInstance()
-{
+#include "frbutton.h"
+#include "frelement.h"
+#include "frwndmanager.h"
+#include "ObjectFactory.h"
+#include "bitmap.h"
+#include "singleton.h"
+#include "CapturedBg.h"
+#include "frcursor.h"
+#include "frgraphicinterface.h"
+
+// frbutton.cpp:19 (run-time type and factory registration of FrButton)
+const WRTTI FrButton::m_RTTI("FrButton", &FrWnd::m_RTTI);
+
+IObject* FrButtonMakeInstance(void) {
 	return new FrButton;
 }
 
-struct __sFrButton
-{
-	__sFrButton()
-	{
+struct __sFrButton {
+	__sFrButton(void) {
 		ObjectFactory().AddObjectFunctor(FrButtonMakeInstance, "FrButton");
 	}
 };
+static __sFrButton s_registerFrButton;
 
-const WRTTI FrButton::m_RTTI("FrButton", &FrWnd::m_RTTI);
-static __sFrButton __implFrButton;
-
-FrButton::FrButton()
-{
+// frbutton.cpp:22
+FrButton::FrButton(void) {
 	m_bPressed = false;
 	m_bPrevPressed = false;
 	m_useRightButton = false;
@@ -38,24 +40,21 @@ FrButton::FrButton()
 	m_szPushSound = "ui_icon_click";
 	SetPushDelay(1.2f);
 	m_fBlinktime = 0.0f;
-	m_pItem = NULL;
-	m_pBitmap[0] = m_pBitmap[1] = m_pBitmap[2] = m_pBitmap[3] = m_pBtnBg[0] =
-		m_pBtnBg[1] = m_pBtnBg[2] = m_pBtnBg[3] = NULL;
+	m_pItem = 0;
+	m_pBitmap[0] = m_pBitmap[1] = m_pBitmap[2] = m_pBitmap[3] = m_pBtnBg[0] = m_pBtnBg[1] = m_pBtnBg[2] = m_pBtnBg[3] = 0;
 }
 
-FrButton::~FrButton()
-{
+// frbutton.cpp:53
+FrButton::~FrButton(void) {
 }
 
-void FrButton::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent,
-	bool bParseParam)
-{
+// frbutton.cpp:58
+void FrButton::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent, bool bParseParam) {
 	FrElementDoc* pDoc = pManager->GetDocument();
 
 	m_pItem = &item;
 
-	if (bParseParam)
-	{
+	if (bParseParam) {
 		std::map<std::string, std::string>& param = item.m_param;
 
 		m_pBitmap[NORMAL] = pDoc->GetBitmap(param["normal"]);
@@ -91,21 +90,19 @@ void FrButton::Init(FrGuiItem& item, FrWndManager* pManager, FrWnd* pParent,
 
 	WRect rect;
 	if (bParseParam && m_pBitmap[NORMAL])
-		rect = WRect(rc.left, rc.top, m_pBitmap[NORMAL]->Width(),
-			m_pBitmap[NORMAL]->Height());
+		rect = WRect(rc.left, rc.top, m_pBitmap[NORMAL]->Width(), m_pBitmap[NORMAL]->Height());
 	else
 		rect = WRect(rc.left, rc.top, 0, 0);
 
-	Create(item.m_caption.c_str(), item.m_name.c_str(), pManager,
-		FWS_BT_3TYPES | FWS_VISIBLE, rect, pParent);
+	Create(item.m_caption.c_str(), item.m_name.c_str(), pManager, 0x10001, rect, pParent);
 }
 
-void FrButton::InitExtern(const Bitmap* pBmpNormal, const Bitmap* pBmpOver,
-	const Bitmap* pBmpSelected, eButStyle style, eButPushStyle pushStyle)
-{
-	m_pBitmap[NORMAL] = pBmpNormal;
-	m_pBitmap[OVER] = pBmpOver;
-	m_pBitmap[PRESSED] = pBmpSelected;
+// frbutton.cpp:124
+void FrButton::InitExtern(const Bitmap* pBmpNormal, const Bitmap* pBmpOver, const Bitmap* pBmpSelected, eButStyle style,
+	eButPushStyle pushStyle) {
+	m_pBitmap[0] = pBmpNormal;
+	m_pBitmap[1] = pBmpOver;
+	m_pBitmap[2] = pBmpSelected;
 
 	m_style = style;
 	m_pushStyle = pushStyle;
@@ -114,9 +111,9 @@ void FrButton::InitExtern(const Bitmap* pBmpNormal, const Bitmap* pBmpOver,
 	m_rect.h = (float)pBmpNormal->Height();
 }
 
-void FrButton::SetButtonImg(const char* name, eButMode mode)
-{
-	if (!name)
+// frbutton.cpp:138
+void FrButton::SetButtonImg(const char* name, eButMode mode) {
+	if (name == 0)
 		return;
 
 	const Bitmap* bitmap;
@@ -131,9 +128,9 @@ void FrButton::SetButtonImg(const char* name, eButMode mode)
 	m_rect.h = (float)bitmap->Height();
 }
 
-void FrButton::SetButtonBelowImg(const char* name, eButMode mode)
-{
-	if (!name)
+// frbutton.cpp:156
+void FrButton::SetButtonBelowImg(const char* name, eButMode mode) {
+	if (name == 0)
 		return;
 
 	const Bitmap* bitmap;
@@ -145,38 +142,34 @@ void FrButton::SetButtonBelowImg(const char* name, eButMode mode)
 	m_pBtnBg[mode] = bitmap;
 }
 
-void FrButton::Enable(bool enable)
-{
-	m_dwStyle.Turn(FWS_DISABLED, !enable);
+// frbutton.cpp:172
+void FrButton::Enable(bool enable) {
+	if (!enable)
+		m_dwStyle.Enable(0x2);
+	else
+		m_dwStyle.Disable(0x2);
 
 	if (m_status == OVER)
 		m_status = NORMAL;
 }
 
-void FrButton::OnSetCursor(bool bInClient, const WPoint& mousePos)
-{
-	switch (m_pushStyle)
-	{
+// frbutton.cpp:180
+void FrButton::OnSetCursor(bool bInClient, const WPoint& mousePos) {
+	switch (m_pushStyle) {
 	case BP_CHECKBUTTON:
-		if (m_bPressed != m_bPrevPressed)
-		{
+		if (m_bPressed != m_bPrevPressed) {
 			m_bPrevPressed = m_bPressed;
 			if (m_bPressed)
 				m_status = (m_status == PRESSED) ? NORMAL : PRESSED;
 		}
 
-		if (bInClient)
-		{
-			if (m_status != PRESSED)
-			{
+		if (bInClient) {
+			if (m_status != PRESSED) {
 				m_status = OVER;
 				SetCursor(FrCursor::ROLL_OVER);
-			}
-			else
+			} else
 				SetCursor(FrCursor::SELECT);
-		}
-		else
-		{
+		} else {
 			if (m_status != PRESSED)
 				m_status = NORMAL;
 		}
@@ -188,38 +181,28 @@ void FrButton::OnSetCursor(bool bInClient, const WPoint& mousePos)
 		else
 			m_status = m_bPressed ? PRESSED : NORMAL;
 
-		if (bInClient)
-		{
-			if (m_status != PRESSED)
-			{
+		if (bInClient) {
+			if (m_status != PRESSED) {
 				m_status = OVER;
 				SetCursor(FrCursor::ROLL_OVER);
-			}
-			else
+			} else
 				SetCursor(FrCursor::SELECT);
-		}
-		else
-		{
+		} else {
 			if (m_status != PRESSED)
 				m_status = NORMAL;
 		}
 		break;
 
 	default:
-		if (bInClient)
-		{
-			if (m_bPressed)
-			{
+		if (bInClient) {
+			if (m_bPressed) {
 				m_status = PRESSED;
 				SetCursor(FrCursor::SELECT);
-			}
-			else
-			{
+			} else {
 				m_status = OVER;
 				SetCursor(FrCursor::ROLL_OVER);
 			}
-		}
-		else
+		} else
 			m_status = NORMAL;
 		break;
 	}
@@ -228,26 +211,22 @@ void FrButton::OnSetCursor(bool bInClient, const WPoint& mousePos)
 		SetCursor(FrCursor::INFO);
 }
 
-bool FrButton::OnLButtonDown(const WPoint& mousePos)
-{
-	if (m_pushedTime > m_pushDelay)
-	{
+// frbutton.cpp:268
+bool FrButton::OnLButtonDown(const WPoint& mousePos) {
+	if (m_pushedTime > m_pushDelay) {
 		if (m_pushStyle == BP_PUSHBUTTON)
 			m_pushedTime = 0.1f;
 
-		if (SetCapture())
-		{
-			if (m_pushStyle == BP_RADIOBUTTON)
-			{
+		if (SetCapture()) {
+			if (m_pushStyle == BP_RADIOBUTTON) {
 				if (m_bPrevPressed == true)
 					return false;
+
 				m_bPrevPressed = true;
 			}
 
 			m_bPressed = true;
-
-			if (m_rect.IsInRect(mousePos))
-			{
+			if (m_rect.IsInRect(mousePos)) {
 				PlayPushSound();
 				SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, 0, 0);
 			}
@@ -257,10 +236,9 @@ bool FrButton::OnLButtonDown(const WPoint& mousePos)
 	return false;
 }
 
-bool FrButton::OnLButtonUp(const WPoint& mousePos)
-{
-	if ((m_pushStyle != BP_PUSHBUTTON || m_rect.IsInRect(mousePos)) &&
-		m_bPressed == true)
+// frbutton.cpp:299
+bool FrButton::OnLButtonUp(const WPoint& mousePos) {
+	if ((m_pushStyle != BP_PUSHBUTTON || m_rect.IsInRect(mousePos)) && m_bPressed == true)
 		SendCmdToOwnerTarget(FRCMD_LBUTTONUP, 0, 0);
 
 	m_bPressed = false;
@@ -269,28 +247,23 @@ bool FrButton::OnLButtonUp(const WPoint& mousePos)
 	return false;
 }
 
-bool FrButton::OnRButtonDown(const WPoint& mousePos)
-{
-	if (m_useRightButton)
-	{
-		if (m_pushedTime > m_pushDelay)
-		{
+// frbutton.cpp:312
+bool FrButton::OnRButtonDown(const WPoint& mousePos) {
+	if (m_useRightButton) {
+		if (m_pushedTime > m_pushDelay) {
 			if (m_pushStyle == BP_PUSHBUTTON)
 				m_pushedTime = 0.1f;
 
-			if (SetCapture())
-			{
-				if (m_pushStyle == BP_RADIOBUTTON)
-				{
+			if (SetCapture()) {
+				if (m_pushStyle == BP_RADIOBUTTON) {
 					if (m_bPrevPressed == true)
 						return false;
+
 					m_bPrevPressed = true;
 				}
 
 				m_bPressed = true;
-
-				if (m_rect.IsInRect(mousePos))
-				{
+				if (m_rect.IsInRect(mousePos)) {
 					PlayPushSound();
 					SendCmdToOwnerTarget(FRCMD_RBUTTONDOWN, 0, 0);
 				}
@@ -301,12 +274,10 @@ bool FrButton::OnRButtonDown(const WPoint& mousePos)
 	return false;
 }
 
-bool FrButton::OnRButtonUp(const WPoint& mousePos)
-{
-	if (m_useRightButton)
-	{
-		if ((m_pushStyle != BP_PUSHBUTTON || m_rect.IsInRect(mousePos)) &&
-			m_bPressed == true)
+// frbutton.cpp:346
+bool FrButton::OnRButtonUp(const WPoint& mousePos) {
+	if (m_useRightButton) {
+		if ((m_pushStyle != BP_PUSHBUTTON || m_rect.IsInRect(mousePos)) && m_bPressed == true)
 			SendCmdToOwnerTarget(FRCMD_RBUTTONUP, 0, 0);
 
 		m_bPressed = false;
@@ -316,30 +287,27 @@ bool FrButton::OnRButtonUp(const WPoint& mousePos)
 	return false;
 }
 
-void FrButton::OnDraw()
-{
+// frbutton.cpp:362
+void FrButton::OnDraw(void) {
 	FrWnd::OnDraw();
 
 	unsigned long wndColor = 0;
 	eButMode mode = NORMAL;
 
-	switch (m_style)
-	{
+	switch (m_style) {
 	case BT_3TYPES:
 		mode = m_status;
-		if (m_dwStyle.GetFlag(FWS_DISABLED))
+		if (m_dwStyle.GetFlag(0x2))
 			wndColor = 0x50b0b0b0;
 		else
 			wndColor = m_pushedTime > m_pushDelay ? 0xffffffff : 0x50b0b0b0;
 		break;
 
 	case BT_NORMAL:
-		if (m_dwStyle.GetFlag(FWS_DISABLED))
+		if (m_dwStyle.GetFlag(0x2))
 			wndColor = 0x50b0b0b0;
-		else
-		{
-			switch (m_status)
-			{
+		else {
+			switch (m_status) {
 			case NORMAL:
 				wndColor = m_pushedTime > m_pushDelay ? 0xffffffff : 0x50b0b0b0;
 				break;
@@ -358,10 +326,8 @@ void FrButton::OnDraw()
 		break;
 	}
 
-	if (!IsViewFocused())
-	{
-		union
-		{
+	if (!IsViewFocused()) {
+		union {
 			unsigned long dw;
 			unsigned char by[4];
 		} color;
@@ -372,8 +338,7 @@ void FrButton::OnDraw()
 	}
 
 	float alphaModifier = m_wndAlpha2 * m_wndAlpha;
-	if (m_blinkEnable && m_blink)
-	{
+	if (m_blinkEnable && m_blink) {
 		if (m_pBitmap[BLINK])
 			mode = BLINK;
 		else
@@ -381,81 +346,76 @@ void FrButton::OnDraw()
 	}
 
 	if (m_pBtnBg[mode])
-		GDI()->DrawTexture(m_pBtnBg[mode], m_rect,
-			FrALPHA(wndColor, alphaModifier), 0);
+		GDI()->DrawTexture(m_pBtnBg[mode], m_rect, FrALPHA(wndColor, alphaModifier), 0);
 
-	GDI()->DrawTexture(m_pBitmap[mode], m_rect,
-		FrALPHA(wndColor, alphaModifier), 0);
+	GDI()->DrawTexture(m_pBitmap[mode], m_rect, FrALPHA(wndColor, alphaModifier), 0);
 
 	if (m_drawStyle != BD_NONE)
 		SendCmdToOwnerTarget(FRCMD_OWNERDRAW, 0, 0);
 }
 
-void FrButton::OnProc(const float deltaTime)
-{
-	if (CCapturedBg::IsInstantiated() && CCapturedBg::Instance()->IsCaptured())
+// frbutton.cpp:445
+void FrButton::OnProc(const float deltaTime) {
+	CCapturedBg* pCapturedBg = WSingleton<CCapturedBg>::Instance();
+	if (pCapturedBg && pCapturedBg->IsCaptured())
 		return;
 
 	m_pushedTime += deltaTime;
 
-	if (m_blinkEnable)
-	{
-		if (m_fBlinktime > 0.7f)
-		{
+	if (m_blinkEnable) {
+		if (m_fBlinktime > 0.7f) {
 			m_fBlinktime = 0.0f;
 			m_blink = !m_blink;
 		}
-
 		m_fBlinktime += deltaTime;
 	}
 }
 
-void FrButton::PreCreateWindow(FrWndManager* pManager, unsigned long dwStyle,
-	const WRect& rect, FrWnd* pParentWnd)
-{
+// frbutton.cpp:465
+void FrButton::PreCreateWindow(FrWndManager* pManager, unsigned long dwStyle, const WRect& rect, FrWnd* pParentWnd) {
 	FrWnd::PreCreateWindow(pManager, dwStyle, rect, pParentWnd);
 
-	if (!m_pItem)
+	if (m_pItem == 0)
 		return;
 
 	if (m_pItem->m_name.empty())
 		return;
 
+	// Disabled once the owner has a handler for every click command.
 	sFRESH_HANDLER chk;
-
 	memset(&chk, 0, sizeof(chk));
 	SendCmdToOwnerTarget(FRCMD_LBUTTONUP, 0, &chk);
-	if (!chk.pFn)
+	if (chk.pFn == 0)
 		return;
 
 	memset(&chk, 0, sizeof(chk));
 	SendCmdToOwnerTarget(FRCMD_LBUTTONDOWN, 0, &chk);
-	if (!chk.pFn)
+	if (chk.pFn == 0)
 		return;
 
 	memset(&chk, 0, sizeof(chk));
 	SendCmdToOwnerTarget(FRCMD_RBUTTONUP, 0, &chk);
-	if (!chk.pFn)
+	if (chk.pFn == 0)
 		return;
 
 	memset(&chk, 0, sizeof(chk));
 	SendCmdToOwnerTarget(FRCMD_RBUTTONDOWN, 0, &chk);
-	if (!chk.pFn)
+	if (chk.pFn == 0)
 		return;
 
-	m_dwStyle.Enable(FWS_DISABLED);
+	m_dwStyle.Enable(0x2);
 }
 
-void FrButton::SetStatus(eButMode status)
-{
+// frbutton.cpp:502
+void FrButton::SetStatus(eButMode status) {
 	m_status = status;
 
 	if (m_pushStyle == BP_RADIOBUTTON)
 		m_bPrevPressed = status == PRESSED;
 }
 
-void FrButton::EnableBlink(bool enable)
-{
+// frbutton.cpp:511
+void FrButton::EnableBlink(bool enable) {
 	m_blinkEnable = enable;
 	m_blink = enable;
 }

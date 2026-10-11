@@ -1,188 +1,147 @@
-#include "minatl.h"
-#include "projectg.h"
-#include "wpuppet.h"
-#include "wbone.h"
-#include "fx.h"
+// Original: d:\build\custom\temp\code\client\projectg\fxinterpreter.cpp
+#include <string.h>
+
 #include "fxinterpreter.h"
-#include "mathconsts.h"
-const char* GetStrConst(const char* str, char* out);
-const char* GetCharsTillSpace(const char* str, char* out);
+#include "fx.h"
 
-const char FxInterpreter::TOKEN[][8] = { "*fx", "*playif" };
+// commonutil.cpp; not declared in commonutil.h yet.
+const char* GetStrConst(const char* pSrc, char* pDest);
+const char* GetCharsTillSpace(const char* pSrc, char* pDest);
 
-FxInterpreter* GetFxInterpreter()
-{
-	static FxInterpreter fxInterpreter;
+const char FxInterpreter::TOKEN[2][8] = { "*fx", "*playif" };
 
-	return &fxInterpreter;
+// fxinterpreter.cpp:20
+FxInterpreter* GetFxInterpreter(void) {
+	static FxInterpreter s_interpreter;
+	return &s_interpreter;
 }
 
-FxInterpreter::sFxInfo::sFxInfo(int _id, eEffectType _type, void* _pFx)
-{
-	id = _id;
-	type = _type;
-	pFx = _pFx;
+// fxinterpreter.cpp:29
+FxInterpreter::sFxInfo::sFxInfo(int handle, eEffectType type, void* pFx) {
+	m_handle = handle;
+	m_type = type; m_pFx = pFx;
 }
 
-void FxInterpreter::sFxInfo::DetachSingleFx()
-{
-	if (CFx::Instance())
-	{
-		if (type == eET_SPRAY)
-			CFx::Instance()->CloseSpray((CFxSpray*)pFx);
-		else if (type == eET_SEQUENCE)
-			CFx::Instance()->CloseSequence((CFxSequence*)pFx, true);
+// fxinterpreter.cpp:36
+void FxInterpreter::sFxInfo::DetachSingleFx(void) {
+	if (CFx::Instance()) {
+		if (m_type == EFFECT_SPRAY) {
+			CFx::Instance()->CloseSpray((CFxSpray*)m_pFx);
+		} else if (m_type == EFFECT_SEQUENCE) {
+			CFx::Instance()->CloseSequence((CFxSequence*)m_pFx, true);
+		}
 	}
 }
 
-FxInterpreter::FxInterpreter()
-{
-	m_nextID = 0;
+// fxinterpreter.cpp:56
+FxInterpreter::FxInterpreter(void) {
+	m_handle = 0;
 }
 
-FxInterpreter::~FxInterpreter()
-{
-	if (!m_fxList.empty())
+// fxinterpreter.cpp:61
+FxInterpreter::~FxInterpreter(void) {
+	if (!m_fxList.empty()) {
 		DetachFxAll();
+	}
 }
 
-bool FxInterpreter::ParseToken(const char** str, eScripFormat format) const
-{
-	*str = strstr(*str, TOKEN[format]);
-	return *str != NULL;
+// fxinterpreter.cpp:70
+bool FxInterpreter::ParseToken(const char** ppScript, eScripFormat format) const {
+	*ppScript = strstr(*ppScript, TOKEN[format]);
+	return *ppScript != NULL;
 }
 
-bool FxInterpreter::ParseFxName(const char** str, char* name,
-	eScripFormat format, eEffectType& type) const
-{
-	switch (format)
-	{
-	case eSF_FX:
-
-		*str = GetCharsTillSpace(*str + 3, name);
+// fxinterpreter.cpp:76
+bool FxInterpreter::ParseFxName(const char** ppScript, char* name, eScripFormat format, eEffectType& type) const {
+	switch (format) {
+	case SCRIPT_FORMAT_TEXT:
+		*ppScript = GetCharsTillSpace(*ppScript + 3, name);
 		break;
-	case eSF_PLAYIF:
-		*str = GetStrConst(*str + 3, name);
+	case SCRIPT_FORMAT_STRING:
+		*ppScript = GetStrConst(*ppScript + 3, name);
 		break;
 	default:
-
 		return false;
 	}
 
 	int len = strlen(name);
-
-	if (len == 0 || len >= 64)
+	if (len == 0 || len >= 64) {
 		return false;
+	}
 
-	char* ext = strrchr(name, '.');
-
-	if (ext == NULL || strlen(ext) < 4)
+	const char* ext = strrchr(name, '.');
+	if (ext == NULL || strlen(ext) < 4) {
 		return false;
-	const char* szExt = ext + 1;
-
-	if (!stricmp(szExt, "seq"))
-	{
-		type = eET_SEQUENCE;
-		return true;
 	}
 
-	if (!stricmp(szExt, "spr"))
-	{
-		type = eET_SPRAY;
-		return true;
+	if (stricmp(ext + 1, "seq") == 0) {
+		type = EFFECT_SEQUENCE;
 	}
-	type = eET_NONE;
-	return false;
+	else if (stricmp(ext + 1, "spr") == 0) {
+		type = EFFECT_SPRAY;
+	}
+	else {
+		type = EFFECT_NONE;
+		return false;
+	}
+
+	return true;
 }
-int FxInterpreter::ParseBoundingBoxScript_fx(WPuppet* pet, eScripFormat format)
-{
-	bool bAttached = false;
 
-	for (w_bound_box* box = pet->m_bbList.Start(); box;
-		box = pet->m_bbList.Next())
-	{
-		if (!box->info->option || !box->bone ||
-			box->bone->m_flag.GetFlag(WBone::INVISIBLE))
-			continue;
-
-		const char* str = box->info->option;
-		while (ParseToken(&str, format))
-		{
-			char name[64];
-			eEffectType type;
-
-			if (ParseFxName(&str, name, format, type))
-			{
-				Attacher attacher;
-				attacher.mat[0] = &box->bone->m_matrix;
-				attacher.pos[0] = &box->info->spherePivot;
-				bAttached = AttachFx(name, &attacher, type);
-			}
-		}
-	}
-	if (bAttached)
-		return m_nextID++;
-
-	return -1;
-}
-int FxInterpreter::ParseCharBoundingBoxScript_fx(WPuppet* pet,
-	eScripFormat format)
-{
+// fxinterpreter.cpp:160
+int FxInterpreter::ParseCharBoundingBoxScript_fx(WPuppet* pPuppet, eScripFormat format) {
 	return -1;
 }
 
-int FxInterpreter::ParseCharFrameDataScrip_fx(WPuppet* pet, eScripFormat format)
-{
+// fxinterpreter.cpp:165
+int FxInterpreter::ParseCharFrameDataScrip_fx(WPuppet* pPuppet, eScripFormat format) {
 	return -1;
 }
 
-bool FxInterpreter::AttachFx(const char* name, const Attacher* attacher,
-	eEffectType type)
-{
-	if (name && attacher)
-	{
-		if (type == eET_SPRAY)
-		{
-			void* pFx = CFx::Instance()->Attach(*attacher, name, false, NULL);
-			m_fxList.push_back(sFxInfo(m_nextID, eET_SPRAY, pFx));
-			return true;
-		}
-		else if (type == eET_SEQUENCE)
-		{
-			void* pFx = CFx::Instance()->Attach(*attacher, name, false, NULL);
-			m_fxList.push_back(sFxInfo(m_nextID, eET_SEQUENCE, pFx));
-			return true;
-		}
+// fxinterpreter.cpp:170
+bool FxInterpreter::AttachFx(const char* name, const Attacher* pAttacher, eEffectType type) {
+	if (name == NULL || pAttacher == NULL) {
+		return false;
 	}
-	return false;
+
+	if (type == EFFECT_SPRAY) {
+		void* pFx = CFx::Instance()->Attach(*pAttacher, name, false, NULL);
+		m_fxList.push_back(sFxInfo(m_handle, EFFECT_SPRAY, pFx));
+	} else if (type == EFFECT_SEQUENCE) {
+		void* pFx = CFx::Instance()->Attach(*pAttacher, name, false, NULL);
+		m_fxList.push_back(sFxInfo(m_handle, EFFECT_SEQUENCE, pFx));
+	} else {
+		return false;
+	}
+
+	return true;
 }
 
-void FxInterpreter::DetachFx(int id)
-{
-	if (id < 0)
+// fxinterpreter.cpp:193
+void FxInterpreter::DetachFx(int handle) {
+	if (handle < 0) {
 		return;
+	}
+
 	std::list<sFxInfo>::iterator it = m_fxList.begin();
-	while (it != m_fxList.end())
-	{
-		if ((*it).id == id)
-		{
-			std::list<sFxInfo>::iterator del = it++;
-			(*del).DetachSingleFx();
-			m_fxList.erase(del);
-		}
-		else
-		{
-			if ((*it).id > id)
-				return;
-			it++;
+	while (it != m_fxList.end()) {
+		if (it->m_handle == handle) {
+			std::list<sFxInfo>::iterator cur = it++;
+			cur->DetachSingleFx();
+			m_fxList.erase(cur);
+		} else if (it->m_handle > handle) {
+			break;
+		} else {
+			++it;
 		}
 	}
 }
 
-void FxInterpreter::DetachFxAll()
-{
-	for (std::list<sFxInfo>::iterator it = m_fxList.begin();
-		it != m_fxList.end(); it++)
-		(*it).DetachSingleFx();
+// fxinterpreter.cpp:217
+void FxInterpreter::DetachFxAll(void) {
+	for (std::list<sFxInfo>::iterator it = m_fxList.begin(); it != m_fxList.end(); ++it) {
+		it->DetachSingleFx();
+	}
+
 	m_fxList.clear();
 }

@@ -1,220 +1,186 @@
-#include "minatl.h"
-#include <stack>
+// Original: d:\build\custom\temp\code\shared\tikimagicboxtable.cpp
+#include "TikiMagicBoxTable.h"
 
-#include "tikimagicboxtable.h"
+#include <stdlib.h>
+#include <string.h>
+#include <deque>
+#include <new>
 
+#include "classdefine.h"
+#include "../client/ProjectG/SharedDoc.h"
+
+// tikimagicboxtable.cpp:20
 void CTikiMagicBoxDoc::InsertOutput(const IFF_STRUCT::sTikiOutputTable& table)
 {
-	IFF_STRUCT::sTikiOutputTable* pRecord = new IFF_STRUCT::sTikiOutputTable;
-	if (pRecord == NULL)
+	IFF_STRUCT::sTikiOutputTable *output = new IFF_STRUCT::sTikiOutputTable;
+	if (output == NULL)
 		return;
-	*pRecord = table;
 
-	std::map<std::string,
-		std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>*>::iterator itr =
-		m_OPTCategory.find(pRecord->strCategory);
+	memset(output, 0, sizeof(IFF_STRUCT::sTikiOutputTable)); *output = table;
 
-	if (itr == m_OPTCategory.end())
-	{
-		std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>* pMap =
-			new std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>;
-		if (pMap)
-		{
-			m_OPTCategory.insert(std::make_pair(pRecord->strCategory, pMap));
-		}
+	OutputGroupMap::iterator group = m_outputGroups.find(output->m_name);
 
-		itr = m_OPTCategory.find(pRecord->strCategory);
+	if (group == m_outputGroups.end()) {
+		OutputTableMap *outputs = new OutputTableMap;
+		if (outputs != NULL)
+			m_outputGroups.insert(std::make_pair(output->m_name, outputs));
+
+		group = m_outputGroups.find(output->m_name);
 	}
 
-	if (itr != m_OPTCategory.end())
-	{
-		std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>* pMap =
-			(*itr).second;
+	if (group != m_outputGroups.end()) {
+		OutputTableMap *outputs = group->second;
 
-		if (pMap)
-		{
-			pMap->insert(std::make_pair(pRecord->uiIndex, pRecord));
-		}
+		if (outputs != NULL)
+			outputs->insert(OutputTableMap::value_type(output->m_typeId, output));
 	}
 }
 
-void CTikiMagicBoxDoc::InsertPointTable(
-	const IFF_STRUCT::sTikiPointTable& table)
+// tikimagicboxtable.cpp:55
+void CTikiMagicBoxDoc::InsertPointTable(const IFF_STRUCT::sTikiPointTable& table)
 {
-	IFF_STRUCT::sTikiPointTable* pRecord = new IFF_STRUCT::sTikiPointTable;
-	if (pRecord == NULL)
+	IFF_STRUCT::sTikiPointTable *point = new IFF_STRUCT::sTikiPointTable;
+	if (point == NULL)
 		return;
-	*pRecord = table;
 
-	m_PointTable.insert(std::make_pair(pRecord->uiIndex, pRecord));
+	memset(point, 0, sizeof(IFF_STRUCT::sTikiPointTable)); *point = table;
+
+	m_pointTables.insert(PointTableMap::value_type(point->m_typeId, point));
 }
 
-void CTikiMagicBoxDoc::InsertSpecialRecipe(
-	const IFF_STRUCT::sTikiSpecialRecipe& table)
+// tikimagicboxtable.cpp:66
+void CTikiMagicBoxDoc::InsertSpecialRecipe(const IFF_STRUCT::sTikiSpecialRecipe& recipe)
 {
-	IFF_STRUCT::sTikiSpecialRecipe* pRecord =
-		new IFF_STRUCT::sTikiSpecialRecipe;
-	if (pRecord == NULL)
+	IFF_STRUCT::sTikiSpecialRecipe *special = new IFF_STRUCT::sTikiSpecialRecipe;
+	if (special == NULL)
 		return;
-	*pRecord = table;
 
-	m_SpecialTable.insert(std::make_pair(pRecord->uiIndex, pRecord));
+	memset(special, 0, sizeof(IFF_STRUCT::sTikiSpecialRecipe)); *special = recipe;
+
+	m_specialRecipes.insert(SpecialRecipeMap::value_type(special->m_typeId, special));
 }
 
-bool CTikiMagicBoxDoc::GetOutput(const int mtrCount,
-	const sTikiMagicBoxMtr* const mtr, sTikiMagicBoxMtr& output)
+// tikimagicboxtable.cpp:77
+bool CTikiMagicBoxDoc::GetOutput(int count, const sTikiMagicBoxMtr* const mtrs, sTikiMagicBoxMtr& output)
 {
-	if (mtrCount == 0 || mtr == NULL)
+	if (count == 0 || mtrs == NULL)
 		return false;
 
-	char szCategory[32] = "\0";
+	char name[32] = "\0";
 
-	memset(&output, 0, sizeof(output));
+	memset(&output, 0, sizeof(sTikiMagicBoxMtr));
 
-	bool bFound = false;
-	std::map<unsigned int, IFF_STRUCT::sTikiSpecialRecipe*>::iterator
-		spBegin = m_SpecialTable.begin(),
-		spEnd = m_SpecialTable.end();
+	bool found = false;
+	SpecialRecipeMap::iterator recipe = m_specialRecipes.begin(), recipeEnd = m_specialRecipes.end();
 
-	for (; spBegin != spEnd; ++spBegin)
-	{
-		IFF_STRUCT::sTikiSpecialRecipe* pRecord = (*spBegin).second;
+	for (; recipe != recipeEnd; ++recipe) {
+		IFF_STRUCT::sTikiSpecialRecipe *special = recipe->second;
 
-		if (pRecord)
-		{
-			if (mtrCount == pRecord->uiElemCount)
-			{
-				unsigned long* data[2] = { NULL, NULL };
+		if (special == NULL)
+			continue;
 
-				for (int i = 0; i < 2; i++)
-				{
-					data[i] = new unsigned long[mtrCount];
-				}
+		if (count != special->m_count)
+			continue;
 
-				for (int i = 0; i < mtrCount; i++)
-				{
-					data[0][i] = mtr[i].dwTypeID;
-					data[1][i] = pRecord->uiElem[i];
-				}
+		// [0] the mix's type ids, [1] the recipe's
+		unsigned long *typeIds[2] = { NULL, NULL };
 
-				for (int i = 0; i < mtrCount; i++)
-				{
-					for (int j = i; j < mtrCount; j++)
-					{
-						for (int k = 0; k < 2; k++)
-						{
-							if (data[k][i] > data[k][j])
-							{
-								unsigned long temp = data[k][i];
-								data[k][i] = data[k][j];
-								data[k][j] = temp;
-							}
-						}
+		for (int i = 0; i < 2; i++)
+			typeIds[i] = new unsigned long[count];
+
+		for (int i = 0; i < count; i++) {
+			typeIds[0][i] = mtrs[i].m_typeId;
+			typeIds[1][i] = special->m_typeIds[i];
+		}
+
+		for (int i = 0; i < count; i++) {
+			for (int j = i; j < count; j++) {
+				for (int k = 0; k < 2; k++) {
+					if (typeIds[k][i] > typeIds[k][j]) {
+						unsigned long typeId = typeIds[k][i];
+						typeIds[k][i] = typeIds[k][j];
+						typeIds[k][j] = typeId;
 					}
 				}
+			}
+		}
 
-				std::stack<unsigned long> MaterialStack;
-				std::stack<unsigned long> RecipeStack;
+		std::deque<unsigned long> mix;
+		std::deque<unsigned long> recipeIds;
 
-				for (int i = 0; i < mtrCount; i++)
-				{
-					MaterialStack.push(data[0][i]);
-					RecipeStack.push(data[1][i]);
-				}
+		for (int i = 0; i < count; i++) {
+			mix.push_back(typeIds[0][i]);
+			recipeIds.push_back(typeIds[1][i]);
+		}
 
-				for (int i = 0; i < 2; i++)
-				{
-					delete[] data[i];
-					data[i] = NULL;
-				}
+		for (int i = 0; i < 2; i++) {
+			delete[] typeIds[i];
+			typeIds[i] = NULL;
+		}
 
-				for (int i = 0; i < mtrCount; i++)
-				{
-					if (MaterialStack.top() == RecipeStack.top())
-					{
-						MaterialStack.pop();
-						RecipeStack.pop();
-					}
-				}
+		for (int i = 0; i < count; i++) {
+			if (mix.back() == recipeIds.back()) {
+				mix.pop_back();
+				recipeIds.pop_back();
+			}
+		}
 
-				if (MaterialStack.size() == 0 && RecipeStack.size() == 0)
-				{
-					strcpy(szCategory, pRecord->strCategory);
-					bFound = true;
+		if (mix.empty() && recipeIds.empty()) {
+			strcpy(name, special->m_name);
+			found = true;
+			break;
+		}
+	}
+
+	if (!found) {
+		int point = 0;
+
+		for (int i = 0; i < count; i++) {
+			switch (mtrs[i].m_typeId >> 26) {
+			case 2: {
+				IFF_STRUCT::sPart *part = ItemManager()->FindPart(mtrs[i].m_typeId);
+				if (part != NULL)
+					point += part->m_tikiPoint * mtrs[i].m_count;
+				break;
+			}
+			case 6: {
+				IFF_STRUCT::sItem *item = ItemManager()->FindItem(mtrs[i].m_typeId);
+				if (item != NULL)
+					point += item->m_tikiPoint * mtrs[i].m_count;
+				break;
+			}
+			}
+		}
+
+		PointTableMap::iterator table = m_pointTables.begin(), tableEnd = m_pointTables.end();
+
+		for (; table != tableEnd; ++table) {
+			IFF_STRUCT::sTikiPointTable *pointTable = table->second;
+
+			if (pointTable != NULL) {
+				if (pointTable->m_minPoint <= point && pointTable->m_maxPoint >= point) {
+					// classdefine.h lacks sTikiPointTable::m_name (char[] at 0x5):
+					// strcpy(name, pointTable->m_name);
 					break;
 				}
 			}
 		}
 	}
 
-	if (bFound == false)
-	{
-		unsigned int uiPoint = 0;
-		for (int i = 0; i < mtrCount; i++)
-		{
-			switch (mtr[i].dwTypeID >> 26)
-			{
-			case PIG_PART:
-			{
-				IFF_STRUCT::sPart* pPart =
-					ItemManager()->FindPart(mtr[i].dwTypeID);
-				if (pPart)
-				{
-					uiPoint += pPart->Point * mtr[i].dwCount;
-				}
-			}
-			break;
-			case PIG_ITEM:
-			{
-				IFF_STRUCT::sItem* pItem =
-					ItemManager()->FindItem(mtr[i].dwTypeID);
-				if (pItem)
-				{
-					uiPoint += pItem->Point * mtr[i].dwCount;
-				}
-			}
-			break;
-			}
-		}
+	if (strlen(name) != 0) {
+		OutputGroupMap::iterator group = m_outputGroups.find(name);
 
-		std::map<unsigned int, IFF_STRUCT::sTikiPointTable*>::iterator
-			ptBegin = m_PointTable.begin(),
-			ptEnd = m_PointTable.end();
-		for (; ptBegin != ptEnd; ++ptBegin)
-		{
-			IFF_STRUCT::sTikiPointTable* pPoint = (*ptBegin).second;
-			if (pPoint)
-			{
-				if (pPoint->uiMin <= uiPoint && pPoint->uiMax >= uiPoint)
-				{
-					strcpy(szCategory, pPoint->strCategory);
-					break;
-				}
-			}
-		}
-	}
+		if (group != m_outputGroups.end()) {
+			OutputTableMap *outputs = group->second;
 
-	if (strlen(szCategory) != 0)
-	{
-		std::map<std::string,
-			std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>*>::iterator
-			itr = m_OPTCategory.find(szCategory);
+			if (outputs != NULL) {
+				unsigned int index = rand() % outputs->size();
+				IFF_STRUCT::sTikiOutputTable *table = (*outputs)[index];
 
-		if (itr != m_OPTCategory.end())
-		{
-			std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>* pOutput =
-				(*itr).second;
-
-			if (pOutput)
-			{
-				unsigned int uiIndex = rand() % pOutput->size();
-				IFF_STRUCT::sTikiOutputTable* pTable = (*pOutput)[uiIndex];
-
-				if (pTable)
-				{
-					output.dwTypeID = pTable->uiTypeID;
-					output.dwCount = pTable->uiCount;
-					output.dwGuid = 0;
+				if (table != NULL) {
+					output.m_typeId = table->m_itemTypeId;
+					output.m_count = table->m_itemCount;
+					output.m_itemId = 0;
 				}
 			}
 		}
@@ -223,67 +189,50 @@ bool CTikiMagicBoxDoc::GetOutput(const int mtrCount,
 	return false;
 }
 
-void CTikiMagicBoxDoc::CleanUp()
+// tikimagicboxtable.cpp:246
+void CTikiMagicBoxDoc::CleanUp(void)
 {
-	std::map<std::string,
-		std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>*>::iterator
-		opcBegin = m_OPTCategory.begin(),
-		opcEnd = m_OPTCategory.end();
+	OutputGroupMap::iterator group = m_outputGroups.begin(), groupEnd = m_outputGroups.end();
 
-	for (; opcBegin != opcEnd; ++opcBegin)
-	{
-		std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>* pMap =
-			(*opcBegin).second;
-		if (pMap)
-		{
-			std::map<unsigned int, IFF_STRUCT::sTikiOutputTable*>::iterator
-				opBegin = pMap->begin(),
-				opEnd = pMap->end();
+	for (; group != groupEnd; ++group) {
+		OutputTableMap *outputs = group->second;
+		if (outputs != NULL) {
+			OutputTableMap::iterator output = outputs->begin(), outputEnd = outputs->end();
 
-			for (; opBegin != opEnd; ++opBegin)
-			{
-				IFF_STRUCT::sTikiOutputTable* pTable = (*opBegin).second;
-				if (pTable)
-				{
-					delete pTable;
-					(*opBegin).second = NULL;
+			for (; output != outputEnd; ++output) {
+				IFF_STRUCT::sTikiOutputTable *table = output->second;
+				if (table != NULL) {
+					delete table;
+					output->second = NULL;
 				}
 			}
-			pMap->clear();
+			outputs->clear();
 
-			delete pMap;
-			(*opcBegin).second = NULL;
+			delete outputs;
+			group->second = NULL;
 		}
 	}
-	m_OPTCategory.clear();
+	m_outputGroups.clear();
 
-	std::map<unsigned int, IFF_STRUCT::sTikiPointTable*>::iterator
-		ptBegin = m_PointTable.begin(),
-		ptEnd = m_PointTable.end();
+	PointTableMap::iterator point = m_pointTables.begin(), pointEnd = m_pointTables.end();
 
-	for (; ptBegin != ptEnd; ++ptBegin)
-	{
-		IFF_STRUCT::sTikiPointTable* pTable = (*ptBegin).second;
-		if (pTable)
-		{
-			delete pTable;
-			(*ptBegin).second = NULL;
+	for (; point != pointEnd; ++point) {
+		IFF_STRUCT::sTikiPointTable *table = point->second;
+		if (table != NULL) {
+			delete table;
+			point->second = NULL;
 		}
 	}
-	m_PointTable.clear();
+	m_pointTables.clear();
 
-	std::map<unsigned int, IFF_STRUCT::sTikiSpecialRecipe*>::iterator
-		spBegin = m_SpecialTable.begin(),
-		spEnd = m_SpecialTable.end();
+	SpecialRecipeMap::iterator recipe = m_specialRecipes.begin(), recipeEnd = m_specialRecipes.end();
 
-	for (; spBegin != spEnd; ++spBegin)
-	{
-		IFF_STRUCT::sTikiSpecialRecipe* pRecord = (*spBegin).second;
-		if (pRecord)
-		{
-			delete pRecord;
-			(*spBegin).second = NULL;
+	for (; recipe != recipeEnd; ++recipe) {
+		IFF_STRUCT::sTikiSpecialRecipe *table = recipe->second;
+		if (table != NULL) {
+			delete table;
+			recipe->second = NULL;
 		}
 	}
-	m_SpecialTable.clear();
+	m_specialRecipes.clear();
 }

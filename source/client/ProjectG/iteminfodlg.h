@@ -1,65 +1,92 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\iteminfodlg.h
+#ifndef PG_CLIENT_PROJECTG_ITEMINFODLG_H
+#define PG_CLIENT_PROJECTG_ITEMINFODLG_H
 
+#include "..\..\defines.h"
+#include "..\..\padding.h"
 #include "frform.h"
 
-class FrGaugeBar;
 class FrArea;
 class FrEdit;
+class FrGaugeBar;
 class FrStatic;
+class Bitmap;
 struct sTradeItem;
-class FrItemInfoDlg : public FrForm
-{
+
+// Item information dialog of the trade screen (portrait, name, level and
+// the five ability rows); its size (0x178) is the `new` of
+// FrItemInfoDlgMakeInstance.
+class FrItemInfoDlg : public FrForm {
+	LAYOUT_CHECK_FRIEND;
 public:
-	DECLARE_OBJECT(FrItemInfoDlg)
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // iteminfodlg.h:8
 
-	FrItemInfoDlg();
-	virtual ~FrItemInfoDlg();
+	FrItemInfoDlg(void);
+	virtual ~FrItemInfoDlg(void);
 
-	void SetItemInfo(sTradeItem* item);
-	void SetLevelBar();
-	void SetLevelNumber(int index);
-	void SetEnchantNumber(int index);
-	void SetControlsAbility(bool bEnable);
-	void DrawEnchantArrow();
-
-protected:
-	virtual bool OnInit();
-
-	void OnPortraitInit(int param);
-	void OnPortraitOwnerDraw();
-	void OnNameInit(int param);
-	void OnLevelInit(int param);
-	void OnPowerStaticInit(int param);
-	void OnControlStaticInit(int param);
-	void OnAccuracyStaticInit(int param);
-	void OnSpinStaticInit(int param);
-	void OnCurveStaticInit(int param);
-	void OnPowerEdit1Init(int param);
-	void OnControlEdit1Init(int param);
-	void OnAccuracyEdit1Init(int param);
-	void OnSpinEdit1Init(int param);
-	void OnCurveEdit1Init(int param);
-	void OnPowerEdit2Init(int param);
-	void OnControlEdit2Init(int param);
-	void OnAccuracyEdit2Init(int param);
-	void OnSpinEdit2Init(int param);
-	void OnCurveEdit2Init(int param);
-	void OnPowerBarInit(int param);
-	void OnControlBarInit(int param);
-	void OnAccuracyBarInit(int param);
-	void OnSpinBarInit(int param);
-	void OnCurveBarInit(int param);
-
-	sTradeItem* m_pItem;
-	FrArea* m_pPortrait;
-	FrEdit* m_pName;
-	FrArea* m_pLevel;
-	FrGaugeBar* m_pBar[5];
-	FrEdit* m_pEdit1[5];
-	FrEdit* m_pEdit2[5];
-	FrStatic* m_pStatic[5];
-	const Bitmap* m_pEnchantArrow[2];
+	void SetControlsAbility(bool bVisible);
+	void SetLevelNumber(int level);
+	void SetEnchantNumber(int ability);
+	void DrawEnchantArrow(void);
+	void SetLevelBar(void);
+	void SetItemInfo(sTradeItem* pItem);
 
 private:
-	DECLARE_FRESH_MSGMAP()
+	static sFRESH_ENTRY _MsgEntries[];
+
+protected:
+	static sFRESH_MSGMAP _MsgMap;
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;   // iteminfodlg.cpp:21
+
+	virtual bool OnInit(void);
+	void OnPortraitInit(intptr_t param);
+	void OnPortraitOwnerDraw(void);
+	void OnNameInit(intptr_t param);
+	void OnLevelInit(intptr_t param);
+	void OnPowerStaticInit(intptr_t param);
+	void OnControlStaticInit(intptr_t param);
+	void OnAccuracyStaticInit(intptr_t param);
+	void OnSpinStaticInit(intptr_t param);
+	void OnCurveStaticInit(intptr_t param);
+	void OnPowerEdit1Init(intptr_t param);
+	void OnControlEdit1Init(intptr_t param);
+	void OnAccuracyEdit1Init(intptr_t param);
+	void OnSpinEdit1Init(intptr_t param);
+	void OnCurveEdit1Init(intptr_t param);
+	void OnPowerEdit2Init(intptr_t param);
+	void OnControlEdit2Init(intptr_t param);
+	void OnAccuracyEdit2Init(intptr_t param);
+	void OnSpinEdit2Init(intptr_t param);
+	void OnCurveEdit2Init(intptr_t param);
+	void OnPowerBarInit(intptr_t param);
+	void OnControlBarInit(intptr_t param);
+	void OnAccuracyBarInit(intptr_t param);
+	void OnSpinBarInit(intptr_t param);
+	void OnCurveBarInit(intptr_t param);
+
+	sTradeItem* m_pTradeItem;               // 0x110
+	FrArea* m_pPortrait;                    // 0x114
+	FrEdit* m_pName;                        // 0x118
+	FrArea* m_pLevel;                       // 0x11c
+	FrGaugeBar* m_pAbilityBar[5];           // 0x120, power/control/accuracy/spin/curve
+	FrEdit* m_pAbilityEdit1[5];             // 0x134
+	FrEdit* m_pAbilityEdit2[5];             // 0x148
+	FrStatic* m_pAbilityStatic[5];          // 0x15c
+	const Bitmap* m_pEnchantBitmap[2];      // 0x170, "trade_enchant_nothing" / "trade_enchant_upgrade"
 };
+
+CHECK_SIZE(FrItemInfoDlg, 0x178);
+BEGIN_LAYOUT_CHECK(FrItemInfoDlg)
+	CHECK_FIELD(FrItemInfoDlg, m_pTradeItem, 0x110);
+	CHECK_FIELD(FrItemInfoDlg, m_pPortrait, 0x114);
+	CHECK_FIELD(FrItemInfoDlg, m_pName, 0x118);
+	CHECK_FIELD(FrItemInfoDlg, m_pLevel, 0x11c);
+	CHECK_FIELD(FrItemInfoDlg, m_pAbilityBar, 0x120);
+	CHECK_FIELD(FrItemInfoDlg, m_pAbilityEdit1, 0x134);
+	CHECK_FIELD(FrItemInfoDlg, m_pAbilityEdit2, 0x148);
+	CHECK_FIELD(FrItemInfoDlg, m_pAbilityStatic, 0x15c);
+	CHECK_FIELD(FrItemInfoDlg, m_pEnchantBitmap, 0x170);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_ITEMINFODLG_H

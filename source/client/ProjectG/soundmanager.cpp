@@ -1,466 +1,661 @@
-#include "minatl.h"
-#include "soundmanager.h"
-#include "miles.h"
+// Original: d:\build\custom\temp\code\client\projectg\soundmanager.cpp
+#include "SoundManager.h"
+#include "Miles.h"
+#include "wmath.h"
+#include "wutil.h"
 #include "wview.h"
 
-extern const float SOUND_UNIT_SCALE = 0.32f;
+#include <math.h>
 
-CSoundManager::CSoundManager()
-	: m_sfxList(16, 16), m_idleList(16, 16)
-{
+#include <stdio.h>
+#include <string.h>
+#include <windows.h>
+
+// Definition of the global sound manager used throughout the codebase.
+// Many objects reference `g_audio` (declared `extern` in SoundManager.h),
+// so provide a single definition here.
+CSoundManager* g_audio = NULL;
+
+// soundmanager.cpp:26
+CSoundManager::CSoundManager(void) : m_sfxList(16, 16), m_idleList(16, 16) {
 	Init();
 }
 
-CSoundManager::~CSoundManager()
-{
+// soundmanager.cpp:31
+CSoundManager::~CSoundManager(void) {
 	Destroy();
 }
 
-void CSoundManager::Init()
-{
-	m_pMSS = NULL;
-	m_bActive = true;
-	m_idleCheckTime = 0.0f;
+// soundmanager.cpp:36
+void CSoundManager::Init(void) {
 	m_volume = 1.0f;
 	m_bgmVolume = 1.0f;
-	m_bgm = 0;
-	m_fadeOutBgm = 0;
-	m_fadeOutVolume = 1.0f;
-	m_fadeOutElapsed = 0.0f;
+	m_fadeVolume = 1.0f;
 	m_fadeOutTime = 1.0f;
-	m_maxHeight = 160.0f;
-	m_fadeHeight = 128.0f;
-	m_activeRadius = 960.0f;
+	m_pMSS = NULL;
+	m_bActive = true;
+	m_idleCheckTime = 0;
+	m_hBGM = 0;
+	m_hFadeBGM = 0;
+	m_fadeElapsed = 0;
+	m_farDistance = 160.0f;
+	m_nearDistance = 128.0f;
+	m_maxDistance = 960.0f;
 	memset(m_bgmName, 0, sizeof(m_bgmName));
 }
 
-void CSoundManager::Destroy()
-{
+// soundmanager.cpp:59
+void CSoundManager::Destroy(void) {
 	AllDelSfx();
+
 	m_pMSS = NULL;
 }
 
-void CSoundManager::SetMSS(WMilesSoundSystem* pMSS)
-{
+// soundmanager.cpp:66
+void CSoundManager::SetMSS(WMilesSoundSystem* pMSS) {
 	m_pMSS = pMSS;
 }
 
-WMilesSoundSystem* CSoundManager::GetMSS() const
-{
+// soundmanager.cpp:73
+WMilesSoundSystem* CSoundManager::GetMSS(void) const {
 	return m_pMSS;
 }
 
-void CSoundManager::Activate(bool bActive)
-{
-	m_bActive = bActive;
-	if (m_pMSS)
-		m_pMSS->Activate(bActive);
+// soundmanager.cpp:78
+void CSoundManager::Activate(bool active) {
+	m_bActive = active;
+	if (m_pMSS) {
+		m_pMSS->Activate(active);
+	}
 }
 
-void CSoundManager::Process(float dt, WView* pView)
-{
-	if (!m_pMSS)
-		return;
+// soundmanager.cpp:85
+void CSoundManager::Process(float fDelta, WView* pView) {
+	float dist = 0;
 
-	float height = 0.0f;
-	float radiusSquared = m_activeRadius * m_activeRadius;
-	float heightRange = m_maxHeight - m_fadeHeight;
-	if (m_fadeOutBgm)
-	{
-		m_fadeOutElapsed += dt;
-		if (m_fadeOutElapsed > m_fadeOutTime)
-		{
-			m_pMSS->Stop(m_fadeOutBgm);
-			m_fadeOutBgm = 0;
-			m_fadeOutElapsed = 0.0f;
-		}
-		else
-			m_pMSS->SetVolume(m_fadeOutBgm,
-				(1.0f - m_fadeOutElapsed / m_fadeOutTime) * m_fadeOutVolume);
+
+	if (!m_pMSS) {
+		return;
 	}
 
-	for (_SFX_INFO* pInfo = m_sfxList.Start(); pInfo; pInfo = m_sfxList.Next())
-	{
-		if (pInfo->bActive == true && pInfo->b3D == true)
-		{
-			if (pInfo->flags & 4)
-			{
-				pInfo->pos = pInfo->pObject->GetPos();
-				WVector pos = pInfo->pos * pView->invcamera;
-				m_pMSS->SetPosition(pInfo->handle, pos.x, pos.y, pos.z);
-			}
-			if (!pInfo->IsSet(2) || !pInfo->bPlayed)
-			{
-				float dy = pView->GetCamera().pivot.y - pInfo->pos.y;
-				height = dy > 0.0f ? dy : -dy;
-				if (height >= m_fadeHeight)
-				{
-					float volume =
-						(m_maxHeight - height) / heightRange * m_volume;
-					m_pMSS->SetVolume(pInfo->handle, Max(0.0f, volume));
-				}
-				WVector pos = pInfo->pos * pView->invcamera;
-				m_pMSS->SetPosition(pInfo->handle, pos.x, pos.y, pos.z);
-			}
-			if (!pInfo->bPlayed)
-			{
-				WVector diff;
-				diff = pView->GetCamera().pivot - pInfo->pos;
-				if ((diff.x * diff.x + diff.z * diff.z < radiusSquared &&
-						height < m_maxHeight) ||
-					pInfo->IsSet(1))
-				{
-					m_pMSS->Play(pInfo->handle, pInfo->IsSet(1), true);
-					pInfo->bPlayed = true;
-				}
-			}
+
+
+
+	float maxDistSq = m_maxDistance * m_maxDistance;
+	float range = m_farDistance - m_nearDistance;
+
+
+
+	if (m_hFadeBGM) {
+
+		m_fadeElapsed += fDelta;
+
+		if (m_fadeElapsed > m_fadeOutTime) {
+
+			m_pMSS->Stop(m_hFadeBGM);
+			m_hFadeBGM = 0;
+			m_fadeElapsed = 0;
+
+		} else {
+
+			m_pMSS->SetVolume(m_hFadeBGM, (1.0f - m_fadeElapsed / m_fadeOutTime) * m_fadeVolume);
 		}
 	}
-	CheckIdleSfx(dt);
-}
 
-int CSoundManager::GetSoundFx(char* filename, bool b3D)
-{
-	if (!m_pMSS || !filename)
-		return 0;
-	int type;
-	if (b3D)
-		type = 1;
-	else if (strstr(filename, ".a") || strstr(filename, ".mp3"))
-		type = 2;
-	else
-		type = 0;
-	return m_pMSS->Load(filename, type);
-}
 
-_SFX_INFO* CSoundManager::FindIdleSfx(const char* name)
-{
-	for (_SFX_INFO* pInfo = m_sfxList.Start(); pInfo; pInfo = m_sfxList.Next())
-	{
-		if ((!pInfo->bActive || pInfo->bPlayed == true) &&
-			!strcmpi(pInfo->name, name))
-			if (m_pMSS && !m_pMSS->IsPlaying(pInfo->handle))
-				return pInfo;
+
+	for (_SFX_INFO* pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+
+
+		if (pSfx->m_bPlaying == true && pSfx->m_b3D == true) {
+
+
+			if (pSfx->m_flags & 4) {
+
+				pSfx->m_pos = pSfx->m_pOwner->GetPos();
+				WVector pos = pSfx->m_pos * pView->invcamera;
+				m_pMSS->SetPosition(pSfx->m_hSound, pos.x, pos.y, pos.z);
+			}
+
+
+
+
+
+
+			if (!pSfx->IsSet(2) || !pSfx->m_state) {
+
+
+				dist = Abs(pView->camera.pivot.y - pSfx->m_pos.y);
+
+				if (dist >= m_nearDistance) {
+					float volume = (m_farDistance - dist) / range * m_volume;
+					m_pMSS->SetVolume(pSfx->m_hSound, 0.0f < volume ? volume : 0.0f);
+				}
+				WVector pos = pSfx->m_pos * pView->invcamera;
+				m_pMSS->SetPosition(pSfx->m_hSound, pos.x, pos.y, pos.z);
+
+
+
+
+				if (!pSfx->m_state) {
+
+					WVector diff;
+					diff = pView->camera.pivot - pSfx->m_pos;
+					float distSq = diff.x * diff.x + diff.z * diff.z;
+
+
+					if ((distSq < maxDistSq && dist < m_farDistance) || pSfx->IsSet(1)) {
+
+
+
+
+
+
+						m_pMSS->Play(pSfx->m_hSound, pSfx->m_flags & 1, true);
+						pSfx->m_state = 1;
+					}
+				}
+			}
+		}
 	}
-	return NULL;
+
+
+
+	CheckIdleSfx(fDelta);
 }
 
-void CSoundManager::CheckIdleSfx(float dt)
-{
-	if (!m_bActive)
+// soundmanager.cpp:178
+void CSoundManager::CheckIdleSfx(float fDelta) {
+	if (!m_bActive) {
 		return;
-	m_idleCheckTime += dt;
-	if (m_idleCheckTime > 5.0f)
-	{
-		m_idleCheckTime = 0.0f;
+	}
+
+	m_idleCheckTime += fDelta;
+
+	if (m_idleCheckTime > 5.0f) {
+
+
+
+		m_idleCheckTime = 0;
 		unsigned long tick = GetTickCount();
-		_SFX_INFO* pInfo;
-		for (pInfo = m_sfxList.Start(); pInfo; pInfo = m_sfxList.Next())
-		{
-			if (tick - pInfo->tick > 50000 && m_pMSS &&
-				!m_pMSS->IsPlaying(pInfo->handle))
-				m_idleList += pInfo;
+
+		_SFX_INFO* pSfx;
+		for (pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+
+			if (tick - pSfx->m_startTick > 50000 && m_pMSS && !m_pMSS->IsPlaying(pSfx->m_hSound)) {
+				m_idleList += pSfx;
+			}
 		}
-		for (pInfo = m_idleList.Start(); pInfo; pInfo = m_idleList.Next())
-			DelSfx(pInfo);
+
+		for (pSfx = m_idleList.Start(); pSfx; pSfx = m_idleList.Next()) {
+
+			DelSfx(pSfx);
+		}
+
+
 		m_idleList.Reset();
 	}
 }
 
-_SFX_INFO* CSoundManager::LoadSfx(const char* name, const WVector* pos,
-	unsigned long flags, const char* alias, const CSoundObject* pObject,
-	float minVolume, float maxDistance)
-{
-	if (!m_pMSS)
+// soundmanager.cpp:213
+_SFX_INFO* CSoundManager::FindIdleSfx(const char* name) {
+	_SFX_INFO* pSfx;
+
+
+	for (pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+
+
+
+
+
+
+
+
+		if ((!pSfx->m_bPlaying || pSfx->m_state == 1) && !strcmpi(pSfx->m_name, name) && m_pMSS && !m_pMSS->IsPlaying(pSfx->m_hSound)) {
+
+			return pSfx;
+		}
+	}
+
+
+
+	return NULL;
+}
+
+// soundmanager.cpp:235
+int CSoundManager::GetSoundFx(char* name, bool bStream) {
+	if (!m_pMSS || !name) {
+		return 0;
+	}
+
+
+
+
+	return m_pMSS->Load(name, bStream ? 1 : ((strstr(name, ".a") || strstr(name, ".mp3")) ? 2 : 0));
+}
+
+// The larger of two values, each argument evaluated as written.
+#define SFX_MAX(a, b) ((a) > (b) ? (a) : (b))
+
+// soundmanager.cpp:249
+_SFX_INFO* CSoundManager::LoadSfx(const char* name, const WVector* pPos, unsigned long flags, const char* alias, const CSoundObject* pOwner, float volume, float range) {
+	if (!m_pMSS) {
 		return NULL;
-	bool b3D = pos && flags != 5;
-	_SFX_INFO* pInfo = FindIdleSfx(name);
-	if (!pInfo)
-	{
-		char filename[MAX_PATH];
-		sprintf(filename, "sound/%s.wav", name);
-		int handle = GetSoundFx(filename, b3D);
-		if (!handle)
-			return NULL;
-		pInfo = new _SFX_INFO;
-		if (!pInfo)
-		{
-			m_pMSS->DestroySoundBuffer(handle);
+	}
+
+	bool b3D = pPos && flags != 5;
+
+	_SFX_INFO* pSfx = FindIdleSfx(name);
+	if (!pSfx) {
+
+
+		char path[0x100];
+		sprintf(path, "sound/%s.wav", name);
+		int hSound = GetSoundFx(path, b3D);
+		if (!hSound) {
+
+
 			return NULL;
 		}
-		memset(pInfo, 0, sizeof(*pInfo));
-		strcpy(pInfo->name, name);
-		pInfo->handle = handle;
-		AddSfx(pInfo);
+
+		pSfx = new _SFX_INFO;
+		if (!pSfx) {
+
+			m_pMSS->DestroySoundBuffer(hSound);
+			return NULL;
+		}
+
+		memset(pSfx, 0, sizeof(_SFX_INFO));
+		strcpy(pSfx->m_name, name);
+		pSfx->m_hSound = hSound;
+		AddSfx(pSfx);
 	}
-	float volume = m_volume;
-	memset(pInfo->alias, 0, sizeof(pInfo->alias));
-	if (alias)
-		strcpy(pInfo->alias, alias);
-	pInfo->flags = flags;
-	pInfo->bActive = true;
-	pInfo->tick = GetTickCount();
-	if (pos && flags != 5)
-	{
-		pInfo->pos = *pos;
-		pInfo->b3D = b3D;
-		pInfo->bPlayed = !b3D;
+
+
+
+	float vol = m_volume;
+
+	memset(pSfx->m_alias, 0, sizeof(pSfx->m_alias));
+	if (alias) {
+
+		strcpy(pSfx->m_alias, alias);
 	}
-	else
-	{
-		pInfo->b3D = false;
-		pInfo->bPlayed = true;
-		if (flags == 5)
-		{
-			volume *= max(minVolume,
-				(maxDistance - (pos->Magnitude())) / maxDistance);
-			pInfo->flags = flags = 0;
+
+
+	pSfx->m_flags = flags;
+	pSfx->m_bPlaying = true;
+	pSfx->m_startTick = GetTickCount();
+
+
+	if (pPos && flags != 5) {
+
+		memcpy(&pSfx->m_pos, pPos, sizeof(WVector));
+		pSfx->m_b3D = b3D;
+		pSfx->m_state = !b3D;
+	} else {
+
+
+
+
+		pSfx->m_b3D = false;
+		pSfx->m_state = 1;
+		if (flags == 5) {
+			vol *= SFX_MAX(volume, (range - (float)sqrt(pPos->x * pPos->x + pPos->y * pPos->y + pPos->z * pPos->z)) * (1.0f / range));
+			pSfx->m_flags = flags = 0;
 		}
 	}
-	pInfo->pObject = (flags & 4) ? pObject : NULL;
-	m_pMSS->SetVolume(pInfo->handle, volume);
-	return pInfo;
+	pSfx->m_pOwner = (flags & 4) ? pOwner : NULL;
+	m_pMSS->SetVolume(pSfx->m_hSound, vol);
+	return pSfx;
 }
 
-void CSoundManager::PlaySfx(const char* name, const WVector* pos,
-	unsigned long flags, const char* alias, const CSoundObject* pObject,
-	float minVolume, float maxDistance)
-{
-	_SFX_INFO* pInfo =
-		LoadSfx(name, pos, flags, alias, pObject, minVolume, maxDistance);
-	if (pInfo && pInfo->bPlayed == true)
-		m_pMSS->Play(pInfo->handle, pInfo->IsSet(1), true);
+// soundmanager.cpp:327
+void CSoundManager::PlaySfx(const char* name, const WVector* pPos, unsigned long flags, const char* alias, const CSoundObject* pOwner, float volume, float range) {
+	_SFX_INFO* pSfx = LoadSfx(name, pPos, flags, alias, pOwner, volume, range);
+	if (pSfx) {
+
+
+		if (pSfx->m_state == 1) {
+
+			m_pMSS->Play(pSfx->m_hSound, pSfx->IsSet(1), true);
+		}
+	}
 }
 
-void CSoundManager::StopSfx(const char* name)
-{
-	if (!m_pMSS)
+// soundmanager.cpp:341
+void CSoundManager::StopSfx(const char* alias) {
+	if (!m_pMSS) {
 		return;
-	if (!name)
-	{
-		for (_SFX_INFO* pInfo = m_sfxList.Start(); pInfo;
-			pInfo = m_sfxList.Next())
-		{
-			if (pInfo->bActive)
-			{
-				m_pMSS->Stop(pInfo->handle);
-				pInfo->bActive = false;
+	}
+
+
+
+
+	if (alias == NULL) {
+
+		for (_SFX_INFO* pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+
+			if (pSfx->m_bPlaying) {
+
+				m_pMSS->Stop(pSfx->m_hSound);
+				pSfx->m_bPlaying = false;
+			}
+		}
+	} else {
+
+
+
+
+
+		_SFX_INFO* pSfx = FindAliasSfx(alias);
+
+		if (pSfx && pSfx->m_hSound) {
+
+			if (pSfx->m_bPlaying) {
+
+				m_pMSS->Stop(pSfx->m_hSound);
+				pSfx->m_bPlaying = false;
 			}
 		}
 	}
-	else
-	{
-		_SFX_INFO* pInfo = FindAliasSfx(name);
-		if (pInfo && pInfo->handle && pInfo->bActive)
-		{
-			m_pMSS->Stop(pInfo->handle);
-			pInfo->bActive = false;
+}
+
+// soundmanager.cpp:374
+bool CSoundManager::IsPlayingBGM(void) {
+	return m_hBGM != 0 ? true : false;
+}
+
+// soundmanager.cpp:379
+bool CSoundManager::IsPlaying(const char* alias) {
+	int len = strlen(alias);
+	if (len == 0) {
+		return false;
+	}
+	_SFX_INFO* pSfx = FindAliasSfx(alias);
+
+	if (pSfx) {
+
+		if (pSfx->m_hSound && m_pMSS) {
+			return m_pMSS->IsPlaying(pSfx->m_hSound);
 		}
+	}
+
+	if (!stricmp(alias, m_bgmName)) {
+		return m_pMSS->IsPlaying(m_hBGM);
+	}
+	return false;
+}
+
+// soundmanager.cpp:398
+_SFX_INFO* CSoundManager::FindSfx(const char* name) {
+	_SFX_INFO* pSfx;
+
+
+	for (pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+
+		if (!strcmpi(pSfx->m_name, name)) {
+			return pSfx;
+		}
+	}
+
+	return NULL;
+}
+
+// soundmanager.cpp:411
+_SFX_INFO* CSoundManager::FindAliasSfx(const char* alias) {
+	_SFX_INFO* pSfx;
+
+
+	for (pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+
+		if (!strcmpi(pSfx->m_alias, alias)) {
+			return pSfx;
+		}
+	}
+
+	return NULL;
+}
+
+// soundmanager.cpp:424
+void CSoundManager::AddSfx(_SFX_INFO* pSfx) {
+	m_sfxList += pSfx;
+}
+
+// soundmanager.cpp:429
+void CSoundManager::DelSfx(const char* alias) {
+	_SFX_INFO* pSfx = FindAliasSfx(alias);
+	if (pSfx) {
+		DelSfx(pSfx);
 	}
 }
 
-bool CSoundManager::IsPlaying(const char* name)
-{
-	if (!strlen(name))
-		return false;
-	_SFX_INFO* pInfo = FindAliasSfx(name);
-	if (pInfo && pInfo->handle && m_pMSS)
-		return m_pMSS->IsPlaying(pInfo->handle);
-	if (!stricmp(name, m_bgmName))
-		return m_pMSS->IsPlaying(m_bgm);
-	return false;
+// soundmanager.cpp:436
+void CSoundManager::DelSfx(_SFX_INFO* pSfx) {
+
+
+
+
+	m_sfxList -= pSfx;
+	if (m_pMSS) {
+
+		m_pMSS->DestroySoundBuffer(pSfx->m_hSound);
+	}
+
+	delete pSfx;
 }
 
-bool CSoundManager::IsPlayingBGM()
-{
-	if (m_bgm)
-		return true;
-	return false;
-}
+// soundmanager.cpp:452
+void CSoundManager::AllDelSfx(void) {
+	_SFX_INFO* pSfx;
 
-_SFX_INFO* CSoundManager::FindSfx(const char* name)
-{
-	for (_SFX_INFO* pInfo = m_sfxList.Start(); pInfo; pInfo = m_sfxList.Next())
-		if (!strcmpi(pInfo->name, name))
-			return pInfo;
-	return NULL;
-}
+	while ((pSfx = m_sfxList.Start()) != NULL) {
+		DelSfx(pSfx);
+	}
 
-_SFX_INFO* CSoundManager::FindAliasSfx(const char* alias)
-{
-	for (_SFX_INFO* pInfo = m_sfxList.Start(); pInfo; pInfo = m_sfxList.Next())
-		if (!strcmpi(pInfo->alias, alias))
-			return pInfo;
-	return NULL;
-}
-
-void CSoundManager::AddSfx(_SFX_INFO* pInfo)
-{
-	m_sfxList += pInfo;
-}
-
-void CSoundManager::DelSfx(const char* name)
-{
-	_SFX_INFO* pInfo = FindAliasSfx(name);
-	if (pInfo)
-		DelSfx(pInfo);
-}
-
-void CSoundManager::DelSfx(_SFX_INFO* pInfo)
-{
-	m_sfxList -= pInfo;
-	if (m_pMSS)
-		m_pMSS->DestroySoundBuffer(pInfo->handle);
-	delete pInfo;
-}
-
-void CSoundManager::AllDelSfx()
-{
-	_SFX_INFO* pInfo;
-	while (pInfo = m_sfxList.Start())
-		DelSfx(pInfo);
 	DestroyBGM();
 }
 
-void CSoundManager::SetVolume(float volume)
-{
+// soundmanager.cpp:462
+void CSoundManager::SetVolume(float volume) {
 	m_volume = volume;
-	if (m_pMSS)
-		for (_SFX_INFO* pInfo = m_sfxList.Start(); pInfo;
-			pInfo = m_sfxList.Next())
-			m_pMSS->SetVolume(pInfo->handle, volume);
+
+
+	if (m_pMSS) {
+
+
+
+		for (_SFX_INFO* pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+			m_pMSS->SetVolume(pSfx->m_hSound, volume);
+		}
+	}
 }
 
-void CSoundManager::SetSFXVolumeWhilePlaying(const char* name, float volume)
-{
-	_SFX_INFO* pInfo = FindAliasSfx(name);
-	if (pInfo && m_pMSS)
-		m_pMSS->SetVolume(pInfo->handle, m_volume * volume);
-}
-
-float CSoundManager::GetVolume() const
-{
+// soundmanager.cpp:476
+float CSoundManager::GetVolume(void) const {
 	return m_volume;
 }
 
-void CSoundManager::PlayBGM(const char* name, bool bLoop, bool bFadeOut)
-{
-	if (!m_pMSS)
+// soundmanager.cpp:481
+void CSoundManager::SetSFXVolumeWhilePlaying(const char* alias, float volume) {
+	_SFX_INFO* pSfx = FindAliasSfx(alias);
+	if (pSfx && m_pMSS) {
+		m_pMSS->SetVolume(pSfx->m_hSound, volume * m_volume);
+	}
+}
+
+// soundmanager.cpp:489
+void CSoundManager::PlayBGM(const char* name, bool bOnce, bool bFade) {
+	if (!m_pMSS) {
 		return;
-	if (!name)
-	{
-		StopBGM(bFadeOut);
-		m_bgmName[0] = 0;
 	}
-	else
-	{
-		if (m_bgm && !stricmp(name, m_bgmName))
-		{
-			if (!m_pMSS->IsPlaying(m_bgm))
-				m_pMSS->Resume(m_bgm, !bLoop);
-		}
-		else
-		{
-			int handle = GetSoundFx((char*)name, false);
-			if (handle)
-			{
-				StopBGM(bFadeOut);
-				m_bgm = handle;
-				strcpy(m_bgmName, name);
-				m_pMSS->Play(m_bgm, !bLoop, true);
-				SetBGMVolume(m_bgmVolume);
+
+	if (name == NULL) {
+
+		StopBGM(bFade);
+		m_bgmName[0] = '\0';
+	} else {
+
+
+
+
+
+
+
+
+
+		if (m_hBGM && !stricmp(name, m_bgmName)) {
+
+
+			if (!m_pMSS->IsPlaying(m_hBGM)) {
+				m_pMSS->Resume(m_hBGM, !bOnce);
 			}
+			return;
+		}
+
+
+
+
+		int hBGM = GetSoundFx((char*)name, false);
+		if (hBGM) {
+
+
+			StopBGM(bFade);
+
+
+			m_hBGM = hBGM;
+			strcpy(m_bgmName, name);
+
+			m_pMSS->Play(m_hBGM, !bOnce, true);
+
+			SetBGMVolume(m_bgmVolume);
 		}
 	}
 }
 
-void CSoundManager::StopBGM(bool bFadeOut)
-{
-	if (m_bgm && m_pMSS)
-	{
-		if (bFadeOut)
-		{
-			if (m_fadeOutBgm)
-				m_pMSS->Stop(m_fadeOutBgm);
-			m_fadeOutBgm = m_bgm;
-			m_fadeOutVolume = m_bgmVolume;
-			m_fadeOutElapsed = 0.0f;
-			m_bgm = 0;
+// soundmanager.cpp:532
+void CSoundManager::StopBGM(bool bFade) {
+	if (m_hBGM && m_pMSS) {
+
+		if (bFade) {
+
+			if (m_hFadeBGM) {
+
+				m_pMSS->Stop(m_hFadeBGM);
+			}
+
+
+
+			m_hFadeBGM = m_hBGM;
+
+
+			m_fadeVolume = m_bgmVolume;
+			m_fadeElapsed = 0;
+		} else {
+
+
+
+			m_pMSS->Stop(m_hBGM);
+
+			m_hFadeBGM = 0;
 		}
-		else
-		{
-			m_pMSS->Stop(m_bgm);
-			m_fadeOutBgm = 0;
-			m_bgm = 0;
+		m_hBGM = 0;
+	}
+}
+
+// soundmanager.cpp:558
+void CSoundManager::PauseBGM(bool bFade) {
+	if (m_hBGM && m_pMSS) {
+
+		if (bFade) {
+
+			if (m_hFadeBGM) {
+
+				m_pMSS->Stop(m_hFadeBGM);
+			}
+
+
+
+			m_hFadeBGM = m_hBGM;
+
+
+			m_fadeVolume = m_bgmVolume;
+			m_fadeElapsed = 0;
+		} else {
+
+
+
+			m_pMSS->Stop(m_hBGM);
 		}
 	}
 }
 
-void CSoundManager::PauseBGM(bool bFadeOut)
-{
-	if (m_bgm && m_pMSS)
-	{
-		if (bFadeOut)
-		{
-			if (m_fadeOutBgm)
-				m_pMSS->Stop(m_fadeOutBgm);
-			m_fadeOutBgm = m_bgm;
-			m_fadeOutElapsed = 0.0f;
-			m_fadeOutVolume = m_bgmVolume;
-		}
-		else
-			m_pMSS->Stop(m_bgm);
-	}
-}
-
-void CSoundManager::SetBGMVolume(float volume)
-{
+// soundmanager.cpp:581
+void CSoundManager::SetBGMVolume(float volume) {
 	m_bgmVolume = volume;
-	if (m_bgm && m_pMSS)
-		m_pMSS->SetVolume(m_bgm, volume);
+	if (m_hBGM && m_pMSS) {
+		m_pMSS->SetVolume(m_hBGM, volume);
+	}
 }
 
-void CSoundManager::SetBGMVolumeInBGMArea(float rate)
-{
-	if (m_bgm && m_pMSS)
-		m_pMSS->SetVolume(m_bgm, m_bgmVolume * rate);
+// soundmanager.cpp:589
+void CSoundManager::SetBGMVolumeInBGMArea(float volume) {
+	if (m_hBGM && m_pMSS) {
+		m_pMSS->SetVolume(m_hBGM, volume * m_bgmVolume);
+	}
 }
 
-float CSoundManager::GetBGMVolume() const
-{
+// soundmanager.cpp:595
+float CSoundManager::GetBGMVolume(void) const {
 	return m_bgmVolume;
 }
 
-void CSoundManager::StopAllSound()
-{
-	if (m_pMSS)
-	{
-		for (_SFX_INFO* pInfo = m_sfxList.Start(); pInfo;
-			pInfo = m_sfxList.Next())
-		{
-			if (pInfo->bActive)
-			{
-				m_pMSS->Stop(pInfo->handle);
-				pInfo->bActive = false;
-			}
-			delete pInfo;
+// soundmanager.cpp:600
+void CSoundManager::DestroyBGM(void) {
+	if (m_hBGM) {
+
+		if (m_pMSS) {
+			m_pMSS->DestroySoundBuffer(m_hBGM);
 		}
+		m_hBGM = 0;
+	}
+}
+
+// soundmanager.cpp:613
+void CSoundManager::StopAllSound(void) {
+
+
+
+
+
+
+
+
+
+
+
+	if (m_pMSS) {
+
+
+		for (_SFX_INFO* pSfx = m_sfxList.Start(); pSfx; pSfx = m_sfxList.Next()) {
+
+			if (pSfx->m_bPlaying) {
+
+				m_pMSS->Stop(pSfx->m_hSound);
+				pSfx->m_bPlaying = false;
+			}
+
+
+			delete pSfx;
+		}
+
+
 		m_sfxList.Reset();
 	}
 }
 
-void CSoundManager::DestroyBGM()
-{
-	if (m_bgm)
-	{
-		if (m_pMSS)
-			m_pMSS->DestroySoundBuffer(m_bgm);
-		m_bgm = 0;
-	}
-}
-
-void CSoundManager::SetSpeakerType(int type)
-{
-	if (m_pMSS)
+// soundmanager.cpp:644
+void CSoundManager::SetSpeakerType(int type) {
+	if (m_pMSS) {
 		m_pMSS->SpeakerType((WMilesSoundSystem::w_speaker_type)type);
+	}
 }

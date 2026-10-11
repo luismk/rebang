@@ -1,71 +1,45 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\codetinker.cpp
+#include "CodeTinker.h"
 
-#include "codetinker.h"
+// One entry of the hole drop effect table (0x84 bytes, 20 entries at 0xa956d8).
+struct sHoleDropEffect {
+	DWORD id;           // 0x0
+	char name[0x80];    // 0x4
+};
+CHECK_SIZE(sHoleDropEffect, 0x84);
+CHECK_FIELD(sHoleDropEffect, id, 0x0);
+CHECK_FIELD(sHoleDropEffect, name, 0x4);
 
-CCodeTinker::CCodeTinker()
-{
+extern "C" sHoleDropEffect data_a956d8[20];
+
+// codetinker.cpp:8
+CCodeTinker::CCodeTinker() {
 }
 
-CCodeTinker::~CCodeTinker()
-{
+// codetinker.cpp:12
+CCodeTinker::~CCodeTinker() {
 }
 
-const char* CCodeTinker::GetHoleDropEffectName(unsigned long typeId)
-{
+// codetinker.cpp:17
+const char* CCodeTinker::GetHoleDropEffectName(DWORD effectId) {
 	const char* name = NULL;
-
-	static struct
-	{
-		unsigned long typeId;
-		char name[128];
-	} s_effects[] = {
-		{ 0x1A00003B, "newyear_money.spr" },
-		{ 0x1A000044, "aeboat-01.spr"     },
-		{ 0x1A000045, "aeboat-02.spr"     },
-		{ 0x1A000046, "aeboat-03.spr"     },
-		{ 0x1A000047, "aeboat-04.spr"     },
-		{ 0x1A000048, "event_box.spr"     },
-		{ 0x1A000049, "box_candy_01.spr"  },
-		{ 0x1A00004A, "box_candy_02.spr"  },
-		{ 0x1A00004B, "box_candy_03.spr"  },
-		{ 0x1A00004C, "box_candy_04.spr"  },
-		{ 0x1A00004E, "exticket.spr"      },
-		{ 0x1A000054, "event_box_02.spr"  },
-		{ 0x1A0000AA, "coin_medal01.spr"  },
-		{ 0x1A0000AB, "coin_medal02.spr"  },
-		{ 0x1A0000AC, "coin_medal03.spr"  },
-		{ 0x1A0000BC, "box_ring.spr"      },
-		{ 0x1A000150, "spell_piece01.spr" },
-		{ 0x1A000151, "spell_piece02.spr" },
-		{ 0x1A000152, "spell_piece03.spr" },
-		{ 0x1A000153, "spell_piece04.spr" },
-	};
-
-	const int count = sizeof(s_effects) / sizeof(s_effects[0]);
-
-	for (int i = 0; i < count; ++i)
-	{
-		if (typeId == s_effects[i].typeId)
-		{
-			name = s_effects[i].name;
+	for (int i = 0; i < 20; ++i) {
+		if (effectId == data_a956d8[i].id) {
+			name = data_a956d8[i].name;
 			break;
 		}
 	}
 	return name;
 }
 
-bool CCodeTinker::IsNeedOpenMiniButton(unsigned long typeId)
-{
-	switch (typeId)
-	{
-	case 0x1A00003B:
-	case 0x1A000048:
-	case 0x1A000052:
-	case 0x1A0000BC:
-
+// codetinker.cpp:62
+bool CCodeTinker::IsNeedOpenMiniButton(DWORD itemTypeId) {
+	switch (itemTypeId) {
+	case 0x1a00003b:
+	case 0x1a000048:
+	case 0x1a000052:
+	case 0x1a0000bc:
 		return true;
-	default:
-		break;
 	}
 	return false;
 }

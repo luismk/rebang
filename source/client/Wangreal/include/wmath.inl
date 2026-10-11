@@ -1,107 +1,137 @@
-inline int WisEqual(const WVector& left, const WVector& right, float epsilon)
-{
-	if (WisEqual(left.x, right.x, epsilon) &&
-		WisEqual(left.y, right.y, epsilon) &&
-		WisEqual(left.z, right.z, epsilon))
+// Original: d:\build\custom\temp\code\client\wangreal\include\wmath.inl
+// Inline members of the wmath.h types; included at the end of wmath.h.
+
+// Wabs (wmath.h) under the name its callers used before the PDB name was
+// recovered; same body.
+inline float WAbsBySign(const float& f) {
+	return (*(const unsigned long*)&f & 0x80000000) ? -f : f;
+}
+
+// g_EPSILON as a literal, for callers written before wmath.h carried the
+// const.
+#define WMATH_EPSILON 1e-5f
+
+// wmath.inl:12
+GOLFDOC_WMATH_INLINE int WisEqual(const WVector& a, const WVector& b, float eps) {
+	if (WisEqual(a.x, b.x, eps) && WisEqual(a.y, b.y, eps) && WisEqual(a.z, b.z, eps))
 		return 1;
 	else
 		return 0;
 }
 
-inline WVector WVector::operator-() const
-{
+// wmath.inl:30
+inline WVector WVector::operator-(void) const {
 	return WVector(-x, -y, -z);
 }
 
-inline WVector operator+(const WVector& left, const WVector& right)
-{
-	return WVector(left.x + right.x, left.y + right.y, left.z + right.z);
+// wmath.inl:35
+inline WVector operator+(const WVector& a, const WVector& b) {
+	return WVector(a.x + b.x, a.y + b.y, a.z + b.z);
 }
 
-inline WVector operator-(const WVector& left, const WVector& right)
-{
-	return WVector(left.x - right.x, left.y - right.y, left.z - right.z);
+// wmath.inl:44
+inline WVector operator-(const WVector& a, const WVector& b) {
+	return WVector(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-inline WVector operator*(const WVector& vector, float scalar)
-{
-	return WVector(vector.x * scalar, vector.y * scalar, vector.z * scalar);
+// wmath.inl:53
+GOLFDOC_WMATH_INLINE WVector operator*(const WVector& v, float f) {
+	return WVector(v.x * f, v.y * f, v.z * f);
 }
 
-inline WVector operator*(float scalar, const WVector& vector)
-{
-	return vector * scalar;
+// wmath.inl:62
+inline WVector operator/(const WVector& v, float f) {
+	return v * (1.0f / f);
 }
 
-inline float operator*(const WVector& left, const WVector& right)
-{
-	return left.x * right.x + left.y * right.y + left.z * right.z;
+// wmath.inl:67
+inline WVector operator*(float f, const WVector& v) {
+	return v * f;
 }
 
-inline WVector WCrossProduct(const WVector& left, const WVector& right)
-{
-	return WVector(left.y * right.z - left.z * right.y,
-		left.z * right.x - left.x * right.z,
-		left.x * right.y - left.y * right.x);
+// wmath.inl:82
+// Same body as WDotProduct: the out-of-line copy in SharedDoc is byte for
+// byte camerawork's WDotProduct.
+inline float operator*(const WVector& a, const WVector& b) {
+	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-inline float WVectorLen(const WVector& vector)
-{
-	return sqrtf(
-		vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
+// wmath.inl:93
+CAMERAWORK_WMATH_INLINE float WDotProduct(const WVector& a, const WVector& b) {
+	return a.z * b.z + a.y * b.y + a.x * b.x;
 }
 
-#if defined(REBANG_LEGACY_CPP) && !defined(WANGREAL_DEVICE)
-inline WVector& WVector::operator=(const WVector& other)
-{
-	memcpy(this, &other, sizeof(WVector));
+// wmath.inl:325
+CAMERAWORK_WMATH_INLINE float WDotProduct(const WQuat& a, const WQuat& b) {
+	return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+}
+
+// wmath.inl:98
+inline WVector WCrossProduct(const WVector& a, const WVector& b) {
+	return WVector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+}
+
+// wmath.inl:48
+inline float WVectorLen(const WVector& v) {
+	return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+// wmath.inl:328 (emitted out of line in GolfRule)
+GOLFRULE_WMATH_INLINE WVector RotVec(const WVector& v, const WMatrix& m) {
+	return WVector(v.x * m.xx + v.y * m.xy + v.z * m.xz,
+		v.x * m.yx + v.y * m.yy + v.z * m.yz,
+		v.x * m.zx + v.y * m.zy + v.z * m.zz);
+}
+
+// wmath.inl:118
+inline WVector& WVector::operator=(const WVector& v) {
+	memcpy(this, &v, sizeof(WVector));
 	return *this;
 }
-#endif
 
-inline void WVector::operator+=(const WVector& right)
-{
-	x = right.x + x;
-	y = right.y + y;
-	z = right.z + z;
+// wmath.inl:124
+inline void WVector::operator+=(const WVector& v) {
+	x = v.x + x;
+	y = v.y + y;
+	z = v.z + z;
 }
 
-inline void WVector::operator-=(const WVector& other)
-{
-	x -= other.x;
-	y -= other.y;
-	z -= other.z;
+// wmath.inl:135
+inline void WVector::operator-=(const WVector& v) {
+	x -= v.x;
+	y -= v.y;
+	z -= v.z;
 }
 
-inline void WVector::operator*=(float scalar)
-{
-	x *= scalar;
-	y *= scalar;
-	z *= scalar;
+// wmath.inl:146
+inline void WVector::operator*=(const float f) {
+	x *= f;
+	y *= f;
+	z *= f;
 }
 
-inline void WVector::operator/=(float scalar)
-{
-	*this *= 1.0f / scalar;
+// wmath.inl:157
+inline void WVector::operator/=(const float f) {
+	*this *= 1.0f / f;
 }
 
-inline void WVector::Reset()
-{
+// wmath.inl:162
+inline void WVector::Reset(void) {
 	x = y = z = 0.0f;
 }
 
-inline float WVector::SquareMagnitude() const
-{
+// wmath.inl:167
+AVATAR_AVATAR_WMATH_INLINE float WVector::SquareMagnitude(void) const {
 	return x * x + y * y + z * z;
 }
 
-inline float WVector::Magnitude() const
-{
+// wmath.inl:172
+inline float WVector::Magnitude(void) const {
 	return WVectorLen(*this);
 }
 
-inline WVector& WVector::Normalize()
-{
+// wmath.inl:177
+GOLFDOC_WMATH_INLINE WVector& WVector::Normalize(void) {
 	if (WisEqual(*this, ZERO, g_EPSILON))
 		*this *= 0.0f;
 	else
@@ -109,384 +139,435 @@ inline WVector& WVector::Normalize()
 	return *this;
 }
 
-inline WVector operator*(const WVector& vector, const WMatrix& matrix)
-{
-	return WVector(vector.x * matrix.xx + vector.y * matrix.xy +
-			vector.z * matrix.xz + matrix.xm,
-		vector.x * matrix.yx + vector.y * matrix.yy + vector.z * matrix.yz +
-			matrix.ym,
-		vector.x * matrix.zx + vector.y * matrix.zy + vector.z * matrix.zz +
-			matrix.zm);
+// wmath.inl:186
+inline void WVector::Negate(void) {
+	x = -x; y = -y; z = -z;
 }
 
-inline WMatrix operator*(const WMatrix& left, const WMatrix& right)
-{
+// wmath.inl:198
+GOLFDOC_WMATH_INLINE WVector operator*(const WVector& v, const WMatrix& m) {
+	return WVector(v.x * m.xx + v.y * m.xy + v.z * m.xz + m.xm,
+	               v.x * m.yx + v.y * m.yy + v.z * m.yz + m.ym,
+	               v.x * m.zx + v.y * m.zy + v.z * m.zz + m.zm);
+}
+
+// wmath.inl:213
+inline WMatrix operator*(const WMatrix& a, const WMatrix& b) {
 	WMatrix m;
-	m.xx = left.xx * right.xx + left.yx * right.xy + left.zx * right.xz;
-	m.yx = left.xx * right.yx + left.yx * right.yy + left.zx * right.yz;
-	m.zx = left.xx * right.zx + left.yx * right.zy + left.zx * right.zz;
-	m.xy = left.xy * right.xx + left.yy * right.xy + left.zy * right.xz;
-	m.yy = left.xy * right.yx + left.yy * right.yy + left.zy * right.yz;
-	m.zy = left.xy * right.zx + left.yy * right.zy + left.zy * right.zz;
-	m.xz = left.xz * right.xx + left.yz * right.xy + left.zz * right.xz;
-	m.yz = left.xz * right.yx + left.yz * right.yy + left.zz * right.yz;
-	m.zz = left.xz * right.zx + left.yz * right.zy + left.zz * right.zz;
-	m.xm =
-		left.xm * right.xx + left.ym * right.xy + left.zm * right.xz + right.xm;
-	m.ym =
-		left.xm * right.yx + left.ym * right.yy + left.zm * right.yz + right.ym;
-	m.zm =
-		left.xm * right.zx + left.ym * right.zy + left.zm * right.zz + right.zm;
+
+	m.xx = a.xx * b.xx + a.yx * b.xy + a.zx * b.xz;
+	m.yx = a.xx * b.yx + a.yx * b.yy + a.zx * b.yz;
+	m.zx = a.xx * b.zx + a.yx * b.zy + a.zx * b.zz;
+
+	m.xy = a.xy * b.xx + a.yy * b.xy + a.zy * b.xz;
+	m.yy = a.xy * b.yx + a.yy * b.yy + a.zy * b.yz;
+	m.zy = a.xy * b.zx + a.yy * b.zy + a.zy * b.zz;
+
+	m.xz = a.xz * b.xx + a.yz * b.xy + a.zz * b.xz;
+	m.yz = a.xz * b.yx + a.yz * b.yy + a.zz * b.yz;
+	m.zz = a.xz * b.zx + a.yz * b.zy + a.zz * b.zz;
+
+	m.pivot = a.pivot * b; return m;
+}
+
+// wmath.inl:286
+// A rotation by angles.x about x, then angles.y about y, then angles.z
+// about z.
+inline WMatrix RotMat(WVector angles) {
+	return RotMat(angles.x, 0) * RotMat(angles.y, 1) * RotMat(angles.z, 2);
+}
+
+// wmath.inl:293
+// A rotation of angle radians about axis 0 (x), 1 (y) or 2 (z), no translation.
+inline WMatrix RotMat(float angle, char axis) {
+	WMatrix m;
+	float c = cosf(angle);
+	float s = sinf(angle);
+	switch (axis) {
+	case 0:
+		m.xx = 1.0f; m.yx = 0.0f; m.zx = 0.0f; m.xy = 0.0f; m.yy = c; m.zy = -s; m.xz = 0.0f; m.yz = s; m.zz = c;
+		break;
+	case 2:
+		m.xx = c; m.yx = s; m.zx = 0.0f; m.xy = -s; m.yy = c; m.zy = 0.0f; m.xz = 0.0f; m.yz = 0.0f; m.zz = 1.0f;
+		break;
+	default:
+		m.xx = c; m.yx = 0.0f; m.zx = s; m.xy = 0.0f; m.yy = 1.0f; m.zy = 0.0f; m.xz = -s; m.yz = 0.0f; m.zz = c;
+		break;
+	}
+	m.xm = m.ym = m.zm = 0.0f;
 	return m;
 }
 
-inline WVector RotVec(const WVector& vector, const WMatrix& matrix)
-{
-	return WVector(vector.x * matrix.xx + vector.y * matrix.xy +
-			vector.z * matrix.xz,
-		vector.x * matrix.yx + vector.y * matrix.yy + vector.z * matrix.yz,
-		vector.x * matrix.zx + vector.y * matrix.zy + vector.z * matrix.zz);
+// wmath.inl:309
+// A rotation of angle radians about axis (normalized here), no translation.
+CAMERAWORK_WMATH_INLINE WMatrix RotMat(const WVector& axis, float angle) {
+	WMatrix m;
+	float c = cosf(angle);
+	WVector a = axis;
+	float s = sinf(angle);
+	a.Normalize();
+	float t = 1.0f - c;
+	m.xx = a.x * a.x * t + c;
+	m.yx = a.x * a.y * t - a.z * s;
+	m.zx = a.x * a.z * t + a.y * s;
+	m.xy = a.x * a.y * t + a.z * s;
+	m.yy = a.y * a.y * t + c;
+	m.zy = a.y * a.z * t - a.x * s;
+	m.xz = a.x * a.z * t - a.y * s;
+	m.yz = a.y * a.z * t + a.x * s;
+	m.zz = a.z * a.z * t + c;
+	m.xm = m.ym = m.zm = 0.0f;
+	return m;
 }
 
-inline float __fastcall TransformZ(float x, float y, float z, const WMatrix& m)
-{
+// wmath.inl:343
+WVIEW_WMATH_INLINE float TransformZ(float x, float y, float z, const WMatrix& m) {
 	return x * m.zx + y * m.zy + z * m.zz + m.zm;
 }
 
-inline float __fastcall TransformZ(const WVector& v, const WMatrix& m)
-{
+// wmath.inl:348
+inline float TransformZ(const WVector& v, const WMatrix& m) {
 	return (v.z * m.zz) + (v.x * m.zx) + (v.y * m.zy) + m.zm;
 }
 
-inline WMatrix& WMatrix::operator=(const WMatrix& other)
-{
-	memcpy(&xa, &other.xa, sizeof(WVector));
-	memcpy(&ya, &other.ya, sizeof(WVector));
-	memcpy(&za, &other.za, sizeof(WVector));
-	memcpy(&pivot, &other.pivot, sizeof(WVector));
+// wmath.inl:377
+inline WMatrix& WMatrix::operator=(const WMatrix& m) {
+	memcpy(&xa, &m.xa, sizeof(WVector));
+	memcpy(&ya, &m.ya, sizeof(WVector));
+	memcpy(&za, &m.za, sizeof(WVector));
+	memcpy(&pivot, &m.pivot, sizeof(WVector));
 	return *this;
 }
 
-inline void WMatrix::operator*=(float scalar)
-{
-	xa *= scalar;
-	ya *= scalar;
-	za *= scalar;
+// wmath.inl:386
+inline void WMatrix::operator*=(const float f) {
+	xa *= f;
+	ya *= f;
+	za *= f;
 }
 
-inline WMatrix WMatrix::operator~() const
-{
-	WMatrix r;
-	WVector c;
-	c.x = yy * zz - yz * zy;
-	c.y = xz * zy - zz * xy;
-	c.z = yz * xy - yy * xz;
-	float inv = 1.0f / (xx * c.x + yx * c.y + zx * c.z);
-	r.xx = c.x * inv;
-	r.yx = (yz * zx - yx * zz) * inv;
-	r.zx = (yx * zy - zx * yy) * inv;
-	r.xy = c.y * inv;
-	r.yy = (xx * zz - zx * xz) * inv;
-	r.zy = (zx * xy - xx * zy) * inv;
-	r.xz = c.z * inv;
-	r.yz = (yx * xz - yz * xx) * inv;
-	r.zz = (yy * xx - yx * xy) * inv;
-	r.xm = -(r.xx * xm + r.xy * ym + r.xz * zm);
-	r.ym = -(r.yx * xm + r.yy * ym + r.yz * zm);
-	r.zm = -(r.zx * xm + r.zy * ym + r.zz * zm);
-	return r;
+// wmath.inl:441
+GOLFDOC_WMATH_INLINE WMatrix::WMatrix(float _xx, float _yx, float _zx, float _xy, float _yy, float _zy,
+                                      float _xz, float _yz, float _zz) {
+	xx = _xx; yx = _yx; zx = _zx;
+	xy = _xy; yy = _yy; zy = _zy;
+	xz = _xz; yz = _yz; zz = _zz;
+	pivot.Reset();
 }
 
-inline bool operator==(const WMatrix& left, const WMatrix& right)
+// wmath.inl:455
+POOL_WMATH_INLINE WMatrix::WMatrix(const WPlane &plane)
 {
-	return WisEqual(left.xa, right.xa, 1.0e-5f) &&
-		WisEqual(left.ya, right.ya, 1.0e-5f) &&
-		WisEqual(left.za, right.za, 1.0e-5f) &&
-		WisEqual(left.pivot, right.pivot, 1.0e-5f);
+	WVector n;
+	n.x = plane.x;
+	n.y = plane.y;
+	n.z = plane.z;
+	float d = plane.dis;
+
+	float inv = 1.0f / sqrtf(n.z * n.z + n.y * n.y + n.x * n.x);
+	n.x *= inv;
+	n.y *= inv;
+	n.z *= inv;
+	d *= inv;
+
+	xx = 1.0f - 2.0f * n.x * n.x;
+	yx = n.y * n.x * -2.0f;
+	zx = n.z * n.x * -2.0f;
+	xy = yx;
+	yy = 1.0f - 2.0f * n.y * n.y;
+	zy = n.z * n.y * -2.0f;
+	xz = zx;
+	yz = zy;
+	zz = 1.0f - 2.0f * n.z * n.z;
+	xm = n.x * d * -2.0f;
+	ym = n.y * d * -2.0f;
+	zm = n.z * d * -2.0f;
 }
 
-inline bool operator!=(const WMatrix& left, const WMatrix& right)
-{
-	return !(left == right);
-}
-
-inline void __fastcall SetWMatrix4FromWMatrix(WMatrix4& d, const WMatrix& s)
-{
-	for (int i = 0; i < 3; ++i)
-	{
-		*(WVector*)d.m[i] = (&s.xa)[i];
-		d.m[i][3] = 0.0f;
-	}
-	*(WVector*)d.m[3] = s.pivot;
-	d.m[3][3] = 1.0f;
-}
-
-inline WMatrix4::WMatrix4(float p0, float p1, float p2, float p3, float p4,
-	float p5, float p6, float p7, float p8, float p9, float p10, float p11,
-	float p12, float p13, float p14, float p15)
-{
-	p[0] = p0;
-	p[1] = p1;
-	p[2] = p2;
-	p[3] = p3;
-	p[4] = p4;
-	p[5] = p5;
-	p[6] = p6;
-	p[7] = p7;
-	p[8] = p8;
-	p[9] = p9;
-	p[10] = p10;
-	p[11] = p11;
-	p[12] = p12;
-	p[13] = p13;
-	p[14] = p14;
-	p[15] = p15;
-}
-
-#ifdef WANGREAL_DEVICE
-inline void WMatrix::Reset()
-{
+// wmath.inl:475
+inline void WMatrix::Reset(void) {
 	xx = yy = zz = 1.0f;
 	yx = zx = xy = zy = xz = yz = xm = ym = zm = 0.0f;
 }
-#endif
 
-inline WMatrix4& WMatrix4::operator=(const WMatrix4& other)
-{
-	memcpy(this, &other, sizeof(WMatrix4));
-	return *this;
+// wmath.inl:481
+WBONE_WMATH_INLINE bool operator==(const WMatrix& mat1, const WMatrix& mat2) {
+	return WisEqual(mat1.xa, mat2.xa, WMATH_EPSILON) && WisEqual(mat1.ya, mat2.ya, WMATH_EPSILON)
+		&& WisEqual(mat1.za, mat2.za, WMATH_EPSILON) && WisEqual(mat1.pivot, mat2.pivot, WMATH_EPSILON);
 }
 
-inline WMatrix4 operator*(const WMatrix4& a, const WMatrix4& b)
-{
+// wmath.inl:489
+WBONE_WMATH_INLINE bool operator!=(const WMatrix& mat1, const WMatrix& mat2) {
+	return !(mat1 == mat2);
+}
+
+// wmath.inl:510
+POOL_WMATH_INLINE WMatrix4 operator*(const WMatrix4& a, const WMatrix4& b) {
 	WMatrix4 m;
-	m.m[0][0] = a.m[0][0] * b.m[0][0] + a.m[0][1] * b.m[1][0] +
-		a.m[0][2] * b.m[2][0] + a.m[0][3] * b.m[3][0];
-	m.m[0][1] = a.m[0][0] * b.m[0][1] + a.m[0][1] * b.m[1][1] +
-		a.m[0][2] * b.m[2][1] + a.m[0][3] * b.m[3][1];
-	m.m[0][2] = a.m[0][0] * b.m[0][2] + a.m[0][1] * b.m[1][2] +
-		a.m[0][2] * b.m[2][2] + a.m[0][3] * b.m[3][2];
-	m.m[0][3] = a.m[0][0] * b.m[0][3] + a.m[0][1] * b.m[1][3] +
-		a.m[0][2] * b.m[2][3] + a.m[0][3] * b.m[3][3];
 
-	m.m[1][0] = a.m[1][0] * b.m[0][0] + a.m[1][1] * b.m[1][0] +
-		a.m[1][2] * b.m[2][0] + a.m[1][3] * b.m[3][0];
-	m.m[1][1] = a.m[1][0] * b.m[0][1] + a.m[1][1] * b.m[1][1] +
-		a.m[1][2] * b.m[2][1] + a.m[1][3] * b.m[3][1];
-	m.m[1][2] = a.m[1][0] * b.m[0][2] + a.m[1][1] * b.m[1][2] +
-		a.m[1][2] * b.m[2][2] + a.m[1][3] * b.m[3][2];
-	m.m[1][3] = a.m[1][0] * b.m[0][3] + a.m[1][1] * b.m[1][3] +
-		a.m[1][2] * b.m[2][3] + a.m[1][3] * b.m[3][3];
+	m.m[0][0] = a.m[0][0] * b.m[0][0] + a.m[0][1] * b.m[1][0] + a.m[0][2] * b.m[2][0] + a.m[0][3] * b.m[3][0];
+	m.m[0][1] = a.m[0][0] * b.m[0][1] + a.m[0][1] * b.m[1][1] + a.m[0][2] * b.m[2][1] + a.m[0][3] * b.m[3][1];
+	m.m[0][2] = a.m[0][0] * b.m[0][2] + a.m[0][1] * b.m[1][2] + a.m[0][2] * b.m[2][2] + a.m[0][3] * b.m[3][2];
+	m.m[0][3] = a.m[0][0] * b.m[0][3] + a.m[0][1] * b.m[1][3] + a.m[0][2] * b.m[2][3] + a.m[0][3] * b.m[3][3];
 
-	m.m[2][0] = a.m[2][0] * b.m[0][0] + a.m[2][1] * b.m[1][0] +
-		a.m[2][2] * b.m[2][0] + a.m[2][3] * b.m[3][0];
-	m.m[2][1] = a.m[2][0] * b.m[0][1] + a.m[2][1] * b.m[1][1] +
-		a.m[2][2] * b.m[2][1] + a.m[2][3] * b.m[3][1];
-	m.m[2][2] = a.m[2][0] * b.m[0][2] + a.m[2][1] * b.m[1][2] +
-		a.m[2][2] * b.m[2][2] + a.m[2][3] * b.m[3][2];
-	m.m[2][3] = a.m[2][0] * b.m[0][3] + a.m[2][1] * b.m[1][3] +
-		a.m[2][2] * b.m[2][3] + a.m[2][3] * b.m[3][3];
+	m.m[1][0] = a.m[1][0] * b.m[0][0] + a.m[1][1] * b.m[1][0] + a.m[1][2] * b.m[2][0] + a.m[1][3] * b.m[3][0];
+	m.m[1][1] = a.m[1][0] * b.m[0][1] + a.m[1][1] * b.m[1][1] + a.m[1][2] * b.m[2][1] + a.m[1][3] * b.m[3][1];
+	m.m[1][2] = a.m[1][0] * b.m[0][2] + a.m[1][1] * b.m[1][2] + a.m[1][2] * b.m[2][2] + a.m[1][3] * b.m[3][2];
+	m.m[1][3] = a.m[1][0] * b.m[0][3] + a.m[1][1] * b.m[1][3] + a.m[1][2] * b.m[2][3] + a.m[1][3] * b.m[3][3];
 
-	m.m[3][0] = a.m[3][0] * b.m[0][0] + a.m[3][1] * b.m[1][0] +
-		a.m[3][2] * b.m[2][0] + a.m[3][3] * b.m[3][0];
-	m.m[3][1] = a.m[3][0] * b.m[0][1] + a.m[3][1] * b.m[1][1] +
-		a.m[3][2] * b.m[2][1] + a.m[3][3] * b.m[3][1];
-	m.m[3][2] = a.m[3][0] * b.m[0][2] + a.m[3][1] * b.m[1][2] +
-		a.m[3][2] * b.m[2][2] + a.m[3][3] * b.m[3][2];
-	m.m[3][3] = a.m[3][0] * b.m[0][3] + a.m[3][1] * b.m[1][3] +
-		a.m[3][2] * b.m[2][3] + a.m[3][3] * b.m[3][3];
+	m.m[2][0] = a.m[2][0] * b.m[0][0] + a.m[2][1] * b.m[1][0] + a.m[2][2] * b.m[2][0] + a.m[2][3] * b.m[3][0];
+	m.m[2][1] = a.m[2][0] * b.m[0][1] + a.m[2][1] * b.m[1][1] + a.m[2][2] * b.m[2][1] + a.m[2][3] * b.m[3][1];
+	m.m[2][2] = a.m[2][0] * b.m[0][2] + a.m[2][1] * b.m[1][2] + a.m[2][2] * b.m[2][2] + a.m[2][3] * b.m[3][2];
+	m.m[2][3] = a.m[2][0] * b.m[0][3] + a.m[2][1] * b.m[1][3] + a.m[2][2] * b.m[2][3] + a.m[2][3] * b.m[3][3];
+
+	m.m[3][0] = a.m[3][0] * b.m[0][0] + a.m[3][1] * b.m[1][0] + a.m[3][2] * b.m[2][0] + a.m[3][3] * b.m[3][0];
+	m.m[3][1] = a.m[3][0] * b.m[0][1] + a.m[3][1] * b.m[1][1] + a.m[3][2] * b.m[2][1] + a.m[3][3] * b.m[3][1];
+	m.m[3][2] = a.m[3][0] * b.m[0][2] + a.m[3][1] * b.m[1][2] + a.m[3][2] * b.m[2][2] + a.m[3][3] * b.m[3][2];
+	m.m[3][3] = a.m[3][0] * b.m[0][3] + a.m[3][1] * b.m[1][3] + a.m[3][2] * b.m[2][3] + a.m[3][3] * b.m[3][3];
+
 	return m;
 }
 
-inline WVector2D operator*(float scale, const WVector2D& v)
-{
-	return WVector2D(scale * v.x, scale * v.y);
+// wmath.inl:537
+WVIEW_WMATH_INLINE void SetWMatrix4FromWMatrix(WMatrix4& m4, const WMatrix& m) {
+	m4.xa = m.xa; m4.wx = 0.0f;
+	m4.ya = m.ya; m4.wy = 0.0f;
+	m4.za = m.za; m4.wz = 0.0f;
+	m4.pivot = m.pivot; m4.wm = 1.0f;
 }
 
-inline WVector2D operator*(const WVector2D& v, float scale)
-{
-	return WVector2D(v.x * scale, v.y * scale);
+// wmath.inl:548
+WVIEW_WMATH_INLINE WMatrix4::WMatrix4(float a00, float a01, float a02, float a03, float a10, float a11, float a12, float a13,
+                                      float a20, float a21, float a22, float a23, float a30, float a31, float a32, float a33) {
+	p[0] = a00;
+	p[1] = a01;
+	p[2] = a02;
+	p[3] = a03;
+	p[4] = a10;
+	p[5] = a11;
+	p[6] = a12;
+	p[7] = a13;
+	p[8] = a20;
+	p[9] = a21;
+	p[10] = a22;
+	p[11] = a23;
+	p[12] = a30;
+	p[13] = a31;
+	p[14] = a32;
+	p[15] = a33;
 }
 
-inline WVector2D operator+(const WVector2D& a, const WVector2D& b)
-{
-	return WVector2D(a.x + b.x, a.y + b.y);
+// wmath.inl:568
+WVIEW_WMATH_INLINE WMatrix4& WMatrix4::operator=(const WMatrix4& m) {
+	memcpy(this, &m, sizeof(WMatrix4));
+	return *this;
 }
 
-inline WVector2D operator-(const WVector2D& a, const WVector2D& b)
-{
-	return WVector2D(a.x - b.x, a.y - b.y);
+// wmath.inl:592
+inline WVector2D operator*(const WVector2D& v, float f) {
+	return WVector2D(v.x * f, v.y * f);
 }
 
-inline void WVector2D::Reset()
-{
+// wmath.inl:618
+inline void WVector2D::Reset(void) {
 	x = y = 0.0f;
 }
 
-inline float WVector2D::Magnitude() const
-{
-	return sqrtf(SquareMagnitude());
-}
-
-inline float WVector2D::SquareMagnitude() const
-{
-	return x * x + y * y;
-}
-
-#ifdef REBANG_LEGACY_CPP
-inline WVector2D& WVector2D::operator=(const WVector2D& other)
-{
-	x = other.x;
-	y = other.y;
+// wmath.inl:642
+inline WVector2D& WVector2D::operator=(const WVector2D& v) {
+	x = v.x;
+	y = v.y;
 	return *this;
 }
-#endif
 
-inline void WVector2D::operator+=(const WVector2D& v)
-{
+// wmath.inl:651
+inline void WVector2D::operator+=(const WVector2D& v) {
 	x += v.x;
 	y += v.y;
 }
 
-inline void WVector2D::operator*=(float f)
-{
+// wmath.inl:665
+inline void WVector2D::operator*=(const float f) {
 	x *= f;
 	y *= f;
 }
 
-inline void WVector2D::operator/=(float f)
-{
-	float inv = 1.0f / f;
-	x *= inv;
+// wmath.inl:672
+inline void WVector2D::operator/=(const float f) {
+	float inv = 1.0f / f; x *= inv;
 	y *= inv;
 }
 
-inline float operator*(const WPlane& plane, const WVector& vector)
-{
-	return plane.normal * vector + plane.dis;
-}
-
-inline float operator*(const WVector& vector, const WPlane& plane)
-{
-	const WVector& value = vector;
-	return plane.normal * value + plane.dis;
-}
-
-inline WPlane::WPlane(const WVector& normal_, const WVector& point)
-	: normal(normal_)
-{
-	dis = -(normal * point);
-}
-
-inline WPlane& WPlane::operator=(const WPlane& other)
-{
-	normal = other.normal;
-	dis = other.dis;
+// wmath.inl:679
+inline WVector2D& WVector2D::Normalize(void) {
+	if (WAbsBySign(x) < g_EPSILON && WAbsBySign(y) < g_EPSILON) {
+		x *= 0.0f; y *= 0.0f;
+	} else {
+		float inv = 1.0f / sqrtf(x * x + y * y);
+		x *= inv; y *= inv;
+	}
 	return *this;
 }
 
-inline float WDotProduct(const WQuat& left, const WQuat& right)
-{
-	return left.x * right.x + left.y * right.y + left.z * right.z +
-		left.w * right.w;
+// wmath.inl:692
+inline WVector4::WVector4(float x, float y, float z, float w)
+	: x(x), y(y), z(z), w(w) {
 }
 
-inline WQuat WQuaternionSlerp(const WQuat& from, const WQuat& to, float t)
-{
-	WQuat from1 = from;
+// wmath.inl:714
+inline float operator*(const WPlane& p, const WVector& v) {
+	return p.normal * v + p.dis;
+}
+
+// wmath.inl:725
+inline float operator*(const WVector& v, const WPlane& p) {
+	const WVector& value = v;
+	return p.normal * value + p.dis;
+}
+
+// wmath.inl:745
+WVIEW_WMATH_INLINE WPlane::WPlane(const WVector& n, const WVector& p) : normal(n) {
+	dis = -(normal * p);
+}
+
+// wmath.inl:751
+AVATAR_AVATAR_WMATH_INLINE WPlane& WPlane::operator=(const WPlane& p) {
+	normal = p.normal;
+	dis = p.dis;
+	return *this;
+}
+
+// wmath.inl:786
+// Spherical interpolation from `from` (t = 0) to `to` (t = 1) along the
+// shorter arc; linear when the two are nearly equal, through a
+// perpendicular quaternion when they are nearly opposite.
+CAMERAWORK_WMATH_INLINE WQuat WQuaternionSlerp(const WQuat& from, const WQuat& to, float t) {
+	WQuat q;
 	float omega, cosom, sinom, scale0, scale1;
 
-	cosom = WDotProduct(from, to);
+	cosom = from.x * to.x + from.z * to.z + from.y * to.y + from.w * to.w;
 
-	if (cosom < 0.0f)
-	{
-		from1.x = -from.x;
-		from1.y = -from.y;
-		from1.z = -from.z;
-		from1.w = -from.w;
+	if (cosom < 0.0f) {
+		q = WQuat(-from.x, -from.y, -from.z, -from.w);
 		cosom = -cosom;
+	} else {
+		q = from;
 	}
 
-	if ((1.0f + cosom) > 0.05f)
-	{
-		if ((1.0f - cosom) < 0.05f)
-		{
+	if ((1.0f + cosom) > 0.05f) {
+		if ((1.0f - cosom) < 0.05f) {
 			scale0 = 1.0f - t;
 			scale1 = t;
-		}
-		else
-		{
-			omega = acosf(cosom);
+		} else {
+			omega = (float)acos(cosom);
 			sinom = sinf(omega);
-
-			scale0 = sinf((1.0f - t) * omega) / sinom;
-			scale1 = sinf(t * omega) / sinom;
+			scale0 = sinf((1.0f - t) * omega) * (1.0f / sinom);
+			scale1 = sinf(omega * t) * (1.0f / sinom);
 		}
-
-		return WQuat(scale0 * from1.x + scale1 * to.x,
-			scale0 * from1.y + scale1 * to.y, scale0 * from1.z + scale1 * to.z,
-			scale0 * from1.w + scale1 * to.w);
-	}
-	else
-	{
-		scale0 = sinf((1.0f - t) * g_PI_DIV_2);
-		scale1 = sinf(t * g_PI_DIV_2);
-
-		return WQuat(scale0 * from1.x - scale1 * from1.y,
-			scale0 * from1.y + scale1 * from1.x,
-			scale0 * from1.z - scale1 * from1.w,
-			scale0 * from1.w + scale1 * from1.z);
+		return WQuat(scale0 * q.x + scale1 * to.x, scale0 * q.y + scale1 * to.y,
+		             scale0 * q.z + scale1 * to.z, scale0 * q.w + scale1 * to.w);
+	} else {
+		scale0 = sinf((1.0f - t) * data_9eb420[1]);
+		scale1 = sinf(t * data_9eb420[1]);
+		return WQuat(scale0 * q.x - scale1 * q.y, scale0 * q.y + scale1 * q.x,
+		             scale0 * q.z - scale1 * q.w, scale0 * q.w + scale1 * q.z);
 	}
 }
 
-inline WQuat& WQuat::operator=(const WQuat& other)
-{
-	memcpy(this, &other, sizeof(WQuat));
+// wmath.inl:379
+CAMERAWORK_WMATH_INLINE WQuat& WQuat::operator=(const WQuat& q) {
+	memcpy(this, &q, sizeof(WQuat));
 	return *this;
 }
 
-inline int operator&(const Waabb& left, const Waabb& right)
-{
-	for (int i = 0; i < 3; i++)
-	{
-		if (left.min.p[i] > right.max.p[i] || left.max.p[i] < right.min.p[i])
+// wmath.inl:385
+WIND_WMATH_INLINE int operator&(const Waabb& a, const Waabb& b) {
+	for (int i = 0; i < 3; i++) {
+		if (a.min.p[i] > b.max.p[i] || a.max.p[i] < b.min.p[i])
 			return 0;
 	}
 	return 1;
 }
 
-inline Wobb& Wobb::operator=(const Wobb& obb)
-{
-	center = obb.center;
-	extend[0] = obb.extend[0];
-	extend[1] = obb.extend[1];
-	extend[2] = obb.extend[2];
+// wmath.h:166
+QUADTREE_WMATH_INLINE void Waabb::Clear(void) {
+	min = WVector(3.402823466e+38f, 3.402823466e+38f, 3.402823466e+38f);
+	max = WVector(-3.402823466e+38f, -3.402823466e+38f, -3.402823466e+38f);
+}
+
+// wmath.h:171
+QUADTREE_WMATH_INLINE void Waabb::AddPoint(const WVector& v) {
+	if (v.x > max.x) max.x = v.x;
+	if (v.x < min.x) min.x = v.x;
+	if (v.y > max.y) max.y = v.y;
+	if (v.y < min.y) min.y = v.y;
+	if (v.z > max.z) max.z = v.z;
+	if (v.z < min.z) min.z = v.z;
+}
+
+// wmath.inl:939
+// The box moved by v.
+inline Waabb operator+(const Waabb& a, const WVector& v) {
+	Waabb r = a;
+	r.min += v;
+	r.max += v;
+	return r;
+}
+
+// wmath.inl:1000
+inline Waabb& Waabb::operator+=(const WVector& v) {
+	if (v.x > 0.0f) max.x += v.x;
+	else min.x += v.x;
+
+	if (v.y > 0.0f) max.y += v.y;
+	else min.y += v.y;
+
+	if (v.z > 0.0f) max.z += v.z;
+	else min.z += v.z;
+
 	return *this;
 }
 
-inline WVector Waabb::GetCenter() const
-{
-	return (min + max) * 0.5f;
+// wmath.inl:1050
+inline void Wobb::operator*=(const WVector& v) {
+	extend[0] *= v.x; extend[1] *= v.y; extend[2] *= v.z;
 }
 
-inline Wobb& Wobb::operator=(const Waabb& box)
-{
-	center = box.GetCenter();
-	extend[0] = WVector(box.max.x - box.min.x, 0.0f, 0.0f) * 0.5f;
-	extend[1] = WVector(0.0f, box.max.y - box.min.y, 0.0f) * 0.5f;
-	extend[2] = WVector(0.0f, 0.0f, box.max.z - box.min.z) * 0.5f;
+// wmath.inl:1065
+// The oriented box of an axis-aligned one.
+inline Wobb& Wobb::operator=(const Waabb& b) {
+	center = (b.max + b.min) * 0.5f;
+	extend[0] = WVector((b.max.x - b.min.x) * 0.5f, 0.0f, 0.0f);
+	extend[1] = WVector(0.0f, (b.max.y - b.min.y) * 0.5f, 0.0f);
+	extend[2] = WVector(0.0f, 0.0f, (b.max.z - b.min.z) * 0.5f);
+
 	return *this;
 }
 
-inline bool Wobb::IsInclude(const WVector& point) const
-{
-	WVector direction = point - center;
-	return Abs(direction * extend[0]) <= (extend[0] * extend[0]) &&
-		Abs(direction * extend[1]) <= (extend[1] * extend[1]) &&
-		Abs(direction * extend[2]) <= (extend[2] * extend[2]);
+// wmath.inl:1075
+// The box of a transform: its pivot is the center, its axes the half-axes.
+inline Wobb& Wobb::operator=(const WMatrix& m) {
+	center = m.pivot;
+	extend[0] = m.xa;
+	extend[1] = m.ya;
+	extend[2] = m.za;
+
+	return *this;
 }
 
-inline WVector4::WVector4(float x_, float y_, float z_, float w_)
-	: x(x_), y(y_), z(z_), w(w_)
-{
+// wmath.h:619
+inline Wobb::Wobb(const WMatrix& m) {
+	*this = m;
+}
+
+// wmath.inl:1091
+// Whether pos lies inside the box: its offset from the center projects on
+// each half-axis within that half-axis.
+AMBIENTSOUND_WMATH_INLINE bool Wobb::IsInclude(const WVector& pos) const {
+	WVector d = pos - center;
+	float d0, d1, d2;
+
+	return ((d0 = WDotProduct(d, extend[0])) > 0.0f ? d0 : -d0) <= WDotProduct(extend[0], extend[0])
+		&& ((d1 = WDotProduct(d, extend[1])) > 0.0f ? d1 : -d1) <= WDotProduct(extend[1], extend[1])
+		&& ((d2 = WDotProduct(d, extend[2])) > 0.0f ? d2 : -d2) <= WDotProduct(extend[2], extend[2]) ? true : false;
 }

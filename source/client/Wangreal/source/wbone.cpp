@@ -1,122 +1,149 @@
-#include "wmath.h"
-
-#include "wview.h"
-#include "wpuppet.h"
-#include "wbone.h"
-#include "wmesh.h"
-#include "wpetfile.h"
-#include "wboneset.h"
-#include "wblockmodel.h"
-#include "cfile.h"
+// Original: d:\build\custom\temp\code\client\wangreal\source\wbone.cpp
+#define WBONE_WMATH_INLINE
+#define WBONE_WBONE_INLINE
+#define WBONE_WUTIL_INLINE
+#define WBONE_WVIEW_INLINE
+#include <stdio.h>
+#include <string.h>
 #include <list>
 #include <algorithm>
-#include "wxtnlbuffer.h"
-#include <string.h>
+
+#include "../include/wbone.h"
+#include "../include/wblockmodel.h"
+#include "../include/wboneset.h"
+#include "../include/wpetfile.h"
+#include "../include/wpuppet.h"
+#include "../include/wvideo.h"
+#include "../include/wview.h"
+#include "../include/wutil.h"
+#include "../include/westpak.h"
+#include "../include/wxtnlbuffer.h"
+
+// wmath.h:86 (not yet in wmath.h, owned by its steward)
+inline int WisZero(const float& f, float eps) {
+	return Wabs(f) < eps;
+}
 
 WTVertex* WBone::m_vtxList = 0;
 WVector* WBone::m_vecList = 0;
 int WBone::m_vtx_len = 0;
 int WBone::m_vtx_count = 0;
 
-int WriteID(int, FILE*);
-int WisZero(const float& v, float e);
-bool VECEQU(const WVector&, const WVector&);
-bool QUATEQU(const WQuat&, const WQuat&);
-struct w_keyframe_scale;
-struct w_3d_object;
-struct w_vertex;
-struct w_rigid;
-struct w_keyframe;
-struct w_faces;
-
-struct w_rigid
-{
-	char objname[32];
-	w_3d_object* obj;
-	WBone* bone;
-	float blendWeight;
+// A keyframe of a loaded .pet animation (PDB layout, size 0x18).
+struct w_keyframe {
+	float t;                            // 0x0
+	WQuat* q;                           // 0x4
+	WVector* v;                         // 0x8
+	float* scale;                       // 0xc
+	w_keyframe* next;                   // 0x10
+	w_keyframe* prev;                   // 0x14
 };
+CHECK_SIZE(w_keyframe, 0x18);
+CHECK_FIELD(w_keyframe, t, 0x0);
+CHECK_FIELD(w_keyframe, q, 0x4);
+CHECK_FIELD(w_keyframe, v, 0x8);
+CHECK_FIELD(w_keyframe, scale, 0xc);
+CHECK_FIELD(w_keyframe, next, 0x10);
+CHECK_FIELD(w_keyframe, prev, 0x14);
 
-struct w_vertex
-{
-	WVector v;
-	float weight;
-	char objname[32];
-	w_rigid* rigidVtx;
-	int rigidNum;
-	w_3d_object* obj;
+// A rigid-vertex link of a loaded model (PDB layout, size 0x2c).
+struct w_rigid {
+	char objname[32];                   // 0x0
+	w_3d_object* obj;                   // 0x20
+	WBone* bone;                        // 0x24
+	float blendWeight;                  // 0x28
 };
+CHECK_SIZE(w_rigid, 0x2c);
+CHECK_FIELD(w_rigid, objname, 0x0);
+CHECK_FIELD(w_rigid, obj, 0x20);
+CHECK_FIELD(w_rigid, bone, 0x24);
+CHECK_FIELD(w_rigid, blendWeight, 0x28);
 
-struct w_keyframe
-{
-	float t;
-	WQuat* q;
-	WVector* v;
-	float* scale;
-	w_keyframe* next;
-	w_keyframe* prev;
+// A vertex of a loaded model (PDB layout, size 0x3c).
+struct w_vertex {
+	WVector v;                          // 0x0
+	float weight;                       // 0xc
+	char objname[32];                   // 0x10
+	w_rigid* rigidVtx;                  // 0x30
+	int rigidNum;                       // 0x34
+	w_3d_object* obj;                   // 0x38
 };
+CHECK_SIZE(w_vertex, 0x3c);
+CHECK_FIELD(w_vertex, v, 0x0);
+CHECK_FIELD(w_vertex, weight, 0xc);
+CHECK_FIELD(w_vertex, objname, 0x10);
+CHECK_FIELD(w_vertex, rigidVtx, 0x30);
+CHECK_FIELD(w_vertex, rigidNum, 0x34);
+CHECK_FIELD(w_vertex, obj, 0x38);
 
-struct w_3d_object
-{
-	w_3d_object* parent;
-	w_3d_object* child;
-	w_3d_object* next;
-	w_vertex* gvertex;
-	w_faces* gfaces;
-	WMatrix matrix;
-	char name[40];
-	char parentName[40];
-	int nvertex;
-	int nfaces;
-	int first;
-	int type;
-	WBone* bone;
-	w_3d_object* list;
-	w_keyframe* keyframe;
+// A node of a loaded model's object tree (PDB layout, size 0xb0).
+struct w_3d_object {
+	w_3d_object* parent;                // 0x0
+	w_3d_object* child;                 // 0x4
+	w_3d_object* next;                  // 0x8
+	w_vertex* gvertex;                  // 0xc
+	w_faces* gfaces;                    // 0x10
+	WMatrix matrix;                     // 0x14
+	char name[40];                      // 0x44
+	char parentName[40];                // 0x6c
+	int nvertex;                        // 0x94
+	int nfaces;                         // 0x98
+	int first;                          // 0x9c
+	int type;                           // 0xa0
+	WBone* bone;                        // 0xa4
+	w_3d_object* list;                  // 0xa8
+	w_keyframe* keyframe;               // 0xac
 };
+CHECK_SIZE(w_3d_object, 0xb0);
+CHECK_FIELD(w_3d_object, parent, 0x0);
+CHECK_FIELD(w_3d_object, child, 0x4);
+CHECK_FIELD(w_3d_object, next, 0x8);
+CHECK_FIELD(w_3d_object, gvertex, 0xc);
+CHECK_FIELD(w_3d_object, gfaces, 0x10);
+CHECK_FIELD(w_3d_object, matrix, 0x14);
+CHECK_FIELD(w_3d_object, name, 0x44);
+CHECK_FIELD(w_3d_object, parentName, 0x6c);
+CHECK_FIELD(w_3d_object, nvertex, 0x94);
+CHECK_FIELD(w_3d_object, nfaces, 0x98);
+CHECK_FIELD(w_3d_object, first, 0x9c);
+CHECK_FIELD(w_3d_object, type, 0xa0);
+CHECK_FIELD(w_3d_object, bone, 0xa4);
+CHECK_FIELD(w_3d_object, list, 0xa8);
+CHECK_FIELD(w_3d_object, keyframe, 0xac);
 
-struct w_faces
-{
-	struct w_faces_info
-	{
-		w_3d_object* object;
-		w_vertex* gvertex;
-		WBone* bone;
-		WVector norm;
-		int vindex;
-		float tu;
-		float tv;
-	};
-
-	w_faces_info p[3];
-	unsigned int diffuse;
-	int texhandle;
-	int subNum;
-	int mapType;
-	int mapFlags;
-	int xiMapFlags2;
+// Everything a cloned bone shares with its source (PDB layout, size 0xbc).
+struct w_common_bone_data {
+	int xid;                            // 0x0
+	char name[64];                      // 0x4
+	WSphere boundsphere;                // 0x44
+	WMatrix basicMat;                   // 0x54
+	Waabb aabb;                         // 0x84
+	w_keyframe_pos* keyPos;             // 0x9c
+	w_keyframe_rot* keyRot;             // 0xa0
+	w_keyframe_scale* keyScale;         // 0xa4
+	int keyPosNum;                      // 0xa8
+	int keyRotNum;                      // 0xac
+	int keyScaleNum;                    // 0xb0
+	int keyFlag;                        // 0xb4
+	w_mesh* mesh;                       // 0xb8
 };
+CHECK_SIZE(w_common_bone_data, 0xbc);
+CHECK_FIELD(w_common_bone_data, xid, 0x0);
+CHECK_FIELD(w_common_bone_data, name, 0x4);
+CHECK_FIELD(w_common_bone_data, boundsphere, 0x44);
+CHECK_FIELD(w_common_bone_data, basicMat, 0x54);
+CHECK_FIELD(w_common_bone_data, aabb, 0x84);
+CHECK_FIELD(w_common_bone_data, keyPos, 0x9c);
+CHECK_FIELD(w_common_bone_data, keyRot, 0xa0);
+CHECK_FIELD(w_common_bone_data, keyScale, 0xa4);
+CHECK_FIELD(w_common_bone_data, keyPosNum, 0xa8);
+CHECK_FIELD(w_common_bone_data, keyRotNum, 0xac);
+CHECK_FIELD(w_common_bone_data, keyScaleNum, 0xb0);
+CHECK_FIELD(w_common_bone_data, keyFlag, 0xb4);
+CHECK_FIELD(w_common_bone_data, mesh, 0xb8);
 
-struct w_common_bone_data
-{
-	int xid;
-	char name[64];
-	WSphere boundsphere;
-	WMatrix basicMat;
-	Waabb aabb;
-	w_keyframe_pos* keyPos;
-	w_keyframe_rot* keyRot;
-	w_keyframe_scale* keyScale;
-	int keyPosNum;
-	int keyRotNum;
-	int keyScaleNum;
-	int keyFlag;
-	w_mesh* mesh;
-};
-
-WBone::WBone()
-{
+// wbone.cpp:34
+WBone::WBone() {
 	m_parent = 0;
 	m_child = 0;
 	m_next = 0;
@@ -139,46 +166,40 @@ WBone::WBone()
 	m_moveVec.Reset();
 	m_matrix.Reset();
 	m_light.type = 2;
-	m_light.nearOne = WVector::UNIT_NEG_Y;
+	m_light.nearone = WVector::UNIT_NEG_Y;
 	m_bound_aabb = Waabb(WVector::ZERO, WVector(0.0001f, 0.0001f, 0.0001f));
 	m_vtxColor = 0xffffffff;
 	CountVtxBuff(1);
 }
 
-WBone::~WBone()
-{
-	if (m_mesh != 0)
-	{
+// wbone.cpp:77
+WBone::~WBone() {
+	if (m_mesh != 0) {
 		ClearMesh(m_mesh);
-		if (m_mesh != 0)
-		{
+		if (m_mesh != 0) {
 			delete m_mesh;
 			m_mesh = 0;
 		}
 	}
-	bool shared = ((((ulong)m_flag) >> 6) & 1) != 0;
-	if (!shared)
-	{
-		if (m_keyPos != 0)
+	if (!m_flag.GetFlag(CLONED_ANI)) {
+		if (m_keyPos != 0) {
 			delete[] m_keyPos;
-		if (m_keyRot != 0)
+		}
+		if (m_keyRot != 0) {
 			delete[] m_keyRot;
+		}
 	}
-	if (m_next != 0)
-	{
+	if (m_next != 0) {
 		delete m_next;
 		m_next = 0;
 	}
-	if (m_child != 0)
-	{
+	if (m_child != 0) {
 		delete m_child;
 		m_child = 0;
 	}
-	--m_vtx_count;
-	if (m_vtx_count == 0)
-	{
-		if (m_vtxList != 0)
-		{
+	m_vtx_count--;
+	if (m_vtx_count == 0) {
+		if (m_vtxList != 0) {
 			delete[] m_vtxList;
 			m_vtxList = 0;
 			m_vtx_len = 0;
@@ -187,56 +208,49 @@ WBone::~WBone()
 	m_bonescale = 1.0f;
 }
 
-w_mesh* WBone::CopyMesh(w_mesh* source)
-{
+// wbone.cpp:107
+w_mesh* WBone::CopyMesh(w_mesh* source) {
 	w_mesh* mesh = new w_mesh;
 	memcpy(mesh, source, sizeof(w_mesh));
 	mesh->next = 0;
 	mesh->drawFlag = mesh->drawFlag & 0xfffff800 | source->texHandle;
 	mesh->alpha = 1.0f;
 	mesh->diffuse = source->diffuse;
-	mesh->vtxColorList = new ulong[mesh->vtxNum];
+	mesh->vtxColorList = new unsigned long[mesh->vtxNum];
 	int i;
-	for (i = 0; i < source->vtxNum; ++i)
+	for (i = 0; i < source->vtxNum; ++i) {
 		mesh->vtxColorList[i] = source->diffuse;
-	if (mesh->rigidNum > 0)
-	{
-		mesh->boneList = (WBone**)g_mem.Alloc(mesh->rigidNum * 4);
-		mesh->vtxColorPtrList = (ulong**)g_mem.Alloc(mesh->rigidNum * 4);
-		memcpy(mesh->boneList, source->boneList, mesh->rigidNum * 4);
 	}
-	if (mesh->blendedRigidNum > 0)
-	{
-		mesh->blendedBoneList = (WBone**)g_mem.Alloc(mesh->blendedTotalNum * 4);
-		memcpy(mesh->blendedBoneList, source->blendedBoneList,
-			mesh->blendedTotalNum * 4);
+	if (mesh->rigidNum > 0) {
+		mesh->boneList = (WBone**)g_mem.Alloc(mesh->rigidNum * sizeof(WBone*));
+		mesh->vtxColorPtrList = (unsigned long**)g_mem.Alloc(mesh->rigidNum * sizeof(unsigned long*));
+		memcpy(mesh->boneList, source->boneList, mesh->rigidNum * sizeof(WBone*));
 	}
-	if (mesh->group != 0)
-	{
+	if (mesh->blendedRigidNum > 0) {
+		mesh->blendedBoneList = (WBone**)g_mem.Alloc(mesh->blendedTotalNum * sizeof(WBone*));
+		memcpy(mesh->blendedBoneList, source->blendedBoneList, mesh->blendedTotalNum * sizeof(WBone*));
+	}
+	if (mesh->group != 0) {
 		mesh->uvData = new float[mesh->vtxNum][2];
 		memcpy(mesh->uvData, source->uvData, mesh->vtxNum * 8);
-		if (source->uvBackup != 0)
-		{
+		if (source->uvBackup != 0) {
 			mesh->uvBackup = new float[mesh->vtxNum][2];
 			memcpy(mesh->uvBackup, source->uvBackup, mesh->vtxNum * 8);
 		}
 	}
-	if (((((ulong)m_flag) >> 16) & 1) != 0)
-	{
+	if ((((unsigned long)m_flag) >> 16) & 1) {
 		mesh->myNormalList = new WVector[mesh->vtxNum];
 		memcpy(mesh->myNormalList, mesh->normList, mesh->vtxNum * 12);
-		if (mesh->blendedTotalNum > 0)
-		{
+		if (mesh->blendedTotalNum > 0) {
 			mesh->myBlendedNormalList = new WVector[mesh->blendedTotalNum];
-			memcpy(mesh->myBlendedNormalList, mesh->blendedNormalList,
-				mesh->blendedTotalNum * 12);
+			memcpy(mesh->myBlendedNormalList, mesh->blendedNormalList, mesh->blendedTotalNum * 12);
 		}
 	}
 	return mesh;
 }
 
-void WBone::CopyBone(w_common_bone_data* data)
-{
+// wbone.cpp:174
+void WBone::CopyBone(w_common_bone_data* data) {
 	m_id = data->xid;
 	SetName(data->name);
 	m_bound_sphere = data->boundsphere;
@@ -247,858 +261,716 @@ void WBone::CopyBone(w_common_bone_data* data)
 	m_keyRotNum = data->keyRotNum;
 	m_keyFlag = data->keyFlag;
 	SetBasicMatrix(data->basicMat);
-	if (data->mesh != 0)
-	{
+	if (data->mesh != 0) {
 		m_mesh = CopyMesh(data->mesh);
-		if (m_mesh->rigidNum != 0 || m_mesh->blendedRigidNum != 0)
-			m_flag.Enable(4);
+		if (m_mesh->rigidNum != 0 || m_mesh->blendedRigidNum != 0) {
+			m_flag.Enable(HASRIGIDVTX);
+		}
 		w_mesh* last = m_mesh;
-		for (w_mesh* source = data->mesh->next; source != 0;
-			source = source->next)
-		{
+		for (w_mesh* source = data->mesh->next; source != 0; source = source->next) {
 			last->next = CopyMesh(source);
-			if (last->next->rigidNum != 0 || last->next->blendedRigidNum != 0)
-				m_flag.Enable(4);
+			if (last->next->rigidNum != 0 || last->next->blendedRigidNum != 0) {
+				m_flag.Enable(HASRIGIDVTX);
+			}
 			last = last->next;
 		}
 	}
-	m_flag.Enable(0x60);
+	m_flag.Enable(CLONED_MESH | CLONED_ANI);
 }
 
-void WBone::ClearMesh(w_mesh* mesh)
-{
-	if (mesh->next != 0)
-	{
+// wbone.cpp:217
+void WBone::ClearMesh(w_mesh* mesh) {
+	if (mesh->next != 0) {
 		ClearMesh(mesh->next);
-		if (mesh->next != 0)
-		{
+		if (mesh->next != 0) {
 			delete mesh->next;
 			mesh->next = 0;
 		}
 	}
-	bool shared = ((((ulong)m_flag) >> 5) & 1) != 0;
-	if (!shared)
-	{
-		if (mesh->indexList != 0)
-		{
+	if (!m_flag.GetFlag(CLONED_MESH)) {
+		if (mesh->indexList != 0) {
 			delete[] mesh->indexList;
 			mesh->indexList = 0;
 		}
-		if (mesh->normList != 0)
-		{
+		if (mesh->normList != 0) {
 			delete[] mesh->normList;
 			mesh->normList = 0;
 		}
-		if (mesh->vecList != 0)
-		{
+		if (mesh->vecList != 0) {
 			delete[] mesh->vecList;
 			mesh->vecList = 0;
 		}
-		if (mesh->weightList != 0)
-		{
+		if (mesh->weightList != 0) {
 			delete[] mesh->weightList;
 			mesh->weightList = 0;
 		}
-		if (mesh->originalVtxColorList != 0)
-		{
+		if (mesh->originalVtxColorList != 0) {
 			delete[] mesh->originalVtxColorList;
 			mesh->originalVtxColorList = 0;
 		}
-		if (mesh->uvData != 0)
-		{
+		if (mesh->uvData != 0) {
 			delete[] mesh->uvData;
 			mesh->uvData = 0;
 		}
-		if (mesh->uvBackup != 0)
-		{
+		if (mesh->uvBackup != 0) {
+			delete[] mesh->uvBackup;
+			mesh->uvBackup = 0;
+		}
+	} else if (mesh->group != 0) {
+		if (mesh->uvData != 0) {
+			delete[] mesh->uvData;
+			mesh->uvData = 0;
+		}
+		if (mesh->uvBackup != 0) {
 			delete[] mesh->uvBackup;
 			mesh->uvBackup = 0;
 		}
 	}
-	else if (mesh->group != 0)
-	{
-		if (mesh->uvData != 0)
-		{
-			delete[] mesh->uvData;
-			mesh->uvData = 0;
-		}
-		if (mesh->uvBackup != 0)
-		{
-			delete[] mesh->uvBackup;
-			mesh->uvBackup = 0;
-		}
-	}
-	if (mesh->vtxColorList != 0)
-	{
+	if (mesh->vtxColorList != 0) {
 		delete[] mesh->vtxColorList;
 		mesh->vtxColorList = 0;
 	}
-	if (mesh->myBlendedNormalList != 0)
-	{
+	if (mesh->myBlendedNormalList != 0) {
 		delete[] mesh->myBlendedNormalList;
 		mesh->myBlendedNormalList = 0;
 	}
-	if (mesh->myNormalList != 0)
-	{
+	if (mesh->myNormalList != 0) {
 		delete[] mesh->myNormalList;
 		mesh->myNormalList = 0;
 	}
-	if (mesh->blendedTotalNum > 0)
-	{
-		bool blendShared = ((((ulong)m_flag) >> 5) & 1) != 0;
-		if (!blendShared)
-		{
+	if (mesh->blendedTotalNum > 0) {
+		if (!m_flag.GetFlag(CLONED_MESH)) {
 			g_mem.Free(mesh->blendWeightList);
-			if (mesh->blendedVecList != 0)
-			{
+			if (mesh->blendedVecList != 0) {
 				delete[] mesh->blendedVecList;
 				mesh->blendedVecList = 0;
 			}
-			if (mesh->blendedNormalList != 0)
-			{
+			if (mesh->blendedNormalList != 0) {
 				delete[] mesh->blendedNormalList;
 				mesh->blendedNormalList = 0;
 			}
 		}
 		g_mem.Free(mesh->blendedBoneList);
 	}
-	if (mesh->rigidNum > 0)
-	{
+	if (mesh->rigidNum > 0) {
 		g_mem.Free(mesh->boneList);
 		g_mem.Free(mesh->vtxColorPtrList);
 	}
 }
 
-WBone* WBone::MakeClone(WBone* parent)
-{
-	if (((((ulong)m_flag) >> 16) & 1) != 0)
+// wbone.cpp:284
+WBone* WBone::MakeClone(WBone* parent) {
+	if (m_flag.GetFlag(MESHBONE)) {
 		return 0;
+	}
 
-	w_common_bone_data data;
-	data.xid = m_id;
-	strcpy(data.name, m_name);
-	data.basicMat = m_basicMat;
-	data.boundsphere = m_bound_sphere;
-	data.aabb = m_bound_aabb;
-	data.keyPos = m_keyPos;
-	data.keyPosNum = m_keyPosNum;
-	data.keyRot = m_keyRot;
-	data.keyRotNum = m_keyRotNum;
-	data.keyFlag = m_keyFlag;
-	data.mesh = m_mesh;
+	w_common_bone_data common;
+	common.xid = m_id;
+	strcpy(common.name, m_name);
+	common.basicMat = m_basicMat;
+	common.boundsphere = m_bound_sphere;
+	common.aabb = m_bound_aabb;
+	common.keyPos = m_keyPos;
+	common.keyPosNum = m_keyPosNum;
+	common.keyRot = m_keyRot;
+	common.keyRotNum = m_keyRotNum;
+	common.keyFlag = m_keyFlag;
+	common.mesh = m_mesh;
 
 	WBone* clone = new WBone;
-	clone->CopyBone(&data);
+	clone->CopyBone(&common);
 	clone->SetParent(parent);
 
-	if (m_next != 0)
-	{
-		if (parent != 0)
-		{
+	if (m_next != 0) {
+		if (parent != 0) {
 			m_next->MakeClone(parent);
-		}
-		else
+		} else {
 			clone->SetNext(m_next->MakeClone(0), true);
+		}
 	}
-	if (m_child != 0)
+	if (m_child != 0) {
 		m_child->MakeClone(clone);
+	}
 	return clone;
 }
 
-void WBone::MergeMesh(WBone* source, WBone* root)
-{
+// wbone.cpp:324
+void WBone::MergeMesh(WBone* bone, WBone* root) {
 	WMatrix matrix;
-	matrix = source->m_matrix * ~m_matrix;
-	if (m_mesh != 0)
-	{
+	matrix = bone->m_matrix * ~m_matrix;
+	if (m_mesh != 0) {
 		w_mesh* last;
-		for (last = m_mesh; last->next; last = last->next)
-		{
+		for (last = m_mesh; last->next != 0; last = last->next) {
 		}
-		last->next = source->m_mesh;
+		last->next = bone->m_mesh;
+	} else {
+		m_mesh = bone->m_mesh;
 	}
-	else
-	{
-		m_mesh = source->m_mesh;
-	}
-	for (w_mesh* mesh = source->m_mesh; mesh != 0; mesh = mesh->next)
-	{
+	for (w_mesh* mesh = bone->m_mesh; mesh != 0; mesh = mesh->next) {
 		int i;
-		for (i = 0; i < mesh->vtxNum; ++i)
-		{
+		for (i = 0; i < mesh->vtxNum; ++i) {
 			WVector& vec = mesh->vecList[i];
-			vec = WVector(matrix.xx * vec.x + matrix.xz * vec.z +
-					matrix.xy * vec.y + matrix.xm,
-				matrix.yx * vec.x + matrix.yz * vec.z + matrix.yy * vec.y +
-					matrix.ym,
-				matrix.zx * vec.x + matrix.zz * vec.z + matrix.zy * vec.y +
-					matrix.zm);
+			vec = WVector(matrix.xx * vec.x + matrix.xz * vec.z + matrix.xy * vec.y + matrix.xm,
+				matrix.yx * vec.x + matrix.yz * vec.z + matrix.yy * vec.y + matrix.ym,
+				matrix.zx * vec.x + matrix.zz * vec.z + matrix.zy * vec.y + matrix.zm);
 		}
-		for (i = 0; i < mesh->rigidNum; ++i)
-		{
-			WBone*& bone = mesh->boneList[i];
-			bone = root->FindBone(bone->m_name, 0);
+		for (i = 0; i < mesh->rigidNum; ++i) {
+			WBone*& rigid = mesh->boneList[i];
+			rigid = root->FindBone(rigid->m_name, 0);
 		}
-		for (i = 0; i < mesh->blendedTotalNum; ++i)
-		{
-			WBone*& bone = mesh->blendedBoneList[i];
-			bone = root->FindBone(bone->m_name, 0);
+		for (i = 0; i < mesh->blendedTotalNum; ++i) {
+			WBone*& rigid = mesh->blendedBoneList[i];
+			rigid = root->FindBone(rigid->m_name, 0);
 		}
 	}
-	source->m_mesh = 0;
+	bone->m_mesh = 0;
 }
 
-bool WBone::CheckRigidVtx(WBone* bone)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
+// wbone.cpp:363
+bool WBone::CheckRigidVtx(WBone* bone) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
 		int i;
-		for (i = 0; i < mesh->rigidNum; ++i)
-		{
-			if (mesh->boneList[i] == bone)
+		for (i = 0; i < mesh->rigidNum; i++) {
+			if (mesh->boneList[i] == bone) {
 				return true;
+			}
 		}
-		for (i = 0; i < mesh->blendedTotalNum; ++i)
-		{
-			if (mesh->blendedBoneList[i] == bone)
+		for (i = 0; i < mesh->blendedTotalNum; i++) {
+			if (mesh->blendedBoneList[i] == bone) {
 				return true;
+			}
 		}
 	}
-	if (m_next != 0 && m_next->CheckRigidVtx(bone))
+	if (m_next != 0 && m_next->CheckRigidVtx(bone)) {
 		return true;
-	if (m_child != 0 && m_child->CheckRigidVtx(bone))
+	}
+	if (m_child != 0 && m_child->CheckRigidVtx(bone)) {
 		return true;
+	}
 	return false;
 }
 
-void WBone::ResetMeshBone(WBone* root, bool child)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
+// wbone.cpp:393
+void WBone::ResetMeshBone(WBone* root, bool child) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
 		int i;
-		for (i = 0; i < mesh->rigidNum; ++i)
-		{
+		for (i = 0; i < mesh->rigidNum; i++) {
 			WBone*& bone = mesh->boneList[i];
-			if (bone != 0)
+			if (bone != 0) {
 				bone = root->FindBone(bone->m_name, 0);
+			}
 		}
-		for (i = 0; i < mesh->blendedTotalNum; ++i)
-		{
+		for (i = 0; i < mesh->blendedTotalNum; i++) {
 			WBone*& bone = mesh->blendedBoneList[i];
 			bone = root->FindBone(bone->m_name, 0);
 		}
-		if (mesh->aabbBone != 0)
+		if (mesh->aabbBone != 0) {
 			mesh->aabbBone = root->FindBone(mesh->aabbBone->m_name, 0);
+		}
 	}
-	if (child)
-	{
-		if (m_next != 0)
+	if (child) {
+		if (m_next != 0) {
 			m_next->ResetMeshBone(root, true);
-		if (m_child != 0)
+		}
+		if (m_child != 0) {
 			m_child->ResetMeshBone(root, true);
+		}
 	}
 }
 
-void WBone::SetName(char* name)
-{
-	strcpy(m_name, name);
+// wbone.cpp:452
+void WBone::SetName(char* objectName) {
+	strcpy(m_name, objectName);
 	m_hashCode = GetHashCode(m_name);
 	m_motion_bone_name = GetNameSubBip();
 }
 
-void WBone::SetParent(WBone* parent)
-{
-	if (parent != 0)
-	{
-		this->m_next = parent->m_child;
-		this->m_parent = parent;
+// wbone.cpp:460
+void WBone::SetParent(WBone* parent) {
+	if (parent != 0) {
+		m_next = parent->m_child;
+		m_parent = parent;
 		parent->m_child = this;
-	}
-	else
-	{
-		this->m_parent = 0;
+	} else {
+		m_parent = 0;
 	}
 }
 
-void WBone::ReleaseChild(WBone* child)
-{
-	WBone* current = m_child;
-	if (current == child)
-	{
-		m_child = current->m_next;
-		return;
-	}
-	while (current != 0)
-	{
-		if (current->m_next == child)
-		{
-			current->m_next = child->m_next;
-			return;
+// wbone.cpp:471
+void WBone::ReleaseChild(WBone* bone) {
+	if (m_child == bone) {
+		m_child = m_child->m_next;
+	} else {
+		for (WBone* child = m_child; child != 0; child = child->m_next) {
+			if (child->m_next == bone) {
+				child->m_next = bone->m_next;
+				break;
+			}
 		}
-		current = current->m_next;
 	}
 }
 
-void WBone::SetNext(WBone* next, bool append)
-{
-	if (next && append)
-	{
-		WBone* tail;
-		for (tail = next; tail->m_next; tail = tail->m_next)
-		{
+// wbone.cpp:492
+void WBone::SetNext(WBone* bone, bool bSetBoth) {
+	if (bone != 0 && bSetBoth) {
+		WBone* last;
+		for (last = bone; last->m_next != 0; last = last->m_next) {
 		}
-		tail->m_next = m_next;
+		last->m_next = m_next;
 	}
-	m_next = next;
+	m_next = bone;
 }
 
-void WBone::SetBasicMatrix(const WMatrix& matrix)
-{
-	m_basicMat = matrix;
-	m_basicQuat = matrix;
-	m_localMat = matrix;
-	m_matrix = matrix;
-	float z = m_localMat.zz;
-	float y = m_localMat.yz;
-	float x = m_localMat.xz;
-	float len = x * x + y * y + z * z;
-	m_scale = (float)sqrt(len);
+// wbone.cpp:507
+void WBone::SetBasicMatrix(const WMatrix& mat) {
+	m_basicMat = mat;
+	m_basicQuat = mat;
+	m_localMat = mat;
+	m_matrix = mat;
+	m_scale = m_localMat.za.Magnitude();
+
 	m_basicQuat.Normalize();
 }
 
-void WBone::CopyBasicMatrix(WBone* root, bool child)
-{
-	WBone* target = root->FindBone(m_name, 0);
-	if (target == 0 && strstr(m_name, "Bip") != 0)
-		target = root->FindBone(GetNameSubBip(), 0);
-	if (target != 0)
-	{
-		WMatrix matrix;
-		matrix = GetKeyRot(0.0f);
-		matrix.pivot = GetKeyPos(0.0f);
-		target->SetBasicMatrix(matrix);
+// wbone.cpp:518
+void WBone::CopyBasicMatrix(WBone* root, bool recursive) {
+	WBone* bone = root->FindBone(m_name, 0);
+	if (bone == 0 && strstr(m_name, "Bip") != 0) {
+		bone = root->FindBone(GetNameSubBip(), 0);
 	}
-	if (child)
-	{
-		if (m_next != 0)
-			m_next->CopyBasicMatrix(root, child);
-		if (m_child != 0)
-			m_child->CopyBasicMatrix(root, child);
+	if (bone != 0) {
+		WMatrix mat;
+		mat = GetKeyRot(0.0f);
+		mat.pivot = GetKeyPos(0.0f);
+		bone->SetBasicMatrix(mat);
 	}
-}
 
-void WBone::SetMatrix(const WMatrix& matrix, WView* view)
-{
-	if ((((ulong)m_flag) & 0x600) != 0)
-	{
-		bool rotated = ((((ulong)m_flag) >> 9) & 1) != 0;
-		if (rotated)
-			m_matrix = m_rotateMat * matrix;
-		bool moved = ((((ulong)m_flag) >> 10) & 1) != 0;
-		if (moved)
-		{
-			m_matrix.pivot -= m_moveVec * m_localMat;
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->CopyBasicMatrix(root, recursive);
+		}
+		if (m_child != 0) {
+			m_child->CopyBasicMatrix(root, recursive);
 		}
 	}
-	else
-	{
-		m_matrix = matrix;
-	}
-	for (WBone* bone = m_child; bone != 0; bone = bone->m_next)
-		bone->SetMatrix(bone->m_localMat * m_matrix, view);
 }
 
-WVector WBone::GetKeyPos(float time)
-{
-	if (m_keyPos == 0)
+// wbone.cpp:543
+void WBone::SetMatrix(const WMatrix& mat, WView* view) {
+	if (m_flag & (ROTATEBONE | MOVEBONE)) {
+		if (m_flag.GetFlag(ROTATEBONE)) {
+			m_matrix = m_rotateMat * mat;
+		}
+		if (m_flag.GetFlag(MOVEBONE)) {
+			m_matrix.pivot -= m_moveVec * m_localMat;
+		}
+	} else {
+		m_matrix = mat;
+	}
+
+	for (WBone* bone = m_child; bone != 0; bone = bone->m_next) {
+		bone->SetMatrix(bone->m_localMat * m_matrix, view);
+	}
+}
+
+// wbone.cpp:570
+WVector WBone::GetKeyPos(float t) {
+	if (m_keyPos == 0) {
 		return m_basicMat.pivot;
+	}
 	int low = 0;
 	int high = m_keyPosNum - 1;
 	int mid;
-	do
-	{
+	do {
 		mid = (low + high) >> 1;
-		if (m_keyPos[mid].time >= time)
+		if (m_keyPos[mid].t >= t) {
 			high = mid;
-		else
+		} else {
 			low = mid + 1;
+		}
 	} while (low < high);
-	if (m_keyPos[mid].time != time)
-	{
-		if (mid != 0 || m_keyPos[0].time < time)
-		{
+	if (m_keyPos[mid].t != t) {
+		if (mid != 0 || m_keyPos[0].t < t) {
 			int index = mid;
-			if (m_keyPos[mid].time > time)
+			if (m_keyPos[mid].t > t) {
 				index = mid - 1;
-			float rate = (time - m_keyPos[index].time) /
-				(m_keyPos[high].time - m_keyPos[index].time);
-			return (m_keyPos[high].pos - m_keyPos[index].pos) * rate +
-				m_keyPos[index].pos;
+			}
+			float rate = (t - m_keyPos[index].t) / (m_keyPos[high].t - m_keyPos[index].t);
+			return (m_keyPos[high].pos - m_keyPos[index].pos) * rate + m_keyPos[index].pos;
 		}
 	}
 	return m_keyPos[mid].pos;
 }
 
-WQuat WBone::GetKeyRot(float time)
-{
-	if (0)
-		Abs(time);
-	if (m_keyRot == 0)
+// wbone.cpp:599
+WQuat WBone::GetKeyRot(float t) {
+	if (m_keyRot == 0) {
 		return GetBasicRot();
+	}
 	int low = 0;
 	int high = m_keyRotNum - 1;
 	int mid;
-	do
-	{
+	do {
 		mid = (low + high) >> 1;
-		if (m_keyRot[mid].time >= time)
+		if (m_keyRot[mid].t >= t) {
 			high = mid;
-		else
+		} else {
 			low = mid + 1;
+		}
 	} while (low < high);
-	if (m_keyRot[mid].time != time && (mid != 0 || m_keyRot[0].time < time))
-	{
+	if (m_keyRot[mid].t != t && (mid != 0 || m_keyRot[0].t < t)) {
 		int index = mid;
-		if (m_keyRot[mid].time > time)
+		if (m_keyRot[mid].t > t) {
 			index = mid - 1;
-		float rate = (time - m_keyRot[index].time) /
-			(m_keyRot[high].time - m_keyRot[index].time);
+		}
+		float rate = (t - m_keyRot[index].t) / (m_keyRot[high].t - m_keyRot[index].t);
 		return WQuaternionSlerp(m_keyRot[index].rot, m_keyRot[high].rot, rate);
 	}
 	return m_keyRot[mid].rot;
 }
 
-void WBone::InsertBoneSetList(float time, WBoneSet* set, int flag)
-{
-	if ((flag & 4) == 0 || strstr(m_name, "tail") == 0)
-	{
-		WQuat rot;
+// wbone.cpp:628
+void WBone::InsertBoneSetList(float t, WBoneSet* list, int flag) {
+	if ((flag & 4) == 0 || strstr(m_name, "tail") == 0) {
+		WQuat quat;
 		WVector pos;
 		float scale;
-		if ((flag & 2) != 0)
-		{
-			rot = GetKeyRot(time);
-			pos = GetKeyPos(time);
-			set->AddBoneKey(m_motion_bone_name, &rot, &pos, 0, 3);
-		}
-		else if (m_keyFlag != 0)
-		{
-			if (m_keyRot != 0)
-				rot = GetKeyRot(time);
-			if (m_keyPos != 0)
-				pos = GetKeyPos(time);
-			set->AddBoneKey(m_motion_bone_name, &rot, &pos, &scale, m_keyFlag);
+		if ((flag & 2) != 0) {
+			quat = GetKeyRot(t);
+			pos = GetKeyPos(t);
+			list->AddBoneKey(m_motion_bone_name, &quat, &pos, 0, 3);
+		} else if (m_keyFlag != 0) {
+			if (m_keyRot != 0) {
+				quat = GetKeyRot(t);
+			}
+			if (m_keyPos != 0) {
+				pos = GetKeyPos(t);
+			}
+			list->AddBoneKey(m_motion_bone_name, &quat, &pos, &scale, m_keyFlag);
 		}
 	}
-	if ((flag & 1) != 0)
-	{
-		for (WBone* bone = m_child; bone != 0; bone = bone->m_next)
-			bone->InsertBoneSetList(time, set, flag);
+	if ((flag & 1) != 0) {
+		for (WBone* bone = m_child; bone != 0; bone = bone->m_next) {
+			bone->InsertBoneSetList(t, list, flag);
+		}
 	}
 }
 
-WVector WBone::GetDeltaVec(float time)
-{
-	const WVector* src;
-	w_keyframe_pos* keys = m_keyPos;
-	if (keys != 0 && time > 0.0f)
-	{
-		WVector pos = GetKeyPos(time) - keys[0].pos;
-		src = &pos;
-	}
-	else
-	{
-		src = &WVector::ZERO;
-	}
-	return *src;
+// wbone.cpp:686
+WVector WBone::GetDeltaVec(float t) {
+	return (m_keyPos != 0 && t > 0.0f) ? GetKeyPos(t) - m_keyPos->pos : WVector::ZERO;
 }
 
-char* WBone::GetNameSubBip(void)
-{
-	char* found = strstr(m_name, "Bip");
-	if (found == 0)
-		found = strstr(m_name, "bip");
-	if (found != 0)
-	{
-		while (found[3] != 0)
-		{
-			if (found[3] != ' ' && found[2] == ' ')
-				break;
-			++found;
+// wbone.cpp:692
+char* WBone::GetNameSubBip() {
+	char* p = strstr(m_name, "Bip");
+	if (p == 0) {
+		p = strstr(m_name, "bip");
+	}
+	if (p != 0) {
+		while (p[3] != '\0' && (p[3] == ' ' || p[2] != ' ')) {
+			p++;
 		}
-		return found + 3;
+		return p + 3;
 	}
 	return m_name;
 }
 
-void WBone::ApplyBoneSetList(WBoneSet* set)
-{
-	WBoneKey* key = set->FindBoneKey(m_motion_bone_name);
-	if (key != 0 && key->flags != 0)
-	{
-		const WVector* pos;
-		if ((key->flags & 2) != 0)
-			pos = &key->pivot;
-		else
-			pos = &m_basicMat.pivot;
-		const WQuat* quat;
-		if ((key->flags & 1) != 0)
-			quat = &key->quat;
-		else
-			quat = &m_basicQuat;
-		SetLocalMatrix(*quat, *pos);
+// wbone.cpp:710
+void WBone::ApplyBoneSetList(WBoneSet* boneSet) {
+	WBoneKey* key = boneSet->FindBoneKey(m_motion_bone_name);
+	if (key != 0 && key->flags != 0) {
+		SetLocalMatrix((key->flags & 1) ? key->quat : m_basicQuat, (key->flags & 2) ? key->pivot : m_basicMat.pivot);
 	}
-	if (m_next != 0)
-		m_next->ApplyBoneSetList(set);
-	if (m_child != 0)
-		m_child->ApplyBoneSetList(set);
+
+	if (m_next != 0) {
+		m_next->ApplyBoneSetList(boneSet);
+	}
+	if (m_child != 0) {
+		m_child->ApplyBoneSetList(boneSet);
+	}
 }
 
-void WBone::SetKeyframe(w_keyframe* frame, float end, float start)
-{
+// wbone.cpp:736
+void WBone::SetKeyframe(w_keyframe* frame, float end, float start) {
 	m_keyPosNum = 0;
 	m_keyRotNum = 0;
-	for (w_keyframe* key = frame; key != 0; key = key->next)
-	{
-		if (key->q != 0)
+	for (w_keyframe* key = frame; key != 0; key = key->next) {
+		if (key->q != 0) {
 			++m_keyRotNum;
-		if (key->v != 0)
+		}
+		if (key->v != 0) {
 			++m_keyPosNum;
-		if (key->next == 0)
-		{
-			if (m_keyRotNum != 0 && (key->q == 0 || key->t < end))
+		}
+		if (key->next == 0) {
+			if (m_keyRotNum != 0 && (key->q == 0 || key->t < end)) {
 				++m_keyRotNum;
-			if (m_keyPosNum != 0 && (key->v == 0 || key->t < end))
+			}
+			if (m_keyPosNum != 0 && (key->v == 0 || key->t < end)) {
 				++m_keyPosNum;
+			}
 		}
 	}
 	m_keyFlag = 0;
-	if (m_keyRotNum != 0)
-	{
+	if (m_keyRotNum != 0) {
 		m_keyRot = new w_keyframe_rot[m_keyRotNum];
 		m_keyFlag |= 1;
 	}
-	if (m_keyPosNum != 0)
-	{
+	if (m_keyPosNum != 0) {
 		m_keyPos = new w_keyframe_pos[m_keyPosNum];
 		m_keyFlag |= 2;
 	}
 	int rot = 0;
 	int pos = 0;
-	for (w_keyframe* key = frame; key != 0; key = key->next)
-	{
-		if (key->q != 0)
-		{
-			m_keyRot[rot].time = key->t - start;
+	for (w_keyframe* key = frame; key != 0; key = key->next) {
+		if (key->q != 0) {
+			m_keyRot[rot].t = key->t - start;
 			m_keyRot[rot].rot = *key->q;
 			++rot;
 		}
-		if (key->v != 0)
-		{
-			m_keyPos[pos].time = key->t - start;
+		if (key->v != 0) {
+			m_keyPos[pos].t = key->t - start;
 			m_keyPos[pos].pos = *key->v;
 			++pos;
 		}
 	}
-	if (rot != 0 && rot != m_keyRotNum)
-	{
-		m_keyRot[rot].time = end - start;
+	if (rot != 0 && rot != m_keyRotNum) {
+		m_keyRot[rot].t = end - start;
 		m_keyRot[rot].rot = m_keyRot[rot - 1].rot;
 	}
-	if (pos != 0 && pos != m_keyPosNum)
-	{
-		m_keyPos[pos].time = end - start;
+	if (pos != 0 && pos != m_keyPosNum) {
+		m_keyPos[pos].t = end - start;
 		m_keyPos[pos].pos = m_keyPos[pos - 1].pos;
 	}
 }
 
-bool WBone::CheckSuitableForKeyframe(float start, float end, float (*range)[2],
-	int count, bool last)
-{
-	for (int i = 0; i < count; ++i)
-	{
-		if (last == 0)
-		{
-			if (start <= range[i][0] && range[i][0] <= end)
-				return true;
-		}
-		else if (last == 1)
-		{
-			if (start <= range[i][1] && range[i][1] <= end)
-				return true;
+// wbone.cpp:848
+bool WBone::CheckSuitableForKeyframe(float t1, float t2, float (*t)[2], int n, bool poscheck) {
+	for (int i = 0; i < n; i++) {
+		if ((poscheck == false && t1 <= t[i][0] && t[i][0] <= t2) || (poscheck == true && t1 <= t[i][1] && t[i][1] <= t2)) {
+			return true;
 		}
 	}
-	if (count == 0)
-		return true;
-	return false;
+	return n == 0 ? true : false;
 }
 
-bool __fastcall VECEQU(const WVector& left, const WVector& right)
-{
-	float diff;
-	diff = left.x - right.x;
-	if (Abs(diff) <= 0.0001f)
-	{
-		diff = left.y - right.y;
-		if (Abs(diff) <= 0.0001f)
-		{
-			diff = left.z - right.z;
-			if (Abs(diff) <= 0.0001f)
-				return true;
-		}
-	}
-	return false;
+// wbone.cpp:860
+bool VECEQU(const WVector& A, const WVector& B) {
+	return (Abs(A.x - B.x) <= 0.0001f && Abs(A.y - B.y) <= 0.0001f && Abs(A.z - B.z) <= 0.0001f) ? true : false;
 }
 
-bool __fastcall QUATEQU(const WQuat& left, const WQuat& right)
-{
-	float diff;
-	diff = left.x - right.x;
-	if ((diff > 0.0f ? diff : -diff) <= 0.0001f)
-	{
-		diff = left.y - right.y;
-		if ((diff > 0.0f ? diff : -diff) <= 0.0001f)
-		{
-			diff = left.z - right.z;
-			if ((diff > 0.0f ? diff : -diff) <= 0.0001f)
-			{
-				if (Abs(left.w - right.w) <= 0.0001f)
-					return true;
-			}
-		}
-	}
-	return false;
+// wbone.cpp:866
+bool QUATEQU(const WQuat& A, const WQuat& B) {
+	return (Abs(A.x - B.x) <= 0.0001f && Abs(A.y - B.y) <= 0.0001f && Abs(A.z - B.z) <= 0.0001f && Abs(A.w - B.w) <= 0.0001f) ? true : false;
 }
 
-int WBone::OptimizeRotKey(float (*range)[2], int count, w_keyframe_rot** out)
-{
-	int* map = new int[m_keyRotNum];
-	int num = 0;
+// wbone.cpp:872
+int WBone::OptimizeRotKey(float (*t)[2], int n, w_keyframe_rot** buff) {
+	int* table = new int[m_keyRotNum];
+	int cur = 0;
 	int i;
 	int prev;
-	WQuat rot;
-	for (i = 0; i < m_keyRotNum; ++i)
-	{
-		if (i > 0 && i < m_keyRotNum - 1)
-		{
-			float t = (m_keyRot[i].time - m_keyRot[prev].time) /
-				(m_keyRot[i + 1].time - m_keyRot[prev].time);
-			rot = WQuaternionSlerp(m_keyRot[prev].rot, m_keyRot[i + 1].rot, t);
-			if (QUATEQU(rot, m_keyRot[i].rot))
-			{
-				map[i] = -1;
+	WQuat q;
+	for (i = 0; i < m_keyRotNum; ++i) {
+		if (i > 0 && i < m_keyRotNum - 1) {
+			float delta = (m_keyRot[i].t - m_keyRot[prev].t) / (m_keyRot[i + 1].t - m_keyRot[prev].t);
+			q = WQuaternionSlerp(m_keyRot[prev].rot, m_keyRot[i + 1].rot, delta);
+			if (QUATEQU(q, m_keyRot[i].rot)) {
+				table[i] = -1;
 				continue;
 			}
 		}
-		map[i] = num;
+		table[i] = cur;
 		prev = i;
-		++num;
+		++cur;
 	}
-	if (num < m_keyRotNum && out != 0)
-	{
-		w_keyframe_rot* keys = new w_keyframe_rot[num];
-		for (i = 0; i < m_keyRotNum; ++i)
-		{
-			if (map[i] >= 0)
-				memcpy(&keys[map[i]], &m_keyRot[i], sizeof(w_keyframe_rot));
+	if (cur < m_keyRotNum && buff != 0) {
+		w_keyframe_rot* keys = new w_keyframe_rot[cur];
+		for (i = 0; i < m_keyRotNum; ++i) {
+			if (table[i] >= 0) {
+				memcpy(&keys[table[i]], &m_keyRot[i], sizeof(w_keyframe_rot));
+			}
 		}
-		*out = keys;
+		*buff = keys;
 	}
-	delete[] map;
-	return num;
+	delete[] table;
+	return cur;
 }
 
-int WBone::OptimizePosKey(float (*range)[2], int count, w_keyframe_pos** out)
-{
-	int* map = new int[m_keyPosNum];
+// wbone.cpp:933
+int WBone::OptimizePosKey(float (*t)[2], int n, w_keyframe_pos** buff) {
+	int* table = new int[m_keyPosNum];
 	int i = 0;
-	int num = 0;
-
+	int cur = 0;
 	int prev;
-	WVector pos;
-	for (; i < m_keyPosNum; ++i)
-	{
-		if (i > 0 && i < m_keyPosNum - 1)
-		{
-			float t = (m_keyPos[i].time - m_keyPos[prev].time) /
-				(m_keyPos[i + 1].time - m_keyPos[prev].time);
-			pos = (m_keyPos[i + 1].pos - m_keyPos[prev].pos) * t +
-				m_keyPos[prev].pos;
-			if (VECEQU(pos, m_keyPos[i].pos))
-			{
-				map[i] = -1;
+	WVector p;
+	for (; i < m_keyPosNum; ++i) {
+		if (i > 0 && i < m_keyPosNum - 1) {
+			float delta = (m_keyPos[i].t - m_keyPos[prev].t) / (m_keyPos[i + 1].t - m_keyPos[prev].t);
+			p = (m_keyPos[i + 1].pos - m_keyPos[prev].pos) * delta + m_keyPos[prev].pos;
+			if (VECEQU(p, m_keyPos[i].pos)) {
+				table[i] = -1;
 				continue;
 			}
 		}
-		map[i] = num;
+		table[i] = cur;
 		prev = i;
-		++num;
+		++cur;
 	}
-	if (num < m_keyPosNum && out != 0)
-	{
-		w_keyframe_pos* keys = new w_keyframe_pos[num];
-		for (i = 0; i < m_keyPosNum; ++i)
-		{
-			if (map[i] >= 0)
-				memcpy(&keys[map[i]], &m_keyPos[i], sizeof(w_keyframe_pos));
+	if (cur < m_keyPosNum && buff != 0) {
+		w_keyframe_pos* keys = new w_keyframe_pos[cur];
+		for (i = 0; i < m_keyPosNum; ++i) {
+			if (table[i] >= 0) {
+				memcpy(&keys[table[i]], &m_keyPos[i], sizeof(w_keyframe_pos));
+			}
 		}
-		*out = keys;
+		*buff = keys;
 	}
-	delete[] map;
-	return num;
+	delete[] table;
+	return cur;
 }
 
-void WBone::OptimizeBoneSet(float (*range)[2], int count, int child)
-{
+// wbone.cpp:1032
+void WBone::OptimizeBoneSet(float (*range)[2], int count, int child) {
 	w_keyframe_rot* rot = m_keyRot;
 	w_keyframe_pos* pos = m_keyPos;
-	if (m_keyRot != 0)
-	{
+	if (m_keyRot != 0) {
 		m_keyRotNum = OptimizeRotKey(range, count, &m_keyRot);
-		if (rot != m_keyRot)
+		if (rot != m_keyRot) {
 			delete[] rot;
+		}
 	}
-	if (m_keyPos != 0)
-	{
+	if (m_keyPos != 0) {
 		m_keyPosNum = OptimizePosKey(range, count, &m_keyPos);
-		if (pos != m_keyPos)
+		if (pos != m_keyPos) {
 			delete[] pos;
+		}
 	}
-	if (m_next != 0 && child != 0)
+	if (m_next != 0 && child != 0) {
 		m_next->OptimizeBoneSet(range, count, 1);
-	if (m_child != 0 && child != 0)
+	}
+	if (m_child != 0 && child != 0) {
 		m_child->OptimizeBoneSet(range, count, 1);
+	}
 }
 
-void WBone::SetMesh(w_pet_vertex* vertexList, int vtxNum,
-	w_pet_tri_point* pointList, w_pet_texture_info** texList, WBone** boneList,
-	int faceNum)
-{
-	int owned = 0;
-	int pick;
-	for (int face = 0; face < faceNum; ++face)
-	{
+// wbone.cpp:1077
+void WBone::SetMesh(w_pet_vertex* vtxList, int vnum, w_pet_tri_point* triList, w_pet_texture_info** texInfo, WBone** triBoneTable, int triNum) {
+	int faceNum = 0;
+	int top;
+	for (int bind = 0; bind < triNum; ++bind) {
 		int j;
-		for (j = 0; j < 3; ++j)
-		{
-			if (j != 0)
-			{
-				WBone* held = boneList[face * 3 + pick];
-				WBone* other = boneList[face * 3 + j];
-				if (held == other)
+		for (j = 0; j < 3; ++j) {
+			if (j != 0) {
+				WBone* held = triBoneTable[bind * 3 + top];
+				WBone* other = triBoneTable[bind * 3 + j];
+				if (held == other) {
 					continue;
-				if (other->FindBone(held->m_name, 0) == 0)
+				}
+				if (other->FindBone(held->m_name, 0) == 0) {
 					continue;
+				}
 			}
-			pick = j;
+			top = j;
 		}
-		if (boneList[face * 3 + pick] == this)
-			++owned;
+		if (triBoneTable[bind * 3 + top] == this) {
+			++faceNum;
+		}
 	}
 
-	if (m_mesh != 0)
-	{
+	if (m_mesh != 0) {
 		ClearMesh(m_mesh);
-		if (m_mesh != 0)
-		{
+		if (m_mesh != 0) {
 			delete m_mesh;
 			m_mesh = 0;
 		}
 	}
 
-	if (owned != 0)
-	{
-		int* faceList = new int[owned];
-		int* groupList = new int[owned];
-		int face = 0;
-		if (faceNum > 0)
-		{
-			int* write = faceList;
-			do
-			{
+	if (faceNum != 0) {
+		int* faceTable = new int[faceNum];
+		int* faceIndex = new int[faceNum];
+		int bind = 0;
+		if (triNum > 0) {
+			int* write = faceTable;
+			do {
 				int j;
-				for (j = 0; j < 3; ++j)
-				{
-					if (j != 0)
-					{
-						WBone* held = boneList[face * 3 + pick];
-						WBone* other = boneList[face * 3 + j];
-						if (held == other)
+				for (j = 0; j < 3; ++j) {
+					if (j != 0) {
+						WBone* held = triBoneTable[bind * 3 + top];
+						WBone* other = triBoneTable[bind * 3 + j];
+						if (held == other) {
 							continue;
-						if (other->FindBone(held->m_name, 0) == 0)
+						}
+						if (other->FindBone(held->m_name, 0) == 0) {
 							continue;
+						}
 					}
-					pick = j;
+					top = j;
 				}
-				if (boneList[face * 3 + pick] == this)
-				{
-					*write = face;
+				if (triBoneTable[bind * 3 + top] == this) {
+					*write = bind;
 					++write;
 				}
-				++face;
-			} while (face < faceNum);
+				++bind;
+			} while (bind < triNum);
 		}
-		int done = 0;
-		while (done < owned)
-		{
+		int i = 0;
+		while (i < faceNum) {
 			int scan;
-			for (scan = 0; scan < owned; ++scan)
-			{
-				if (faceList[scan] >= 0)
+			for (scan = 0; scan < faceNum; ++scan) {
+				if (faceTable[scan] >= 0) {
 					break;
+				}
 			}
-			w_pet_texture_info* first = texList[faceList[scan]];
+			w_pet_texture_info* first = texInfo[faceTable[scan]];
 			int texHandle = first->texHandle;
 			unsigned char group = first->group;
-			int i = 0;
+			int slot = 0;
 			int used = 0;
-			for (; i < owned; ++i)
-			{
-				int index = faceList[i];
-				if (index < 0)
+			for (; slot < faceNum; ++slot) {
+				int index = faceTable[slot];
+				if (index < 0) {
 					continue;
-				w_pet_texture_info* tex = texList[index];
-				if (tex->texHandle != texHandle)
+				}
+				w_pet_texture_info* tex = texInfo[index];
+				if (tex->texHandle != texHandle) {
 					continue;
-				if (tex->group != group)
+				}
+				if (tex->group != group) {
 					continue;
-				groupList[used] = index;
-				++done;
-				faceList[i] = -1;
+				}
+				faceIndex[used] = index;
+				++i;
+				faceTable[slot] = -1;
 				++used;
 			}
-			if (used != 0)
-			{
-				w_mesh* mesh = GetIndexedmesh(vertexList, pointList, boneList,
-					texList, used, groupList);
+			if (used != 0) {
+				w_mesh* mesh = GetIndexedmesh(vtxList, triList, triBoneTable, texInfo, used, faceIndex);
 				mesh->group = group;
 				mesh->next = m_mesh;
 				m_mesh = mesh;
-				if (mesh->rigidNum != 0 || mesh->blendedRigidNum != 0)
+				if (mesh->rigidNum != 0 || mesh->blendedRigidNum != 0) {
 					m_flag.Enable(4);
+				}
 			}
 		}
-		delete[] groupList;
-		delete[] faceList;
+		delete[] faceIndex;
+		delete[] faceTable;
 	}
 
-	if (m_next != 0)
-		m_next->SetMesh(vertexList, vtxNum, pointList, texList, boneList,
-			faceNum);
-	if (m_child != 0)
-		m_child->SetMesh(vertexList, vtxNum, pointList, texList, boneList,
-			faceNum);
+	if (m_next != 0) {
+		m_next->SetMesh(vtxList, vnum, triList, texInfo, triBoneTable, triNum);
+	}
+	if (m_child != 0) {
+		m_child->SetMesh(vtxList, vnum, triList, texInfo, triBoneTable, triNum);
+	}
 }
 
-void WBone::SetBoneMesh(w_pet_vertex* vertexList, int vtxNum,
-	w_pet_tri_point* pointList, w_pet_texture_info** texList, WBone** boneList,
-	int faceNum)
-{
-	if (m_mesh != 0)
-	{
+// wbone.cpp:1169
+void WBone::SetBoneMesh(w_pet_vertex* vtxList, int vtxNum, w_pet_tri_point* triList, w_pet_texture_info** texInfo, WBone** triBoneTable, int faceNum) {
+	if (m_mesh != 0) {
 		ClearMesh(m_mesh);
-		if (m_mesh != 0)
-		{
+		if (m_mesh != 0) {
 			delete m_mesh;
 			m_mesh = 0;
 		}
@@ -1107,41 +979,35 @@ void WBone::SetBoneMesh(w_pet_vertex* vertexList, int vtxNum,
 	int* faces = new int[faceNum];
 	memset(mark, 0, faceNum * 4);
 	int done = 0;
-	if (faceNum > 0)
-	{
-		do
-		{
+	if (faceNum > 0) {
+		do {
 			int i = 0;
-			do
-			{
-				if (mark[i] >= 0)
+			do {
+				if (mark[i] >= 0) {
 					break;
+				}
 				++i;
 			} while (i < faceNum);
-			int handle = texList[i]->texHandle;
-			unsigned char group = texList[i]->group;
+			int handle = texInfo[i]->texHandle;
+			unsigned char group = texInfo[i]->group;
 			int count = 0;
-			for (; i < faceNum; ++i)
-			{
-				if (texList[i]->texHandle == handle &&
-					texList[i]->group == group)
-				{
+			for (; i < faceNum; ++i) {
+				if (texInfo[i]->texHandle == handle && texInfo[i]->group == group) {
 					faces[count] = i;
 					mark[i] = -1;
 					++count;
 				}
 			}
-			if (count != 0)
-			{
+			if (count != 0) {
 				done += count;
 				m_flag.Enable(0x10000);
-				w_mesh* mesh = GetIndexedmesh(vertexList, pointList, boneList,
-					texList, count, faces);
+				w_mesh* mesh = GetIndexedmesh(vtxList, triList, triBoneTable, texInfo, count, faces);
 				mesh->group = group;
 				mesh->next = m_mesh;
 				m_mesh = mesh;
-				if (mesh->rigidNum != 0 || mesh->blendedRigidNum != 0)
+				if (mesh->rigidNum != 0 || mesh->blendedRigidNum != 0) {
 					m_flag.Enable(4);
+				}
 			}
 		} while (done < faceNum);
 	}
@@ -1149,25 +1015,38 @@ void WBone::SetBoneMesh(w_pet_vertex* vertexList, int vtxNum,
 	delete[] mark;
 }
 
-struct w_temp_vertex_list
-{
-	w_temp_vertex_list() { }
-	short index;
-	WVector pos;
-	WVector normal;
-	float weight;
-	WBone* bone;
-	float tu;
-	float tv;
-	w_vertex* gvertex;
-	w_pet_vertex* vertex;
-	int kind;
+// A scratch vertex while indexing a mesh (PDB layout, size 0x38).
+struct w_temp_vertex_list {
+	w_temp_vertex_list();
+	short index;                        // 0x0
+	WVector pos;                        // 0x4
+	WVector normal;                     // 0x10
+	float weight;                       // 0x1c
+	WBone* bone;                        // 0x20
+	float tu;                           // 0x24
+	float tv;                           // 0x28
+	w_vertex* gvertex;                  // 0x2c
+	w_pet_vertex* vertex;               // 0x30
+	int kind;                           // 0x34
 };
+CHECK_SIZE(w_temp_vertex_list, 0x38);
+CHECK_FIELD(w_temp_vertex_list, index, 0x0);
+CHECK_FIELD(w_temp_vertex_list, pos, 0x4);
+CHECK_FIELD(w_temp_vertex_list, normal, 0x10);
+CHECK_FIELD(w_temp_vertex_list, weight, 0x1c);
+CHECK_FIELD(w_temp_vertex_list, bone, 0x20);
+CHECK_FIELD(w_temp_vertex_list, tu, 0x24);
+CHECK_FIELD(w_temp_vertex_list, tv, 0x28);
+CHECK_FIELD(w_temp_vertex_list, gvertex, 0x2c);
+CHECK_FIELD(w_temp_vertex_list, vertex, 0x30);
+CHECK_FIELD(w_temp_vertex_list, kind, 0x34);
 
-w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
-	WBone** triBoneTable, w_pet_texture_info** texInfo, int faceNum,
-	int* faceIndex)
-{
+// wbone.cpp:1244
+w_temp_vertex_list::w_temp_vertex_list() {
+}
+
+// wbone.cpp:1244
+w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList, WBone** triBoneTable, w_pet_texture_info** texInfo, int faceNum, int* faceIndex) {
 	short* table;
 	int blendTotal = 0;
 	int blendNum = 0;
@@ -1184,25 +1063,22 @@ w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 	int rigidNum = 0;
 
 	int j, k;
-	for (; i < l; ++i)
-	{
+	for (; i < l; ++i) {
 		w_pet_tri_point* point = &triList[faceIndex[i / 3] * 3 + i % 3];
-		vec = WVector(vtxList[point->pos].x, vtxList[point->pos].y,
-			vtxList[point->pos].z);
-		for (j = 0; j < vtxNum; j++)
-		{
+		vec = WVector(vtxList[point->pos].x, vtxList[point->pos].y, vtxList[point->pos].z);
+		for (j = 0; j < vtxNum; j++) {
 			if (WisEqual(list[j].pos, vec, 1e-5f) != 0 &&
 				list[j].weight == vtxList[point->pos].weight &&
 				list[j].tu == point->tu && list[j].tv == point->tv &&
 				fabs(list[j].normal.x - point->nx) <= 0.001f &&
 				fabs(list[j].normal.y - point->ny) <= 0.001f &&
 				fabs(list[j].normal.z - point->nz) <= 0.001f &&
-				list[j].bone == triBoneTable[point - triList])
+				list[j].bone == triBoneTable[point - triList]) {
 				break;
+			}
 		}
 		list[i].index = (short)j;
-		if (j == vtxNum)
-		{
+		if (j == vtxNum) {
 			list[j].pos = vec;
 			list[j].weight = vtxList[point->pos].weight;
 			list[j].tu = point->tu;
@@ -1210,15 +1086,13 @@ w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 			list[j].normal = WVector(point->nx, point->ny, point->nz);
 			list[j].bone = triBoneTable[point - triList];
 			list[j].vertex = &vtxList[point->pos];
-			int kind = vtxList[point->pos].list != 0
-				? 2
-				: (list[j].bone != this ? 1 : 0);
+			int kind = vtxList[point->pos].list != 0 ? 2 : (list[j].bone != this ? 1 : 0);
 			++vtxNum;
 			list[j].kind = kind;
-			if (kind > 0)
+			if (kind > 0) {
 				++rigidNum;
-			if (kind > 1)
-			{
+			}
+			if (kind > 1) {
 				++blendNum;
 				blendTotal += list[j].vertex->listNum;
 			}
@@ -1227,8 +1101,7 @@ w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 
 	w_mesh* mesh = new w_mesh;
 	memset(mesh, 0, sizeof(w_mesh));
-	mesh->originalTexHandle = mesh->texHandle =
-		texInfo[faceIndex[0]]->texHandle;
+	mesh->originalTexHandle = mesh->texHandle = texInfo[faceIndex[0]]->texHandle;
 	mesh->originalTu = mesh->tu = texInfo[faceIndex[0]]->pu;
 	mesh->originalTv = mesh->tv = texInfo[faceIndex[0]]->pv;
 	mesh->originalScaleu = mesh->scaleu = texInfo[faceIndex[0]]->scalex;
@@ -1237,62 +1110,50 @@ w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 	mesh->group = 0;
 	mesh->next = 0;
 	mesh->alpha = (float)(texInfo[faceIndex[0]]->alpha / 255.0f);
-	mesh->flags = texInfo[faceIndex[0]]->drawFlags |
-		(mesh->alpha < 1.0f ? 0x20400000 : 0);
+	mesh->flags = texInfo[faceIndex[0]]->drawFlags | (mesh->alpha < 1.0f ? 0x20400000 : 0);
 	mesh->xiDrawFlag2 = texInfo[faceIndex[0]]->xulDrawFlag2;
-	mesh->bEnv = texInfo[faceIndex[0]]->mapType == 1 ||
-			texInfo[faceIndex[0]]->mapType == 2
-		? true
-		: false;
+	mesh->bEnv = texInfo[faceIndex[0]]->mapType == 1 || texInfo[faceIndex[0]]->mapType == 2 ? true : false;
 	mesh->bSpec = texInfo[faceIndex[0]]->mapType == 3;
 	mesh->indexNum = l;
 	mesh->indexList = new unsigned short[l];
 
 	mesh->rigidNum = rigidNum;
-	mesh->vtxColorPtrList =
-		rigidNum > 0 ? (ulong**)g_mem.Alloc(rigidNum * 4) : 0;
-	mesh->boneList =
-		mesh->rigidNum > 0 ? (WBone**)g_mem.Alloc(mesh->rigidNum * 4) : 0;
-	if (mesh->boneList != 0)
-		memset(mesh->boneList, 0, mesh->rigidNum * 4);
+	mesh->vtxColorPtrList = rigidNum > 0 ? (unsigned long**)g_mem.Alloc(rigidNum * sizeof(unsigned long*)) : 0;
+	mesh->boneList = mesh->rigidNum > 0 ? (WBone**)g_mem.Alloc(mesh->rigidNum * sizeof(WBone*)) : 0;
+	if (mesh->boneList != 0) {
+		memset(mesh->boneList, 0, mesh->rigidNum * sizeof(WBone*));
+	}
 	mesh->blendedRigidNum = blendNum;
 	mesh->blendedTotalNum = blendTotal;
-	mesh->blendWeightList =
-		blendTotal > 0 ? (float*)g_mem.Alloc(blendTotal * 4) : 0;
-	mesh->blendedBoneList =
-		blendTotal > 0 ? (WBone**)g_mem.Alloc(blendTotal * 4) : 0;
+	mesh->blendWeightList = blendTotal > 0 ? (float*)g_mem.Alloc(blendTotal * sizeof(float)) : 0;
+	mesh->blendedBoneList = blendTotal > 0 ? (WBone**)g_mem.Alloc(blendTotal * sizeof(WBone*)) : 0;
 	mesh->blendedVecList = blendTotal > 0 ? new WVector[blendTotal] : 0;
 	mesh->blendedNormalList = blendTotal > 0 ? new WVector[blendTotal] : 0;
 
 	mesh->vtxNum = vtxNum;
 	mesh->vecList = new WVector[mesh->vtxNum];
 	mesh->normList = new WVector[mesh->vtxNum];
-	mesh->vtxColorList = new ulong[mesh->vtxNum];
-	mesh->originalVtxColorList = new ulong[mesh->vtxNum];
+	mesh->vtxColorList = new unsigned long[mesh->vtxNum];
+	mesh->originalVtxColorList = new unsigned long[mesh->vtxNum];
 	mesh->myBlendedNormalList = 0;
 	mesh->myNormalList = 0;
-	if (((((ulong)m_flag) >> 16) & 1) != 0)
+	if ((((unsigned long)m_flag) >> 16) & 1) {
 		mesh->weightList = new float[mesh->vtxNum];
-	else
+	} else {
 		mesh->weightList = 0;
+	}
 	mesh->uvData = new float[mesh->vtxNum][2];
-	mesh->uvBackup =
-		texInfo[faceIndex[0]]->mapType > 1 ? new float[mesh->vtxNum][2] : 0;
-	for (i = 0; i < mesh->vtxNum; ++i)
-	{
+	mesh->uvBackup = texInfo[faceIndex[0]]->mapType > 1 ? new float[mesh->vtxNum][2] : 0;
+	for (i = 0; i < mesh->vtxNum; ++i) {
 		mesh->originalVtxColorList[i] = mesh->vtxColorList[i] = mesh->diffuse;
 	}
 	AllocVTX(mesh->vtxNum);
 
 	table = new short[mesh->vtxNum];
 	int n;
-	for (n = 0, i = 0, j = 0, k = blendNum, l = rigidNum; i < mesh->indexNum;
-		++i)
-	{
-		if (list[i].index == n)
-		{
-			switch (list[n].kind)
-			{
+	for (n = 0, i = 0, j = 0, k = blendNum, l = rigidNum; i < mesh->indexNum; ++i) {
+		if (list[i].index == n) {
+			switch (list[n].kind) {
 			case 0:
 				table[n] = (short)l++;
 				break;
@@ -1307,60 +1168,49 @@ w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 		}
 	}
 
-	for (i = 0, k = 0, n = 0; i < mesh->indexNum; ++i)
-	{
+	for (i = 0, k = 0, n = 0; i < mesh->indexNum; ++i) {
 		mesh->indexList[i] = table[list[i].index];
-		if (list[i].index != n)
+		if (list[i].index != n) {
 			continue;
-		if (table[n] < blendNum)
-		{
-			for (j = 0; j < list[n].vertex->listNum; ++j)
-			{
+		}
+		if (table[n] < blendNum) {
+			for (j = 0; j < list[n].vertex->listNum; ++j) {
 				mesh->blendedBoneList[k] = list[n].vertex->list[j].bone;
-				mesh->blendWeightList[k] =
-					(float)list[n].vertex->list[j].blendWeight / 255.0f;
-				mesh->blendedVecList[k] =
-					list[n].pos * ~mesh->blendedBoneList[k]->GetMatrix();
-				mesh->blendedNormalList[k] = RotVec(list[n].normal,
-					~mesh->blendedBoneList[k]->GetMatrix());
+				mesh->blendWeightList[k] = (float)list[n].vertex->list[j].blendWeight / 255.0f;
+				mesh->blendedVecList[k] = list[n].pos * ~mesh->blendedBoneList[k]->GetMatrix();
+				mesh->blendedNormalList[k] = RotVec(list[n].normal, ~mesh->blendedBoneList[k]->GetMatrix());
 				mesh->blendedNormalList[k].Normalize();
 				++k;
 			}
-			if (maxBoneNum < list[n].vertex->listNum)
+			if (maxBoneNum < list[n].vertex->listNum) {
 				maxBoneNum = list[n].vertex->listNum;
+			}
 		}
-		if (table[n] < rigidNum)
-		{
+		if (table[n] < rigidNum) {
 			mesh->boneList[table[n]] = list[n].bone;
 			mesh->vecList[table[n]] = list[n].pos * ~list[n].bone->m_matrix;
 			mesh->vtxColorPtrList[table[n]] = &mesh->vtxColorList[table[n]];
-			mesh->normList[table[n]] =
-				RotVec(list[n].normal, ~list[n].bone->m_matrix);
-		}
-		else
-		{
+			mesh->normList[table[n]] = RotVec(list[n].normal, ~list[n].bone->m_matrix);
+		} else {
 			mesh->vecList[table[n]] = list[n].pos * invMat;
 			mesh->normList[table[n]] = RotVec(list[n].normal, invMat);
 		}
-		if (mesh->weightList != 0)
+		if (mesh->weightList != 0) {
 			mesh->weightList[table[n]] = list[n].weight;
+		}
 		mesh->normList[table[n]].Normalize();
-		mesh->uvData[table[n]][0] =
-			texInfo[faceIndex[i / 3]]->scalex * list[n].tu +
-			texInfo[faceIndex[i / 3]]->pu;
-		mesh->uvData[table[n]][1] =
-			texInfo[faceIndex[i / 3]]->scaley * list[n].tv +
-			texInfo[faceIndex[i / 3]]->pv;
-		if (mesh->uvBackup != 0)
-		{
+		mesh->uvData[table[n]][0] = texInfo[faceIndex[i / 3]]->scalex * list[n].tu + texInfo[faceIndex[i / 3]]->pu;
+		mesh->uvData[table[n]][1] = texInfo[faceIndex[i / 3]]->scaley * list[n].tv + texInfo[faceIndex[i / 3]]->pv;
+		if (mesh->uvBackup != 0) {
 			mesh->uvBackup[table[n]][0] = mesh->uvData[table[n]][0];
 			mesh->uvBackup[table[n]][1] = mesh->uvData[table[n]][1];
 		}
 		++n;
 	}
 
-	if (maxBoneNum == 0 && mesh->rigidNum > 0)
+	if (maxBoneNum == 0 && mesh->rigidNum > 0) {
 		maxBoneNum = 1;
+	}
 	mesh->maxBoneNum = maxBoneNum;
 	CalcMeshAABB(*this, *mesh);
 	delete[] table;
@@ -1368,23 +1218,24 @@ w_mesh* WBone::GetIndexedmesh(w_pet_vertex* vtxList, w_pet_tri_point* triList,
 	return mesh;
 }
 
-void WBone::SetMesh(w_faces* faces, int count)
-{
+// wbone.cpp:1480
+void WBone::SetMesh(w_faces* facelist, int num) {
 	m_mesh = 0;
-	if (count != 0)
-	{
-		w_faces** list = new w_faces*[count];
+	if (num != 0) {
+		w_faces** list = new w_faces*[num];
 		int i;
-		for (i = 0; i < count; ++i)
-			list[i] = &faces[i];
-		qsort(list, count, 4, SortByTextureHandle);
+		for (i = 0; i < num; ++i) {
+			list[i] = &facelist[i];
+		}
+
+		qsort(list, num, sizeof(w_faces*), SortByTextureHandle);
+
 		int first = 0;
 		int last = 0;
-		while (last < count)
-		{
-			while (
-				last < count && list[first]->texhandle == list[last]->texhandle)
+		while (last < num) {
+			while (last < num && list[first]->texhandle == list[last]->texhandle) {
 				++last;
+			}
 			w_mesh* mesh = GetIndexedmesh(&list[first], last - first);
 			mesh->next = m_mesh;
 			m_mesh = mesh;
@@ -1394,17 +1245,16 @@ void WBone::SetMesh(w_faces* faces, int count)
 	}
 }
 
-int __cdecl WBone::SortByTextureHandle(const void* left, const void* right)
-{
-	w_faces* a = *(w_faces**)left;
-	w_faces* b = *(w_faces**)right;
-	if (a->texhandle == b->texhandle)
-		return a->p[0].bone - b->p[0].bone;
-	return a->texhandle - b->texhandle;
+// wbone.cpp:1512
+int __cdecl WBone::SortByTextureHandle(const void* arg1, const void* arg2) {
+	const w_faces* a = *(const w_faces* const*)arg1;
+	const w_faces* b = *(const w_faces* const*)arg2;
+
+	return a->texhandle == b->texhandle ? a->p[0].bone - b->p[0].bone : a->texhandle - b->texhandle;
 }
 
-w_mesh* WBone::GetIndexedmesh(w_faces** faces, int count)
-{
+// wbone.cpp:1522
+w_mesh* WBone::GetIndexedmesh(w_faces** faces, int count) {
 	int rigidNum = 0;
 	int blendedRigidNum = 0;
 	int blendedTotalNum = 0;
@@ -1414,49 +1264,35 @@ w_mesh* WBone::GetIndexedmesh(w_faces** faces, int count)
 	int i, j, k, l, n;
 	WVector vec;
 	WMatrix invMat;
-	for (i = 0; i < cornerNum; ++i)
-	{
+	for (i = 0; i < cornerNum; ++i) {
 		w_faces::w_faces_info* p = &faces[i / 3]->p[i % 3];
 		list[i].index = -1;
 		list[i].pos = p->object->gvertex[p->vindex].v;
 		list[i].normal = p->norm;
-		list[i].bone = p->object->gvertex[p->vindex].obj != 0
-			? p->object->gvertex[p->vindex].obj->bone
-			: p->object->bone;
+		list[i].bone = p->object->gvertex[p->vindex].obj != 0 ? p->object->gvertex[p->vindex].obj->bone : p->object->bone;
 		list[i].tu = p->tu;
 		list[i].tv = p->tv;
-		list[i].kind = p->object->gvertex[p->vindex].rigidNum != 0
-			? 2
-			: (list[i].bone != this);
+		list[i].kind = p->object->gvertex[p->vindex].rigidNum != 0 ? 2 : (list[i].bone != this);
 		list[i].gvertex = &p->object->gvertex[p->vindex];
 	}
 
-	for (i = 0, n = 0; i < cornerNum; ++i)
-	{
-		for (j = 0; j <= i; ++j)
-		{
+	for (i = 0, n = 0; i < cornerNum; ++i) {
+		for (j = 0; j <= i; ++j) {
 			w_faces::w_faces_info* p = &faces[j / 3]->p[j % 3];
 			if (list[i].tu == p->tu && list[i].tv == p->tv &&
 				WisEqual(list[i].pos, p->object->gvertex[p->vindex].v, 1e-5f) &&
-				list[i].bone ==
-					(p->object->gvertex[p->vindex].obj != 0
-							? p->object->gvertex[p->vindex].obj->bone
-							: p->object->bone) &&
-				(list[i].normal - p->norm).Magnitude() <= 0.01f)
-			{
-				if (i == j)
-				{
+				list[i].bone == (p->object->gvertex[p->vindex].obj != 0 ? p->object->gvertex[p->vindex].obj->bone : p->object->bone) &&
+				(list[i].normal - p->norm).Magnitude() <= 0.01f) {
+				if (i == j) {
 					list[i].index = (short)n++;
-					if (list[i].kind != 0)
+					if (list[i].kind != 0) {
 						++rigidNum;
-					if (list[i].kind == 2)
-					{
+					}
+					if (list[i].kind == 2) {
 						blendedTotalNum += list[i].gvertex->rigidNum;
 						++blendedRigidNum;
 					}
-				}
-				else
-				{
+				} else {
 					list[i].index = list[j].index;
 				}
 			}
@@ -1476,53 +1312,42 @@ w_mesh* WBone::GetIndexedmesh(w_faces** faces, int count)
 	mesh->alpha = (float)((unsigned char*)&faces[0]->diffuse)[3] / 255.0f;
 	mesh->flags = (mesh->alpha < 1.0f ? 0x20400000 : 0) | faces[0]->mapFlags;
 	mesh->xiDrawFlag2 = faces[0]->xiMapFlags2;
-	mesh->bEnv =
-		faces[0]->mapType == 1 || faces[0]->mapType == 2 ? true : false;
+	mesh->bEnv = faces[0]->mapType == 1 || faces[0]->mapType == 2 ? true : false;
 	mesh->bSpec = faces[0]->mapType == 3;
 	mesh->indexNum = cornerNum;
 	mesh->indexList = new unsigned short[cornerNum];
 
 	mesh->rigidNum = rigidNum;
-	mesh->vtxColorPtrList =
-		rigidNum > 0 ? (ulong**)g_mem.Alloc(rigidNum * 4) : 0;
-	mesh->boneList =
-		mesh->rigidNum > 0 ? (WBone**)g_mem.Alloc(mesh->rigidNum * 4) : 0;
-	if (mesh->rigidNum > 0)
-		memset(mesh->boneList, 0, mesh->rigidNum * 4);
+	mesh->vtxColorPtrList = rigidNum > 0 ? (unsigned long**)g_mem.Alloc(rigidNum * sizeof(unsigned long*)) : 0;
+	mesh->boneList = mesh->rigidNum > 0 ? (WBone**)g_mem.Alloc(mesh->rigidNum * sizeof(WBone*)) : 0;
+	if (mesh->rigidNum > 0) {
+		memset(mesh->boneList, 0, mesh->rigidNum * sizeof(WBone*));
+	}
 	mesh->blendedRigidNum = blendedRigidNum;
-	mesh->blendWeightList =
-		blendedTotalNum > 0 ? (float*)g_mem.Alloc(blendedTotalNum * 4) : 0;
-	mesh->blendedBoneList =
-		blendedTotalNum > 0 ? (WBone**)g_mem.Alloc(blendedTotalNum * 4) : 0;
-	mesh->blendedVecList =
-		blendedTotalNum > 0 ? new WVector[blendedTotalNum] : 0;
-	mesh->blendedNormalList =
-		blendedTotalNum > 0 ? new WVector[blendedTotalNum] : 0;
+	mesh->blendWeightList = blendedTotalNum > 0 ? (float*)g_mem.Alloc(blendedTotalNum * sizeof(float)) : 0;
+	mesh->blendedBoneList = blendedTotalNum > 0 ? (WBone**)g_mem.Alloc(blendedTotalNum * sizeof(WBone*)) : 0;
+	mesh->blendedVecList = blendedTotalNum > 0 ? new WVector[blendedTotalNum] : 0;
+	mesh->blendedNormalList = blendedTotalNum > 0 ? new WVector[blendedTotalNum] : 0;
 	mesh->blendedTotalNum = blendedTotalNum;
 	mesh->vtxNum = n;
 	mesh->vecList = new WVector[mesh->vtxNum];
 	mesh->normList = new WVector[mesh->vtxNum];
-	mesh->vtxColorList = new ulong[mesh->vtxNum];
-	mesh->originalVtxColorList = new ulong[mesh->vtxNum];
+	mesh->vtxColorList = new unsigned long[mesh->vtxNum];
+	mesh->originalVtxColorList = new unsigned long[mesh->vtxNum];
 	mesh->myBlendedNormalList = 0;
 	mesh->myNormalList = 0;
 	mesh->weightList = 0;
 	mesh->uvData = new float[mesh->vtxNum][2];
 	mesh->uvBackup = faces[0]->mapType > 1 ? new float[mesh->vtxNum][2] : 0;
-	for (i = 0; i < mesh->vtxNum; ++i)
-	{
+	for (i = 0; i < mesh->vtxNum; ++i) {
 		mesh->originalVtxColorList[i] = mesh->vtxColorList[i] = mesh->diffuse;
 	}
 	AllocVTX(mesh->vtxNum);
 
 	short* slotList = new short[mesh->vtxNum];
-	for (n = 0, i = 0, j = 0, l = blendedRigidNum, k = rigidNum;
-		i < mesh->indexNum; ++i)
-	{
-		if (list[i].index == n)
-		{
-			switch (list[i].kind)
-			{
+	for (n = 0, i = 0, j = 0, l = blendedRigidNum, k = rigidNum; i < mesh->indexNum; ++i) {
+		if (list[i].index == n) {
+			switch (list[i].kind) {
 			case 0:
 				slotList[n] = (short)k++;
 				break;
@@ -1537,49 +1362,38 @@ w_mesh* WBone::GetIndexedmesh(w_faces** faces, int count)
 		}
 	}
 
-	for (i = 0, n = 0, k = 0; i < mesh->indexNum; ++i)
-	{
+	for (i = 0, n = 0, k = 0; i < mesh->indexNum; ++i) {
 		mesh->indexList[i] = slotList[list[i].index];
-		if (list[i].index != n)
+		if (list[i].index != n) {
 			continue;
-		mesh->vecList[slotList[n]] = list[i].pos;
-		if (list[i].gvertex->obj == 0)
-		{
-			mesh->normList[slotList[n]] = list[i].normal;
 		}
-		else
-		{
-			mesh->normList[slotList[n]] = RotVec(list[i].normal,
-				m_matrix * ~list[i].gvertex->obj->matrix);
+		mesh->vecList[slotList[n]] = list[i].pos;
+		if (list[i].gvertex->obj == 0) {
+			mesh->normList[slotList[n]] = list[i].normal;
+		} else {
+			mesh->normList[slotList[n]] = RotVec(list[i].normal, m_matrix * ~list[i].gvertex->obj->matrix);
 		}
 		mesh->normList[slotList[n]].Normalize();
-		if (slotList[n] < mesh->blendedRigidNum)
-		{
-			for (l = 0; l < list[i].gvertex->rigidNum; ++l, ++k)
-			{
+		if (slotList[n] < mesh->blendedRigidNum) {
+			for (l = 0; l < list[i].gvertex->rigidNum; ++l, ++k) {
 				WMatrix mInv;
 				mInv = ~list[i].gvertex->rigidVtx[l].obj->matrix;
 				mesh->blendedBoneList[k] = list[i].gvertex->rigidVtx[l].bone;
-				mesh->blendWeightList[k] =
-					list[i].gvertex->rigidVtx[l].blendWeight;
+				mesh->blendWeightList[k] = list[i].gvertex->rigidVtx[l].blendWeight;
 				w_3d_object* object = list[i].gvertex->obj;
 				mesh->blendedVecList[k] = list[i].pos * object->matrix * mInv;
 				const WMatrix& boneMatrix = m_matrix;
-				mesh->blendedNormalList[k] =
-					RotVec(list[i].normal, boneMatrix * mInv);
+				mesh->blendedNormalList[k] = RotVec(list[i].normal, boneMatrix * mInv);
 				mesh->blendedNormalList[k].Normalize();
 			}
 		}
-		if (slotList[n] < rigidNum)
-		{
+		if (slotList[n] < rigidNum) {
 			mesh->boneList[slotList[n]] = list[i].bone;
-			mesh->vtxColorPtrList[slotList[n]] =
-				&mesh->vtxColorList[slotList[n]];
+			mesh->vtxColorPtrList[slotList[n]] = &mesh->vtxColorList[slotList[n]];
 		}
 		mesh->uvData[slotList[n]][0] = list[i].tu;
 		mesh->uvData[slotList[n]][1] = list[i].tv;
-		if (mesh->uvBackup != 0)
-		{
+		if (mesh->uvBackup != 0) {
 			mesh->uvBackup[slotList[n]][0] = list[i].tu;
 			mesh->uvBackup[slotList[n]][1] = list[i].tv;
 		}
@@ -1591,180 +1405,166 @@ w_mesh* WBone::GetIndexedmesh(w_faces** faces, int count)
 	return mesh;
 }
 
-int WBone::GetMeshForFaceAnimation(unsigned char group, w_mesh** list,
-	int count)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->group == group)
-		{
-			if (list != 0)
-				list[count] = mesh;
-			++count;
+// wbone.cpp:1747
+int WBone::GetMeshForFaceAnimation(unsigned char group, w_mesh** inMesh, int current) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->group == group) {
+			if (inMesh != 0) {
+				inMesh[current] = mesh;
+			}
+			current++;
 		}
 	}
-	if (m_next != 0)
-		count = m_next->GetMeshForFaceAnimation(group, list, count);
-	if (m_child != 0)
-		count = m_child->GetMeshForFaceAnimation(group, list, count);
-	return count;
-}
 
-int WBone::GetMeshForFaceAnimation(int handle, w_mesh** list, int count)
-{
-	static int faceGroup = 1;
-	w_mesh* mesh = m_mesh;
-	if (mesh != 0)
-	{
-		int group = faceGroup;
-		do
-		{
-			if (mesh->originalTexHandle == handle || handle == 0)
-			{
-				if (list != 0)
-				{
-					list[count] = mesh;
-					if (mesh->group == 0 && handle != 0)
-					{
-						if (count == 0)
-							++group;
-						mesh->group = group;
-					}
-				}
-				++count;
-			}
-			mesh = mesh->next;
-		} while (mesh != 0);
-		faceGroup = group;
+	if (m_next != 0) {
+		current = m_next->GetMeshForFaceAnimation(group, inMesh, current);
 	}
-	if (m_next != 0)
-		count = m_next->GetMeshForFaceAnimation(handle, list, count);
-	if (m_child != 0)
-		count = m_child->GetMeshForFaceAnimation(handle, list, count);
-	return count;
+	if (m_child != 0) {
+		current = m_child->GetMeshForFaceAnimation(group, inMesh, current);
+	}
+	return current;
 }
 
-void WBone::CombineVtxColor(bool child)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
+// The last group number handed out by GetMeshForFaceAnimation (no symbol).
+static int s_faceAnimationGroup;
+
+// wbone.cpp:1771
+int WBone::GetMeshForFaceAnimation(int texHandle, w_mesh** inMesh, int current) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->originalTexHandle == texHandle || texHandle == 0) {
+			if (inMesh != 0) {
+				inMesh[current] = mesh;
+				if (mesh->group == 0 && texHandle != 0) {
+					if (current == 0) {
+						s_faceAnimationGroup++;
+					}
+					mesh->group = s_faceAnimationGroup;
+				}
+			}
+			current++;
+		}
+	}
+
+	if (m_next != 0) {
+		current = m_next->GetMeshForFaceAnimation(texHandle, inMesh, current);
+	}
+	if (m_child != 0) {
+		current = m_child->GetMeshForFaceAnimation(texHandle, inMesh, current);
+	}
+	return current;
+}
+
+// wbone.cpp:1806
+void WBone::CombineVtxColor(bool child) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
 		int i;
-		for (i = 0; i < mesh->blendedRigidNum; ++i)
+		for (i = 0; i < mesh->blendedRigidNum; i++) {
 			mesh->vtxColorPtrList[i] = &mesh->vtxColorList[i];
-		for (; i < mesh->rigidNum; ++i)
-		{
-			ulong* color = (ulong*)mesh->boneList[i]->FindVColor(
-				mesh->vecList[i], mesh->normList[i]);
-			if (color == 0)
+		}
+		for (; i < mesh->rigidNum; i++) {
+			unsigned long* color = mesh->boneList[i]->FindVColor(mesh->vecList[i], mesh->normList[i]);
+			if (color == 0) {
 				color = &mesh->vtxColorList[i];
+			}
 			mesh->vtxColorPtrList[i] = color;
 		}
 	}
-	if (child)
-	{
-		if (m_next != 0)
+	if (child) {
+		if (m_next != 0) {
 			m_next->CombineVtxColor(true);
-		if (m_child != 0)
+		}
+		if (m_child != 0) {
 			m_child->CombineVtxColor(true);
+		}
 	}
 }
 
-ulong* WBone::FindVColor(const WVector& pos, const WVector& normal)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		for (int i = mesh->rigidNum; i < mesh->vtxNum; ++i)
-		{
-			if (WisEqual(mesh->vecList[i], pos, 1.0e-5f) &&
-				WisEqual(mesh->normList[i], normal, 1.0e-5f))
-				return (ulong*)&mesh->vtxColorList[i];
+// wbone.cpp:1861
+unsigned long* WBone::FindVColor(const WVector& vec, const WVector& normal) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		for (int i = mesh->rigidNum; i < mesh->vtxNum; i++) {
+			if (WisEqual(mesh->vecList[i], vec, 0.00001f) && WisEqual(mesh->normList[i], normal, 0.00001f)) {
+				return &mesh->vtxColorList[i];
+			}
 		}
 	}
 	return 0;
 }
 
-void WBone::Transform(const WMatrix& mat, WView* view, float matscale, int flag)
-{
+// wbone.cpp:1882
+void WBone::Transform(const WMatrix& mat, WView* view, float matscale, int flag) {
 	WSphere tr_bound_sphere;
 	float scale;
-	if (!(flag & NOUPDATEMAT))
-	{
-		if (m_flag.GetFlag(ROTATEBONE | MOVEBONE | SCALEBONE))
-		{
-			if (m_flag.GetFlag(ROTATEBONE))
+	if (!(flag & NOUPDATEMAT)) {
+		if (m_flag.GetFlag(ROTATEBONE | MOVEBONE | SCALEBONE)) {
+			if (m_flag.GetFlag(ROTATEBONE)) {
 				m_matrix = m_rotateMat * m_localMat;
-			else
+			} else {
 				m_matrix = m_localMat;
-			if (m_flag.GetFlag(SCALEBONE))
-				m_matrix.AxisScale(
-					WVector(m_bonescale, m_bonescale, m_bonescale));
-			if (m_flag.GetFlag(MOVEBONE))
+			}
+			if (m_flag.GetFlag(SCALEBONE)) {
+				m_matrix.AxisScale(WVector(m_bonescale, m_bonescale, m_bonescale));
+			}
+			if (m_flag.GetFlag(MOVEBONE)) {
 				m_matrix.pivot -= m_moveVec;
+			}
 			m_matrix = m_matrix * mat;
-		}
-		else
-		{
+		} else {
 			m_matrix = m_localMat * mat;
 		}
 	}
-	if (view)
-	{
+	if (view) {
 		scale = matscale * m_scale;
 		tr_bound_sphere.pos = Transform(m_bound_sphere.pos);
 		scale *= m_bound_sphere.radius;
 		tr_bound_sphere = WSphere(tr_bound_sphere.pos, scale);
-		bool inside = view->InFrustum(tr_bound_sphere) == true ||
-			WisZero(tr_bound_sphere.radius, g_EPSILON);
-		m_flag.Turn(VISIBLE,
-			m_flag.GetFlag(HASRIGIDVTX) || (flag & NOCLIP) || inside);
-		if (m_flag.GetFlag(HASRIGIDVTX))
+		bool inside = view->InFrustum(tr_bound_sphere) == true || WisZero(tr_bound_sphere.radius, g_EPSILON);
+		m_flag.Turn(VISIBLE, m_flag.GetFlag(HASRIGIDVTX) || (flag & NOCLIP) || inside);
+		if (m_flag.GetFlag(HASRIGIDVTX)) {
 			m_flag.Turn(CLIPPING, !(flag & NOCLIP));
-		else
-			m_flag.Turn(CLIPPING,
-				!(flag & NOCLIP) &&
-					(!IsVisible() || !view->InFrustumSafe(tr_bound_sphere)));
+		} else {
+			m_flag.Turn(CLIPPING, !(flag & NOCLIP) && (!IsVisible() || !view->InFrustumSafe(tr_bound_sphere)));
+		}
 	}
-	if (m_next)
+	if (m_next) {
 		m_next->Transform(mat, view, matscale, flag);
-	if (m_child)
+	}
+	if (m_child) {
 		m_child->Transform(m_matrix, view, matscale * m_scale, flag);
-}
-
-void WBone::DisableFog(void)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		mesh->drawFlag &= 0xf7ffffffUL;
-}
-
-void WBone::EnableAlphaBlend(void)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if ((mesh->drawFlag & 0x80000000UL) != 0)
-			mesh->drawFlag = mesh->drawFlag & 0x7fbfffffUL | 0x00400000UL;
 	}
 }
 
-void WBone::SetRenderMode(int mode)
-{
+// wbone.cpp:1944
+void WBone::DisableFog() {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		mesh->drawFlag &= ~0x8000000;
+	}
+}
+
+// wbone.cpp:1952
+void WBone::EnableAlphaBlend() {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->drawFlag & 0x80000000) {
+			mesh->drawFlag = (mesh->drawFlag & ~0x80400000) | 0x400000;
+		}
+	}
+}
+
+// wbone.cpp:1963
+void WBone::SetRenderMode(int mode) {
 	m_rendMode = mode;
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		switch (mode)
-		{
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		switch (mode) {
 		case 0:
-			mesh->drawFlag =
-				(((mesh->flags & 0x1800000) != 0x800000) ? 0x8000000 : 0) |
-				(mesh->texHandle & 0x3ffff) | mesh->flags;
+			mesh->drawFlag = (((mesh->flags & 0x1800000) != 0x800000) ? 0x8000000 : 0)
+				| (mesh->texHandle & 0x3ffff) | mesh->flags;
 			break;
 		case 1:
-			mesh->drawFlag =
-				(mesh->texHandle & 0x3ffff) | mesh->flags | 0x40000000;
+			mesh->drawFlag = (mesh->texHandle & 0x3ffff) | mesh->flags | 0x40000000;
 			break;
 		case 5:
-			mesh->drawFlag =
-				(((mesh->flags & 0x1800000) != 0x800000) ? 0x8000000 : 0) |
-				(mesh->texHandle & 0x3ffff) | mesh->flags | 0x40000;
+			mesh->drawFlag = (((mesh->flags & 0x1800000) != 0x800000) ? 0x8000000 : 0)
+				| (mesh->texHandle & 0x3ffff) | mesh->flags | 0x40000;
 			break;
 		case 2:
 			mesh->drawFlag = mesh->flags;
@@ -1777,504 +1577,428 @@ void WBone::SetRenderMode(int mode)
 			break;
 		}
 	}
-	if (m_next != 0)
+	if (m_next != 0) {
 		m_next->SetRenderMode(mode);
-	if (m_child != 0)
+	}
+	if (m_child != 0) {
 		m_child->SetRenderMode(mode);
+	}
 }
 
-void WBone::SetAlpha(unsigned char alpha, int recurse)
-{
-	if (m_alpha != alpha)
-	{
+// wbone.cpp:2027
+void WBone::SetAlpha(unsigned char alpha, int recursive) {
+	if (m_alpha != alpha) {
 		m_alpha = alpha;
-		if (alpha == 0)
+		if (alpha == 0) {
 			m_flag.Enable(1);
-		if ((((ulong)m_flag) & 1) != 0 && alpha > 0)
+		}
+		if (m_flag.GetFlag(1) && alpha > 0) {
 			m_flag.Disable(1);
-		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			ulong color = (ulong)(int)((float)alpha * mesh->alpha) << 24;
-			if (color == 0xff000000)
-			{
-				int flag = mesh->drawFlag;
-				if ((flag & 0x1800000) == 0 && (mesh->flags & 0x400000) == 0)
-					flag &= 0xffbfffff;
-				else
-					flag |= 0x400000;
-				flag &= 0xdfffffff;
-				mesh->drawFlag = flag;
-			}
-			else
-			{
+		}
+		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			unsigned long color = (unsigned long)(int)(alpha * mesh->alpha) << 24;
+
+			if (color == 0xff000000) {
+				mesh->drawFlag = (((mesh->drawFlag & 0x1800000) == 0 && (mesh->flags & 0x400000) == 0) ? (mesh->drawFlag & ~0x400000) : (mesh->drawFlag | 0x400000)) & ~0x20000000;
+			} else {
 				mesh->drawFlag |= 0x20400000;
 			}
-			for (int i = 0; i < mesh->vtxNum; ++i)
-			{
-				ulong& vtxColor = mesh->vtxColorList[i];
-				vtxColor = (vtxColor & 0xffffff) | color;
+			for (int i = 0; i < mesh->vtxNum; i++) {
+				mesh->vtxColorList[i] = (mesh->vtxColorList[i] & 0xffffff) | color;
 			}
 		}
 	}
-	if (recurse != 0)
-	{
-		if (m_next != 0)
+	if (recursive) {
+		if (m_next != 0) {
 			m_next->SetAlpha(alpha, 1);
-		if (m_child != 0)
+		}
+		if (m_child != 0) {
 			m_child->SetAlpha(alpha, 1);
+		}
 	}
 }
 
-void WBone::RestoreVtxColor(void)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		for (int index = 0; index < mesh->vtxNum; ++index)
-			mesh->vtxColorList[index] = mesh->originalVtxColorList[index];
+// wbone.cpp:2072
+void WBone::RestoreVtxColor() {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		for (int i = 0; i < mesh->vtxNum; i++) {
+			mesh->vtxColorList[i] = mesh->originalVtxColorList[i];
+		}
+	}
 }
 
-void WBone::SetLightLine(float value)
-{
-	WBone* bone = this;
-	do
-	{
-		bone->m_lightLine = value;
-		if (bone->m_next != 0)
-			bone->m_next->SetLightLine(value);
-		bone = bone->m_child;
-	} while (bone != 0);
+// wbone.cpp:2083
+void WBone::SetLightLine(float line) {
+	m_lightLine = line;
+	if (m_next != 0) {
+		m_next->SetLightLine(line);
+	}
+	if (m_child != 0) {
+		m_child->SetLightLine(line);
+	}
 }
 
-void WBone::SetLight(LightSet* light)
-{
-	memcpy(&m_light, light, sizeof(m_light));
-	if (m_next != 0)
-		m_next->SetLight(light);
-	if (m_child != 0)
-		m_child->SetLight(light);
-}
-
-void WBone::CalcLight(WScene* scene, int flag)
-{
-	bool selfIllum = ((((ulong)m_flag) >> 1) & 1) != 0;
-	if (!selfIllum && scene != 0)
-	{
+// wbone.cpp:2097
+void WBone::CalcLight(WScene* scene, int lightmode) {
+	if (!IsSelfIllum() && scene != 0) {
 		WVector pos = m_bound_sphere.pos * m_matrix;
-		CalcLight(scene->GetLightSet(pos), false, flag, 0);
-	}
-	else
-	{
-		int mode = flag | 0x4000000;
-		if ((mode & 0x4000000) != 0 || selfIllum)
+		CalcLight(scene->GetLightSet(pos), false, lightmode, 0);
+	} else {
+		// Same as CalcLight(0, false, lightmode | 0x4000000, 0); all of it is on line 2099.
+		int mode = lightmode | 0x4000000;
+		if ((mode & 0x4000000) || IsSelfIllum()) {
 			CalcLight_SelfIllum();
-		else
+		} else {
 			CalcLight_Diffuse_Equals_Ambient(0, mode);
+		}
 	}
-	if (m_next != 0)
-		m_next->CalcLight(scene, flag);
-	if (m_child != 0)
-		m_child->CalcLight(scene, flag);
+	if (m_next != 0) {
+		m_next->CalcLight(scene, lightmode);
+	}
+	if (m_child != 0) {
+		m_child->CalcLight(scene, lightmode);
+	}
 }
 
-void WBone::CalcLight(LightSet* light, bool child, int flag, WScene* scene)
-{
-	bool selfIllum = ((((ulong)m_flag) >> 1) & 1) != 0;
-	if ((flag & 0x4000000) == 0 && !selfIllum)
-	{
-		if (light != 0)
-		{
-			if (light->type == 1)
-			{
-				if (flag == 0x1000000)
-					CalcLight_Point(light, flag, scene);
-				else
-					CalcLight_Directional_Per_Bone(light, flag, scene);
-			}
-			else if (light->type == 2)
-			{
-				CalcLight_Directional(light, flag, scene);
-			}
-		}
-		else
-		{
-			CalcLight_Diffuse_Equals_Ambient(0, flag);
-		}
+// wbone.cpp:2111
+void WBone::SetLight(LightSet* lig) {
+	m_light = *lig;
+	if (m_next != 0) {
+		m_next->SetLight(lig);
 	}
-	else
-	{
+	if (m_child != 0) {
+		m_child->SetLight(lig);
+	}
+}
+
+// wbone.cpp:2122
+void WBone::CalcLight(LightSet* lig, bool recursive, int lightmode, WScene* scene) {
+	if ((lightmode & 0x4000000) != 0 || IsSelfIllum()) {
 		CalcLight_SelfIllum();
+	} else if (lig != 0) {
+		if (lig->type == LightSet::W_LIGHT_POINT) {
+			if (lightmode == 0x1000000) {
+				CalcLight_Point(lig, lightmode, scene);
+			} else {
+				CalcLight_Directional_Per_Bone(lig, lightmode, scene);
+			}
+		} else if (lig->type == LightSet::W_LIGHT_DIRECTIONAL) {
+			CalcLight_Directional(lig, lightmode, scene);
+		}
+	} else {
+		CalcLight_Diffuse_Equals_Ambient(0, lightmode);
 	}
-	if (child)
-	{
-		if (m_next != 0)
-			m_next->CalcLight(light, child, flag, scene);
-		if (m_child != 0)
-			m_child->CalcLight(light, child, flag, scene);
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->CalcLight(lig, recursive, lightmode, scene);
+		}
+		if (m_child != 0) {
+			m_child->CalcLight(lig, recursive, lightmode, scene);
+		}
 	}
 }
 
-void WBone::CalcLight_SelfIllum(void)
-{
-	w_mesh* mesh = m_mesh;
-	if (mesh != 0)
-	{
-		do
-		{
-			ulong alpha = (ulong)(int)((float)m_alpha * mesh->alpha) << 24;
-			ulong color;
-			if (mesh->texHandle == 0)
-				color = Modulate(m_selfillumColor, mesh->diffuse);
-			else
-				color = m_selfillumColor;
-			color |= alpha;
-			for (int i = 0; i < mesh->vtxNum; ++i)
-				mesh->vtxColorList[i] = color;
-			mesh = mesh->next;
-		} while (mesh != 0);
+// wbone.cpp:2381
+void WBone::CalcLight_SelfIllum() {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		unsigned long calcAlpha = (unsigned long)(int)(m_alpha * mesh->alpha) << 24;
+		unsigned long color = (mesh->texHandle == 0 ? Modulate(m_selfillumColor, mesh->diffuse) : m_selfillumColor) | calcAlpha;
+
+		for (int i = 0; i < mesh->vtxNum; i++) {
+			mesh->vtxColorList[i] = color;
+		}
 	}
-	if (m_vtxColor != 0xffffffff)
-	{
-		for (w_mesh* target = m_mesh; target != 0; target = target->next)
-		{
-			if ((target->drawFlag & 0x1000000) == 0)
-			{
-				for (int i = 0; i < target->vtxNum; ++i)
-					target->vtxColorList[i] &= m_vtxColor;
+
+	if (m_vtxColor != 0xffffffff) {
+		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if ((mesh->drawFlag & 0x1000000) == 0) {
+				for (int i = 0; i < mesh->vtxNum; i++) {
+					mesh->vtxColorList[i] &= m_vtxColor;
+				}
 			}
 		}
 	}
 }
 
-void WBone::CalcLight_Point(LightSet* lig, int lightmode, WScene* scene)
-{
+// wbone.cpp:2411
+void WBone::CalcLight_Point(LightSet* lig, int lightmode, WScene* scene) {
 	w_mesh* mesh = m_mesh;
-	if (mesh == 0)
+	if (mesh == 0) {
 		return;
+	}
 
-	ulong diffuse, ambient, calcAlpha, c;
+	unsigned long diffuse, ambient, calcAlpha, c;
 	WVector vLocLightPos, vLightDir;
 	float t;
 	int i, k;
-	vLocLightPos = lig->nearOne * ~m_matrix;
+	vLocLightPos = lig->nearone * ~m_matrix;
 
-	for (; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->texHandle == 0)
-		{
+	for (; mesh != 0; mesh = mesh->next) {
+		if (mesh->texHandle == 0) {
 			diffuse = Modulate(lig->diffuse, mesh->diffuse);
 			ambient = Modulate(lig->ambient, mesh->diffuse);
-		}
-		else
-		{
+		} else {
 			diffuse = lig->diffuse;
 			ambient = lig->ambient;
 		}
-		calcAlpha = (ulong)(int)(m_alpha * mesh->alpha) << 24;
+		calcAlpha = (unsigned long)(int)(m_alpha * mesh->alpha) << 24;
 
-		if ((mesh->xiDrawFlag2 & 0x4) != 0)
-		{
-			for (i = 0; i < mesh->vtxNum; ++i)
+		if ((mesh->xiDrawFlag2 & 0x4) != 0) {
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] = lig->ambient2 | calcAlpha;
+			}
 			continue;
 		}
-		if ((mesh->xiDrawFlag2 & 0x10) != 0)
-		{
-			for (i = 0; i < mesh->vtxNum; ++i)
+		if ((mesh->xiDrawFlag2 & 0x10) != 0) {
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] = calcAlpha | 0xffffff;
+			}
 			continue;
 		}
-		if ((lightmode & 0x2000000) != 0)
+		if ((lightmode & 0x2000000) != 0) {
 			continue;
+		}
 
 		k = 0;
-		for (i = 0; i < mesh->blendedRigidNum; ++i)
-		{
+		for (i = 0; i < mesh->blendedRigidNum; ++i) {
 			WVector v, vN;
 			vN.x = vN.y = vN.z = 0.0f;
 			v.x = v.y = v.z = 0.0f;
 			float fTotal = 0.0f;
-			for (; fTotal < 0.999f; ++k)
-			{
-				v += mesh->blendedBoneList[k]->Transform(
-						 mesh->blendedVecList[k]) *
-					mesh->blendWeightList[k];
-				vN += RotVec(mesh->blendedNormalList[k],
-						  mesh->blendedBoneList[k]->GetMatrix()) *
-					mesh->blendWeightList[k];
+			for (; fTotal < 0.999f; ++k) {
+				v += mesh->blendedBoneList[k]->Transform(mesh->blendedVecList[k]) * mesh->blendWeightList[k];
+				vN += RotVec(mesh->blendedNormalList[k], mesh->blendedBoneList[k]->GetMatrix()) * mesh->blendWeightList[k];
 				fTotal += mesh->blendWeightList[k];
 			}
 			vN.Normalize();
-			vLightDir = (lig->nearOne - v).Normalize();
+			vLightDir = (lig->nearone - v).Normalize();
 			t = (float)(vLightDir * vN) * 255.0f;
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
-		for (; i < mesh->rigidNum; ++i)
-		{
+		for (; i < mesh->rigidNum; ++i) {
 			WVector v, vN;
 			v = mesh->boneList[i]->Transform(mesh->vecList[i]);
 			vN = RotVec(mesh->normList[i], mesh->boneList[i]->GetMatrix());
 			vN.Normalize();
-			vLightDir = (lig->nearOne - v).Normalize();
+			vLightDir = (lig->nearone - v).Normalize();
 			t = vLightDir * vN * 255.0f;
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
-		for (; i < mesh->vtxNum; ++i)
-		{
+		for (; i < mesh->vtxNum; ++i) {
 			vLightDir = (vLocLightPos - mesh->vecList[i]).Normalize();
 			t = vLightDir * mesh->normList[i] * 255.0f;
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 	}
 
-	if (m_vtxColor != 0xffffffff)
-	{
-		for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			if ((mesh->drawFlag & 0x1000000) != 0)
+	if (m_vtxColor != 0xffffffff) {
+		for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if ((mesh->drawFlag & 0x1000000) != 0) {
 				continue;
-			for (i = 0; i < mesh->vtxNum; ++i)
+			}
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] &= m_vtxColor;
+			}
 		}
 	}
 }
 
-void WBone::CalcLight_Directional_Per_Bone(LightSet* lig, int lightmode,
-	WScene* scene)
-{
-	if (m_mesh == 0)
+// wbone.cpp:2558
+void WBone::CalcLight_Directional_Per_Bone(LightSet* lig, int lightmode, WScene* scene) {
+	if (m_mesh == 0) {
 		return;
+	}
 
 	float t;
-	ulong diffuse, ambient, calcAlpha;
+	unsigned long diffuse, ambient, calcAlpha;
 	WVector vWorLightDir;
-	ulong c;
+	unsigned long c;
 	int i, k;
 	w_mesh* mesh;
 	WVector vLocLightDir;
-	if (m_flag.GetFlag(4))
-	{
-		vWorLightDir = lig->nearOne - m_matrix.pivot;
+	if (m_flag.GetFlag(HASRIGIDVTX)) {
+		vWorLightDir = lig->nearone - m_matrix.pivot;
 		vWorLightDir = vWorLightDir.Normalize() * 255.0f;
 		vLocLightDir = RotVec(vWorLightDir, ~m_matrix);
 		vLocLightDir = vLocLightDir.Normalize() * 255.0f;
-	}
-	else
-	{
-		vLocLightDir = RotVec(lig->nearOne - m_matrix.pivot, ~m_matrix);
+	} else {
+		vLocLightDir = RotVec(lig->nearone - m_matrix.pivot, ~m_matrix);
 		vLocLightDir.Normalize();
 	}
 
-	for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->texHandle == 0)
-		{
+	for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->texHandle == 0) {
 			diffuse = Modulate(lig->diffuse, mesh->diffuse);
 			ambient = Modulate(lig->ambient, mesh->diffuse);
-		}
-		else
-		{
+		} else {
 			diffuse = lig->diffuse;
 			ambient = lig->ambient;
 		}
-		calcAlpha = (ulong)(int)(m_alpha * mesh->alpha) << 24;
+		calcAlpha = (unsigned long)(int)(m_alpha * mesh->alpha) << 24;
 
-		if ((mesh->xiDrawFlag2 & 0x4) != 0)
-		{
-			for (i = 0; i < mesh->vtxNum; ++i)
+		if ((mesh->xiDrawFlag2 & 0x4) != 0) {
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] = lig->ambient2 | calcAlpha;
+			}
 			continue;
 		}
-		if ((mesh->xiDrawFlag2 & 0x10) != 0)
-		{
-			for (i = 0; i < mesh->vtxNum; ++i)
+		if ((mesh->xiDrawFlag2 & 0x10) != 0) {
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] = calcAlpha | 0xffffff;
+			}
 			continue;
 		}
-		if ((lightmode & 0x2000000) != 0)
+		if ((lightmode & 0x2000000) != 0) {
 			continue;
+		}
 
-		for (k = 0, i = 0; i < mesh->blendedRigidNum; ++i)
-		{
+		for (k = 0, i = 0; i < mesh->blendedRigidNum; ++i) {
 			WVector vN;
 			float fTotal;
 			vN.x = vN.y = vN.z = 0.0f;
-			for (fTotal = 0.0f; fTotal < 0.999f; ++k)
-			{
-				vN += RotVec(mesh->blendedNormalList[k],
-						  mesh->blendedBoneList[k]->m_matrix) *
-					mesh->blendWeightList[k];
+			for (fTotal = 0.0f; fTotal < 0.999f; ++k) {
+				vN += RotVec(mesh->blendedNormalList[k], mesh->blendedBoneList[k]->m_matrix) * mesh->blendWeightList[k];
 				fTotal += mesh->blendWeightList[k];
 			}
 			vN.Normalize();
 			t = (float)(vN * vWorLightDir);
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
-		for (; i < mesh->rigidNum; ++i)
-		{
+		for (; i < mesh->rigidNum; ++i) {
 			WVector vN;
 			vN = RotVec(mesh->normList[i], mesh->boneList[i]->GetMatrix());
 			vN.Normalize();
 			t = (float)(vN * vWorLightDir);
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
-		for (; i < mesh->vtxNum; ++i)
-		{
+		for (; i < mesh->vtxNum; ++i) {
 			t = (float)(vLocLightDir * mesh->normList[i]);
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 	}
 
-	if (m_vtxColor != 0xffffffff)
-	{
-		for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			if ((mesh->drawFlag & 0x1000000) != 0)
+	if (m_vtxColor != 0xffffffff) {
+		for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if ((mesh->drawFlag & 0x1000000) != 0) {
 				continue;
-			for (i = 0; i < mesh->vtxNum; ++i)
+			}
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] &= m_vtxColor;
+			}
 		}
 	}
 }
 
-void WBone::CalcLight_Directional(LightSet* lig, int lightmode, WScene* scene)
-{
-	if (m_mesh == 0)
+// wbone.cpp:2708
+void WBone::CalcLight_Directional(LightSet* lig, int lightmode, WScene* scene) {
+	if (m_mesh == 0) {
 		return;
+	}
 
-	ulong diffuse;
+	unsigned long diffuse;
 	float t;
 	WVector vWorLightDir;
-	ulong ambient;
+	unsigned long ambient;
 	WVector vLocLightDir;
-	ulong calcAlpha;
+	unsigned long calcAlpha;
+	WVector* normList;
+	WVector vN;
+	float fTotal;
 	w_mesh* mesh;
 	int i, k;
-	ulong c;
-	if (m_flag.GetFlag(4))
-		vWorLightDir = lig->nearOne * -255.0f;
+	unsigned long c;
+	if (m_flag.GetFlag(HASRIGIDVTX)) {
+		vWorLightDir = lig->nearone * -255.0f;
+	}
 
-	vLocLightDir = RotVec(lig->nearOne * -1.0f, ~m_matrix);
+	vLocLightDir = RotVec(lig->nearone * -1.0f, ~m_matrix);
 	vLocLightDir = vLocLightDir.Normalize() * 255.0f;
 
-	for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		WVector* normList;
-		WVector vN;
-		if (mesh->texHandle == 0)
-		{
+	for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->texHandle == 0) {
 			diffuse = Modulate(lig->diffuse, mesh->diffuse);
 			ambient = Modulate(lig->ambient, mesh->diffuse);
-		}
-		else
-		{
+		} else {
 			diffuse = lig->diffuse;
 			ambient = lig->ambient;
 		}
-		calcAlpha = (ulong)(int)(m_alpha * mesh->alpha) << 24;
+		calcAlpha = (unsigned long)(int)(m_alpha * mesh->alpha) << 24;
 
-		if ((mesh->xiDrawFlag2 & 0x4) != 0)
-		{
-			for (i = 0; i < mesh->vtxNum; ++i)
+		if ((mesh->xiDrawFlag2 & 0x4) != 0) {
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] = lig->ambient2 | calcAlpha;
+			}
 			continue;
 		}
-		if ((mesh->xiDrawFlag2 & 0x10) != 0)
-		{
-			for (i = 0; i < mesh->vtxNum; ++i)
+		if ((mesh->xiDrawFlag2 & 0x10) != 0) {
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] = calcAlpha | 0xffffff;
+			}
 			continue;
 		}
-		if ((lightmode & 0x2000000) != 0)
+		if ((lightmode & 0x2000000) != 0) {
 			continue;
+		}
 
-		normList = mesh->myBlendedNormalList ? mesh->myBlendedNormalList
-											 : mesh->blendedNormalList;
-		if (normList != 0)
-		{
-			float fTotal;
-			for (k = 0, i = 0; i < mesh->blendedRigidNum; ++i)
-			{
+		normList = mesh->myBlendedNormalList ? mesh->myBlendedNormalList : mesh->blendedNormalList;
+		if (normList != 0) {
+			for (k = 0, i = 0; i < mesh->blendedRigidNum; ++i) {
 				vN.Reset();
 				for (fTotal = 0.0f;
-					fTotal < 0.999999f && k < mesh->blendedTotalNum; ++k)
-				{
-					WVector tmp = RotVec(normList[k],
-						mesh->blendedBoneList[k]->GetMatrix());
+					fTotal < 0.999999f && k < mesh->blendedTotalNum; ++k) {
+					WVector tmp = RotVec(normList[k], mesh->blendedBoneList[k]->GetMatrix());
 					float w = mesh->blendWeightList[k];
 					float tz = tmp.z * w;
 					float ty = tmp.y * w;
@@ -2283,188 +2007,143 @@ void WBone::CalcLight_Directional(LightSet* lig, int lightmode, WScene* scene)
 					fTotal += mesh->blendWeightList[k];
 				}
 				vN.Normalize();
-				t = (float)(vN.x * vWorLightDir.x + vN.z * vWorLightDir.z +
-					vN.y * vWorLightDir.y);
-				if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+				t = (float)(vN.x * vWorLightDir.x + vN.z * vWorLightDir.z + vN.y * vWorLightDir.y);
+				if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 					t = t * -1.0f;
-				c = t <= 0.0f ? ambient
-							  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-				if ((lightmode & 0x8000000) != 0)
-				{
-					mesh->vtxColorList[i] =
-						AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) |
-						calcAlpha;
 				}
-				else
-				{
+				c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+				if ((lightmode & 0x8000000) != 0) {
+					mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+				} else {
 					mesh->vtxColorList[i] = c | calcAlpha;
 				}
 			}
-		}
-		else
-		{
+		} else {
 			i = mesh->blendedRigidNum;
 		}
 
 		normList = mesh->myNormalList ? mesh->myNormalList : mesh->normList;
-		if (normList == 0)
+		if (normList == 0) {
 			continue;
+		}
 
-		for (; i < mesh->rigidNum; ++i)
-		{
-			if (&mesh->vtxColorList[i] != mesh->vtxColorPtrList[i])
+		for (; i < mesh->rigidNum; ++i) {
+			if (&mesh->vtxColorList[i] != mesh->vtxColorPtrList[i]) {
 				continue;
+			}
 			vN = RotVec(normList[i], mesh->boneList[i]->GetMatrix());
 			vN.Normalize();
-			t = (float)(vN.x * vWorLightDir.x + vN.z * vWorLightDir.z +
-				vN.y * vWorLightDir.y);
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			t = (float)(vN.x * vWorLightDir.x + vN.z * vWorLightDir.z + vN.y * vWorLightDir.y);
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 
-		for (; i < mesh->vtxNum; ++i)
-		{
+		for (; i < mesh->vtxNum; ++i) {
 			t = vLocLightDir * normList[i];
-			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f)
+			if ((mesh->xiDrawFlag2 & 0x400) != 0 && t < 0.0f) {
 				t = t * -1.0f;
-			c = t <= 0.0f ? ambient
-						  : AddDiffuse(ambient, diffuse, (unsigned char)t);
-			if ((lightmode & 0x8000000) != 0)
-			{
-				mesh->vtxColorList[i] =
-					AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
 			}
-			else
-			{
+			c = t <= 0.0f ? ambient : AddDiffuse(ambient, diffuse, (unsigned char)t);
+			if ((lightmode & 0x8000000) != 0) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i] & 0xffffff, c) | calcAlpha;
+			} else {
 				mesh->vtxColorList[i] = c | calcAlpha;
 			}
 		}
 	}
 
-	if (m_vtxColor != 0xffffffff)
-	{
-		for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			if ((mesh->drawFlag & 0x1000000) != 0)
+	if (m_vtxColor != 0xffffffff) {
+		for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if ((mesh->drawFlag & 0x1000000) != 0) {
 				continue;
-			for (i = 0; i < mesh->vtxNum; ++i)
+			}
+			for (i = 0; i < mesh->vtxNum; ++i) {
 				mesh->vtxColorList[i] &= m_vtxColor;
-		}
-	}
-}
-
-void WBone::CalcLight_Diffuse_Equals_Ambient(LightSet* light, int flag)
-{
-	w_mesh* mesh = m_mesh;
-	if (mesh != 0)
-	{
-		int add = flag & 0x8000000;
-		do
-		{
-			ulong color;
-			if (light != 0)
-			{
-				if (mesh->texHandle == 0)
-					color = Modulate(light->diffuse, mesh->diffuse);
-				else
-					color = light->diffuse;
-			}
-			else
-			{
-				color = 0;
-			}
-			ulong value =
-				((ulong)(int)((float)m_alpha * mesh->alpha) << 24) | color;
-			int i;
-			if (add != 0)
-			{
-				for (i = 0; i < mesh->vtxNum; ++i)
-					mesh->vtxColorList[i] =
-						AddDiffuse(mesh->vtxColorList[i], value);
-			}
-			else
-			{
-				for (i = 0; i < mesh->vtxNum; ++i)
-					mesh->vtxColorList[i] = value;
-			}
-			mesh = mesh->next;
-		} while (mesh != 0);
-	}
-	if (m_vtxColor != 0xffffffff)
-	{
-		for (w_mesh* target = m_mesh; target != 0; target = target->next)
-		{
-			if ((target->drawFlag & 0x1000000) == 0)
-			{
-				for (int i = 0; i < target->vtxNum; ++i)
-					target->vtxColorList[i] &= m_vtxColor;
 			}
 		}
 	}
 }
 
-void WBone::ResetLight(void)
-{
-	WBone* bone = this;
-	for (;;)
-	{
-		for (w_mesh* mesh = bone->m_mesh; mesh != 0; mesh = mesh->next)
-			for (int index = 0; index < mesh->vtxNum; ++index)
-				mesh->vtxColorList[index] = mesh->diffuse;
-		if (bone->m_next != 0)
-			bone->m_next->ResetLight();
-		WBone* child = bone->m_child;
-		if (child == 0)
-			break;
-		bone = child;
+// wbone.cpp:2866
+void WBone::CalcLight_Diffuse_Equals_Ambient(LightSet* lig, int lightmode) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		unsigned long color = (lig != 0 ? (mesh->texHandle == 0 ? Modulate(lig->diffuse, mesh->diffuse) : lig->diffuse) : 0) | ((unsigned long)(int)(m_alpha * mesh->alpha) << 24);
+
+		if (lightmode & 0x8000000) {
+			for (int i = 0; i < mesh->vtxNum; i++) {
+				mesh->vtxColorList[i] = AddDiffuse(mesh->vtxColorList[i], color);
+			}
+		} else {
+			for (int i = 0; i < mesh->vtxNum; i++) {
+				mesh->vtxColorList[i] = color;
+			}
+		}
+	}
+
+	if (m_vtxColor != 0xffffffff) {
+		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if ((mesh->drawFlag & 0x1000000) == 0) {
+				for (int i = 0; i < mesh->vtxNum; i++) {
+					mesh->vtxColorList[i] &= m_vtxColor;
+				}
+			}
+		}
 	}
 }
 
-void WBone::SetVtxColor(ulong color)
-{
+// wbone.cpp:2902
+void WBone::ResetLight() {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		for (int i = 0; i < mesh->vtxNum; i++) {
+			mesh->vtxColorList[i] = mesh->diffuse;
+		}
+	}
+
+	if (m_next != 0) {
+		m_next->ResetLight();
+	}
+	if (m_child != 0) {
+		m_child->ResetLight();
+	}
+}
+
+// wbone.cpp:2920
+void WBone::SetVtxColor(unsigned long color) {
 	m_vtxColor = color;
 	RestoreVtxColor();
-	if (m_next != 0)
+	if (m_next != 0) {
 		m_next->SetVtxColor(color);
-	if (m_child != 0)
+	}
+	if (m_child != 0) {
 		m_child->SetVtxColor(color);
+	}
 }
 
-void WBone::CalcENVCoord(WView* view, w_mesh* m)
-{
+// wbone.cpp:2932
+void WBone::CalcENVCoord(WView* view, w_mesh* m) {
 	int i;
 	WMatrix trans;
 	WVector norm, vb, va;
-	if (m->uvBackup)
-	{
-		for (i = 0; i < m->vtxNum; ++i)
-		{
-			va = m->vecList[i] * m_matrix - view->camera.pivot;
+	if (m->uvBackup) {
+		for (i = 0; i < m->vtxNum; ++i) {
+			va = m->vecList[i] * m_matrix - view->GetCamera().pivot;
 			vb = RotVec(m->normList[i], m_matrix);
-			norm =
-				va - vb * (2 * (va * vb) / (vb.Magnitude() * vb.Magnitude()));
+			norm = va - vb * (2 * (va * vb) / (vb.Magnitude() * vb.Magnitude()));
 			norm *= 0.5f / norm.Magnitude();
 			m->uvData[i][0] = 0.5f - norm.x;
 			m->uvData[i][1] = 0.5f - norm.y;
 		}
-	}
-	else
-	{
-		trans = m_matrix * view->invcamera;
+	} else {
+		trans = m_matrix * view->GetInvCamera();
 		trans *= 0.5f / WVectorLen(trans.xa);
-		for (i = 0; i < m->vtxNum; ++i)
-		{
+		for (i = 0; i < m->vtxNum; ++i) {
 			norm = RotVec(m->normList[i], trans);
 			m->uvData[i][0] = norm.x + 0.5f;
 			m->uvData[i][1] = 0.5f - norm.y;
@@ -2472,69 +2151,77 @@ void WBone::CalcENVCoord(WView* view, w_mesh* m)
 	}
 }
 
-void WBone::CalcHilightCoord(WView* view, const LightSet& light, w_mesh* mesh)
-{
+// wbone.cpp:3142
+void RenderAABB(WView* view, const Waabb& aabb, const WMatrix& mat, float rlen) {
+	static int box_v[8][3] = {
+		{ 0, 0, 0 }, { 1, 0, 0 }, { 0, 1, 0 }, { 1, 1, 0 },
+		{ 0, 0, 1 }, { 1, 0, 1 }, { 0, 1, 1 }, { 1, 1, 1 }
+	};
+	static int box_p[6][4] = {
+		{ 0, 2, 3, 1 }, { 4, 5, 7, 6 }, { 0, 1, 5, 4 },
+		{ 3, 2, 6, 7 }, { 1, 3, 7, 5 }, { 2, 0, 4, 6 }
+	};
+	WVector vt[8];
+	for (int i = 0; i < 8; ++i) {
+		vt[i] = WVector(box_v[i][0] ? (aabb.max.x + rlen) : (aabb.min.x - rlen),
+			box_v[i][1] ? (aabb.max.y + rlen) : (aabb.min.y - rlen),
+			box_v[i][2] ? (aabb.max.z + rlen) : (aabb.min.z - rlen)) * mat;
+	}
+	for (int f = 0; f < 6; ++f) {
+		for (int k = 0; k < 4; ++k) {
+			view->DrawLine(vt[box_p[f][(k - 1) & 3]], 0xffff0000,
+				vt[box_p[f][k]], 0xffff0000, 0);
+		}
+	}
+}
+
+// wbone.cpp:2982
+void WBone::CalcHilightCoord(WView* view, const LightSet& light, w_mesh* mesh) {
 	int i = 0;
-	ulong type;
-	if (!(type = light.type))
+	unsigned long type;
+	if (!(type = light.type)) {
 		return;
+	}
 	WMatrix mInv;
 	mInv = ~m_matrix;
-	if (type == 1)
+	if (type == 1) {
 		return;
-	if (type != 2)
+	}
+	if (type != 2) {
 		return;
+	}
 	{
 		WVector vLocalL, vXA, vYA, vZA, vN, v, vLocalE;
 		WVector* normList;
-		normList = mesh->myBlendedNormalList ? mesh->myBlendedNormalList
-											 : mesh->blendedNormalList;
+		normList = mesh->myBlendedNormalList ? mesh->myBlendedNormalList : mesh->blendedNormalList;
 		vLocalE = view->GetCamera().pivot;
-		vLocalL = light.nearOne;
+		vLocalL = light.nearone;
 		vLocalL.Normalize();
-		const WVector* direction = &light.nearOne;
+		const WVector* direction = &light.nearone;
 		const WVector* camera = &view->GetCamera().pivot;
 		int k = 0;
-		for (i = 0; i < mesh->blendedRigidNum; ++i)
-		{
+		for (i = 0; i < mesh->blendedRigidNum; ++i) {
 			float fTotal;
 			vN.Reset();
 			v.Reset();
-			for (fTotal = 0.0f; fTotal < 0.999999f; ++k)
-			{
-				vN +=
-					RotVec(normList[k], mesh->blendedBoneList[k]->GetMatrix()) *
-					mesh->blendWeightList[k];
-				v += (mesh->blendedVecList[k] *
-						 mesh->blendedBoneList[k]->GetMatrix()) *
-					mesh->blendWeightList[k];
+			for (fTotal = 0.0f; fTotal < 0.999999f; ++k) {
+				vN += RotVec(normList[k], mesh->blendedBoneList[k]->GetMatrix()) * mesh->blendWeightList[k];
+				v += (mesh->blendedVecList[k] * mesh->blendedBoneList[k]->GetMatrix()) * mesh->blendWeightList[k];
 				fTotal += mesh->blendWeightList[k];
 			}
 			vN.Normalize();
-			if ((float)(vLocalL * vN) >= 0.0f)
-			{
+			if ((float)(vLocalL * vN) >= 0.0f) {
 				mesh->uvBackup[i][0] = mesh->uvBackup[i][1] = 0.75f;
-			}
-			else
-			{
+			} else {
 				vZA = (vLocalL + (v - vLocalE).Normalize()).Normalize();
-				if ((float)(vZA * vN) >= 0.0f)
-				{
+				if ((float)(vZA * vN) >= 0.0f) {
 					mesh->uvBackup[i][0] = mesh->uvBackup[i][1] = 0.75f;
-				}
-				else
-				{
-					if (WisEqual(vZA.y, -1.0f, g_EPSILON) ||
-						WisEqual(vZA.y, 1.0f, g_EPSILON))
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
+				} else {
+					if (WisEqual(vZA.y, -1.0f, g_EPSILON) || WisEqual(vZA.y, 1.0f, g_EPSILON)) {
+						vXA = WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
-					}
-					else
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
+					} else {
+						vXA = WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
 					}
 					mesh->uvBackup[i][0] = Wabs(vXA * vN);
@@ -2543,36 +2230,21 @@ void WBone::CalcHilightCoord(WView* view, const LightSet& light, w_mesh* mesh)
 			}
 		}
 		(void)(vLocalL * vN);
-		for (; i < mesh->rigidNum; ++i)
-		{
-			vLocalL =
-				RotVec(*direction, ~mesh->boneList[i]->GetMatrix()).Normalize();
-			if (vLocalL * mesh->normList[i] >= 0.0f)
-			{
+		for (; i < mesh->rigidNum; ++i) {
+			vLocalL = RotVec(*direction, ~mesh->boneList[i]->GetMatrix()).Normalize();
+			if (vLocalL * mesh->normList[i] >= 0.0f) {
 				mesh->uvBackup[i][0] = mesh->uvBackup[i][1] = 0.75f;
-			}
-			else
-			{
+			} else {
 				vLocalE = *camera * ~mesh->boneList[i]->GetMatrix();
-				vZA = (vLocalL + (mesh->vecList[i] - vLocalE).Normalize())
-						  .Normalize();
-				if (vZA * mesh->normList[i] >= 0.0f)
-				{
+				vZA = (vLocalL + (mesh->vecList[i] - vLocalE).Normalize()).Normalize();
+				if (vZA * mesh->normList[i] >= 0.0f) {
 					mesh->uvBackup[i][0] = mesh->uvBackup[i][1] = 0.75f;
-				}
-				else
-				{
-					if (WisEqual(vZA.y, -1.0f, g_EPSILON) ||
-						WisEqual(vZA.y, 1.0f, g_EPSILON))
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
+				} else {
+					if (WisEqual(vZA.y, -1.0f, g_EPSILON) || WisEqual(vZA.y, 1.0f, g_EPSILON)) {
+						vXA = WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
-					}
-					else
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
+					} else {
+						vXA = WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
 					}
 					mesh->uvBackup[i][0] = Wabs(vXA * mesh->normList[i]);
@@ -2582,33 +2254,19 @@ void WBone::CalcHilightCoord(WView* view, const LightSet& light, w_mesh* mesh)
 		}
 		vLocalE = *camera * mInv;
 		vLocalL = RotVec(*direction, mInv).Normalize();
-		for (; i < mesh->vtxNum; ++i)
-		{
-			if ((float)(vLocalL * mesh->normList[i]) >= 0.0f)
-			{
+		for (; i < mesh->vtxNum; ++i) {
+			if ((float)(vLocalL * mesh->normList[i]) >= 0.0f) {
 				mesh->uvBackup[i][0] = mesh->uvBackup[i][1] = 0.75f;
-			}
-			else
-			{
-				vZA = (vLocalL + (mesh->vecList[i] - vLocalE).Normalize())
-						  .Normalize();
-				if (vZA * mesh->normList[i] >= 0.0f)
-				{
+			} else {
+				vZA = (vLocalL + (mesh->vecList[i] - vLocalE).Normalize()).Normalize();
+				if (vZA * mesh->normList[i] >= 0.0f) {
 					mesh->uvBackup[i][0] = mesh->uvBackup[i][1] = 0.75f;
-				}
-				else
-				{
-					if (WisEqual(vZA.y, -1.0f, g_EPSILON) ||
-						WisEqual(vZA.y, 1.0f, g_EPSILON))
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
+				} else {
+					if (WisEqual(vZA.y, -1.0f, g_EPSILON) || WisEqual(vZA.y, 1.0f, g_EPSILON)) {
+						vXA = WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
-					}
-					else
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
+					} else {
+						vXA = WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
 					}
 					mesh->uvBackup[i][0] = Wabs(vXA * mesh->normList[i]);
@@ -2619,51 +2277,15 @@ void WBone::CalcHilightCoord(WView* view, const LightSet& light, w_mesh* mesh)
 	}
 }
 
-void RenderAABB(WView* view, const Waabb& aabb, const WMatrix& mat, float rlen)
-{
-	static int box_v[8][3] = {
-		{ 0, 0, 0 },
-        { 1, 0, 0 },
-        { 0, 1, 0 },
-        { 1, 1, 0 },
-        { 0, 0, 1 },
-		{ 1, 0, 1 },
-        { 0, 1, 1 },
-        { 1, 1, 1 }
-	};
-	static int box_p[6][4] = {
-		{ 0, 2, 3, 1 },
-        { 4, 5, 7, 6 },
-        { 0, 1, 5, 4 },
-        { 3, 2, 6, 7 },
-		{ 1, 3, 7, 5 },
-        { 2, 0, 4, 6 }
-	};
-	WVector vt[8];
-	for (int i = 0; i < 8; ++i)
-		vt[i] = WVector(box_v[i][0] ? (aabb.max.x + rlen) : (aabb.min.x - rlen),
-					box_v[i][1] ? (aabb.max.y + rlen) : (aabb.min.y - rlen),
-					box_v[i][2] ? (aabb.max.z + rlen) : aabb.min.z - rlen) *
-			mat;
-	for (int f = 0; f < 6; ++f)
-		for (int k = 0; k < 4; ++k)
-			view->DrawLine(vt[box_p[f][(k - 1) & 3]], 0xffff0000,
-				vt[box_p[f][k]], 0xffff0000, 0);
+// wbone.cpp:3161
+static void DebugTest(WView* view, const WVector& pos, unsigned long diffuse, float rlen) {
+	view->DrawLine(pos - WVector(rlen, 0.0f, 0.0f), diffuse, pos + WVector(rlen, 0.0f, 0.0f), diffuse, 0);
+	view->DrawLine(pos - WVector(0.0f, rlen, 0.0f), diffuse, pos + WVector(0.0f, rlen, 0.0f), diffuse, 0);
+	view->DrawLine(pos - WVector(0.0f, 0.0f, rlen), diffuse, pos + WVector(0.0f, 0.0f, rlen), diffuse, 0);
 }
 
-static void DebugTest(WView* view, const WVector& pos, ulong diffuse,
-	float rlen)
-{
-	view->DrawLine(pos - WVector(rlen, 0.0f, 0.0f), diffuse,
-		pos + WVector(rlen, 0.0f, 0.0f), diffuse, 0);
-	view->DrawLine(pos - WVector(0.0f, rlen, 0.0f), diffuse,
-		pos + WVector(0.0f, rlen, 0.0f), diffuse, 0);
-	view->DrawLine(pos - WVector(0.0f, 0.0f, rlen), diffuse,
-		pos + WVector(0.0f, 0.0f, rlen), diffuse, 0);
-}
-
-void WBone::Render(WView* view, const LightSet& light)
-{
+// wbone.cpp:3187
+void WBone::Render(WView* view, const LightSet& light) {
 	WVector vWorLightDir, vLocLightDir, vLocEyePos;
 	int i, k, n;
 	float t, w;
@@ -2672,41 +2294,34 @@ void WBone::Render(WView* view, const LightSet& light)
 	WTVertex* pv;
 	int d0 = 0;
 
-	if (IsVisible() && !m_flag.GetFlag(INVISIBLE) && !IsHidden())
-	{
-		vWorLightDir = light.nearOne * -1.0f;
+	if (IsVisible() && !m_flag.GetFlag(INVISIBLE) && !IsHidden()) {
+		vWorLightDir = light.nearone * -1.0f;
 		vLocLightDir = RotVec(vWorLightDir, ~GetMatrix());
 		vLocEyePos = view->GetCamera().pivot * ~GetMatrix();
 
-		for (f = m_mesh, n = 0; f != 0; f = f->next, ++n)
-		{
-			if (f->alpha == 0.0f ||
-				(view->IsShadowView() && (f->drawFlag & 0x300000) == 0x100000))
+		for (f = m_mesh, n = 0; f != 0; f = f->next, ++n) {
+			if (f->alpha == 0.0f || (view->IsShadowView() && (f->drawFlag & 0x300000) == 0x100000)) {
 				continue;
-			if (view->ProcessEffect())
-			{
-				if (f->bEnv)
+			}
+			if (view->ProcessEffect()) {
+				if (f->bEnv) {
 					CalcENVCoord(view, f);
-				if (f->bSpec)
+				}
+				if (f->bSpec) {
 					CalcHilightCoord(view, light, f);
+				}
 			}
 
 			i = 0;
-			if (f->uvBackup != 0)
-			{
+			if (f->uvBackup != 0) {
 				k = 0;
-				if (f->blendedVecList != 0)
-				{
-					for (; i < f->blendedRigidNum; ++i)
-					{
+				if (f->blendedVecList != 0) {
+					for (; i < f->blendedRigidNum; ++i) {
 						t = 0.0f;
 						w = f->blendWeightList[k];
-						vec = f->blendedBoneList[k]->Transform(
-								  f->blendedVecList[k]) *
-							w;
+						vec = f->blendedBoneList[k]->Transform(f->blendedVecList[k]) * w;
 						t += w;
-						for (++k; t < 0.999999f && k < f->blendedTotalNum; ++k)
-						{
+						for (++k; t < 0.999999f && k < f->blendedTotalNum; ++k) {
 							WBone*& bone = f->blendedBoneList[k];
 							w = f->blendWeightList[k];
 							vec += bone->Transform(f->blendedVecList[k]) * w;
@@ -2721,8 +2336,7 @@ void WBone::Render(WView* view, const LightSet& light)
 						pv->SetPosition(vec);
 					}
 				}
-				for (; i < f->rigidNum; ++i)
-				{
+				for (; i < f->rigidNum; ++i) {
 					pv = GetVtxBuff(i);
 					pv->tu = f->uvData[i][0];
 					pv->tv = f->uvData[i][1];
@@ -2731,10 +2345,8 @@ void WBone::Render(WView* view, const LightSet& light)
 					pv->diffuse = *f->vtxColorPtrList[i];
 					pv->SetPosition(f->boneList[i]->Transform(f->vecList[i]));
 				}
-				if (f->vtxNum - i > 0)
-				{
-					for (; i < f->vtxNum; ++i)
-					{
+				if (f->vtxNum - i > 0) {
+					for (; i < f->vtxNum; ++i) {
 						pv = GetVtxBuff(i);
 						pv->diffuse = f->vtxColorList[i];
 						pv->tu = f->uvData[i][0];
@@ -2743,42 +2355,30 @@ void WBone::Render(WView* view, const LightSet& light)
 						pv->lv = f->uvBackup[i][1];
 					}
 					WTVertex* vertices;
-					if (m_flag.GetFlag(PHYSICSMODEL))
-					{
-						for (k = f->rigidNum; k < f->vtxNum; ++k)
-							DebugTest(view, m_physic->list[n][k], 0xffff0000,
-								1.5999999f);
+					if (m_flag.GetFlag(PHYSICSMODEL)) {
+						for (k = f->rigidNum; k < f->vtxNum; ++k) {
+							DebugTest(view, m_physic->list[n][k], 0xffff0000, 1.5999999f);
+						}
 						vertices = GetVtxBuff();
-						for (i = f->rigidNum; i < f->vtxNum; ++i)
-						{
+						for (i = f->rigidNum; i < f->vtxNum; ++i) {
 							vertices[i].SetPosition(m_physic->list[n][i]);
 						}
-					}
-					else
-					{
+					} else {
 						vertices = GetVtxBuff();
-						for (i = f->rigidNum; i < f->vtxNum; ++i)
-						{
+						for (i = f->rigidNum; i < f->vtxNum; ++i) {
 							vertices[i].SetPosition(f->vecList[i] * m_matrix);
 						}
 					}
 				}
-			}
-			else
-			{
+			} else {
 				k = 0;
-				if (f->blendedVecList != 0)
-				{
-					for (; i < f->blendedRigidNum; ++i)
-					{
+				if (f->blendedVecList != 0) {
+					for (; i < f->blendedRigidNum; ++i) {
 						t = 0.0f;
 						w = f->blendWeightList[k];
-						vec = f->blendedBoneList[k]->Transform(
-								  f->blendedVecList[k]) *
-							w;
+						vec = f->blendedBoneList[k]->Transform(f->blendedVecList[k]) * w;
 						t += w;
-						for (++k; t < 0.999999f && k < f->blendedTotalNum; ++k)
-						{
+						for (++k; t < 0.999999f && k < f->blendedTotalNum; ++k) {
 							WBone*& bone = f->blendedBoneList[k];
 							w = f->blendWeightList[k];
 							vec += bone->Transform(f->blendedVecList[k]) * w;
@@ -2791,175 +2391,134 @@ void WBone::Render(WView* view, const LightSet& light)
 						pv->SetPosition(vec);
 					}
 				}
-				for (; i < f->rigidNum; ++i)
-				{
+				for (; i < f->rigidNum; ++i) {
 					pv = GetVtxBuff(i);
 					pv->tu = f->uvData[i][0];
 					pv->tv = f->uvData[i][1];
 					pv->diffuse = *f->vtxColorPtrList[i];
 					pv->SetPosition(f->boneList[i]->Transform(f->vecList[i]));
 				}
-				if (f->vtxNum - i > 0)
-				{
-					for (; i < f->vtxNum; ++i)
-					{
+				if (f->vtxNum - i > 0) {
+					for (; i < f->vtxNum; ++i) {
 						pv = GetVtxBuff(i);
 						pv->diffuse = f->vtxColorList[i];
 						pv->tu = f->uvData[i][0];
 						pv->tv = f->uvData[i][1];
 					}
 					WTVertex* vertices;
-					if (m_flag.GetFlag(PHYSICSMODEL))
-					{
-						for (k = f->rigidNum; k < f->vtxNum; ++k)
-							DebugTest(view, m_physic->list[n][k], 0xffff0000,
-								1.5999999f);
+					if (m_flag.GetFlag(PHYSICSMODEL)) {
+						for (k = f->rigidNum; k < f->vtxNum; ++k) {
+							DebugTest(view, m_physic->list[n][k], 0xffff0000, 1.5999999f);
+						}
 						vertices = GetVtxBuff();
-						for (k = f->rigidNum; k < f->vtxNum; ++k)
-						{
+						for (k = f->rigidNum; k < f->vtxNum; ++k) {
 							vertices[k].SetPosition(m_physic->list[n][k]);
 						}
-					}
-					else
-					{
+					} else {
 						vertices = GetVtxBuff();
-						for (i = f->rigidNum; i < f->vtxNum; ++i)
-						{
+						for (i = f->rigidNum; i < f->vtxNum; ++i) {
 							vertices[i].SetPosition(f->vecList[i] * m_matrix);
 						}
 					}
 				}
 			}
 
-			if (!view->IsShadowView() && (f->xiDrawFlag2 & 0x400) != 0)
-			{
-				if ((f->xiDrawFlag2 & 0x14) == 0)
-				{
+			if (!view->IsShadowView() && (f->xiDrawFlag2 & 0x400) != 0) {
+				if ((f->xiDrawFlag2 & 0x14) == 0) {
 					WVector pos, normal;
 					WVector* normList;
 					float lightDot, eyeDot;
-					normList = f->myBlendedNormalList ? f->myBlendedNormalList
-													  : f->blendedNormalList;
-					for (i = k = 0; i < f->blendedRigidNum; ++i)
-					{
+					normList = f->myBlendedNormalList ? f->myBlendedNormalList : f->blendedNormalList;
+					for (i = k = 0; i < f->blendedRigidNum; ++i) {
 						normal.Reset();
 						pos.Reset();
-						for (t = 0.0f; t < 0.999999f; ++k)
-						{
-							normal += RotVec(normList[k],
-										  f->blendedBoneList[k]->GetMatrix()) *
-								f->blendWeightList[k];
-							pos += f->blendedBoneList[k]->Transform(
-									   f->blendedVecList[k]) *
-								f->blendWeightList[k];
+						for (t = 0.0f; t < 0.999999f; ++k) {
+							normal += RotVec(normList[k], f->blendedBoneList[k]->GetMatrix()) * f->blendWeightList[k];
+							pos += f->blendedBoneList[k]->Transform(f->blendedVecList[k]) * f->blendWeightList[k];
 							t = (float)(t + f->blendWeightList[k]);
 						}
 						eyeDot = (view->GetCamera().pivot - pos) * normal;
 						lightDot = (float)(vWorLightDir * normal);
-						if (lightDot * eyeDot < 0.0f)
-						{
+						if (lightDot * eyeDot < 0.0f) {
 							WTVertex* vtx = GetVtxBuff(i);
-							vtx->diffuse =
-								(vtx->diffuse & 0xff000000) | light.ambient;
+							vtx->diffuse = (vtx->diffuse & 0xff000000) | light.ambient;
 						}
 					}
 					normList = f->myNormalList ? f->myNormalList : f->normList;
-					for (; i < f->rigidNum; ++i)
-					{
-						v = view->GetCamera().pivot *
-							~f->boneList[i]->GetMatrix();
+					for (; i < f->rigidNum; ++i) {
+						v = view->GetCamera().pivot * ~f->boneList[i]->GetMatrix();
 						eyeDot = (v - f->vecList[i]) * normList[i];
-						lightDot = (float)(vWorLightDir *
-							RotVec(normList[i], f->boneList[i]->GetMatrix()));
-						if (lightDot * eyeDot < 0.0f)
-						{
+						lightDot = (float)(vWorLightDir * RotVec(normList[i], f->boneList[i]->GetMatrix()));
+						if (lightDot * eyeDot < 0.0f) {
 							WTVertex* vtx = GetVtxBuff(i);
-							vtx->diffuse =
-								(vtx->diffuse & 0xff000000) | light.ambient;
+							vtx->diffuse = (vtx->diffuse & 0xff000000) | light.ambient;
 						}
 					}
-					for (; i < f->vtxNum; ++i)
-					{
+					for (; i < f->vtxNum; ++i) {
 						eyeDot = (vLocEyePos - f->vecList[i]) * normList[i];
 						lightDot = vLocLightDir * normList[i];
-						if (lightDot * eyeDot < 0.0f)
-						{
+						if (lightDot * eyeDot < 0.0f) {
 							WTVertex* vtx = GetVtxBuff(i);
-							vtx->diffuse =
-								(vtx->diffuse & 0xff000000) | light.ambient;
+							vtx->diffuse = (vtx->diffuse & 0xff000000) | light.ambient;
 						}
 					}
 				}
 			}
 
-			view->DrawIndexedTriangles(GetVtxBuff(), f->vtxNum, f->indexList,
-				f->indexNum, f->drawFlag, f->xiDrawFlag2);
+			view->DrawIndexedTriangles(GetVtxBuff(), f->vtxNum, f->indexList, f->indexNum, f->drawFlag, f->xiDrawFlag2);
 		}
 	}
 
-	if (m_next != 0)
+	if (m_next != 0) {
 		m_next->Render(view, light);
-	if (m_child != 0)
+	}
+	if (m_child != 0) {
 		m_child->Render(view, light);
-}
-
-void WBone::RenderHierarchy(WView* view, float size)
-{
-	const WVector& pivot = m_matrix.pivot;
-	view->DrawLine(pivot, 0xffff0000, m_matrix.xa * size + pivot, 0xffff0000,
-		0x300000);
-	view->DrawLine(pivot, 0xff00ff00, m_matrix.ya * size + pivot, 0xff00ff00,
-		0x300000);
-	view->DrawLine(pivot, 0xff0000ff, m_matrix.za * size + pivot, 0xff0000ff,
-		0x300000);
-	if (m_child != 0)
-	{
-		view->DrawLine(pivot, 0xffffffff, m_child->m_matrix.pivot, 0xffff00ff,
-			0x300000);
-		m_child->RenderHierarchy(view, size);
-	}
-	if (m_next != 0)
-	{
-		view->DrawLine(pivot, 0xffffffff, m_next->m_matrix.pivot, 0xff00ffff,
-			0x300000);
-		m_next->RenderHierarchy(view, size);
 	}
 }
 
-void WBone::RenderNormals(WView* view, float axisLen)
-{
+// wbone.cpp:3513
+void WBone::RenderHierarchy(WView* view, float axisLen) {
+	view->DrawLine(m_matrix.pivot, 0xffff0000, m_matrix.xa * axisLen + m_matrix.pivot, 0xffff0000, 0x300000);
+	view->DrawLine(m_matrix.pivot, 0xff00ff00, m_matrix.ya * axisLen + m_matrix.pivot, 0xff00ff00, 0x300000);
+	view->DrawLine(m_matrix.pivot, 0xff0000ff, m_matrix.za * axisLen + m_matrix.pivot, 0xff0000ff, 0x300000);
+
+	if (m_child != 0) {
+		view->DrawLine(m_matrix.pivot, 0xffffffff, m_child->m_matrix.pivot, 0xffff00ff, 0x300000);
+
+		m_child->RenderHierarchy(view, axisLen);
+	}
+
+	if (m_next != 0) {
+		view->DrawLine(m_matrix.pivot, 0xffffffff, m_next->m_matrix.pivot, 0xff00ffff, 0x300000);
+
+		m_next->RenderHierarchy(view, axisLen);
+	}
+}
+
+// wbone.cpp:3534
+void WBone::RenderNormals(WView* view, float axisLen) {
 	WVector v, n;
 	float w, t;
-	ulong c;
+	unsigned long c;
 	int i, k;
 	WVector* normList;
-	for (w_mesh* m = m_mesh; m; m = m->next)
-	{
+	for (w_mesh* m = m_mesh; m; m = m->next) {
 		i = 0;
-		normList = m->myBlendedNormalList ? m->myBlendedNormalList
-										  : m->blendedNormalList;
-		if (m->blendedVecList && normList)
-		{
+		normList = m->myBlendedNormalList ? m->myBlendedNormalList : m->blendedNormalList;
+		if (m->blendedVecList && normList) {
 			k = 0;
-			for (; i < m->blendedRigidNum; i++)
-			{
-				c = WisEqual(normList[k], m->blendedNormalList[k], g_EPSILON)
-					? 0xffff0000
-					: 0xff00ff00;
+			for (; i < m->blendedRigidNum; i++) {
+				c = WisEqual(normList[k], m->blendedNormalList[k], g_EPSILON) ? 0xffff0000 : 0xff00ff00;
 				t = 0;
 				w = m->blendWeightList[k];
 				v = m->blendedBoneList[k]->Transform(m->blendedVecList[k]) * w;
 				n = RotVec(normList[k], m->blendedBoneList[k]->GetMatrix()) * w;
 				t += w;
-				for (k++; t < 0.999999f && k < m->blendedTotalNum; k++)
-				{
+				for (k++; t < 0.999999f && k < m->blendedTotalNum; k++) {
 					w = m->blendWeightList[k];
-					v +=
-						m->blendedBoneList[k]->Transform(m->blendedVecList[k]) *
-						w;
-					n += RotVec(normList[k],
-							 m->blendedBoneList[k]->GetMatrix()) *
-						w;
+					v += m->blendedBoneList[k]->Transform(m->blendedVecList[k]) * w;
+					n += RotVec(normList[k], m->blendedBoneList[k]->GetMatrix()) * w;
 					t += w;
 				}
 				n.Normalize();
@@ -2967,23 +2526,16 @@ void WBone::RenderNormals(WView* view, float axisLen)
 			}
 		}
 		normList = m->myNormalList ? m->myNormalList : m->normList;
-		if (normList)
-		{
-			for (; i < m->rigidNum; i++)
-			{
-				c = WisEqual(normList[i], m->normList[i], g_EPSILON)
-					? 0xffff0000
-					: 0xff00ff00;
+		if (normList) {
+			for (; i < m->rigidNum; i++) {
+				c = WisEqual(normList[i], m->normList[i], g_EPSILON) ? 0xffff0000 : 0xff00ff00;
 				v = m->boneList[i]->Transform(m->vecList[i]);
 				n = RotVec(normList[i], m->boneList[i]->GetMatrix());
 				n.Normalize();
 				view->DrawLine(v, c, v + n * axisLen, c, 0x300000);
 			}
-			for (; i < m->vtxNum; i++)
-			{
-				c = WisEqual(normList[i], m->normList[i], g_EPSILON)
-					? 0xffff0000
-					: 0xff00ff00;
+			for (; i < m->vtxNum; i++) {
+				c = WisEqual(normList[i], m->normList[i], g_EPSILON) ? 0xffff0000 : 0xff00ff00;
 				v = m->vecList[i] * m_matrix;
 				n = RotVec(normList[i], GetMatrix());
 				n.Normalize();
@@ -2991,487 +2543,470 @@ void WBone::RenderNormals(WView* view, float axisLen)
 			}
 		}
 	}
-	if (m_child)
+	if (m_child) {
 		m_child->RenderNormals(view, axisLen);
-	if (m_next)
+	}
+	if (m_next) {
 		m_next->RenderNormals(view, axisLen);
+	}
 }
 
-void WBone::ApplyScale(float scale)
-{
+// wbone.cpp:3625
+void WBone::ApplyScale(float scale) {
 	m_localMat.pivot *= scale;
 	m_basicMat.pivot *= scale;
 	m_matrix.pivot *= scale;
-	if (m_keyPos != 0)
-	{
-		for (int i = 0; i < m_keyPosNum; ++i)
-		{
+	if (m_keyPos != 0) {
+		for (int i = 0; i < m_keyPosNum; ++i) {
 			WVector& pos = m_keyPos[i].pos;
 			pos *= scale;
 		}
 	}
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
 		int i;
-		for (i = 0; i < mesh->blendedTotalNum; ++i)
-		{
+		for (i = 0; i < mesh->blendedTotalNum; ++i) {
 			WVector& vec = mesh->blendedVecList[i];
 			vec *= scale;
 		}
-		for (i = 0; i < mesh->vtxNum; ++i)
-		{
+		for (i = 0; i < mesh->vtxNum; ++i) {
 			WVector& vec = mesh->vecList[i];
 			vec *= scale;
 		}
 	}
-	if (m_next != 0)
+	if (m_next != 0) {
 		m_next->ApplyScale(scale);
-	if (m_child != 0)
+	}
+	if (m_child != 0) {
 		m_child->ApplyScale(scale);
+	}
 }
 
-void WBone::SetBoundBox(Waabb aabb, bool merge)
-{
+// wbone.cpp:3656
+void WBone::SetBoundBox(const Waabb aabb, bool merge) {
 	Waabb bound;
-	if (merge)
-	{
+	if (merge) {
 		bound.min = WVector(Min(m_bound_aabb.min.x, aabb.min.x),
 			Min(m_bound_aabb.min.y, aabb.min.y),
 			Min(m_bound_aabb.min.z, aabb.min.z));
 		bound.max = WVector(Max(m_bound_aabb.max.x, aabb.max.x),
 			Max(m_bound_aabb.max.y, aabb.max.y),
 			Max(m_bound_aabb.max.z, aabb.max.z));
-	}
-	else
+	} else {
 		bound = aabb;
+	}
 	m_bound_aabb = bound;
 	m_bound_sphere = WSphere((bound.max + bound.min) * 0.5f,
-		(float)ceil(WVectorLen(bound.max - bound.min) * 0.5f));
+		(float)ceil((bound.max - bound.min).Magnitude() * 0.5f));
 }
 
-void WBone::FixNormal(const WMatrix& matrix)
-{
+// wbone.cpp:3671
+void WBone::FixNormal(const WMatrix& matrix) {
 	WMatrix world;
 	world = m_localMat * matrix;
 	WMatrix inverse;
 	inverse = ~world;
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		for (int i = 0; i < mesh->vtxNum; ++i)
-		{
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		for (int i = 0; i < mesh->vtxNum; i++) {
 			WVector& normal = mesh->normList[i];
-			normal = WVector(inverse.xx * normal.x + inverse.xz * normal.z +
-					inverse.xy * normal.y,
-				inverse.yx * normal.x + inverse.yz * normal.z +
-					inverse.yy * normal.y,
-				inverse.zx * normal.x + inverse.zz * normal.z +
-					inverse.zy * normal.y);
+			normal = WVector(inverse.xx * normal.x + inverse.xz * normal.z + inverse.xy * normal.y,
+				inverse.yx * normal.x + inverse.yz * normal.z + inverse.yy * normal.y,
+				inverse.zx * normal.x + inverse.zz * normal.z + inverse.zy * normal.y);
 		}
 	}
-	if (m_next != 0)
+	if (m_next != 0) {
 		m_next->FixNormal(matrix);
-	if (m_child != 0)
+	}
+	if (m_child != 0) {
 		m_child->FixNormal(world);
+	}
 }
 
-WBone* WBone::FindBone(const char* name, ulong hash)
-{
-	if (hash == 0)
-		hash = GetHashCode(name);
-	if (m_hashCode == hash && strcmp(name, m_name) == 0)
-		return this;
-	if (m_next != 0)
-	{
-		WBone* found = m_next->FindBone(name, hash);
-		if (found != 0)
-			return found;
+// wbone.cpp:3691
+WBone* WBone::FindBone(const char* name, unsigned long hashCode) {
+	if (hashCode == 0) {
+		hashCode = GetHashCode(name);
 	}
-	if (m_child != 0)
-	{
-		WBone* found = m_child->FindBone(name, hash);
-		if (found != 0)
+	if (m_hashCode == hashCode && strcmp(name, m_name) == 0) {
+		return this;
+	}
+	if (m_next != 0) {
+		WBone* found = m_next->FindBone(name, hashCode);
+		if (found != 0) {
 			return found;
+		}
+	}
+	if (m_child != 0) {
+		WBone* found = m_child->FindBone(name, hashCode);
+		if (found != 0) {
+			return found;
+		}
 	}
 	return 0;
 }
 
-WBone* WBone::FindBone(int id)
-{
-	if (m_id == id)
+// wbone.cpp:3713
+WBone* WBone::FindBone(int id) {
+	if (m_id == id) {
 		return this;
-	if (m_next != 0)
-	{
-		WBone* found = m_next->FindBone(id);
-		if (found != 0)
-			return found;
 	}
-	if (m_child != 0)
-	{
-		WBone* found = m_child->FindBone(id);
-		if (found != 0)
-			return found;
+	WBone* bone;
+	if (m_next != 0 && (bone = m_next->FindBone(id)) != 0) {
+		return bone;
+	}
+	if (m_child != 0 && (bone = m_child->FindBone(id)) != 0) {
+		return bone;
 	}
 	return 0;
 }
 
-WBone* WBone::FindBoneByTail(const char* tail)
-{
-	if (strstr(m_name, tail) != 0)
+// wbone.cpp:3729
+WBone* WBone::FindBoneByTail(const char* tailName) {
+	if (strstr(m_name, tailName) != 0) {
 		return this;
-	if (m_next != 0)
-	{
-		WBone* found = m_next->FindBoneByTail(tail);
-		if (found != 0)
-			return found;
 	}
-	if (m_child != 0)
-	{
-		WBone* found = m_child->FindBoneByTail(tail);
-		if (found != 0)
-			return found;
+	WBone* bone;
+	if (m_next != 0 && (bone = m_next->FindBoneByTail(tailName)) != 0) {
+		return bone;
+	}
+	if (m_child != 0 && (bone = m_child->FindBoneByTail(tailName)) != 0) {
+		return bone;
 	}
 	return 0;
 }
 
-WBone* WBone::FindFakeBodyBone(w_pet_vertex* list, int count)
-{
-	if (strstr(m_name, "Bip") == 0 && strstr(m_name, "Jaw") == 0)
-	{
+// wbone.cpp:3746
+WBone* WBone::FindFakeBodyBone(w_pet_vertex* list, int num) {
+	if (strstr(m_name, "Bip") == 0 && strstr(m_name, "Jaw") == 0) {
 		int i;
-		for (i = 0; i < count; ++i)
-		{
-			if (strcmp(list[i].bonename, m_name) == 0)
+		for (i = 0; i < num; i++) {
+			if (strcmp(list[i].bonename, m_name) == 0) {
 				break;
+			}
 		}
-		if (i == count && m_child == 0)
+		if (i == num && m_child == 0) {
 			return this;
+		}
 	}
-	if (m_next != 0)
-	{
-		WBone* found = m_next->FindFakeBodyBone(list, count);
-		if (found != 0)
-			return found;
+	WBone* bone;
+	if (m_next != 0 && (bone = m_next->FindFakeBodyBone(list, num)) != 0) {
+		return bone;
 	}
-	if (m_child != 0)
-	{
-		WBone* found = m_child->FindFakeBodyBone(list, count);
-		if (found != 0)
-			return found;
+	if (m_child != 0 && (bone = m_child->FindFakeBodyBone(list, num)) != 0) {
+		return bone;
 	}
 	return 0;
 }
 
-int WBone::GetConvexArea(WBlockModel* model)
-{
-	int i;
+// wbone.cpp:3770
+int WBone::GetConvexArea(WBlockModel* manager) {
 	w_mesh* mesh;
-	int total = 0;
-	for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		total += mesh->indexNum;
-	WVector* list = new WVector[total];
-	int count = 0;
-	for (mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		for (i = 0; i < mesh->indexNum; ++i)
-		{
-			list[count++] = mesh->vecList[mesh->indexList[i]] * GetMatrix();
+	int vtxcnt = 0;
+	for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		vtxcnt += mesh->indexNum;
+	}
+
+	WVector* list = new WVector[vtxcnt];
+	int i = 0;
+	for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		for (int j = 0; j < mesh->indexNum; ++j) {
+			list[i++] = mesh->vecList[mesh->indexList[j]] * GetMatrix();
 		}
 	}
-	model->AddTriangleList(list, total);
+
+	manager->AddTriangleList(list, vtxcnt);
+
 	delete list;
+
 	return 1;
 }
 
-void WBone::ApplySpecularMap(int handle)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->bSpec == false)
-		{
+// wbone.cpp:3793
+void WBone::ApplySpecularMap(int texHandle) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (!mesh->bSpec) {
 			mesh->bSpec = true;
 			mesh->uvBackup = new float[mesh->vtxNum][2];
-			mesh->texHandle |= (handle & 0x7f) << 11;
+			mesh->texHandle |= (texHandle & 0x7f) << 11;
 			mesh->drawFlag = (mesh->drawFlag & 0xfffff800) | mesh->texHandle;
 		}
 	}
-	if (m_next != 0)
-		m_next->ApplySpecularMap(handle);
-	if (m_child != 0)
-		m_child->ApplySpecularMap(handle);
+
+	if (m_next != 0) {
+		m_next->ApplySpecularMap(texHandle);
+	}
+	if (m_child != 0) {
+		m_child->ApplySpecularMap(texHandle);
+	}
 }
 
-int __fastcall WriteID(int id, FILE* file)
-{
-	if (id >= 0xfe)
-	{
-		if (file != 0)
-		{
-			fputc(0xfe, file);
-			fwrite(&id, 2, 1, file);
+// wbone.cpp:3822
+int WriteID(int id, _iobuf* fp) {
+	if (id >= 0xfe) {
+		if (fp != 0) {
+			fputc(0xfe, fp);
+			fwrite(&id, 2, 1, fp);
 		}
 		return 3;
 	}
-	if (file != 0)
-		fputc(id, file);
+	if (fp != 0) {
+		fputc(id, fp);
+	}
 	return 1;
 }
 
-int WBone::SaveBoneName(FILE* file, int type, char* name)
-{
+// wbone.cpp:3841
+int WBone::SaveBoneName(_iobuf* fp, int type, char* name) {
 	int written = 0;
 	bool skip = name != 0 && m_mesh != 0 && stricmp(name, m_name) != 0;
-	if (file != 0)
-	{
-		if (!skip)
-		{
-			if (!((type == 0x82 || type == 0x66) && m_mesh != 0))
-			{
-				fwrite(m_name, 1, strlen(m_name) + 1, file);
-				WriteID(m_parent != 0 ? m_parent->m_id : -1, file);
+	if (fp != 0) {
+		if (!skip) {
+			if (!((type == 0x82 || type == 0x66) && m_mesh != 0)) {
+				fwrite(m_name, 1, strlen(m_name) + 1, fp);
+				WriteID(m_parent != 0 ? m_parent->m_id : -1, fp);
 			}
-			if (type == 0xff || (type == 0x82 && m_mesh == 0) ||
-				type == 0x11b || type == 6)
-			{
+			if (type == 0xff || (type == 0x82 && m_mesh == 0) || type == 0x11b || type == 6) {
 				WMatrix matrix;
 				matrix = m_basicMat;
-				if (type == 6)
-				{
-					for (WBone* bone = m_parent; bone != 0;
-						bone = bone->m_parent)
+				if (type == 6) {
+					for (WBone* bone = m_parent; bone != 0; bone = bone->m_parent) {
 						matrix = matrix * bone->m_basicMat;
+					}
 					matrix.xm *= 3.125f;
 					matrix.ym *= 3.125f;
 					matrix.zm *= 3.125f;
 				}
-				fwrite(&matrix.xx, 4, 1, file);
-				fwrite(&matrix.yx, 4, 1, file);
-				fwrite(&matrix.zx, 4, 1, file);
-				fwrite(&matrix.xy, 4, 1, file);
-				fwrite(&matrix.yy, 4, 1, file);
-				fwrite(&matrix.zy, 4, 1, file);
-				fwrite(&matrix.xz, 4, 1, file);
-				fwrite(&matrix.yz, 4, 1, file);
-				fwrite(&matrix.zz, 4, 1, file);
-				fwrite(&matrix.xm, 4, 1, file);
-				fwrite(&matrix.ym, 4, 1, file);
-				fwrite(&matrix.zm, 4, 1, file);
+				fwrite(&matrix.xx, 4, 1, fp);
+				fwrite(&matrix.yx, 4, 1, fp);
+				fwrite(&matrix.zx, 4, 1, fp);
+				fwrite(&matrix.xy, 4, 1, fp);
+				fwrite(&matrix.yy, 4, 1, fp);
+				fwrite(&matrix.zy, 4, 1, fp);
+				fwrite(&matrix.xz, 4, 1, fp);
+				fwrite(&matrix.yz, 4, 1, fp);
+				fwrite(&matrix.zz, 4, 1, fp);
+				fwrite(&matrix.xm, 4, 1, fp);
+				fwrite(&matrix.ym, 4, 1, fp);
+				fwrite(&matrix.zm, 4, 1, fp);
 			}
 		}
-	}
-	else
-	{
-		if (!skip)
-		{
-			if (!((type == 0x82 || type == 0x66) && m_mesh != 0))
-			{
-				written = strlen(m_name) +
-					WriteID(m_parent != 0 ? m_parent->GetID() : -1, 0) + 1;
+	} else {
+		if (!skip) {
+			if (!((type == 0x82 || type == 0x66) && m_mesh != 0)) {
+				written = strlen(m_name) + WriteID(m_parent != 0 ? m_parent->GetID() : -1, 0) + 1;
 			}
-			if (type == 0xff || (type == 0x82 && m_mesh == 0) ||
-				type == 0x11b || type == 6)
+			if (type == 0xff || (type == 0x82 && m_mesh == 0) || type == 0x11b || type == 6) {
 				written += 48;
+			}
 		}
 	}
-	if (m_child != 0)
-		written += m_child->SaveBoneName(file, type, name);
-	if (m_next != 0)
-		written += m_next->SaveBoneName(file, type, name);
+	if (m_child != 0) {
+		written += m_child->SaveBoneName(fp, type, name);
+	}
+	if (m_next != 0) {
+		written += m_next->SaveBoneName(fp, type, name);
+	}
 	return written;
 }
 
-int WBone::SaveAnimationKey(FILE* file, int id, float (*range)[2], int count)
-{
+// wbone.cpp:3920
+int WBone::SaveAnimationKey(_iobuf* fp, int id, float (*range)[2], int count) {
 	int written = 0;
 	w_keyframe_pos* posKeys = 0;
 	w_keyframe_rot* rotKeys = 0;
 	int posNum, rotNum, i;
 	float zero;
-	if (m_keyPosNum != 0 || m_keyRotNum != 0)
-	{
-		if (m_keyPosNum > 0)
-		{
+	if (m_keyPosNum != 0 || m_keyRotNum != 0) {
+		if (m_keyPosNum > 0) {
 			posNum = OptimizePosKey(range, count, &posKeys);
-			if (m_keyPosNum == posNum)
+			if (m_keyPosNum == posNum) {
 				posKeys = m_keyPos;
-		}
-		else
-		{
+			}
+		} else {
 			posNum = 0;
 		}
-		if (m_keyRotNum > 0)
-		{
+		if (m_keyRotNum > 0) {
 			rotNum = OptimizeRotKey(range, count, &rotKeys);
-			if (m_keyRotNum == rotNum)
+			if (m_keyRotNum == rotNum) {
 				rotKeys = m_keyRot;
-		}
-		else
-		{
+			}
+		} else {
 			rotNum = 0;
 		}
-		if (file != 0)
-		{
-			WriteID(m_id, file);
-			fwrite(&posNum, 4, 1, file);
-			for (i = 0; i < posNum; ++i)
-			{
-				fwrite(&posKeys[i].time, 4, 1, file);
-				fwrite(&posKeys[i].pos.x, 4, 1, file);
-				fwrite(&posKeys[i].pos.y, 4, 1, file);
-				fwrite(&posKeys[i].pos.z, 4, 1, file);
+		if (fp != 0) {
+			WriteID(m_id, fp);
+			fwrite(&posNum, 4, 1, fp);
+			for (i = 0; i < posNum; ++i) {
+				fwrite(&posKeys[i].t, 4, 1, fp);
+				fwrite(&posKeys[i].pos.x, 4, 1, fp);
+				fwrite(&posKeys[i].pos.y, 4, 1, fp);
+				fwrite(&posKeys[i].pos.z, 4, 1, fp);
 			}
-			fwrite(&rotNum, 4, 1, file);
+			fwrite(&rotNum, 4, 1, fp);
 			w_keyframe_rot* rot = rotKeys;
-			for (i = 0; i < rotNum; ++i)
-			{
-				fwrite(&rot[i].time, 4, 1, file);
-				fwrite(&rot[i].rot.x, 4, 1, file);
-				fwrite(&rot[i].rot.y, 4, 1, file);
-				fwrite(&rot[i].rot.z, 4, 1, file);
-				fwrite(&rot[i].rot.w, 4, 1, file);
+			for (i = 0; i < rotNum; ++i) {
+				fwrite(&rot[i].t, 4, 1, fp);
+				fwrite(&rot[i].rot.x, 4, 1, fp);
+				fwrite(&rot[i].rot.y, 4, 1, fp);
+				fwrite(&rot[i].rot.z, 4, 1, fp);
+				fwrite(&rot[i].rot.w, 4, 1, fp);
 			}
 			zero = 0.0f;
-			fwrite(&zero, 4, 1, file);
+			fwrite(&zero, 4, 1, fp);
 		}
 		written = WriteID(m_id, 0) + posNum * 16 + rotNum * 20 + 12;
-		if (m_keyPosNum > 0 && m_keyPos != posKeys)
+		if (m_keyPosNum > 0 && m_keyPos != posKeys) {
 			delete[] posKeys;
-		if (m_keyRotNum > 0 && m_keyRot != rotKeys)
+		}
+		if (m_keyRotNum > 0 && m_keyRot != rotKeys) {
 			delete[] rotKeys;
+		}
 	}
-	if (m_child != 0)
-		written += m_child->SaveAnimationKey(file, id, range, count);
-	if (m_next != 0)
-		written += m_next->SaveAnimationKey(file, id, range, count);
+	if (m_child != 0) {
+		written += m_child->SaveAnimationKey(fp, id, range, count);
+	}
+	if (m_next != 0) {
+		written += m_next->SaveAnimationKey(fp, id, range, count);
+	}
 	return written;
 }
 
-int WBone::SetID(int id, bool flag, char* name)
-{
-	if ((flag || m_mesh == 0) &&
-		(name == 0 || m_mesh == 0 || stricmp(name, m_name) == 0))
-	{
-		m_id = id;
-		++id;
+// wbone.cpp:4032
+int WBone::SetID(int i, bool bCntMeshBone, char* meshboneName) {
+	if (bCntMeshBone || m_mesh == 0) {
+		if (meshboneName == 0 || m_mesh == 0 || stricmp(meshboneName, m_name) == 0) {
+			m_id = i;
+			i++;
+		}
 	}
-	if (m_child != 0)
-		id = m_child->SetID(id, flag, name);
-	if (m_next != 0)
-		id = m_next->SetID(id, flag, name);
-	return id;
+
+	if (m_child != 0) {
+		i = m_child->SetID(i, bCntMeshBone, meshboneName);
+	}
+	if (m_next != 0) {
+		i = m_next->SetID(i, bCntMeshBone, meshboneName);
+	}
+	return i;
 }
 
-void WBone::CountBones(int& count)
-{
-	WBone* bone = this;
-	do
-	{
-		++count;
-		WBone* child = bone->m_child;
-		if (child != 0)
-			child->CountBones(count);
-		bone = bone->m_next;
-	} while (bone != 0);
+// wbone.cpp:4051
+void WBone::CountBones(int& nBones) {
+	nBones++;
+	if (m_child != 0) {
+		m_child->CountBones(nBones);
+	}
+	if (m_next != 0) {
+		m_next->CountBones(nBones);
+	}
 }
 
-float WBone::LoadAnimationKey(cFile* fp)
-{
+// wbone.cpp:4062
+float WBone::LoadAnimationKey(cFile* fp) {
 	float t = 0.0f;
 	int i;
 	float n;
 	WQuat rot;
 	fp->Read(&m_keyPosNum, 4);
-	if (m_keyPosNum != 0)
-	{
+	if (m_keyPosNum != 0) {
 		m_keyPos = new w_keyframe_pos[m_keyPosNum];
 		m_keyFlag |= 2;
-		for (i = 0; i < m_keyPosNum; ++i)
-		{
-			fp->Read(&m_keyPos[i].time, 4);
+		for (i = 0; i < m_keyPosNum; ++i) {
+			fp->Read(&m_keyPos[i].t, 4);
 			fp->Read(&m_keyPos[i].pos.x, 4);
 			fp->Read(&m_keyPos[i].pos.y, 4);
 			fp->Read(&m_keyPos[i].pos.z, 4);
-			if (t < m_keyPos[i].time)
-				t = m_keyPos[i].time;
+			if (t < m_keyPos[i].t) {
+				t = m_keyPos[i].t;
+			}
 		}
 	}
 	fp->Read(&m_keyRotNum, 4);
-	if (m_keyRotNum != 0)
-	{
+	if (m_keyRotNum != 0) {
 		m_keyFlag |= 1;
 		m_keyRot = new w_keyframe_rot[m_keyRotNum];
-		for (i = 0; i < m_keyRotNum; ++i)
-		{
-			fp->Read(&m_keyRot[i].time, 4);
+		for (i = 0; i < m_keyRotNum; ++i) {
+			fp->Read(&m_keyRot[i].t, 4);
 			fp->Read(&rot.x, 4);
 			fp->Read(&rot.y, 4);
 			fp->Read(&rot.z, 4);
 			fp->Read(&rot.w, 4);
 			rot.Normalize();
 			m_keyRot[i].rot = rot;
-			if (t < m_keyRot[i].time)
-				t = m_keyRot[i].time;
+			if (t < m_keyRot[i].t) {
+				t = m_keyRot[i].t;
+			}
 		}
 	}
+#ifdef PG_7XX
+	// The 7xx .pet ANIM record adds a third key block after the rotation keys
+	// (WBone has no scale key array, so it is skipped). The matching build
+	// compiles the original line below.
+	{
+		int pgPos3Num = 0;
+		fp->Read(&pgPos3Num, 4);
+		for (int pgI = 0; pgI < pgPos3Num; ++pgI)
+			fp->Seek(16, 1);
+	}
+#else
 	fp->Read(&n, 4);
+#endif
 	return t;
 }
 
-void WBone::GetName(char** buffer, int& count)
-{
-	if (m_parent != 0)
-		memcpy(*buffer, m_parent->m_name, strlen(m_parent->m_name));
-	*buffer += 0x1e;
-	memcpy(*buffer, m_name, strlen(m_name));
-	*buffer += 0x1e;
-	++count;
-	if (m_next != 0)
-		m_next->GetName(buffer, count);
-	if (m_child != 0)
-		m_child->GetName(buffer, count);
-}
+// wbone.cpp:4174
+void WBone::GetName(char** ppName, int& num) {
+	if (m_parent != 0) {
+		memcpy(*ppName, m_parent->m_name, strlen(m_parent->m_name));
+	}
+	*ppName += 30;
+	memcpy(*ppName, m_name, strlen(m_name));
+	*ppName += 30;
+	num++;
 
-void WBone::GetBoneInfo(int* totals)
-{
-	WBone* bone = this;
-	for (;;)
-	{
-		for (w_mesh* mesh = bone->m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			totals[1] += mesh->vtxNum;
-			totals[2] += mesh->indexNum / 3;
-		}
-		++totals[0];
-		if (bone->m_next != 0)
-			bone->m_next->GetBoneInfo(totals);
-		WBone* child = bone->m_child;
-		if (child == 0)
-			break;
-		bone = child;
+	if (m_next != 0) {
+		m_next->GetName(ppName, num);
+	}
+	if (m_child != 0) {
+		m_child->GetName(ppName, num);
 	}
 }
 
-int WBone::GetOverlapBox(float* box, WBone* bone)
-{
-	for (w_mesh* mesh = bone->m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		for (int i = 0; i < mesh->indexNum; i += 3)
-		{
-			for (int k = 0; k < 3; ++k)
-			{
+// wbone.cpp:4193
+void WBone::GetBoneInfo(int* piInfo) {
+	w_mesh* mesh = m_mesh;
+	while (mesh != 0) {
+		piInfo[1] += mesh->vtxNum;
+		piInfo[2] += mesh->indexNum / 3;
+		mesh = mesh->next;
+	}
+	piInfo[0]++;
+	if (m_next != 0) {
+		m_next->GetBoneInfo(piInfo);
+	}
+	if (m_child != 0) {
+		m_child->GetBoneInfo(piInfo);
+	}
+}
+
+// wbone.cpp:4213
+int WBone::GetOverlapBox(float* box, WBone* bone) {
+	for (w_mesh* mesh = bone->m_mesh; mesh != 0; mesh = mesh->next) {
+		for (int i = 0; i < mesh->indexNum; i += 3) {
+			for (int k = 0; k < 3; ++k) {
 				int index = mesh->indexList[i + k];
 				WVector point;
-				if (bone != this)
-				{
-					if (mesh->indexList[i] >= mesh->rigidNum)
+				if (bone != this) {
+					if (mesh->indexList[i] >= mesh->rigidNum) {
 						continue;
-					if (mesh->boneList[index] != this)
+					}
+					if (mesh->boneList[index] != this) {
 						continue;
+					}
 				}
-				if (mesh->indexList[i] < mesh->rigidNum)
-					point = mesh->vecList[index] *
-						mesh->boneList[index]->GetMatrix() * ~GetMatrix();
-				else
+				if (mesh->indexList[i] < mesh->rigidNum) {
+					point = mesh->vecList[index] * mesh->boneList[index]->GetMatrix() * ~GetMatrix();
+				} else {
 					point = mesh->vecList[index];
+				}
 				box[0] = box[0] < point.x ? box[0] : point.x;
 				box[1] = box[1] > point.x ? box[1] : point.x;
 				box[2] = box[2] < point.y ? box[2] : point.y;
@@ -3481,590 +3016,570 @@ int WBone::GetOverlapBox(float* box, WBone* bone)
 			}
 		}
 	}
-	if (bone->m_next != 0)
+	if (bone->m_next != 0) {
 		GetOverlapBox(box, bone->m_next);
-	if (bone->m_child != 0)
+	}
+	if (bone->m_child != 0) {
 		GetOverlapBox(box, bone->m_child);
+	}
 	return 1;
 }
 
-void WBone::GetTotalOverlapBox(WVector* min, WVector* max, WMatrix* matrix,
-	bool visibleOnly)
-{
+// wbone.cpp:4256
+void WBone::GetTotalOverlapBox(WVector* pvMin, WVector* pvMax, WMatrix* pmInvLocal, bool bVisibleMeshOnly) {
 	WVector v;
 	int i;
 	w_mesh* mesh;
 
-	if (matrix)
-	{
-		for (mesh = m_mesh; mesh; mesh = mesh->next)
-		{
-			if (visibleOnly && !IsMeshVisible(this, mesh))
+	if (pmInvLocal) {
+		for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if (bVisibleMeshOnly && !IsMeshVisible(this, mesh)) {
 				continue;
-
-			for (i = 0; i < mesh->vtxNum; ++i)
-			{
-				if (i < mesh->rigidNum)
+			}
+			for (i = 0; i < mesh->vtxNum; ++i) {
+				if (i < mesh->rigidNum) {
 					v = mesh->boneList[i]->Transform(mesh->vecList[i]);
-				else
+				} else {
 					v = Transform(mesh->vecList[i]);
-
-				v = v * *matrix;
-
-				min->x = min->x < v.x ? min->x : v.x;
-				max->x = max->x > v.x ? max->x : v.x;
-				min->y = min->y < v.y ? min->y : v.y;
-				max->y = max->y > v.y ? max->y : v.y;
-				min->z = min->z < v.z ? min->z : v.z;
-				max->z = max->z > v.z ? max->z : v.z;
+				}
+				v = v * *pmInvLocal;
+				pvMin->x = pvMin->x < v.x ? pvMin->x : v.x;
+				pvMax->x = pvMax->x > v.x ? pvMax->x : v.x;
+				pvMin->y = pvMin->y < v.y ? pvMin->y : v.y;
+				pvMax->y = pvMax->y > v.y ? pvMax->y : v.y;
+				pvMin->z = pvMin->z < v.z ? pvMin->z : v.z;
+				pvMax->z = pvMax->z > v.z ? pvMax->z : v.z;
 			}
 		}
-	}
-	else
-	{
-		for (mesh = m_mesh; mesh; mesh = mesh->next)
-		{
-			if (visibleOnly && !IsMeshVisible(this, mesh))
+	} else {
+		for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if (bVisibleMeshOnly && !IsMeshVisible(this, mesh)) {
 				continue;
-
-			for (i = 0; i < mesh->vtxNum; ++i)
-			{
-				if (i < mesh->rigidNum)
+			}
+			for (i = 0; i < mesh->vtxNum; ++i) {
+				if (i < mesh->rigidNum) {
 					v = mesh->boneList[i]->Transform(mesh->vecList[i]);
-				else
+				} else {
 					v = Transform(mesh->vecList[i]);
-
-				min->x = min->x < v.x ? min->x : v.x;
-				max->x = max->x > v.x ? max->x : v.x;
-				min->y = min->y < v.y ? min->y : v.y;
-				max->y = max->y > v.y ? max->y : v.y;
-				min->z = min->z < v.z ? min->z : v.z;
-				max->z = max->z > v.z ? max->z : v.z;
+				}
+				pvMin->x = pvMin->x < v.x ? pvMin->x : v.x;
+				pvMax->x = pvMax->x > v.x ? pvMax->x : v.x;
+				pvMin->y = pvMin->y < v.y ? pvMin->y : v.y;
+				pvMax->y = pvMax->y > v.y ? pvMax->y : v.y;
+				pvMin->z = pvMin->z < v.z ? pvMin->z : v.z;
+				pvMax->z = pvMax->z > v.z ? pvMax->z : v.z;
 			}
 		}
 	}
 
-	if (m_next)
-		m_next->GetTotalOverlapBox(min, max, matrix, visibleOnly);
-
-	if (m_child)
-		m_child->GetTotalOverlapBox(min, max, matrix, visibleOnly);
+	if (m_next != 0) {
+		m_next->GetTotalOverlapBox(pvMin, pvMax, pmInvLocal, bVisibleMeshOnly);
+	}
+	if (m_child != 0) {
+		m_child->GetTotalOverlapBox(pvMin, pvMax, pmInvLocal, bVisibleMeshOnly);
+	}
 }
 
-inline int WisZero(const float& v, float e)
-{
-	return Wabs(v) < e;
-}
-
-void WBone::Rotate(float angle, int axis, bool reset)
-{
-	if (reset)
+// wbone.cpp:4321
+void WBone::Rotate(float angle, int axis, bool reset) {
+	if (reset) {
 		m_rotateMat.Reset();
-	m_rotateMat.Rotate(angle, (char)axis);
-	m_flag.Turn(ROTATEBONE, !reset || !WisZero(angle, g_EPSILON));
-}
-
-void WBone::Move(WVector& vec, bool child)
-{
-	m_moveVec = vec;
-	m_flag.Enable(0x400);
-	if (child)
-	{
-		if (m_next != 0)
-			m_next->Move(vec, child);
-		if (m_child != 0)
-			m_child->Move(vec, child);
 	}
+	m_rotateMat.Rotate(angle, axis);
+	m_flag.Turn(ROTATEBONE, !reset || !(WAbsBySign(angle) < 1e-5f));
 }
 
-void WBone::SetSelfIllum(bool enabled, bool recursive)
-{
-	WBone* bone = this;
-	do
-	{
-		if (enabled == true)
-			bone->m_flag.Enable(2);
-		else
-			bone->m_flag.Disable(2);
-		if (!recursive)
-			return;
-		WBone* next = bone->m_next;
-		if (next != 0)
-			next->SetSelfIllum(enabled, recursive);
-		bone = bone->m_child;
-	} while (bone != 0);
-}
-
-void WBone::SetSelfIllumColor(ulong color, bool recursive)
-{
-	WBone* bone = this;
-	bone->m_selfillumColor = color & 0xffffff;
-	if (recursive)
-	{
-		for (;;)
-		{
-			WBone* next = bone->m_next;
-			if (next != 0)
-				next->SetSelfIllumColor(color, recursive);
-			bone = bone->m_child;
-			if (bone == 0)
-				break;
-			bone->m_selfillumColor = color & 0xffffff;
+// wbone.cpp:4330
+void WBone::Move(WVector& vec, bool recursive) {
+	m_moveVec = vec;
+	m_flag.Enable(MOVEBONE);
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->Move(vec, recursive);
+		}
+		if (m_child != 0) {
+			m_child->Move(vec, recursive);
 		}
 	}
 }
 
-void WBone::SetInvisible(bool recursive, bool invisible)
-{
-	WBone* bone = this;
-	do
-	{
-		if (invisible)
-			bone->m_flag.Enable(0x40000);
-		else
-			bone->m_flag.Disable(0x40000);
-		if (!recursive)
-			return;
-		WBone* next = bone->m_next;
-		if (next != 0)
-			next->SetInvisible(recursive, invisible);
-		bone = bone->m_child;
-	} while (bone != 0);
+// wbone.cpp:4345
+void WBone::SetSelfIllum(bool illum, bool recursive) {
+	if (illum == true) {
+		m_flag.Enable(SELFILLUM);
+	} else {
+		m_flag.Disable(SELFILLUM);
+	}
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->SetSelfIllum(illum, recursive);
+		}
+		if (m_child != 0) {
+			m_child->SetSelfIllum(illum, recursive);
+		}
+	}
 }
 
-void WBone::HideBone(bool recursive)
-{
-	WBone* bone = this;
-	do
-	{
-		bone->m_flag.Enable(1);
-		if (!recursive)
-			return;
-		WBone* next = bone->m_next;
-		if (next != 0)
-			next->HideBone(recursive);
-		bone = bone->m_child;
-	} while (bone != 0);
+// wbone.cpp:4359
+void WBone::SetSelfIllumColor(unsigned long color, bool recursive) {
+	m_selfillumColor = color & 0xffffff;
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->SetSelfIllumColor(color, recursive);
+		}
+		if (m_child != 0) {
+			m_child->SetSelfIllumColor(color, recursive);
+		}
+	}
 }
 
-void WBone::ShowBone(bool recursive)
-{
-	WBone* bone = this;
-	do
-	{
-		bone->m_flag.Disable(1);
-		if (!recursive)
-			return;
-		WBone* next = bone->m_next;
-		if (next != 0)
-			next->ShowBone(recursive);
-		bone = bone->m_child;
-	} while (bone != 0);
+// wbone.cpp:4373
+void WBone::SetInvisible(bool recursive, bool invisible) {
+	if (invisible) {
+		m_flag.Enable(INVISIBLE);
+	} else {
+		m_flag.Disable(INVISIBLE);
+	}
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->SetInvisible(recursive, invisible);
+		}
+		if (m_child != 0) {
+			m_child->SetInvisible(recursive, invisible);
+		}
+	}
 }
 
-void WBone::AllocVTX(int count)
-{
-	if (m_vtx_len < count)
-	{
-		m_vtx_len = count;
-		if (m_vtxList != 0)
+// wbone.cpp:4389
+void WBone::HideBone(bool recursive) {
+	m_flag.Enable(HIDEBONE);
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->HideBone(recursive);
+		}
+		if (m_child != 0) {
+			m_child->HideBone(recursive);
+		}
+	}
+}
+
+// wbone.cpp:4403
+void WBone::ShowBone(bool recursive) {
+	m_flag.Disable(HIDEBONE);
+	if (recursive) {
+		if (m_next != 0) {
+			m_next->ShowBone(recursive);
+		}
+		if (m_child != 0) {
+			m_child->ShowBone(recursive);
+		}
+	}
+}
+
+// wbone.cpp:4421
+void WBone::AllocVTX(int len) {
+	if (m_vtx_len < len) {
+		m_vtx_len = len;
+		if (m_vtxList != 0) {
 			delete[] m_vtxList;
+		}
 		m_vtxList = new WTVertex[m_vtx_len];
 	}
 }
 
-void WBone::CountVtxBuff(int count)
-{
-	m_vtx_count += count;
-	if (m_vtx_count == 0)
-	{
-		if (m_vtxList != 0)
-		{
-			delete[] m_vtxList;
-			m_vtxList = 0;
-			m_vtx_len = 0;
-		}
+// wbone.cpp:4435
+void WBone::CountVtxBuff(int inc) {
+	m_vtx_count += inc;
+	if (m_vtx_count == 0 && m_vtxList != 0) {
+		delete[] m_vtxList;
+		m_vtxList = 0;
+		m_vtx_len = 0;
 	}
 }
 
-void WBone::SetRigidVtxFlag(void)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->rigidNum != 0 || mesh->blendedRigidNum != 0)
-		{
-			m_flag.Enable(4);
+// wbone.cpp:4447
+void WBone::SetRigidVtxFlag() {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->rigidNum != 0 || mesh->blendedRigidNum != 0) {
+			m_flag.Enable(HASRIGIDVTX);
 			break;
 		}
 	}
-	if (m_next != 0)
+
+	if (m_next != 0) {
 		m_next->SetRigidVtxFlag();
-	if (m_child != 0)
+	}
+	if (m_child != 0) {
 		m_child->SetRigidVtxFlag();
+	}
 }
 
-bool WBone::CompareBasicMatrix(WBone* other)
-{
-	if (((((ulong)m_flag) >> 16) & 1) == 0)
-	{
-		WBone* found = other->FindBone(m_name, 0);
-		if (found == 0)
+// wbone.cpp:4470
+bool WBone::CompareBasicMatrix(WBone* otherRootbone) {
+	if (!m_flag.GetFlag(MESHBONE)) {
+		WBone* bone = otherRootbone->FindBone(m_name, 0);
+		if (bone == 0) {
 			return false;
-		if (m_basicMat != found->m_basicMat)
+		}
+		if (!(m_basicMat == bone->m_basicMat)) {
 			return false;
+		}
 	}
-	if (m_child != 0 && !m_child->CompareBasicMatrix(other))
-		return false;
-	if (m_next != 0 && !m_next->CompareBasicMatrix(other))
-		return false;
+
+	if (m_child != 0) {
+		if (!m_child->CompareBasicMatrix(otherRootbone)) {
+			return false;
+		}
+	}
+	if (m_next != 0) {
+		if (!m_next->CompareBasicMatrix(otherRootbone)) {
+			return false;
+		}
+	}
 	return true;
 }
 
-void WBone::xSetAlpha(unsigned char alpha, int recurse)
-{
-	m_alpha = alpha;
-	if (alpha == 0)
+// wbone.cpp:4498
+void WBone::xSetAlpha(unsigned char ucAlpha, int iRecursive) {
+	m_alpha = ucAlpha;
+	if (ucAlpha == 0) {
 		m_flag.Enable(1);
-	if ((((ulong)m_flag) & 1) != 0 && alpha > 0)
+	}
+	if (m_flag.GetFlag(1) && ucAlpha > 0) {
 		m_flag.Disable(1);
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		ulong value = (ulong)(int)((float)alpha * mesh->alpha);
-		if ((value & 0xff) == 0xff)
-		{
-			int flag = mesh->drawFlag;
-			if ((flag & 0x1800000) == 0 && (mesh->flags & 0x400000) == 0)
-				flag &= 0xffbfffff;
-			else
-				flag |= 0x400000;
-			flag &= 0xdfffffff;
-			mesh->drawFlag = flag;
-		}
-		else
-		{
+	}
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		unsigned long value = (unsigned long)(int)(ucAlpha * mesh->alpha);
+
+		if ((value & 0xff) == 0xff) {
+			mesh->drawFlag = (((mesh->drawFlag & 0x1800000) == 0 && (mesh->flags & 0x400000) == 0) ? (mesh->drawFlag & ~0x400000) : (mesh->drawFlag | 0x400000)) & ~0x20000000;
+		} else {
 			mesh->drawFlag |= 0x20400000;
 		}
 	}
-	if (recurse != 0)
-	{
-		if (m_next != 0)
-			m_next->xSetAlpha(alpha, 1);
-		if (m_child != 0)
-			m_child->xSetAlpha(alpha, 1);
-	}
-}
-
-void WBone::xRender(WView* view, WxBatchState* state, bool setMatrix,
-	int handle, int newHandle)
-{
-	bool visible = IsVisible();
-	bool mirror = m_flag.GetFlag(INVISIBLE);
-	bool hidden = IsHidden();
-	if (visible && !mirror && !hidden)
-	{
-		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			if (mesh->xpBatch == 0)
-				continue;
-			state->xiBaseVtxIdx = mesh->xpBatch->xiBaseVtxIdx;
-			state->xiBaseIdxIdx = mesh->xpBatch->xiBaseIdxIdx;
-			state->xnVtxs = mesh->vtxNum;
-			state->xnIdxs = mesh->indexNum;
-			if (setMatrix)
-			{
-				state->xmW = m_matrix;
-				state->xnmTransfs = 0;
-			}
-			int draw = mesh->drawFlag;
-			if ((draw & 0x7ff) == handle && handle != newHandle)
-				state->xiFlag0 = draw ^ ((draw ^ newHandle) & 0x7ff);
-			else
-				state->xiFlag0 = draw;
-			int flag2 = mesh->xiDrawFlag2;
-			state->xiFlag1 = flag2;
-			if ((flag2 & 4) != 0)
-				state->xdwDiffuse =
-					((ulong)m_alpha << 24) | view->xGetLight()->ambient2;
-			else
-				state->xdwDiffuse = ((ulong)m_alpha << 24) | 0xffffff;
-			view->xDrawIndexedTriangles(*state);
+	if (iRecursive) {
+		if (m_next != 0) {
+			m_next->xSetAlpha(ucAlpha, 1);
+		}
+		if (m_child != 0) {
+			m_child->xSetAlpha(ucAlpha, 1);
 		}
 	}
-	if (m_next != 0)
-		m_next->xRender(view, state, setMatrix, handle, newHandle);
-	if (m_child != 0)
-		m_child->xRender(view, state, setMatrix, handle, newHandle);
 }
 
-void WBone::ReplaceKeyframe(WBone* bone, float time)
-{
-	WMatrix other, mine;
-	mine = m_localMat;
-	other = bone->m_localMat;
+// wbone.cpp:4532
+void WBone::xRender(WView* pView, WxBatchState* pBState, bool bNeedTransfMat, int hInstTexA, int hInstTexB) {
+	if (IsVisible() && !IsInvisible() && !IsHidden()) {
+		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if (mesh->xpBatch == 0) {
+				continue;
+			}
+			pBState->xiBaseVtxIdx = mesh->xpBatch->xiBaseVtxIdx;
+			pBState->xiBaseIdxIdx = mesh->xpBatch->xiBaseIdxIdx;
+			pBState->xnVtxs = mesh->vtxNum;
+			pBState->xnIdxs = mesh->indexNum;
+			if (bNeedTransfMat) {
+				pBState->xmW = m_matrix;
+				pBState->xnmTransfs = 0;
+			}
+			int drawFlag = mesh->drawFlag;
+			if ((drawFlag & 0x7ff) == hInstTexA && hInstTexA != hInstTexB) {
+				pBState->xiFlag0 = drawFlag ^ ((drawFlag ^ hInstTexB) & 0x7ff);
+			} else {
+				pBState->xiFlag0 = drawFlag;
+			}
+			int drawFlag2 = mesh->xiDrawFlag2;
+			pBState->xiFlag1 = drawFlag2;
+			if ((drawFlag2 & 4) != 0) {
+				pBState->xdwDiffuse = ((unsigned long)m_alpha << 24) | pView->xGetLight()->ambient2;
+			} else {
+				pBState->xdwDiffuse = ((unsigned long)m_alpha << 24) | 0xffffff;
+			}
+			pView->xDrawIndexedTriangles(*pBState);
+		}
+	}
+	if (m_next != 0) {
+		m_next->xRender(pView, pBState, bNeedTransfMat, hInstTexA, hInstTexB);
+	}
+	if (m_child != 0) {
+		m_child->xRender(pView, pBState, bNeedTransfMat, hInstTexA, hInstTexB);
+	}
+}
+
+// wbone.cpp:4586
+void WBone::ReplaceKeyframe(WBone* pSrc, float fAniLength) {
+	WMatrix mSrc, mDst;
+	mDst = m_localMat;
+	mSrc = pSrc->m_localMat;
 
 	m_keyFlag = 0;
-	if (m_keyRot != 0)
-	{
+	if (m_keyRot != 0) {
 		delete[] m_keyRot;
 		m_keyRot = 0;
 	}
-	m_keyRotNum = bone->m_keyRotNum;
-	if (m_keyRotNum != 0)
-	{
+	m_keyRotNum = pSrc->m_keyRotNum;
+	if (m_keyRotNum != 0) {
 		m_keyRot = new w_keyframe_rot[m_keyRotNum];
-		memcpy(m_keyRot, bone->m_keyRot, m_keyRotNum * 20);
+		memcpy(m_keyRot, pSrc->m_keyRot, m_keyRotNum * sizeof(w_keyframe_rot));
 		m_keyFlag |= 1;
 		m_flag.Disable(0x40);
-	}
-	else
-	{
+	} else {
 		WQuat qSrc, qDst;
-		qSrc = other;
-		qDst = mine;
-		if (WisZero(Wabs(qSrc.x - qDst.x), 1e-5f) == 0 ||
-			WisZero(Wabs(qSrc.y - qDst.y), 1e-5f) == 0 ||
-			WisZero(Wabs(qSrc.z - qDst.z), 1e-5f) == 0 ||
-			WisZero(Wabs(qSrc.w - qDst.w), 1e-5f) == 0)
-		{
+		qSrc = mSrc;
+		qDst = mDst;
+		if (!WisZero(Wabs(qSrc.x - qDst.x), g_EPSILON) ||
+			!WisZero(Wabs(qSrc.y - qDst.y), g_EPSILON) ||
+			!WisZero(Wabs(qSrc.z - qDst.z), g_EPSILON) ||
+			!WisZero(Wabs(qSrc.w - qDst.w), g_EPSILON)) {
 			m_keyRotNum = 2;
 			m_keyRot = new w_keyframe_rot[2];
-			m_keyRot[0].time = 0;
+			m_keyRot[0].t = 0;
 			m_keyRot[0].rot = qSrc;
-			m_keyRot[1].time = time;
+			m_keyRot[1].t = fAniLength;
 			m_keyRot[1].rot = qSrc;
 			m_keyFlag |= 1;
 			m_flag.Disable(0x40);
 		}
 	}
 
-	if (m_keyPos != 0)
-	{
+	if (m_keyPos != 0) {
 		delete[] m_keyPos;
 		m_keyPos = 0;
 	}
-	m_keyPosNum = bone->m_keyPosNum;
-	if (m_keyPosNum != 0)
-	{
+	m_keyPosNum = pSrc->m_keyPosNum;
+	if (m_keyPosNum != 0) {
 		m_keyPos = new w_keyframe_pos[m_keyPosNum];
-		memcpy(m_keyPos, bone->m_keyPos, m_keyPosNum * 16);
-	}
-	else
-	{
-		WVector vSrc = other.pivot;
-		WVector vDst = mine.pivot;
-		if (WisEqual(vSrc, vDst, 1e-5f) != 0)
+		memcpy(m_keyPos, pSrc->m_keyPos, m_keyPosNum * sizeof(w_keyframe_pos));
+	} else {
+		WVector vSrc = mSrc.pivot;
+		WVector vDst = mDst.pivot;
+		if (WisEqual(vSrc, vDst, 1e-5f)) {
 			return;
+		}
 		m_keyPosNum = 2;
 		m_keyPos = new w_keyframe_pos[2];
-		m_keyPos[0].time = 0;
+		m_keyPos[0].t = 0;
 		m_keyPos[0].pos = vSrc;
-		m_keyPos[1].time = time;
+		m_keyPos[1].t = fAniLength;
 		m_keyPos[1].pos = vSrc;
 	}
 	m_keyFlag |= 2;
 	m_flag.Disable(0x40);
 }
 
-WBone* WBone::AttachMeshBone(WBone* bone, int handle, int oldHandle)
-{
+// wbone.cpp:4674
+WBone* WBone::AttachMeshBone(WBone* pSrc, int hTex, int hOrgTex) {
 	m_next = new WBone;
-	m_next->SetName(bone->m_name);
+	m_next->SetName(pSrc->m_name);
 	m_next->m_id = 0;
-	m_next->SetBasicMatrix(bone->m_basicMat);
+	m_next->SetBasicMatrix(pSrc->m_basicMat);
 
-	w_mesh* mesh = bone->m_mesh;
+	w_mesh* mesh = pSrc->m_mesh;
 	w_mesh** tail = &m_next->m_mesh;
-	while (mesh != 0)
-	{
-		if ((((ulong)m_next->m_flag) & 0x10020) == 0)
-			m_next->m_flag.Enable(0x10020);
+	while (mesh != 0) {
+		if (!m_next->m_flag.GetFlag(MESHBONE | CLONED_MESH)) {
+			m_next->m_flag.Enable(MESHBONE | CLONED_MESH);
+		}
 		*tail = m_next->CopyMesh(mesh);
-		if (*tail != 0)
-		{
-			if (handle != oldHandle && ((*tail)->drawFlag & 0x7ff) == oldHandle)
-				(*tail)->drawFlag = ((*tail)->drawFlag & ~0x7ff) | handle;
-			bool rigid = ((((ulong)m_next->m_flag) >> 2) & 1) != 0;
-			if (rigid == false)
-			{
-				if ((*tail)->rigidNum != 0 || (*tail)->blendedRigidNum != 0)
-					m_next->m_flag.Enable(4);
+		if (*tail != 0) {
+			if (hTex != hOrgTex && ((*tail)->drawFlag & 0x7ff) == hOrgTex) {
+				(*tail)->drawFlag = ((*tail)->drawFlag & ~0x7ff) | hTex;
+			}
+			if (!m_next->m_flag.GetFlag(HASRIGIDVTX) && ((*tail)->rigidNum != 0 || (*tail)->blendedRigidNum != 0)) {
+				m_next->m_flag.Enable(HASRIGIDVTX);
 			}
 		}
 		mesh = mesh->next;
-		if (*tail != 0)
+		if (*tail != 0) {
 			tail = &(*tail)->next;
+		}
 	}
 	return m_next;
 }
 
-void WBone::ChangeTextureByHandle(int handle, int oldHandle, bool next,
-	bool child)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->originalTexHandle == oldHandle)
-			mesh->drawFlag = (mesh->drawFlag & 0xfffff800) | handle;
+// wbone.cpp:4711
+void WBone::ChangeTextureByHandle(int hTex, int hOrgTex, bool bNext, bool bChild) {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->originalTexHandle == hOrgTex) {
+			mesh->drawFlag = (mesh->drawFlag & 0xfffff800) | hTex;
+		}
 	}
-	if (next && m_next != 0)
-		m_next->ChangeTextureByHandle(handle, oldHandle, next, child);
-	if (child && m_child != 0)
-		m_child->ChangeTextureByHandle(handle, oldHandle, next, child);
+
+	if (bNext && m_next != 0) {
+		m_next->ChangeTextureByHandle(hTex, hOrgTex, bNext, bChild);
+	}
+	if (bChild && m_child != 0) {
+		m_child->ChangeTextureByHandle(hTex, hOrgTex, bNext, bChild);
+	}
 }
 
-bool WBone::ChangeTexture(const char* name, int oldHandle, int handle)
-{
-	if (name == 0 || oldHandle == 0 || handle == 0)
+// wbone.cpp:4728
+bool WBone::ChangeTexture(const char* boneName, int hOrgTex, int hDstTex) {
+	if (boneName == 0 || hOrgTex == 0 || hDstTex == 0) {
 		return false;
-	{
-		if (m_hashCode == GetHashCode(name) && strcmp(name, m_name) == 0)
-		{
-			for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-			{
-				if (mesh->originalTexHandle == oldHandle)
-					mesh->drawFlag = (mesh->drawFlag & 0xfffff800) | handle;
+	}
+	unsigned long hash = GetHashCode(boneName);
+	if (m_hashCode == hash) {
+		if (strcmp(boneName, m_name) == 0) {
+			for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+				if (mesh->originalTexHandle == hOrgTex) {
+					mesh->drawFlag = (mesh->drawFlag & 0xfffff800) | hDstTex;
+				}
 			}
 			return true;
 		}
 	}
-	if (m_next != 0 && m_next->ChangeTexture(name, oldHandle, handle))
-		return true;
-	if (m_child != 0 && m_child->ChangeTexture(name, oldHandle, handle))
-		return true;
+
+	if (m_next != 0) {
+		if (m_next->ChangeTexture(boneName, hOrgTex, hDstTex)) {
+			return true;
+		}
+	}
+	if (m_child != 0) {
+		if (m_child->ChangeTexture(boneName, hOrgTex, hDstTex)) {
+			return true;
+		}
+	}
 	return false;
 }
 
-bool WBone::ChangeTexture(const char* name, int handle)
-{
-	if (name == 0 || handle == 0)
+// wbone.cpp:4763
+bool WBone::ChangeTexture(const char* boneName, int hTex) {
+	if (boneName == 0 || hTex == 0) {
 		return false;
-	{
-		if (m_hashCode == GetHashCode(name) && strcmp(name, m_name) == 0)
-		{
-			for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-			{
-				if (mesh->originalTexHandle != 0)
-					mesh->drawFlag = (mesh->drawFlag & 0xfffff800) | handle;
+	}
+	unsigned long hash = GetHashCode(boneName);
+	if (m_hashCode == hash) {
+		if (strcmp(boneName, m_name) == 0) {
+			for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+				if (mesh->originalTexHandle != 0) {
+					mesh->drawFlag = (mesh->drawFlag & 0xfffff800) | hTex;
+				}
 			}
 			return true;
 		}
 	}
-	if (m_next != 0 && m_next->ChangeTexture(name, handle))
-		return true;
-	if (m_child != 0 && m_child->ChangeTexture(name, handle))
-		return true;
+
+	if (m_next != 0) {
+		if (m_next->ChangeTexture(boneName, hTex)) {
+			return true;
+		}
+	}
+	if (m_child != 0) {
+		if (m_child->ChangeTexture(boneName, hTex)) {
+			return true;
+		}
+	}
 	return false;
 }
 
-void WBone::ResetMyNormalList(void)
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->myNormalList != 0)
-			memcpy(mesh->myNormalList, mesh->normList, mesh->vtxNum * 12);
-		if (mesh->myBlendedNormalList != 0)
-			memcpy(mesh->myBlendedNormalList, mesh->blendedNormalList,
-				mesh->blendedTotalNum * 12);
-	}
-}
-
-void WBone::GatherNormalMergeInfo(w_normalmerge& merge) const
-{
-	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-	{
-		if (mesh->weightList == 0)
-			continue;
-		for (int i = 0; i < mesh->vtxNum; ++i)
-		{
-			if (mesh->weightList[i] != 1.0f)
-				merge.AddVertex(mesh, i);
+// wbone.cpp:4832
+void WBone::ResetMyNormalList() {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->myNormalList != 0) {
+			memcpy(mesh->myNormalList, mesh->normList, mesh->vtxNum * sizeof(WVector));
+		}
+		if (mesh->myBlendedNormalList != 0) {
+			memcpy(mesh->myBlendedNormalList, mesh->blendedNormalList, mesh->blendedTotalNum * sizeof(WVector));
 		}
 	}
 }
 
-void WBone::xBuildTransfMatPtrList(std::vector<const WMatrix*>& list) const
-{
-	const WBone* bone = this;
-	do
-	{
-		if ((((ulong)bone->m_flag) & 0x10000) == 0)
-			list[bone->m_id] = &bone->m_matrix;
-		if (bone->m_child != 0)
-			bone->m_child->xBuildTransfMatPtrList(list);
-		bone = bone->m_next;
-	} while (bone != 0);
-}
-
-void WBone::SetMirrored(bool mirrored)
-{
-	WBone* bone = this;
-	for (;;)
-	{
-		if (mirrored)
-			bone->m_flag.Enable(0x20000);
-		else
-			bone->m_flag.Disable(0x20000);
-		for (w_mesh* mesh = bone->m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			mesh->xiDrawFlag2 &= 0xfffff3ffUL;
-			int draw = mesh->xiDrawFlag2;
-			if (mirrored)
-				draw |= 0x800;
-			mesh->xiDrawFlag2 = draw;
+// wbone.cpp:4848
+void WBone::GatherNormalMergeInfo(w_normalmerge& info) const {
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		if (mesh->weightList != 0) {
+			for (int i = 0; i < mesh->vtxNum; i++) {
+				if (mesh->weightList[i] != 1.0f) {
+					info.AddVertex(mesh, i);
+				}
+			}
 		}
-		if (bone->m_next != 0)
-			bone->m_next->SetMirrored(mirrored);
-		WBone* child = bone->m_child;
-		if (child == 0)
-			break;
-		bone = child;
 	}
 }
 
-void WBone::SetScale(float scale)
-{
+// wbone.cpp:4870
+void WBone::xBuildTransfMatPtrList(std::vector<const WMatrix*>& matPtrList) const {
+	if (!m_flag.GetFlag(MESHBONE)) {
+		matPtrList[m_id] = &m_matrix;
+	}
+	if (m_child != 0) {
+		m_child->xBuildTransfMatPtrList(matPtrList);
+	}
+	if (m_next != 0) {
+		m_next->xBuildTransfMatPtrList(matPtrList);
+	}
+}
+
+// wbone.cpp:4886
+void WBone::SetMirrored(bool bMirrored) {
+	if (bMirrored) {
+		m_flag.Enable(MIRRORED);
+	} else {
+		m_flag.Disable(MIRRORED);
+	}
+
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		mesh->xiDrawFlag2 &= ~0xc00;
+
+		int drawFlag = mesh->xiDrawFlag2;
+		if (bMirrored) {
+			drawFlag |= 0x800;
+		}
+
+		mesh->xiDrawFlag2 = drawFlag;
+	}
+
+	if (m_next != 0) {
+		m_next->SetMirrored(bMirrored);
+	}
+	if (m_child != 0) {
+		m_child->SetMirrored(bMirrored);
+	}
+}
+
+// wbone.cpp:4915
+void WBone::SetScale(float scale) {
 	m_bonescale = scale;
-	m_flag.Enable(0x80000);
+	m_flag.Enable(SCALEBONE);
 }
 
-void __fastcall WBone::CalcMeshAABB(WBone& bone, w_mesh& mesh)
-{
+// wbone.cpp:4921
+void WBone::CalcMeshAABB(WBone& bone, w_mesh& mesh) {
 	int i;
-	if (mesh.vtxNum <= 0)
+	if (mesh.vtxNum <= 0) {
 		return;
-	if (mesh.rigidNum == 0)
-	{
-		mesh.aabbBone = &bone;
 	}
-	else
-	{
-		std::map<WBone*, float> counts;
-		for (i = 0; i < mesh.rigidNum; ++i)
-		{
+	if (mesh.rigidNum == 0) {
+		mesh.aabbBone = &bone;
+	} else {
+		std::map<WBone*, float> boneInfluenceList;
+		for (i = 0; i < mesh.rigidNum; ++i) {
 			std::map<WBone*, float>::iterator found;
-			found = counts.find(mesh.boneList[i]);
-			if (found == counts.end())
-				counts.insert(
-					std::pair<WBone* const, float>(mesh.boneList[i], 1.0f));
-			else
+			found = boneInfluenceList.find(mesh.boneList[i]);
+			if (found == boneInfluenceList.end()) {
+				boneInfluenceList.insert(std::pair<WBone* const, float>(mesh.boneList[i], 1.0f));
+			} else {
 				(*found).second = (*found).second + 1.0f;
-		}
-		if (i < mesh.vtxNum)
-		{
-			counts.insert(std::pair<WBone* const, float>(&bone, 1.0f));
-			for (; i < mesh.vtxNum; ++i)
-				counts[&bone] += 1.0f;
-		}
-		if (counts.size() > 0)
-		{
-			std::map<WBone*, float>::const_iterator best, scan;
-			best = counts.begin();
-			scan = best;
-			for (scan++; scan != counts.end(); scan++)
-			{
-				if ((*scan).second > (*best).second)
-					best = scan;
 			}
-			mesh.aabbBone = (*best).first;
+		}
+		if (i < mesh.vtxNum) {
+			boneInfluenceList.insert(std::pair<WBone* const, float>(&bone, 1.0f));
+			for (; i < mesh.vtxNum; ++i) {
+				boneInfluenceList[&bone] += 1.0f;
+			}
+		}
+		if (boneInfluenceList.size() > 0) {
+			std::map<WBone*, float>::const_iterator boneItr;
+			std::map<WBone*, float>::const_iterator scan;
+			boneItr = boneInfluenceList.begin();
+			scan = boneItr;
+			for (scan++; scan != boneInfluenceList.end(); scan++) {
+				if ((*scan).second > (*boneItr).second) {
+					boneItr = scan;
+				}
+			}
+			mesh.aabbBone = (*boneItr).first;
 		}
 	}
 
@@ -4075,130 +3590,129 @@ void __fastcall WBone::CalcMeshAABB(WBone& bone, w_mesh& mesh)
 	mesh.localAabb.Clear();
 
 	i = 0;
-	for (; i < mesh.rigidNum; ++i)
-	{
-		if (mesh.boneList[i] != mesh.aabbBone)
-		{
-			if (mesh.boneList[i] != prevBone)
-			{
+	for (; i < mesh.rigidNum; ++i) {
+		if (mesh.boneList[i] != mesh.aabbBone) {
+			if (mesh.boneList[i] != prevBone) {
 				prevBone = mesh.boneList[i];
 				m = mesh.boneList[i]->GetMatrix() * inverse;
 			}
 			v = mesh.vecList[i] * m;
-		}
-		else
+		} else {
 			v = mesh.vecList[i];
+		}
 		mesh.localAabb.AddPoint(v);
 	}
-	if (&bone != mesh.aabbBone)
+	if (&bone != mesh.aabbBone) {
 		m = bone.m_matrix * inverse;
-	for (; i < mesh.vtxNum; ++i)
-	{
-		if (&bone != mesh.aabbBone)
+	}
+	for (; i < mesh.vtxNum; ++i) {
+		if (&bone != mesh.aabbBone) {
 			v = mesh.vecList[i] * m;
-		else
+		} else {
 			v = mesh.vecList[i];
+		}
 		mesh.localAabb.AddPoint(v);
 	}
 }
 
-bool __fastcall WBone::IsMeshVisible(WBone* bone, w_mesh* mesh)
-{
-	return bone->IsVisible() && !bone->m_flag.GetFlag(INVISIBLE) &&
-		!bone->IsHidden() && mesh->alpha > 0.0f;
+// wbone.cpp:5011
+bool WBone::IsMeshVisible(WBone* pBone, w_mesh* pMesh) {
+	return pBone->IsVisible() && !pBone->IsInvisible() && !pBone->IsHidden() && pMesh->alpha > 0.0f;
 }
 
-bool WBone::CheckMeshBoneAllVertexRigid(void) const
-{
-	if (((((ulong)m_flag) >> 16) & 1) != 0)
-	{
-		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next)
-		{
-			if (mesh->rigidNum < mesh->vtxNum)
+// wbone.cpp:5019
+bool WBone::CheckMeshBoneAllVertexRigid() const {
+	if (m_flag.GetFlag(MESHBONE)) {
+		for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+			if (mesh->rigidNum < mesh->vtxNum) {
 				return false;
+			}
 		}
 	}
-	if (m_next != 0 && !m_next->CheckMeshBoneAllVertexRigid())
-		return false;
-	if (m_child != 0 && !m_child->CheckMeshBoneAllVertexRigid())
-		return false;
+
+	if (m_next != 0) {
+		if (!m_next->CheckMeshBoneAllVertexRigid()) {
+			return false;
+		}
+	}
+	if (m_child != 0) {
+		if (!m_child->CheckMeshBoneAllVertexRigid()) {
+			return false;
+		}
+	}
 	return true;
 }
 
-WBone::w_normalmerge::w_normalmerge(WPuppet& puppet)
-{
+// wbone.cpp:5047
+WBone::w_normalmerge::w_normalmerge(WPuppet& pet) {
 	WBone* bone;
-	for (bone = puppet.FindMeshBone(0); bone != 0;
-		bone = puppet.FindMeshBone(bone))
+	for (bone = pet.FindMeshBone(0); bone != 0; bone = pet.FindMeshBone(bone)) {
 		bone->ResetMyNormalList();
-	for (bone = puppet.FindMeshBone(0); bone != 0;
-		bone = puppet.FindMeshBone(bone))
+	}
+
+	for (bone = pet.FindMeshBone(0); bone != 0; bone = pet.FindMeshBone(bone)) {
 		bone->GatherNormalMergeInfo(*this);
+	}
+
 	MergeNormal();
 }
 
-void WBone::w_normalmerge::AddVertex(w_mesh* mesh, int index)
-{
-	std::vector<P>& plist = m_wlist[mesh->weightList[index]];
-	P* p = Find(plist, mesh->vecList[index]);
-	if (p == 0)
-	{
-		plist.push_back(P(mesh->vecList[index]));
+// wbone.cpp:5063
+void WBone::w_normalmerge::AddVertex(w_mesh* m, int idx) {
+	PLIST& plist = m_wlist[m->weightList[idx]];
+	P* p = Find(plist, m->vecList[idx]);
+	if (p == 0) {
+		plist.push_back(P(m->vecList[idx]));
 		p = &*plist.rbegin();
 	}
-	std::vector<N>& nlist = p->m_meshList[mesh];
-	N* n = Find(nlist, mesh->normList[index]);
-	if (n == 0)
-	{
-		nlist.push_back(N(mesh->normList[index]));
+
+	NLIST& nlist = p->m_meshList[m];
+	N* n = Find(nlist, m->normList[idx]);
+	if (n == 0) {
+		nlist.push_back(N(m->normList[idx]));
 		n = &*nlist.rbegin();
 	}
-	n->m_idxList.push_back(index);
+
+	n->m_idxList.push_back(idx);
 }
 
-void WBone::w_normalmerge::MergeNormal(void)
-{
-	std::map<float, std::vector<P> >::const_iterator w;
-	for (w = m_wlist.begin(); w != m_wlist.end(); w++)
-	{
-		std::vector<P>::const_iterator p;
-		for (p = (*w).second.begin(); p != (*w).second.end(); p++)
-		{
-			std::map<w_mesh*, std::vector<N> >::const_iterator m;
-			for (m = (*p).m_meshList.begin(); m != (*p).m_meshList.end(); m++)
-			{
+// wbone.cpp:5162
+void WBone::w_normalmerge::MergeNormal() {
+	WLIST::const_iterator w;
+	for (w = m_wlist.begin(); w != m_wlist.end(); w++) {
+		PLIST::const_iterator p;
+		for (p = (*w).second.begin(); p != (*w).second.end(); p++) {
+			MLIST::const_iterator m;
+			for (m = (*p).m_meshList.begin(); m != (*p).m_meshList.end(); m++) {
 				w_mesh* mesh = (*m).first;
-				if (mesh->myNormalList == 0)
+				if (mesh->myNormalList == 0) {
 					continue;
-				std::vector<N>::const_iterator n;
-				for (n = (*m).second.begin(); n != (*m).second.end(); n++)
-				{
+				}
+				NLIST::const_iterator n;
+				for (n = (*m).second.begin(); n != (*m).second.end(); n++) {
 					int index = *(*n).m_idxList.begin();
 					bool merged = false;
-					std::map<w_mesh*, std::vector<N> >::const_iterator other =
-						m;
-					for (other++; other != (*p).m_meshList.end(); other++)
-					{
+					MLIST::const_iterator other = m;
+					for (other++; other != (*p).m_meshList.end(); other++) {
 						w_mesh* mesh2 = (*other).first;
-						if (mesh2->myNormalList == 0)
+						if (mesh2->myNormalList == 0) {
 							continue;
-						if (stricmp(mesh->mpetName, mesh2->mpetName) == 0)
+						}
+						if (stricmp(mesh->mpetName, mesh2->mpetName) == 0) {
 							continue;
-						std::vector<N>::const_iterator n2;
-						for (n2 = (*other).second.begin();
-							n2 != (*other).second.end(); n2++)
-						{
+						}
+						NLIST::const_iterator n2;
+						for (n2 = (*other).second.begin(); n2 != (*other).second.end(); n2++) {
 							merged = true;
 							int index2 = *(*n2).m_idxList.begin();
-							mesh->myNormalList[index] +=
-								mesh2->normList[index2];
+							mesh->myNormalList[index] += mesh2->normList[index2];
 							mesh2->myNormalList[index2] += (*n).m_n;
-							SetMyNormalsEqualToFirstNormal(mesh2,
-								(*n2).m_idxList);
+							SetMyNormalsEqualToFirstNormal(mesh2, (*n2).m_idxList);
 						}
 					}
-					if (merged)
+					if (merged) {
 						SetMyNormalsEqualToFirstNormal(mesh, (*n).m_idxList);
+					}
 				}
 			}
 		}
@@ -4207,31 +3721,22 @@ void WBone::w_normalmerge::MergeNormal(void)
 	ApplyToBlendedNormalList();
 }
 
-void WBone::w_normalmerge::NormalizeMergedNormals(void)
-{
-	std::map<float, std::vector<P> >::const_iterator w;
-	std::vector<P>::const_iterator p;
-	std::map<w_mesh*, std::vector<N> >::const_iterator m;
-	std::vector<N>::const_iterator n;
-
-	for (w = m_wlist.begin(); w != m_wlist.end(); w++)
-	{
-		for (p = (*w).second.begin(); p != (*w).second.end(); p++)
-		{
-			for (m = (*p).m_meshList.begin(); m != (*p).m_meshList.end(); m++)
-			{
+// wbone.cpp:5259
+void WBone::w_normalmerge::NormalizeMergedNormals() {
+	WLIST::const_iterator w;
+	PLIST::const_iterator p;
+	MLIST::const_iterator m;
+	NLIST::const_iterator n;
+	for (w = m_wlist.begin(); w != m_wlist.end(); w++) {
+		for (p = (*w).second.begin(); p != (*w).second.end(); p++) {
+			for (m = (*p).m_meshList.begin(); m != (*p).m_meshList.end(); m++) {
 				w_mesh* mesh = (*m).first;
-				if ((*m).first->myNormalList)
-				{
-					for (n = (*m).second.begin(); n != (*m).second.end(); n++)
-					{
-						for (std::vector<int>::const_iterator i =
-								 (*n).m_idxList.begin();
-							i != (*n).m_idxList.end(); i++)
-						{
-							if (WisEqual(mesh->myNormalList[*i],
-									mesh->normList[*i], 1e-05f) == 0)
+				if ((*m).first->myNormalList) {
+					for (n = (*m).second.begin(); n != (*m).second.end(); n++) {
+						for (std::vector<int>::const_iterator i = (*n).m_idxList.begin(); i != (*n).m_idxList.end(); i++) {
+							if (WisEqual(mesh->myNormalList[*i], mesh->normList[*i], 1e-05f) == 0) {
 								mesh->myNormalList[*i].Normalize();
+							}
 						}
 					}
 				}
@@ -4240,60 +3745,42 @@ void WBone::w_normalmerge::NormalizeMergedNormals(void)
 	}
 }
 
-void WBone::w_normalmerge::ApplyToBlendedNormalList(void)
-{
+// wbone.cpp:5308
+void WBone::w_normalmerge::ApplyToBlendedNormalList() {
 	w_mesh* mesh;
 	int slot, i;
 	float weight;
 	std::list<w_mesh*> meshList;
-
-	std::map<float, std::vector<P> >::const_iterator w;
-	for (w = m_wlist.begin(); w != m_wlist.end(); w++)
-	{
-		std::vector<P>::const_iterator p;
-		for (p = (*w).second.begin(); p != (*w).second.end(); p++)
-		{
-			std::map<w_mesh*, std::vector<N> >::const_iterator m;
-			for (m = (*p).m_meshList.begin(); m != (*p).m_meshList.end(); m++)
-			{
+	WLIST::const_iterator w;
+	for (w = m_wlist.begin(); w != m_wlist.end(); w++) {
+		PLIST::const_iterator p;
+		for (p = (*w).second.begin(); p != (*w).second.end(); p++) {
+			MLIST::const_iterator m;
+			for (m = (*p).m_meshList.begin(); m != (*p).m_meshList.end(); m++) {
 				mesh = (*m).first;
-				if (std::find(meshList.begin(), meshList.end(), mesh) ==
-					meshList.end())
+				if (std::find(meshList.begin(), meshList.end(), mesh) == meshList.end()) {
 					meshList.push_back(mesh);
+				}
 			}
 		}
 	}
-
 	std::list<w_mesh*>::const_iterator it;
-	for (it = meshList.begin(); it != meshList.end(); it++)
-	{
+	for (it = meshList.begin(); it != meshList.end(); it++) {
 		mesh = *it;
-		const std::vector<WMatrix>& matrixList =
-			WPuppet::GetOrginalMatrixList(mesh->mpetName);
+		const std::vector<WMatrix>& matrixList = WPuppet::GetOrginalMatrixList(mesh->mpetName);
 		slot = 0;
-		for (i = 0; i < mesh->blendedRigidNum; ++i)
-		{
-			if (mesh->weightList[i] == 1.0f ||
-				WisEqual(mesh->myNormalList[i], mesh->normList[i], 1e-05f) != 0)
-			{
-				for (weight = 0.0f; weight < 0.999f; ++slot)
-				{
+		for (i = 0; i < mesh->blendedRigidNum; ++i) {
+			if (mesh->weightList[i] == 1.0f || WisEqual(mesh->myNormalList[i], mesh->normList[i], 1e-05f) != 0) {
+				for (weight = 0.0f; weight < 0.999f; ++slot) {
 					weight += mesh->blendWeightList[slot];
 				}
-			}
-			else
-			{
-				for (weight = 0.0f; weight < 0.999f; ++slot)
-				{
+			} else {
+				for (weight = 0.0f; weight < 0.999f; ++slot) {
 					int rigid = mesh->boneList[i]->GetID();
 					int blended = mesh->blendedBoneList[slot]->GetID();
-					if (rigid >= 0 && rigid < (int)matrixList.size() &&
-						blended >= 0 && blended < (int)matrixList.size())
-					{
+					if (rigid >= 0 && rigid < (int)matrixList.size() && blended >= 0 && blended < (int)matrixList.size()) {
 						const WMatrix* matrices = &matrixList[0];
-						mesh->myBlendedNormalList[slot] =
-							RotVec(mesh->myNormalList[i],
-								matrices[rigid] * ~matrixList[blended]);
+						mesh->myBlendedNormalList[slot] = RotVec(mesh->myNormalList[i], matrices[rigid] * ~matrixList[blended]);
 					}
 					weight += mesh->blendWeightList[slot];
 				}
@@ -4302,43 +3789,32 @@ void WBone::w_normalmerge::ApplyToBlendedNormalList(void)
 	}
 }
 
-WBone::w_normalmerge::P* __fastcall WBone::w_normalmerge::Find(
-	std::vector<P>& plist, const WVector& p)
-{
-	std::vector<P>::iterator it;
-	it = plist.begin();
-	std::vector<P>::iterator last = plist.end();
-	while (it != last)
-	{
-		if (WisEqual((*it).m_p, p, 0.001f))
+// wbone.cpp:5377
+WBone::w_normalmerge::P* WBone::w_normalmerge::Find(PLIST& plist, const WVector& p) {
+	for (PLIST::iterator it = plist.begin(); it != plist.end(); ++it) {
+		if (WisEqual(it->m_p, p, 0.001f)) {
 			return &*it;
-		it++;
+		}
 	}
 	return 0;
 }
 
-WBone::w_normalmerge::N* __fastcall WBone::w_normalmerge::Find(
-	std::vector<N>& nlist, const WVector& n)
-{
-	std::vector<N>::iterator it;
-	it = nlist.begin();
-	std::vector<N>::iterator last = nlist.end();
-	while (it != last)
-	{
-		if (WisEqual((*it).m_n, n, 0.001f))
+// wbone.cpp:5390
+WBone::w_normalmerge::N* WBone::w_normalmerge::Find(NLIST& nlist, const WVector& n) {
+	for (NLIST::iterator it = nlist.begin(); it != nlist.end(); ++it) {
+		if (WisEqual(it->m_n, n, 0.001f)) {
 			return &*it;
-		it++;
+		}
 	}
 	return 0;
 }
 
-void __fastcall WBone::w_normalmerge::SetMyNormalsEqualToFirstNormal(
-	w_mesh* mesh, const std::vector<int>& idxList)
-{
-	if (idxList.size() <= 1)
-		return;
-	std::vector<int>::const_iterator it = idxList.begin();
-	int first = *it;
-	for (; it != idxList.end(); it++)
-		mesh->myNormalList[*it] = mesh->myNormalList[first];
+// wbone.cpp:5403
+void WBone::w_normalmerge::SetMyNormalsEqualToFirstNormal(w_mesh* m, const std::vector<int>& idxList) {
+	if (idxList.size() > 1) {
+		int first = idxList[0];
+		for (std::vector<int>::const_iterator it = idxList.begin(); it != idxList.end(); ++it) {
+			m->myNormalList[*it] = m->myNormalList[first];
+		}
+	}
 }

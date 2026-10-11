@@ -1,170 +1,144 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\anotherhand.cpp
+#include "AnotherHand.h"
+
 #include <process.h>
-#include <time.h>
 #include <mmsystem.h>
-#include "anotherhand.h"
+#include <stdlib.h>
+#include <time.h>
 
-#define LOCK_QUEUE(hand) \
-	EnterCriticalSection(&(hand)->m_csQueue); \
-	(hand)->m_bQueseLock = true
-#define UNLOCK_QUEUE(hand) \
-	(hand)->m_bQueseLock = false; \
-	LeaveCriticalSection(&(hand)->m_csQueue)
-
-CAnotherHand::CAnotherHand()
-{
-	m_handle = NULL;
-	m_bUserLock = false;
-	m_bQueseLock = false;
+// anotherhand.cpp:18
+CAnotherHand::CAnotherHand(void) {
+	m_hThread = NULL;
+	m_entered = false;
+	m_queueEntered = false;
+	m_threadID = -1;
 	ResetQueue();
-	m_threadID = (unsigned long)-1;
-	InitializeCriticalSection(&m_csQueue);
-	InitializeCriticalSection(&m_csUser);
+	InitializeCriticalSection(&m_queueLock);
+	InitializeCriticalSection(&m_workLock);
 }
 
-CAnotherHand::~CAnotherHand()
-{
-	if (m_handle)
-	{
-		WaitUntilWorkDone(9999);
-
-		CloseHandle(m_handle);
-		m_handle = NULL;
+// anotherhand.cpp:30
+CAnotherHand::~CAnotherHand(void) {
+	if (m_hThread) {
+		WaitForSingleObject(m_hThread, 9999);
+		CloseHandle(m_hThread);
+		m_hThread = NULL;
 	}
-
-	if (m_bUserLock)
-	{
-		Leave();
+	if (m_entered) {
+		m_entered = false;
+		LeaveCriticalSection(&m_workLock);
 	}
-
-	if (m_bQueseLock)
-	{
-		UNLOCK_QUEUE(this);
+	if (m_queueEntered) {
+		m_queueEntered = false;
+		LeaveCriticalSection(&m_queueLock);
 	}
-
-	DeleteCriticalSection(&m_csQueue);
-	DeleteCriticalSection(&m_csUser);
+	DeleteCriticalSection(&m_queueLock);
+	DeleteCriticalSection(&m_workLock);
 }
 
-bool CAnotherHand::Work(CHandOwner* owner, int key, void* param,
-	bool bInterrupt, int priority)
-{
-	LOCK_QUEUE(this);
+// anotherhand.cpp:60
+bool CAnotherHand::Work(CHandOwner *pOwner, int nWork, void *pData, bool bReplace, int nPriority) {
+	EnterCriticalSection(&m_queueLock);
+	m_queueEntered = true;
 
-	int index;
-	if (!bInterrupt || m_curWork == m_vacation)
-		index = m_vacation;
-	else
-	{
-		index = (m_curWork + 1) % MAX_ANOTHERHAND_WORK;
-		if (index == m_curWork)
-		{
-			UNLOCK_QUEUE(this);
-
+	int tail;
+	if (!bReplace || m_queueHead == m_queueTail) {
+		tail = m_queueTail;
+	} else {
+		tail = (m_queueHead + 1) % MAX_QUEUE;
+		if (tail == m_queueHead) {
+			m_queueEntered = false;
+			LeaveCriticalSection(&m_queueLock);
 			return false;
 		}
 	}
 
-	int next = (index + 1) % MAX_ANOTHERHAND_WORK;
-	if (next == m_curWork)
-	{
-		UNLOCK_QUEUE(this);
-
+	int next = (tail + 1) % MAX_QUEUE;
+	if (next == m_queueHead) {
+		m_queueEntered = false;
+		LeaveCriticalSection(&m_queueLock);
 		return false;
 	}
-	m_vacation = next;
 
-	WorkItem& work = m_aWork[index];
-	work.owner = owner;
-	work.key = key;
-	work.param = param;
-	work.priority = priority;
-	work.startTime = timeGetTime();
+	m_queueTail = next;
+	sWork *pWork = &m_queue[tail];
+	pWork->pOwner = pOwner;
+	pWork->nWork = nWork;
+	pWork->pData = pData;
+	pWork->nPriority = nPriority;
+	pWork->dwQueuedTime = timeGetTime();
 
-	if (m_handle == NULL)
-	{
-		m_handle = (HANDLE)_beginthreadex(NULL, 0, AnotherHand_ThreadProc, this,
-			0, (unsigned int*)&m_threadID);
-		if (m_handle == NULL)
-		{
-			UNLOCK_QUEUE(this);
-			m_threadID = (unsigned long)-1;
-
+	if (!m_hThread) {
+		m_hThread = (HANDLE)_beginthreadex(NULL, 0, AnotherHand_ThreadProc, this, 0, (unsigned int *)&m_threadID);
+		if (!m_hThread) {
+			m_queueEntered = false;
+			LeaveCriticalSection(&m_queueLock);
+			m_threadID = -1;
 			return false;
 		}
 	}
 
-	UNLOCK_QUEUE(this);
-
+	m_queueEntered = false;
+	LeaveCriticalSection(&m_queueLock);
 	return true;
 }
 
-bool CAnotherHand::WaitUntilWorkDone(unsigned long timeout)
-{
-	if (m_handle)
-		return WaitForSingleObject(m_handle, timeout) == WAIT_TIMEOUT;
-
+// anotherhand.cpp:121
+bool CAnotherHand::WaitUntilWorkDone(unsigned long dwMilliseconds) {
+	if (m_hThread) {
+		return WaitForSingleObject(m_hThread, dwMilliseconds) == WAIT_TIMEOUT;
+	}
 	return false;
 }
 
-unsigned int __stdcall AnotherHand_ThreadProc(void* param)
-{
+// anotherhand.cpp:130
+unsigned int __stdcall AnotherHand_ThreadProc(void *pParam) {
 	srand((unsigned int)time(NULL));
+	CAnotherHand *pHand = (CAnotherHand *)pParam;
+	while (true) {
+		CAnotherHand::sWork *pWork = &pHand->m_queue[pHand->m_queueHead];
 
-	CAnotherHand* hand = (CAnotherHand*)param;
+		if (GetThreadPriority(pHand->m_hThread) != pWork->nPriority)
+			SetThreadPriority(pHand->m_hThread, pWork->nPriority);
 
-	while (true)
-	{
-		CAnotherHand::WorkItem& work = hand->m_aWork[hand->m_curWork];
+		pWork->pOwner->OnAnotherHand(pWork->nWork, pWork->pData);
 
-		if (GetThreadPriority(hand->m_handle) != work.priority)
-			SetThreadPriority(hand->m_handle, work.priority);
-
-		work.owner->OnAnotherHand(work.key, work.param);
-
-		LOCK_QUEUE(hand);
-
-		hand->m_curWork = (hand->m_curWork + 1) % MAX_ANOTHERHAND_WORK;
-		if (hand->IsWorkDone())
-		{
-			CloseHandle(hand->m_handle);
-			hand->m_handle = NULL;
-
-			UNLOCK_QUEUE(hand);
+		EnterCriticalSection(&pHand->m_queueLock);
+		pHand->m_queueEntered = true;
+		pHand->m_queueHead = (pHand->m_queueHead + 1) % CAnotherHand::MAX_QUEUE;
+		if (pHand->IsWorkDone()) {
+			CloseHandle(pHand->m_hThread);
+			pHand->m_hThread = NULL;
+			pHand->m_queueEntered = false;
+			LeaveCriticalSection(&pHand->m_queueLock);
 			return 0;
 		}
-
-		UNLOCK_QUEUE(hand);
+		pHand->m_queueEntered = false;
+		LeaveCriticalSection(&pHand->m_queueLock);
 	}
 }
 
-void CAnotherHand::BreakWorkingThread()
-{
-	if (m_bUserLock)
-	{
-		Leave();
+// anotherhand.cpp:183
+void CAnotherHand::BreakWorkingThread(void) {
+	if (m_entered) {
+		m_entered = false;
+		LeaveCriticalSection(&m_workLock);
 	}
-
-	if (m_bQueseLock)
-	{
-		UNLOCK_QUEUE(this);
+	if (m_queueEntered) {
+		m_queueEntered = false;
+		LeaveCriticalSection(&m_queueLock);
 	}
-
-	if (m_handle)
-	{
-		DWORD exitCode;
-		GetExitCodeThread(m_handle, &exitCode);
-		TerminateThread(m_handle, exitCode);
-		m_handle = NULL;
+	if (m_hThread) {
+		DWORD dwExitCode;
+		GetExitCodeThread(m_hThread, &dwExitCode);
+		TerminateThread(m_hThread, dwExitCode);
+		m_hThread = NULL;
 	}
-
 	ResetQueue();
 }
 
-void CAnotherHand::ResetQueue()
-{
-	m_curWork = 0;
-	m_vacation = 0;
+// anotherhand.cpp:209
+void CAnotherHand::ResetQueue(void) {
+	m_queueHead = 0;
+	m_queueTail = 0;
 }
-
-#include "anotherhand.inl"

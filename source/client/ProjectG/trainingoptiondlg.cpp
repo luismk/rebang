@@ -1,636 +1,704 @@
-#include "minatl.h"
-#include "trainingoptiondlg.h"
-#include "wind.h"
+// Original: d:\build\custom\temp\code\client\projectg\trainingoptiondlg.cpp
 #include <math.h>
 
-extern Fresh* g_pFresh;
+#include "TrainingOptionDlg.h"
+#include "ObjectFactory.h"
+#include "commonutil.h"
+#include "frbutton.h"
+#include "fredit.h"
+#include "SharedDoc.h"
+#include "../shared/ItemManager.h"
+#include "../shared/classdefine.h"
+#include "TaskManager.h"
+#include "actor.h"
+#include "golfdoc.h"
+#include "scenemanager.h"
+#include "wind.h"
 
-IMPLEMENT_OBJECT(FrTrainingOptionDlg, FrForm)
+// 180 / pi: the wind direction in radians to degrees.
+const float kRadToDeg = 57.29578f;
 
-BEGIN_FRESH_MSGMAP(FrTrainingOptionDlg, FrForm)
+// trainingoptiondlg.cpp:19 (run-time type and factory registration of
+// FrTrainingOptionDlg)
+const WRTTI FrTrainingOptionDlg::m_RTTI("FrTrainingOptionDlg", &FrForm::m_RTTI);
 
-ON_FRESH_VI("map", FRCMD_INIT, FrTrainingOptionDlg::OnMapInit)
-ON_FRESH_VI("mapprev", FRCMD_INIT, FrTrainingOptionDlg::OnMapPrevBtnInit)
-ON_FRESH_VV("mapprev", FRCMD_LBUTTONUP, FrTrainingOptionDlg::OnMapPrevBtnUp)
-ON_FRESH_VI("mapnext", FRCMD_INIT, FrTrainingOptionDlg::OnMapNextBtnInit)
-ON_FRESH_VV("mapnext", FRCMD_LBUTTONUP, FrTrainingOptionDlg::OnMapNextBtnUp)
-ON_FRESH_VI("weather", FRCMD_INIT, FrTrainingOptionDlg::OnWeatherInit)
-ON_FRESH_VI("weatherprev", FRCMD_INIT,
-	FrTrainingOptionDlg::OnWeatherPrevBtnInit)
-ON_FRESH_VV("weatherprev", FRCMD_LBUTTONUP,
-	FrTrainingOptionDlg::OnWeatherPrevBtnUp)
-ON_FRESH_VI("weathernext", FRCMD_INIT,
-	FrTrainingOptionDlg::OnWeatherNextBtnInit)
-ON_FRESH_VV("weathernext", FRCMD_LBUTTONUP,
-	FrTrainingOptionDlg::OnWeatherNextBtnUp)
-ON_FRESH_VI("direction", FRCMD_INIT, FrTrainingOptionDlg::OnDirectionInit)
-ON_FRESH_VI("directionprev", FRCMD_INIT,
-	FrTrainingOptionDlg::OnDirectionPrevBtnInit)
-ON_FRESH_VV("directionprev", FRCMD_LBUTTONUP,
-	FrTrainingOptionDlg::OnDirectionPrevBtnUp)
-ON_FRESH_VI("directionnext", FRCMD_INIT,
-	FrTrainingOptionDlg::OnDirectionNextBtnInit)
-ON_FRESH_VV("directionnext", FRCMD_LBUTTONUP,
-	FrTrainingOptionDlg::OnDirectionNextBtnUp)
-ON_FRESH_VI("intensity", FRCMD_INIT, FrTrainingOptionDlg::OnIntensityInit)
-ON_FRESH_VI("intensityprev", FRCMD_INIT,
-	FrTrainingOptionDlg::OnIntensityPrevBtnInit)
-ON_FRESH_VV("intensityprev", FRCMD_LBUTTONUP,
-	FrTrainingOptionDlg::OnIntensityPrevBtnUp)
-ON_FRESH_VI("intensitynext", FRCMD_INIT,
-	FrTrainingOptionDlg::OnIntensityNextBtnInit)
-ON_FRESH_VV("intensitynext", FRCMD_LBUTTONUP,
-	FrTrainingOptionDlg::OnIntensityNextBtnUp)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrTrainingOptionDlg::OnOkBtnUp)
+IObject* FrTrainingOptionDlgMakeInstance(void) {
+	return new FrTrainingOptionDlg;
+}
 
-END_FRESH_MSGMAP()
+struct __sFrTrainingOptionDlg {
+	__sFrTrainingOptionDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrTrainingOptionDlgMakeInstance, "FrTrainingOptionDlg");
+	}
+};
+static __sFrTrainingOptionDlg s_registerFrTrainingOptionDlg;
 
-FrTrainingOptionDlg::FrTrainingOptionDlg()
-{
-	m_bEnableChange = false;
+// trainingoptiondlg.cpp:21
+const sFRESH_MSGMAP* FrTrainingOptionDlg::GetMessageMap(void) const {
+	return &FrTrainingOptionDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrTrainingOptionDlg::_MsgMap = { &FrForm::_MsgMap, &FrTrainingOptionDlg::_MsgEntries[0] };
+
+// trainingoptiondlg.cpp:22
+sFRESH_ENTRY FrTrainingOptionDlg::_MsgEntries[] = {
+	// trainingoptiondlg.cpp:23
+	{ "map", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnMapInit },
+	// trainingoptiondlg.cpp:24
+	{ "mapprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnMapPrevBtnInit },
+	// trainingoptiondlg.cpp:25
+	{ "mapprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnMapPrevBtnUp },
+	// trainingoptiondlg.cpp:26
+	{ "mapnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnMapNextBtnInit },
+	// trainingoptiondlg.cpp:27
+	{ "mapnext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnMapNextBtnUp },
+	// trainingoptiondlg.cpp:28
+	{ "weather", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnWeatherInit },
+	// trainingoptiondlg.cpp:29
+	{ "weatherprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnWeatherPrevBtnInit },
+	// trainingoptiondlg.cpp:30
+	{ "weatherprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnWeatherPrevBtnUp },
+	// trainingoptiondlg.cpp:31
+	{ "weathernext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnWeatherNextBtnInit },
+	// trainingoptiondlg.cpp:32
+	{ "weathernext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnWeatherNextBtnUp },
+	// trainingoptiondlg.cpp:33
+	{ "direction", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnDirectionInit },
+	// trainingoptiondlg.cpp:34
+	{ "directionprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnDirectionPrevBtnInit },
+	// trainingoptiondlg.cpp:35
+	{ "directionprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnDirectionPrevBtnUp },
+	// trainingoptiondlg.cpp:36
+	{ "directionnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnDirectionNextBtnInit },
+	// trainingoptiondlg.cpp:37
+	{ "directionnext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnDirectionNextBtnUp },
+	// trainingoptiondlg.cpp:38
+	{ "intensity", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnIntensityInit },
+	// trainingoptiondlg.cpp:39
+	{ "intensityprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnIntensityPrevBtnInit },
+	// trainingoptiondlg.cpp:40
+	{ "intensityprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnIntensityPrevBtnUp },
+	// trainingoptiondlg.cpp:41
+	{ "intensitynext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrTrainingOptionDlg::OnIntensityNextBtnInit },
+	// trainingoptiondlg.cpp:42
+	{ "intensitynext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnIntensityNextBtnUp },
+	// trainingoptiondlg.cpp:43
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrTrainingOptionDlg::OnOkBtnUp },
+
+	// trainingoptiondlg.cpp:45
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// trainingoptiondlg.cpp:48
+FrTrainingOptionDlg::FrTrainingOptionDlg(void) {
+	m_bFlag14c = false;
 	m_map = 0;
 }
 
-void FrTrainingOptionDlg::OnOkBtnUp()
-{
-	if (m_map != GetCurMap())
-	{
+// trainingoptiondlg.cpp:54
+void FrTrainingOptionDlg::OnOkBtnUp(void) {
+	if (m_map != GetCurMap()) {
 		SetCurMap(m_map);
+
 		GOLFDOC()->m_currentHole = 1;
-		AfxGetTask()->GetActor("GolfRule")
-			<< MsgObject(NULL, 10010, 0, 0, 0, 0, 0);
-		AfxGetTask()->GetActor("GolfBg") << MsgObject(NULL, 320, 0, 0, 0, 0, 0);
-		AfxGetTask()->GetActor("GolfBg") << MsgObject(NULL, 318, 0, 0, 0, 0, 0);
-		AfxGetTask()->GetActor("GolfRule")
-			<< MsgObject(NULL, 153, 0, 0, 0, 0, 0);
+
+		AfxGetTask()->GetActor("GolfRule") << MsgObject(0, 0x271a, 0, 0, 0, 0, 0);
+		AfxGetTask()->GetActor("GolfBg") << MsgObject(0, 0x140, 0, 0, 0, 0, 0);
+		AfxGetTask()->GetActor("GolfBg") << MsgObject(0, 0x13e, 0, 0, 0, 0, 0);
+		AfxGetTask()->GetActor("GolfRule") << MsgObject(0, 0x99, 0, 0, 0, 0, 0);
 	}
+
 	CSceneManager::Instance()->SetWeather(m_weather, false);
+
 	OnFreshOkay();
 }
 
-void FrTrainingOptionDlg::OnMapInit(int param)
-{
-	m_pMap = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pMap)
-	{
-		unsigned int map = (m_map <= 127 || m_map == 253) ? m_map : m_map - 128;
-		IFF_STRUCT::sDesc* desc = ItemManager()->FindDesc(map | 0x28000000);
-		if (desc)
-			m_pMap->SetLine(1, desc->Desc, 0, 0, 0);
+// trainingoptiondlg.cpp:82
+void FrTrainingOptionDlg::OnMapInit(intptr_t param) {
+	m_pMapEdit = DYNAMIC_CAST(FrEdit, param);
+
+	if (m_pMapEdit) {
+		IFF_STRUCT::sDesc* pDesc = ItemManager()->FindDesc(0x28000000 | (m_map > 127 && m_map != 253 ? m_map - 128 : m_map));
+
+		if (pDesc)
+			m_pMapEdit->SetLine(1, pDesc->m_text, 0, false, 0);
 		else
-			m_pMap->SetLine(1, "", 0, 0, 0);
+			m_pMapEdit->SetLine(1, "", 0, false, 0);
 	}
 }
 
-void FrTrainingOptionDlg::OnMapPrevBtnInit(int param)
-{
-	m_pMapPrev = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pMapPrev)
-	{
-		m_pMapPrev->SetPushDelay(0.0f);
-		if (true)
-			m_pMapPrev->Enable(false);
+// trainingoptiondlg.cpp:97
+void FrTrainingOptionDlg::OnMapPrevBtnInit(intptr_t param) {
+	m_pMapPrevBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pMapPrevBtn) {
+		m_pMapPrevBtn->SetPushDelay(0.0f);
+		m_pMapPrevBtn->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnMapPrevBtnUp()
-{
-	std::map<unsigned int, IFF_STRUCT::sCourse>& courses =
-		ItemManager()->m_CourseMap;
-	std::map<unsigned int, IFF_STRUCT::sCourse>::iterator it;
-	for (it = courses.begin(); it != courses.end(); ++it)
-	{
-		unsigned int map = (m_map <= 127 || m_map == 253) ? m_map : m_map - 128;
-		if ((*it).first == (map | 0x28000000))
-		{
-			it--;
-			m_map = (unsigned char)(*it).first;
-			if (it == courses.begin())
-				m_pMapPrev->Enable(false);
-			m_pMapNext->Enable(true);
+// trainingoptiondlg.cpp:107
+void FrTrainingOptionDlg::OnMapPrevBtnUp(void) {
+	std::map<unsigned int, IFF_STRUCT::sCourse>& courseMap = ItemManager()->m_courseMap;
+	std::map<unsigned int, IFF_STRUCT::sCourse>::const_iterator it;
+
+	for (it = courseMap.begin(); it != courseMap.end(); ++it) {
+		if (it->first == (0x28000000 | (m_map > 127 && m_map != 253 ? m_map - 128 : m_map))) {
+			--it;
+			m_map = (unsigned char)it->first;
+
+			if (it == courseMap.begin())
+				m_pMapPrevBtn->Enable(false);
+			m_pMapNextBtn->Enable(true);
 			break;
 		}
 	}
-	OnMapInit((int)m_pMap);
+
+	OnMapInit((intptr_t)m_pMapEdit);
 }
 
-void FrTrainingOptionDlg::OnMapNextBtnInit(int param)
-{
-	m_pMapNext = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pMapNext)
-	{
-		m_pMapNext->SetPushDelay(0.0f);
-		if (true)
-			m_pMapNext->Enable(false);
+// trainingoptiondlg.cpp:129
+void FrTrainingOptionDlg::OnMapNextBtnInit(intptr_t param) {
+	m_pMapNextBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pMapNextBtn) {
+		m_pMapNextBtn->SetPushDelay(0.0f);
+		m_pMapNextBtn->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnMapNextBtnUp()
-{
-	std::map<unsigned int, IFF_STRUCT::sCourse>& courses =
-		ItemManager()->m_CourseMap;
-	std::map<unsigned int, IFF_STRUCT::sCourse>::iterator it;
-	for (it = courses.begin(); it != courses.end(); ++it)
-	{
-		unsigned int map = (m_map <= 127 || m_map == 253) ? m_map : m_map - 128;
-		if ((*it).first == (map | 0x28000000))
-		{
-			it++;
-			m_map = (unsigned char)(*it).first;
-			it++;
-			m_pMapPrev->Enable(true);
-			if (it == courses.end())
-				m_pMapNext->Enable(false);
+// trainingoptiondlg.cpp:139
+void FrTrainingOptionDlg::OnMapNextBtnUp(void) {
+	std::map<unsigned int, IFF_STRUCT::sCourse>& courseMap = ItemManager()->m_courseMap;
+	std::map<unsigned int, IFF_STRUCT::sCourse>::const_iterator it;
+
+	for (it = courseMap.begin(); it != courseMap.end(); ++it) {
+		if (it->first == (0x28000000 | (m_map > 127 && m_map != 253 ? m_map - 128 : m_map))) {
+			++it;
+			m_map = (unsigned char)it->first;
+
+			++it;
+
+			m_pMapPrevBtn->Enable(true);
+			if (it == courseMap.end())
+				m_pMapNextBtn->Enable(false);
 			break;
 		}
 	}
-	OnMapInit((int)m_pMap);
+
+	OnMapInit((intptr_t)m_pMapEdit);
 }
 
-void FrTrainingOptionDlg::OnWeatherInit(int param)
-{
-	m_pWeather = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	m_weather = Doc()->m_golfGame.weather;
-	if (m_pWeather)
-	{
-		switch (m_weather)
-		{
+// trainingoptiondlg.cpp:163
+void FrTrainingOptionDlg::OnWeatherInit(intptr_t param) {
+	m_pWeatherEdit = DYNAMIC_CAST(FrEdit, param);
+
+	m_weather = GetWeather();
+	if (m_pWeatherEdit) {
+		switch (m_weather) {
 		case 0:
-			m_pWeather->AddLine("\270\274\300\275", 0, 0);
-			break;
-		case 2:
-			m_pWeather->AddLine("\272\361", 0, 0);
+			m_pWeatherEdit->AddLine("\xb8\xbc\xc0\xbd", 0, false);
 			break;
 		case 3:
-			m_pWeather->AddLine("\264\253", 0, 0);
+			m_pWeatherEdit->AddLine("\xb4\xab", 0, false);
+			break;
+		case 2:
+			m_pWeatherEdit->AddLine("\xba\xf1", 0, false);
 			break;
 		}
 	}
 }
 
-void FrTrainingOptionDlg::OnWeatherPrevBtnInit(int param)
-{
-	m_pWeatherPrev = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pWeatherPrev)
-	{
-		m_pWeatherPrev->SetPushDelay(0.0f);
-		if (m_bEnableChange)
-		{
+// trainingoptiondlg.cpp:185
+void FrTrainingOptionDlg::OnWeatherPrevBtnInit(intptr_t param) {
+	m_pWeatherPrevBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pWeatherPrevBtn) {
+		m_pWeatherPrevBtn->SetPushDelay(0.0f);
+
+		if (m_bFlag14c) {
 			if (m_weather == 0)
-				m_pWeatherPrev->Enable(false);
+				m_pWeatherPrevBtn->Enable(false);
+		} else {
+			m_pWeatherPrevBtn->Enable(false);
 		}
-		else
-			m_pWeatherPrev->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnWeatherPrevBtnUp()
-{
-	// HACK
-	if (0)
-		OnWeatherPrevBtnInit(0);
+// trainingoptiondlg.cpp:205
+void FrTrainingOptionDlg::OnWeatherPrevBtnUp(void) {
 	m_weather -= 1;
-	if (m_weather == 0)
-	{
-		if (m_pWeatherPrev)
-			m_pWeatherPrev->Enable(false);
+	if (m_weather == 0) {
+		if (m_pWeatherPrevBtn)
+			m_pWeatherPrevBtn->Enable(false);
 	}
-	if (m_pWeatherNext)
-		m_pWeatherNext->Enable(true);
-	if (m_pWeather)
-	{
-		switch (m_weather)
-		{
+
+	if (m_pWeatherNextBtn)
+		m_pWeatherNextBtn->Enable(true);
+
+	if (m_pWeatherEdit) {
+		switch (m_weather) {
 		case 0:
-			m_pWeather->SetLine(1, "\270\274\300\275", 0, 0, 0);
-			break;
-		case 2:
-			m_pWeather->SetLine(1, "\272\361", 0, 0, 0);
+			m_pWeatherEdit->SetLine(1, "\xb8\xbc\xc0\xbd", 0, false, 0);
 			break;
 		case 3:
-			m_pWeather->SetLine(1, "\264\253", 0, 0, 0);
+			m_pWeatherEdit->SetLine(1, "\xb4\xab", 0, false, 0);
+			break;
+		case 2:
+			m_pWeatherEdit->SetLine(1, "\xba\xf1", 0, false, 0);
 			break;
 		}
 	}
 }
 
-void FrTrainingOptionDlg::OnWeatherNextBtnInit(int param)
-{
-	m_pWeatherNext = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pWeatherNext)
-	{
-		m_pWeatherNext->SetPushDelay(0.0f);
-		if (m_bEnableChange)
-		{
+// trainingoptiondlg.cpp:234
+void FrTrainingOptionDlg::OnWeatherNextBtnInit(intptr_t param) {
+	m_pWeatherNextBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pWeatherNextBtn) {
+		m_pWeatherNextBtn->SetPushDelay(0.0f);
+
+		if (m_bFlag14c) {
 			if (m_weather == 2)
-				m_pWeatherNext->Enable(false);
+				m_pWeatherNextBtn->Enable(false);
+		} else {
+			m_pWeatherNextBtn->Enable(false);
 		}
-		else
-			m_pWeatherNext->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnWeatherNextBtnUp()
-{
-	// HACK
-	if (0)
-		OnWeatherNextBtnInit(0);
+// trainingoptiondlg.cpp:253
+void FrTrainingOptionDlg::OnWeatherNextBtnUp(void) {
 	m_weather += 1;
-	if (m_weather == 2)
-	{
-		if (m_pWeatherNext)
-			m_pWeatherNext->Enable(false);
+	if (m_weather == 2) {
+		if (m_pWeatherNextBtn)
+			m_pWeatherNextBtn->Enable(false);
 	}
-	if (m_pWeatherPrev)
-		m_pWeatherPrev->Enable(true);
-	if (m_pWeather)
-	{
-		switch (m_weather)
-		{
+
+	if (m_pWeatherPrevBtn)
+		m_pWeatherPrevBtn->Enable(true);
+
+	if (m_pWeatherEdit) {
+		switch (m_weather) {
 		case 0:
-			m_pWeather->SetLine(1, "\270\274\300\275", 0, 0, 0);
-			break;
-		case 2:
-			m_pWeather->SetLine(1, "\272\361", 0, 0, 0);
+			m_pWeatherEdit->SetLine(1, "\xb8\xbc\xc0\xbd", 0, false, 0);
 			break;
 		case 3:
-			m_pWeather->SetLine(1, "\264\253", 0, 0, 0);
+			m_pWeatherEdit->SetLine(1, "\xb4\xab", 0, false, 0);
+			break;
+		case 2:
+			m_pWeatherEdit->SetLine(1, "\xba\xf1", 0, false, 0);
 			break;
 		}
 	}
 }
 
-void FrTrainingOptionDlg::OnDirectionInit(int param)
-{
-	m_pDirection = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	m_direction =
-		(int)(floor((float)(Wind().GetGlobalDirection() * g_RADTODEG) * 0.1f) *
-			10.0f);
-	if (m_pDirection)
-	{
-		m_pDirection->AddLine(MakeStr("%d\265\265", m_direction), 0, 0);
-	}
+// trainingoptiondlg.cpp:283
+void FrTrainingOptionDlg::OnDirectionInit(intptr_t param) {
+	m_pDirectionEdit = DYNAMIC_CAST(FrEdit, param);
+	m_direction = (int)(floor(Wind().GetGlobalDirection() * kRadToDeg * 0.1f) * 10.0f);
+
+	if (m_pDirectionEdit)
+		m_pDirectionEdit->AddLine(MakeStr("%d\xb5\xb5", m_direction), 0, false);
 }
 
-void FrTrainingOptionDlg::OnDirectionPrevBtnInit(int param)
-{
-	m_pDirectionPrev = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pDirectionPrev)
-	{
-		m_pDirectionPrev->SetPushDelay(0.0f);
-		if (m_bEnableChange)
-		{
+// trainingoptiondlg.cpp:292
+void FrTrainingOptionDlg::OnDirectionPrevBtnInit(intptr_t param) {
+	m_pDirectionPrevBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pDirectionPrevBtn) {
+		m_pDirectionPrevBtn->SetPushDelay(0.0f);
+
+		if (m_bFlag14c) {
 			if (m_direction == 0)
-				m_pDirectionPrev->Enable(false);
+				m_pDirectionPrevBtn->Enable(false);
+		} else {
+			m_pDirectionPrevBtn->Enable(false);
 		}
-		else
-			m_pDirectionPrev->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnDirectionPrevBtnUp()
-{
-	// HACK
-	if (0)
-		OnDirectionPrevBtnInit(0);
+// trainingoptiondlg.cpp:311
+void FrTrainingOptionDlg::OnDirectionPrevBtnUp(void) {
 	m_direction -= 10;
-	if (m_direction == 0)
-	{
-		if (m_pDirectionPrev)
-			m_pDirectionPrev->Enable(false);
+
+	if (m_direction == 0) {
+		if (m_pDirectionPrevBtn)
+			m_pDirectionPrevBtn->Enable(false);
 	}
-	if (m_pDirectionNext)
-		m_pDirectionNext->Enable(true);
-	if (m_pDirection)
-	{
-		m_pDirection->SetLine(1, MakeStr("%d\265\265", m_direction), 0, 0, 0);
-	}
+
+	if (m_pDirectionNextBtn)
+		m_pDirectionNextBtn->Enable(true);
+
+	if (m_pDirectionEdit)
+		m_pDirectionEdit->SetLine(1, MakeStr("%d\xb5\xb5", m_direction), 0, false, 0);
 }
 
-void FrTrainingOptionDlg::OnDirectionNextBtnInit(int param)
-{
-	m_pDirectionNext = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pDirectionNext)
-	{
-		m_pDirectionNext->SetPushDelay(0.0f);
-		if (m_bEnableChange)
-		{
+// trainingoptiondlg.cpp:328
+void FrTrainingOptionDlg::OnDirectionNextBtnInit(intptr_t param) {
+	m_pDirectionNextBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pDirectionNextBtn) {
+		m_pDirectionNextBtn->SetPushDelay(0.0f);
+
+		if (m_bFlag14c) {
 			if (m_direction == 360)
-				m_pDirectionNext->Enable(false);
+				m_pDirectionNextBtn->Enable(false);
+		} else {
+			m_pDirectionNextBtn->Enable(false);
 		}
-		else
-			m_pDirectionNext->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnDirectionNextBtnUp()
-{
-	// HACK
-	if (0)
-		OnDirectionNextBtnInit(0);
+// trainingoptiondlg.cpp:347
+void FrTrainingOptionDlg::OnDirectionNextBtnUp(void) {
 	m_direction += 10;
-	if (m_direction == 360)
-	{
-		if (m_pDirectionNext)
-			m_pDirectionNext->Enable(false);
+
+	if (m_direction == 360) {
+		if (m_pDirectionNextBtn)
+			m_pDirectionNextBtn->Enable(false);
 	}
-	if (m_pDirectionPrev)
-		m_pDirectionPrev->Enable(true);
-	if (m_pDirection)
-	{
-		m_pDirection->SetLine(1, MakeStr("%d\265\265", m_direction), 0, 0, 0);
-	}
+
+	if (m_pDirectionPrevBtn)
+		m_pDirectionPrevBtn->Enable(true);
+
+	if (m_pDirectionEdit)
+		m_pDirectionEdit->SetLine(1, MakeStr("%d\xb5\xb5", m_direction), 0, false, 0);
 }
 
-void FrTrainingOptionDlg::OnIntensityInit(int param)
-{
-	m_pIntensity = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// trainingoptiondlg.cpp:364
+void FrTrainingOptionDlg::OnIntensityInit(intptr_t param) {
+	m_pIntensityEdit = DYNAMIC_CAST(FrEdit, param);
+
 	m_intensity = (int)Wind().GetGlobalIntensity();
-	if (m_pIntensity)
-	{
-		m_pIntensity->AddLine(MakeStr("%dm", m_intensity), 0, 0);
-	}
+
+	if (m_pIntensityEdit)
+		m_pIntensityEdit->AddLine(MakeStr("%dm", m_intensity), 0, false);
 }
 
-void FrTrainingOptionDlg::OnIntensityPrevBtnInit(int param)
-{
-	m_pIntensityPrev = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pIntensityPrev)
-	{
-		m_pIntensityPrev->SetPushDelay(0.0f);
-		if (m_bEnableChange)
-		{
+// trainingoptiondlg.cpp:382
+void FrTrainingOptionDlg::OnIntensityPrevBtnInit(intptr_t param) {
+	m_pIntensityPrevBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pIntensityPrevBtn) {
+		m_pIntensityPrevBtn->SetPushDelay(0.0f);
+
+		if (m_bFlag14c) {
 			if (m_intensity == 0)
-				m_pIntensityPrev->Enable(false);
+				m_pIntensityPrevBtn->Enable(false);
+		} else {
+			m_pIntensityPrevBtn->Enable(false);
 		}
-		else
-			m_pIntensityPrev->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnIntensityPrevBtnUp()
-{
+// trainingoptiondlg.cpp:401
+void FrTrainingOptionDlg::OnIntensityPrevBtnUp(void) {
 	m_intensity -= 1;
-	if (m_intensity == 0)
-	{
-		if (m_pIntensityPrev)
-			m_pIntensityPrev->Enable(false);
+
+	if (m_intensity == 0) {
+		if (m_pIntensityPrevBtn)
+			m_pIntensityPrevBtn->Enable(false);
 	}
-	if (m_pIntensityNext)
-		m_pIntensityNext->Enable(true);
-	if (m_pIntensity)
-	{
-		m_pIntensity->SetLine(1, MakeStr("%dm", m_intensity), 0, 0, 0);
-	}
+
+	if (m_pIntensityNextBtn)
+		m_pIntensityNextBtn->Enable(true);
+
+	if (m_pIntensityEdit)
+		m_pIntensityEdit->SetLine(1, MakeStr("%dm", m_intensity), 0, false, 0);
 }
 
-void FrTrainingOptionDlg::OnIntensityNextBtnInit(int param)
-{
-	m_pIntensityNext = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pIntensityNext)
-	{
-		m_pIntensityNext->SetPushDelay(0.0f);
-		if (m_bEnableChange)
-		{
+// trainingoptiondlg.cpp:418
+void FrTrainingOptionDlg::OnIntensityNextBtnInit(intptr_t param) {
+	m_pIntensityNextBtn = DYNAMIC_CAST(FrButton, param);
+
+	if (m_pIntensityNextBtn) {
+		m_pIntensityNextBtn->SetPushDelay(0.0f);
+
+		if (m_bFlag14c) {
 			if (m_intensity == 9)
-				m_pIntensityNext->Enable(false);
+				m_pIntensityNextBtn->Enable(false);
+		} else {
+			m_pIntensityNextBtn->Enable(false);
 		}
-		else
-			m_pIntensityNext->Enable(false);
 	}
 }
 
-void FrTrainingOptionDlg::OnIntensityNextBtnUp()
-{
+// trainingoptiondlg.cpp:438
+void FrTrainingOptionDlg::OnIntensityNextBtnUp(void) {
 	m_intensity += 1;
-	if (m_intensity == 9)
-	{
-		if (m_pIntensityNext)
-			m_pIntensityNext->Enable(false);
+
+	if (m_intensity == 9) {
+		if (m_pIntensityNextBtn)
+			m_pIntensityNextBtn->Enable(false);
 	}
-	if (m_pIntensityPrev)
-		m_pIntensityPrev->Enable(true);
-	if (m_pIntensity)
-	{
-		m_pIntensity->SetLine(1, MakeStr("%dm", m_intensity), 0, 0, 0);
-	}
+
+	if (m_pIntensityPrevBtn)
+		m_pIntensityPrevBtn->Enable(true);
+
+	if (m_pIntensityEdit)
+		m_pIntensityEdit->SetLine(1, MakeStr("%dm", m_intensity), 0, false, 0);
 }
 
-IMPLEMENT_OBJECT(FrNewTrainingOptionDlg, FrForm)
+// trainingoptiondlg.cpp:460 (run-time type and factory registration of
+// FrNewTrainingOptionDlg)
+const WRTTI FrNewTrainingOptionDlg::m_RTTI("FrNewTrainingOptionDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrNewTrainingOptionDlg, FrForm)
+IObject* FrNewTrainingOptionDlgMakeInstance(void) {
+	return new FrNewTrainingOptionDlg;
+}
 
-ON_FRESH_VI("training_map", FRCMD_INIT, FrNewTrainingOptionDlg::OnInitMapButton)
-ON_FRESH_VV("training_map", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownMapButton)
-ON_FRESH_VI("training_mapprev", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitMapPrevButton)
-ON_FRESH_VV("training_mapprev", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownMapPrevButton)
-ON_FRESH_VI("training_mapnext", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitMapNextButton)
-ON_FRESH_VV("training_mapnext", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownMapNextButton)
-ON_FRESH_VI("training_fronthole", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitFrontHoleButton)
-ON_FRESH_VV("training_fronthole", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownFrontHoleButton)
-ON_FRESH_VI("training_backhole", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitBackHoleButton)
-ON_FRESH_VV("training_backhole", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownBackHoleButton)
-ON_FRESH_VI("training_randomhole", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitRandomHoleButton)
-ON_FRESH_VV("training_randomhole", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownRandomHoleButton)
-ON_FRESH_VI("training_shufflehole", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitShuffleHoleButton)
-ON_FRESH_VV("training_shufflehole", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownShuffleHoleButton)
-ON_FRESH_VI("training_hare", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitHareButton)
-ON_FRESH_VV("training_hare", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownHareButton)
-ON_FRESH_VI("training_kumori", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitKumoriButton)
-ON_FRESH_VV("training_kumori", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownKumoriButton)
-ON_FRESH_VI("training_ame", FRCMD_INIT, FrNewTrainingOptionDlg::OnInitAmeButton)
-ON_FRESH_VV("training_ame", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownAmeButton)
-ON_FRESH_VI("training_windedit", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitWindDirectionEdit)
-ON_FRESH_VI("training_play", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitPlayButton)
-ON_FRESH_VV("training_play", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownPlayButton)
-ON_FRESH_VI("training_cancel", FRCMD_INIT,
-	FrNewTrainingOptionDlg::OnInitCancelButton)
-ON_FRESH_VV("training_cancel", FRCMD_LBUTTONDOWN,
-	FrNewTrainingOptionDlg::OnLBDownCancelButton)
+struct __sFrNewTrainingOptionDlg {
+	__sFrNewTrainingOptionDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrNewTrainingOptionDlgMakeInstance, "FrNewTrainingOptionDlg");
+	}
+};
+static __sFrNewTrainingOptionDlg s_registerFrNewTrainingOptionDlg;
 
-END_FRESH_MSGMAP()
+// trainingoptiondlg.cpp:462
+const sFRESH_MSGMAP* FrNewTrainingOptionDlg::GetMessageMap(void) const {
+	return &FrNewTrainingOptionDlg::_MsgMap;
+}
 
-FrNewTrainingOptionDlg::FrNewTrainingOptionDlg()
-{
+sFRESH_MSGMAP FrNewTrainingOptionDlg::_MsgMap = { &FrForm::_MsgMap, &FrNewTrainingOptionDlg::_MsgEntries[0] };
+
+// trainingoptiondlg.cpp:463
+sFRESH_ENTRY FrNewTrainingOptionDlg::_MsgEntries[] = {
+	// trainingoptiondlg.cpp:464
+	{ "training_map", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitMapButton },
+	// trainingoptiondlg.cpp:465
+	{ "training_map", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownMapButton },
+
+	// trainingoptiondlg.cpp:467
+	{ "training_mapprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitMapPrevButton },
+	// trainingoptiondlg.cpp:468
+	{ "training_mapprev", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownMapPrevButton },
+
+	// trainingoptiondlg.cpp:470
+	{ "training_mapnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitMapNextButton },
+	// trainingoptiondlg.cpp:471
+	{ "training_mapnext", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownMapNextButton },
+
+	// trainingoptiondlg.cpp:473
+	{ "training_fronthole", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitFrontHoleButton },
+	// trainingoptiondlg.cpp:474
+	{ "training_fronthole", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownFrontHoleButton },
+
+	// trainingoptiondlg.cpp:476
+	{ "training_backhole", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitBackHoleButton },
+	// trainingoptiondlg.cpp:477
+	{ "training_backhole", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownBackHoleButton },
+
+	// trainingoptiondlg.cpp:479
+	{ "training_randomhole", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitRandomHoleButton },
+	// trainingoptiondlg.cpp:480
+	{ "training_randomhole", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownRandomHoleButton },
+
+	// trainingoptiondlg.cpp:482
+	{ "training_shufflehole", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitShuffleHoleButton },
+	// trainingoptiondlg.cpp:483
+	{ "training_shufflehole", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownShuffleHoleButton },
+
+	// trainingoptiondlg.cpp:485
+	{ "training_hare", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitHareButton },
+	// trainingoptiondlg.cpp:486
+	{ "training_hare", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownHareButton },
+
+	// trainingoptiondlg.cpp:488
+	{ "training_kumori", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitKumoriButton },
+	// trainingoptiondlg.cpp:489
+	{ "training_kumori", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownKumoriButton },
+
+	// trainingoptiondlg.cpp:491
+	{ "training_ame", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitAmeButton },
+	// trainingoptiondlg.cpp:492
+	{ "training_ame", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownAmeButton },
+
+	// trainingoptiondlg.cpp:494
+	{ "training_windedit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitWindDirectionEdit },
+
+	// trainingoptiondlg.cpp:496
+	{ "training_play", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitPlayButton },
+	// trainingoptiondlg.cpp:497
+	{ "training_play", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownPlayButton },
+
+	// trainingoptiondlg.cpp:499
+	{ "training_cancel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewTrainingOptionDlg::OnInitCancelButton },
+	// trainingoptiondlg.cpp:500
+	{ "training_cancel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrNewTrainingOptionDlg::OnLBDownCancelButton },
+
+	// trainingoptiondlg.cpp:502
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// trainingoptiondlg.cpp:508
+FrNewTrainingOptionDlg::FrNewTrainingOptionDlg(void) {
 	ClearVariables();
 }
 
-FrNewTrainingOptionDlg::~FrNewTrainingOptionDlg()
-{
+// trainingoptiondlg.cpp:516
+FrNewTrainingOptionDlg::~FrNewTrainingOptionDlg(void) {
 }
 
-void FrNewTrainingOptionDlg::ClearVariables()
-{
+// trainingoptiondlg.cpp:523
+void FrNewTrainingOptionDlg::ClearVariables(void) {
 	m_pMapButton = 0;
 	m_pMapPrevButton = 0;
 	m_pMapNextButton = 0;
+
 	m_pFrontHoleButton = 0;
 	m_pBackHoleButton = 0;
 	m_pRandomHoleButton = 0;
 	m_pShuffleHoleButton = 0;
-	m_reserved11c = 0;
+
+	m_unknown11c = 0;
+
 	m_pHareButton = 0;
 	m_pKumoriButton = 0;
 	m_pAmeButton = 0;
+
 	m_pWindDirectionEdit = 0;
-	m_reserved140 = 0;
+
+	m_unknown140 = 0;
+
 	m_pPlayButton = 0;
 	m_pCancelButton = 0;
-	m_bExpansion = false;
-	m_map = 0xffff;
-	m_hole = 0xffff;
-	m_weather = 0xffff;
-	m_windDirection = 0xffff;
-	m_windPower = 0xffff;
+
+	m_bExpansionMenu = false;
+
+	m_environment[0] = 0xffff;
+	m_environment[1] = 0xffff;
+	m_environment[2] = 0xffff;
+	m_environment[3] = 0xffff;
+	m_environment[4] = 0xffff;
 }
 
-void FrNewTrainingOptionDlg::OnInitMapButton(int param)
-{
-	m_pMapButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:559
+void FrNewTrainingOptionDlg::OnInitMapButton(intptr_t param) {
+	m_pMapButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownMapButton()
-{
+// trainingoptiondlg.cpp:565
+void FrNewTrainingOptionDlg::OnLBDownMapButton(void) {
 }
 
-void FrNewTrainingOptionDlg::OnInitMapPrevButton(int param)
-{
-	m_pMapPrevButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:573
+void FrNewTrainingOptionDlg::OnInitMapPrevButton(intptr_t param) {
+	m_pMapPrevButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownMapPrevButton()
-{
+// trainingoptiondlg.cpp:579
+void FrNewTrainingOptionDlg::OnLBDownMapPrevButton(void) {
 }
 
-void FrNewTrainingOptionDlg::OnInitMapNextButton(int param)
-{
-	m_pMapNextButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:587
+void FrNewTrainingOptionDlg::OnInitMapNextButton(intptr_t param) {
+	m_pMapNextButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownMapNextButton()
-{
+// trainingoptiondlg.cpp:593
+void FrNewTrainingOptionDlg::OnLBDownMapNextButton(void) {
 }
 
-void FrNewTrainingOptionDlg::OnInitFrontHoleButton(int param)
-{
-	m_pFrontHoleButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:601
+void FrNewTrainingOptionDlg::OnInitFrontHoleButton(intptr_t param) {
+	m_pFrontHoleButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownFrontHoleButton()
-{
+// trainingoptiondlg.cpp:607
+void FrNewTrainingOptionDlg::OnLBDownFrontHoleButton(void) {
 }
 
-void FrNewTrainingOptionDlg::OnInitBackHoleButton(int param)
-{
-	m_pBackHoleButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:615
+void FrNewTrainingOptionDlg::OnInitBackHoleButton(intptr_t param) {
+	m_pBackHoleButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownBackHoleButton()
-{
+// trainingoptiondlg.cpp:621
+void FrNewTrainingOptionDlg::OnLBDownBackHoleButton(void) {
 }
 
-void FrNewTrainingOptionDlg::OnInitRandomHoleButton(int param)
-{
-	m_pRandomHoleButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:629
+void FrNewTrainingOptionDlg::OnInitRandomHoleButton(intptr_t param) {
+	m_pRandomHoleButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownRandomHoleButton()
-{
+// trainingoptiondlg.cpp:635
+void FrNewTrainingOptionDlg::OnLBDownRandomHoleButton(void) {
 }
 
-void FrNewTrainingOptionDlg::OnInitShuffleHoleButton(int param)
-{
-	m_pShuffleHoleButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:643
+void FrNewTrainingOptionDlg::OnInitShuffleHoleButton(intptr_t param) {
+	m_pShuffleHoleButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownShuffleHoleButton()
-{
+// trainingoptiondlg.cpp:649
+void FrNewTrainingOptionDlg::OnLBDownShuffleHoleButton(void) {
 }
 
-void FrNewTrainingOptionDlg::OnInitHareButton(int param)
-{
-	m_pHareButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:656
+void FrNewTrainingOptionDlg::OnInitHareButton(intptr_t param) {
+	m_pHareButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownHareButton()
-{
-	m_weather = 0;
+// trainingoptiondlg.cpp:662
+void FrNewTrainingOptionDlg::OnLBDownHareButton(void) {
+	m_environment[2] = 0;
 }
 
-void FrNewTrainingOptionDlg::OnInitKumoriButton(int param)
-{
-	m_pKumoriButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:671
+void FrNewTrainingOptionDlg::OnInitKumoriButton(intptr_t param) {
+	m_pKumoriButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownKumoriButton()
-{
-	m_weather = 1;
+// trainingoptiondlg.cpp:677
+void FrNewTrainingOptionDlg::OnLBDownKumoriButton(void) {
+	m_environment[2] = 1;
 }
 
-void FrNewTrainingOptionDlg::OnInitAmeButton(int param)
-{
-	m_pAmeButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:686
+void FrNewTrainingOptionDlg::OnInitAmeButton(intptr_t param) {
+	m_pAmeButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownAmeButton()
-{
-	m_weather = 2;
+// trainingoptiondlg.cpp:692
+void FrNewTrainingOptionDlg::OnLBDownAmeButton(void) {
+	m_environment[2] = 2;
 }
 
-void FrNewTrainingOptionDlg::OnInitWindDirectionEdit(int param)
-{
-	m_pWindDirectionEdit = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// trainingoptiondlg.cpp:701
+void FrNewTrainingOptionDlg::OnInitWindDirectionEdit(intptr_t param) {
+	m_pWindDirectionEdit = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrNewTrainingOptionDlg::OnInitPlayButton(int param)
-{
-	m_pPlayButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:709
+void FrNewTrainingOptionDlg::OnInitPlayButton(intptr_t param) {
+	m_pPlayButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownPlayButton()
-{
-	Close((eFormRet)1, true);
+// trainingoptiondlg.cpp:715
+void FrNewTrainingOptionDlg::OnLBDownPlayButton(void) {
+	Close(FrOK, true);
 }
 
-void FrNewTrainingOptionDlg::OnInitCancelButton(int param)
-{
-	m_pCancelButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// trainingoptiondlg.cpp:724
+void FrNewTrainingOptionDlg::OnInitCancelButton(intptr_t param) {
+	m_pCancelButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrNewTrainingOptionDlg::OnLBDownCancelButton()
-{
-	Close((eFormRet)2, true);
+// trainingoptiondlg.cpp:730
+void FrNewTrainingOptionDlg::OnLBDownCancelButton(void) {
+	Close(FrCANCEL, true);
 }
 
-void FrNewTrainingOptionDlg::ShowExpansionMenu(bool show)
-{
+// trainingoptiondlg.cpp:739
+void FrNewTrainingOptionDlg::ShowExpansionMenu(bool show) {
 }
 
-void FrNewTrainingOptionDlg::SetEnvironmentToGame()
-{
+// trainingoptiondlg.cpp:746
+void FrNewTrainingOptionDlg::SetEnvironmentToGame(void) {
 }
 
-void FrNewTrainingOptionDlg::GetEnvironmentFromGame()
-{
+// trainingoptiondlg.cpp:753
+void FrNewTrainingOptionDlg::GetEnvironmentFromGame(void) {
 }

@@ -1,204 +1,96 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\autotarget.cpp
 #include "autotarget.h"
-#include "club.h"
+#include "golfball.h"
 #include "quadtree.h"
 
-void CAutoTarget::Reset()
-{
+#include <math.h>
+
+// autotarget.cpp:20
+CAutoTarget::~CAutoTarget() {
 	m_pointList.clear();
 }
 
-int CAutoTarget::CalcDropPos(const WVector& pos)
-{
-	if (GetPVS().GetGroundType(pos, true, NULL) < 3)
-	{
-		unsigned char player = GOLFDOC()->m_currentPlayer;
-		m_dropPos = GOLFDOC()->GetPlayer(player)->startPos;
-		return 3;
-	}
-	if (GOLFDOC()->m_pPolySoup->IsOutOfBound(pos))
-	{
-		unsigned char player = GOLFDOC()->m_currentPlayer;
-		m_dropPos = GOLFDOC()->GetPlayer(player)->startPos;
-		return 4;
-	}
-	float distance = 3200.0f;
-	WVector direction;
-	for (unsigned char i = 0; i < m_pointList.size() - 1; ++i)
-	{
-		WVector nearest;
-		nearest = GetNearest(i);
-		float length = (nearest - pos).Magnitude();
-		if (length < distance)
-		{
-			distance = length;
-			direction = nearest - pos;
-			direction.y = 0.0f;
-		}
-	}
-	distance = 32.0f;
-	direction.Normalize();
-	for (; distance < 192.0f; distance += 32.0f)
-	{
-		unsigned char ground =
-			GetPVS().GetGroundType(pos + direction * distance, true, NULL);
-		if (ground == 10)
-		{
-			unsigned char player = GOLFDOC()->m_currentPlayer;
-			m_dropPos = GOLFDOC()->GetPlayer(player)->startPos;
-			return 2;
-		}
-		if (ground == 1)
-		{
-			m_dropPos = GetPVS().GetGroundPoint(pos + direction * distance,
-				false, NULL, false);
-			m_dropPos.y += GolfBall().GetRadius();
-			return 1;
-		}
-	}
-	unsigned char player = GOLFDOC()->m_currentPlayer;
-	m_dropPos = GOLFDOC()->GetPlayer(player)->startPos;
-	return 0;
+// autotarget.cpp:25
+void CAutoTarget::Reset(void) {
+	m_pointList.clear();
 }
 
-WVector CAutoTarget::GetPoint(const char* club)
-{
-	float range = GolfClub().GetRange(club);
-	range *= 3.2f;
-	if (club)
-	{
-		if (GolfClub().GetApproachMode() < 4 ||
-			InArea(GolfBall().m_pos, GetHoleCupPos(), range) < 96.0f)
-			return GetHoleCupPos();
-	}
-	else
-	{
-		if ((GetPVS().GetGroundType(GolfBall().m_pos, true, NULL) != 0 ||
-				(GetPVS().GetGroundType(GolfBall().m_pos, true, NULL) == 0 &&
-					GOLFDOC()->GetHoleData().par < 5)) &&
-			(GolfClub().GetApproachMode() < 4 ||
-				InArea(GolfBall().m_pos, GetHoleCupPos(), range) < 32.0f))
-			return GetHoleCupPos();
-	}
-
-	for (int i = m_pointList.size() - 2; i >= 0; --i)
-	{
-		if (InArea(GolfBall().m_pos, m_pointList[i], range) *
-				InArea(GolfBall().m_pos, m_pointList[i + 1], range) <
-			0.0f)
-		{
-			WVector point =
-				SolveEquation((unsigned char)i, range) + GolfBall().m_pos;
-			WVector directions[2];
-			directions[0] = point - GolfBall().m_pos;
-			WVector target = GetHoleCupPos();
-			directions[1] = target - GolfBall().m_pos;
-			if (directions[0].x * directions[1].x +
-					directions[0].z * directions[1].z >
-				0.0f)
-			{
-				WVector delta = directions[1] - directions[0];
-				delta.y = 0.0f;
-				WVector2D targetXZ(directions[1].x, directions[1].z);
-				if (delta.Magnitude() <
-					sqrtf(targetXZ.x * targetXZ.x + targetXZ.y * targetXZ.y))
-				{
-					point.y = 0.0f;
-					return point;
-				}
-			}
-		}
-	}
-	return GetHoleCupPos();
+// autotarget.cpp:30
+float CAutoTarget::GetAngle(void) {
+	return CalcDeltaAngle(GetPoint(0) - GolfBall().m_pos, WVector::UNIT_POS_Z);
 }
 
-CAutoTarget::~CAutoTarget()
-{
+// autotarget.cpp:35
+float CAutoTarget::InArea(const WVector &a, const WVector &b, float radius) const {
+	return sqrtf((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)) - radius;
 }
 
-float CAutoTarget::GetAngle()
-{
-	return CalcDeltaAngle(GetPoint(NULL) - GolfBall().m_pos,
-		WVector::UNIT_POS_Z);
-}
-
-float CAutoTarget::InArea(const WVector& a, const WVector& b,
-	float radius) const
-{
-	return sqrtf((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)) -
-		radius;
-}
-
-float CAutoTarget::GetDistance(const WVector& a, const WVector& b)
-{
-	float x = a.x - b.x;
-	float z = a.z - b.z;
-	return sqrtf((float)(x * x) + z * z);
-}
-
-WVector CAutoTarget::GetNearest(unsigned char index)
-{
+// autotarget.cpp:107
+// The point of segment [index, index + 1] nearest to the ball on ground type 1,
+// sampled every 16 units.
+WVector CAutoTarget::GetNearest(unsigned char index) {
 	float t = 0.0f;
 	float nearest = 1.0f;
-	float distance = 3200.0f;
-	float step = 1.0f /
-		(float)ceil(
-			(double)((m_pointList[index + 1] - m_pointList[index]).Magnitude() /
-				16.0f));
-	do
-	{
-		WVector pos;
+	float minDist = 3200.0f;
+	float step = 1.0f / ceil((m_pointList[index + 1] - m_pointList[index]).Magnitude() * 0.0625f);
+	WVector pos;
+
+	for (; t < 1.0f; t += step) {
 		pos = (1.0f - t) * m_pointList[index] + t * m_pointList[index + 1];
-		if (GetPVS().GetGroundType(pos, true, NULL) == 1)
-		{
-			float length = (GolfBall().m_pos - pos).Magnitude();
-			if (length < distance)
-			{
+
+		if (GetPVS().GetGroundType(pos, true, 0) == 1) {
+			float dist = (GolfBall().m_pos - pos).Magnitude();
+			if (dist < minDist) {
+				minDist = dist;
 				nearest = t;
-				distance = length;
 			}
 		}
-		t += step;
-	} while (t < 1.0f);
-	return (1.0f - nearest) * m_pointList[index] +
-		nearest * m_pointList[index + 1];
+	}
+
+	return (1.0f - nearest) * m_pointList[index] + nearest * m_pointList[index + 1];
 }
 
-WVector CAutoTarget::SolveEquation(unsigned char index, float dist)
-{
-	WVector points[2];
-	points[0] = m_pointList[index] - GolfBall().m_pos;
-	points[1] = m_pointList[index + 1] - GolfBall().m_pos;
-	float x[2], z[2];
-	if (Wabs(points[0].x - points[1].x) < g_EPSILON)
-	{
-		x[0] = x[1] = points[0].x;
-		z[0] = sqrtf(dist * dist - points[0].x * points[0].x);
-		z[1] = z[0] * -1.0f;
-	}
-	else
-	{
-		float slope = (points[1].z - points[0].z) / (points[1].x - points[0].x);
-		float intercept = points[0].z - slope * points[0].x;
+// autotarget.cpp:137
+float CAutoTarget::GetDistance(const WVector &a, const WVector &b) {
+	float dx = a.x - b.x;
+	float dz = a.z - b.z;
 
-		float root =
-			sqrtf(dist * (slope * slope + 1.0f) * dist - intercept * intercept);
-		x[0] = (root - intercept * slope) / (slope * slope + 1.0f);
-		x[1] = (intercept * slope * -1.0f - root) / (slope * slope + 1.0f);
-		z[0] = slope * x[0] + intercept;
-		z[1] = slope * x[1] + intercept;
+	return sqrtf(dx * dx + dz * dz);
+}
+
+// autotarget.cpp:190
+// Where the line through points index and index + 1 (relative to the ball)
+// crosses the circle of the given radius around the ball, on the XZ plane.
+WVector CAutoTarget::SolveEquation(unsigned char index, float radius) {
+	WVector a, b, pos;
+	a = m_pointList[index] - GolfBall().m_pos;
+	b = m_pointList[index + 1] - GolfBall().m_pos;
+	float x1, z1, x2, z2;
+
+	if (WAbsBySign(a.x - b.x) < 1e-5f) {
+		x1 = x2 = a.x;
+
+		z1 = sqrtf(radius * radius - a.x * a.x);
+		z2 = z1 * -1.0f;
+	} else {
+		float slope = (b.z - a.z) / (b.x - a.x);
+		float intercept = a.z - slope * a.x;
+
+		float disc = (slope * slope + 1.0f) * radius * radius - intercept * intercept;
+
+		x1 = (sqrtf(disc) - slope * intercept) / (slope * slope + 1.0f);
+		x2 = (slope * intercept * -1.0f - sqrtf(disc)) / (slope * slope + 1.0f);
+
+		z1 = slope * x1 + intercept;
+		z2 = slope * x2 + intercept;
 	}
-	WVector result;
-	if (x[0] >= Min(points[0].x, points[1].x) &&
-		x[0] <= Max(points[0].x, points[1].x))
-	{
-		result.x = x[0];
-		result.z = z[0];
+
+	if (x1 >= (a.x > b.x ? b.x : a.x) && x1 <= (a.x < b.x ? b.x : a.x)) {
+		pos.x = x1;
+		pos.z = z1;
+	} else {
+		pos.x = x2; pos.z = z2;
 	}
-	else
-	{
-		result.x = x[1];
-		result.z = z[1];
-	}
-	return result;
+
+	return pos;
 }

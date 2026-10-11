@@ -1,81 +1,92 @@
-#include "minatl.h"
-
+// Original: d:\build\custom\temp\code\client\projectg\messagemanager.cpp
+#include "MessageManager.h"
+#include "TaskManager.h"
 #include "actor.h"
-#include "messagemanager.h"
 
-using namespace _systemmsg;
+namespace _systemmsg {
 
-CMessageManager::CMessageManager()
-{
+// messagemanager.cpp:17
+CMessageManager::CMessageManager(void) {
+
 }
 
-CMessageManager::~CMessageManager()
-{
+// messagemanager.cpp:22
+CMessageManager::~CMessageManager(void) {
+
 }
 
-bool CMessageManager::InsertMessage(eMsgIdentifier id, const char* msg)
-{
-	std::map<eMsgIdentifier, const char*>::const_iterator it =
-		m_msgMap.find(id);
-	if (it != m_msgMap.end())
-	{
+// messagemanager.cpp:27
+bool CMessageManager::InsertMessage(eMsgIdentifier id, const char* text) {
+	MessageMap::const_iterator it = m_messages.find(id);
+	if (it != m_messages.end()) {
+
 		return false;
 	}
 
-	m_msgMap.insert(std::make_pair(id, msg));
+
+	m_messages.insert(MessageMap::value_type(id, text));
 
 	return true;
 }
 
-bool CMessageManager::InsertMessageGroup(sMsgInfo* info, int num)
-{
-	int count = info[num].id;
-	for (int i = 0; i < count; ++i)
-	{
-		std::map<eMsgIdentifier, const char*>::const_iterator it =
-			m_msgMap.find(info[i].id);
-		if (it != m_msgMap.end())
-		{
+// messagemanager.cpp:40
+bool CMessageManager::InsertMessageGroup(sMsgInfo* pInfo, int count) {
+
+	int total = pInfo[count].id;
+	for (int i = 0; i < total; i++) {
+
+		MessageMap::const_iterator it = m_messages.find(pInfo[i].id);
+		if (it != m_messages.end()) {
+
 			return false;
 		}
 
-		m_msgMap.insert(std::make_pair(info[i].id, info[i].msg));
+
+		m_messages.insert(std::make_pair(pInfo[i].id, pInfo[i].text));
 	}
+
 
 	return true;
 }
 
-const char* CMessageManager::GetMsg(eMsgIdentifier id)
-{
-	std::map<eMsgIdentifier, const char*>::const_iterator it =
-		m_msgMap.find(id);
-	if (it == m_msgMap.end())
-	{
-		return NULL;
+// messagemanager.cpp:58
+const char* CMessageManager::GetMsg(eMsgIdentifier id) {
+	MessageMap::const_iterator it = m_messages.find(id);
+	if (it == m_messages.end()) {
+
+		return 0;
 	}
 
-	return (*it).second;
+
+	return it->second;
 }
 
-void CMessageManager::NotifyNormalMessage(eMsgIdentifier id)
-{
-	const char* msg = GetMsg(id);
+// messagemanager.cpp:69
+void CMessageManager::NotifyNormalMessage(eMsgIdentifier id) {
+	const char* text = GetMsg(id);
 
-	if (msg == NULL)
-	{
-		msg =
-			"\xc1\xf6\xc1\xa4\xb5\xc7\xc1\xf6 \xbe\xca\xc0\xba \xb8\xde\xbd\xc3\xc1\xf6 \xc4\xda\xb5\xe5\xc0\xd4\xb4\xcf\xb4\xd9.";
+	if (!text) {
+
+		text = "\xC1\xF6\xC1\xA4\xB5\xC7\xC1\xF6 \xBE\xCA\xC0\xBA \xB8\xDE\xBD\xC3\xC1\xF6 \xC4\xDA\xB5\xE5\xC0\xD4\xB4\xCF\xB4\xD9.";
 	}
 
-	AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 35, (int)msg, 0, 0, 0, 0));
+
+	CTaskManager* pTaskManager = CTaskManager::Instance();
+	(!pTaskManager ? 0 : pTaskManager->GetCurrentTask())->SendMsgToMainActor(MsgObject(0, 0x23, (intptr_t)text, 0, 0, 0, 0));
 }
 
-void CMessageManager::NotifyNormalMessage(const char* msg)
-{
-	if (msg == NULL)
-	{
+// messagemanager.cpp:81
+void CMessageManager::NotifyNormalMessage(const char* text) {
+	if (!text) {
 		return;
 	}
 
-	AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 35, (int)msg, 0, 0, 0, 0));
+
+
+
+
+	CTaskManager* pTaskManager = CTaskManager::Instance();
+	(!pTaskManager ? 0 : pTaskManager->GetCurrentTask())->SendMsgToMainActor(MsgObject(0, 0x23, (intptr_t)text, 0, 0, 0, 0));
 }
+
+} // namespace _systemmsg

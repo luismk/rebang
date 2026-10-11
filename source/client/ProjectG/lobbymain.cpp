@@ -1,3068 +1,3155 @@
-typedef char z_rivit[sizeof(std::vector<sRivalData>::iterator)];
-#include "exhibition.h"
-#include "clientsetting.h"
-#include "invitedlg.h"
-#include "userlistdlg.h"
-#include "resultdlg.h"
-#include "serverdlg.h"
-class FrMailBoxDlg;
-#include "eventprizedlg.h"
-#include "mailboxdlg.h"
-#include "messengerdlg.h"
-#include "valentineeventdlg.h"
-#include "pointeventdlg.h"
-#include "netresourcemanager.h"
-#include "treasuredlg.h"
-#include "topiconmanager.h"
-#include "lobbymain.h"
-#include "user_info.h"
-#include "chatmsg.h"
+// Original: d:\build\custom\temp\code\client\projectg\lobbymain.cpp
+#define LOBBYMAIN_SHAREDDOC_INLINE
+#include "NetworkSystem.h"
+#include "SoundManager.h"
+#include <windows.h>
+#include <shellapi.h>
+#include "ClientSetting.h"
+#include "LobbyMain.h"
+#include "EventPrizeDlg.h"
+#include "Localize.h"
+#include "TopIconManager.h"
+#include "logininfo.h"
+#include "frbutton.h"
+#include "ObjectFactory.h"
+#include "actor.h"
+#include "CreateNickDlg.h"
 #include "buddymanager.h"
-#include "cardsystem.h"
-#include "contentsdoc.h"
-#include "makeroomdlg.h"
-#include "levelupitemdlg.h"
-#include "standinginline.h"
-#include "guilddefine.h"
-#include "tooltip.h"
-#include "skinnedtheme.h"
-#include "gamedatadb.h"
 #include "mousecursor.h"
-#include "browser.h"
-#include "projectg.h"
-#include "familymain.h"
-#include "rankingdlg.h"
-#include "logindlg.h"
-#include "detailedroominfodlg.h"
-#include "scoredlg.h"
-#include "passworddlg.h"
+#include "frarea.h"
+#include "TaskManager.h"
+#include "globalgamedefine.h"
+#include "../shared/globalgamedefine.h"
+#include "SharedDoc.h"
+#include "Packet.h"
+#include "fresh.h"
+#include "frgraphicinterface.h"
+#include "frwndmanager.h"
+#include "frlistbox.h"
+#include "LoginDlg.h"
+#include "EquipDlg.h"
+#include "MakeRoomDlg.h"
+#include "exhibition.h"
 #include "noticedlg.h"
-#include "emoticondlg.h"
-#include "reportdlg.h"
-#include "newrecorddlg.h"
-#include "parannickdlg.h"
-#include "caddiewarningdlg.h"
-#include "equipdlg.h"
-#include "worldtoureventdlg.h"
-#include "frfindeborteventdlg.h"
-#include "frhalloweendlg.h"
-#include "christamseventdlg.h"
-#include "christmassockeventdlg.h"
-#include "frticketexchangedlg.h"
-#include "dlgquickstartsetting.h"
-#include "createnickdlg.h"
-#include "missioneventdlg.h"
-#include "bingoeventdlg.h"
-#include "birthdayeventdlg.h"
-#include "changeroominfodlg.h"
-#include "guildnoticedlg.h"
-#include "onelinereqdlg.h"
+#include "s5/SkinnedTheme.h"
+#include "playerdlg.h"
+#include "messengerdlg.h"
 #include "frcombobox.h"
+#include "Intrusion.h"
+#include "user_info.h"
+#include "frviewer.h"
+#include "fredit.h"
+#include "frstatic.h"
+#include "frgaugebar.h"
+#include "frframe.h"
+#include "ServerDlg.h"
+#include "UserListDlg.h"
+#include "MailBoxDlg.h"
+#include "ParanNickDlg.h"
+#include "GuildNoticeDlg.h"
+#include "NewsReader.h"
+#include "winput.h"
+#include "icontentsdoc.h"
+#include "contentsdoc.h"
+#include "ScoreDlg.h"
+#include "DetailedRoomInfoDlg.h"
+#include "CaddieWarningDlg.h"
+#include "frscrollbar.h"
 #include "frdesktop.h"
-#include "uccmanager.h"
-#include "partsinfo.h"
-#include "../../shared/s5/sharedutilities.h"
-#include "optiondlg.h"
+#include "ToolTip.h"
+#include "OptionDlg.h"
+#include "ProjectG.h"
+#include "GolfDoc.h"
+#include "polysoup.h"
+#include "wview.h"
+#include "cardsystem.h"
 #include "itembuffactor.h"
-#include "intrusion.h"
-#include "../../shared/sharedtables.h"
-#include "s5/utilities.h"
-#include "guildactor.h"
-#include "userinfoform.h"
-#include "caddieinfodlg.h"
-#include "mathconsts.h"
+#include "ValentineEventDlg.h"
+#include "bitmap.h"
+#include "WorldTourEventDlg.h"
+#include "FrFindEbortEventDlg.h"
+#include "FrHalloweenDlg.h"
+#include "ChristamsEventDlg.h"
+#include "FrTicketExchangeDlg.h"
+#include "gamedatadb.h"
+#include "gdbitmapbox.h"
+#include "InputManager.h"
+#include "ResultDlg.h"
+#include "TreasureDlg.h"
+#include "Treasure.h"
+#include "RankingDlg.h"
+#include "OnelineReqDlg.h"
+#include "ChatMsg.h"
+#include "UccManager.h"
+#include "NetResourceManager.h"
+#include "../shared/s5/SharedUtilities.h"
+#include <algorithm>
+#include "pg_boot_todo.h"
 
-// HACK
-template <>
-inline int Abs(int value)
-{
-	return value > 0 ? value : -value;
+// The IME input device (public ?g_ime@@3PAVWInputDev@@A).
+extern WInputDev *g_ime;
+// The mouse input device (public ?g_mouse@@3PAVWInputDev@@A).
+extern WInputDev *g_mouse;
+// The camera matrix of the 3D view (public ?g_camera@@3VWMatrix@@A).
+extern WMatrix g_camera;
+
+// The room list's game type names: VS [0..1], Mass [2..4], Battle [5..6]
+// (public ?g_strGameType@@3PAV?$basic_string@...@A, defined elsewhere).
+extern std::string g_strGameType[];
+
+extern bool g_bQuit;
+
+// Unnamed data; its fourth int is the room list selection the category
+// tabs reset to -1.
+extern "C" int data_aa9eac[];
+
+// Unnamed data: the IME mode (alphanumeric) the chat language mark shows.
+extern "C" bool data_ab2830;
+
+// clientsetting.h:404
+int COption::gGetChatWndUp(void) {
+	return m_option.m_chatWndUp;
 }
 
-inline void CSharedDoc::SetInviteMode(int mode)
-{
-	m_inviteMode = mode;
+// clientsetting.h:405
+void COption::gSetChatWndUp(int up) {
+	m_option.m_chatWndUp = up;
 }
 
-inline WRect WRect::operator+(WPoint& point) const
-{
-	return WRect(x + point.x, y + point.y, w, h);
+// eventprizedlg.h:11
+FrEventPrizeDlg::FrEventPrizeDlg(void) {
+	m_cancelBtn = 0;
+	m_viewBtn = 0;
 }
 
-int float2int(float f);
+// eventprizedlg.h:13
+void FrEventPrizeDlg::SetEvent(unsigned char event) {
+	m_event = event;
+}
 
-class ILoginInfo;
+// eventprizedlg.h:14
+unsigned char FrEventPrizeDlg::GetEvent(void) const {
+	return m_event;
+}
 
-class CLoginInfo
-{
-public:
-	static CLoginInfo* Instance();
-	int IsWebLogin() const { return m_bWebLogin; }
-	int IsPcBang() const;
+// topiconmanager.h:77
+void CIconManager::AddTopIconFromOutSide(void) {
+	m_outSideIconCount++;
+}
 
-private:
-	virtual ~CLoginInfo();
+// topiconmanager.h:78
+void CIconManager::ClearInformation(void) {
+	m_outSideIconCount = 0;
+}
 
-	ILoginInfo* m_pLoginInfo;
-	int m_bWebLogin;
+// Top-page event icon slot (values only known by number so far).
+enum eTopIconID {
+	TOPICON_0 = 0
 };
 
-#include "intrusion.h"
-
-class cTopEventIcon
-{
+// One icon button of the top page, placed by its slot.
+class cTopEventIcon {
 public:
-	cTopEventIcon(eTopIconID id)
-		: m_id(id)
-	{
-	}
-
+	cTopEventIcon(eTopIconID id);
 	void Prepare(FrButton* button);
 
-	eTopIconID m_id;
+private:
+	eTopIconID m_id;    // 0x0
 };
 
-void cTopEventIcon::Prepare(FrButton* button)
-{
-	if (button)
-	{
+// lobbymain.cpp:185
+cTopEventIcon::cTopEventIcon(eTopIconID id) {
+	m_id = id;
+}
+
+// lobbymain.cpp:187
+void cTopEventIcon::Prepare(FrButton* button) {
+	if (button != 0) {
 		button->SetPushSound("ui_desktop_icon_click");
 		button->EnableHover(true, 0.5f);
-		int index = CLoginInfo::Instance()->IsPcBang() ? m_id : m_id - 1;
-		WRect rect;
-		rect.x = (float)(80 * index) + 1.0f;
-		rect.y = 50.0f;
-		rect.w = 80.0f;
-		rect.h = 80.0f;
-		button->SetRect(rect);
+		int slot = CLoginInfo::Instance()->IsPcBang() ? m_id : m_id - 1;
+		button->SetRect(WRect((float)(slot * 80) + 1.0f, 50.0f, 80.0f, 80.0f));
 	}
 }
 
-std::string g_strCate[5] = { "\xb4\xeb\xc0\xfc", "\xb4\xeb\xc8\xb8",
-	"\xb9\xe8\xc6\xb2", "\xb4\xeb\xc8\xad", "\xb8\xf0\xb5\xce" };
+// lobbymain.cpp:217
+// Room list category names, indexed like the category tabs (VS, Mass,
+// Battle, Chat, All).
+std::string g_strCate[5] = {
+	"\xB4\xEB\xC0\xFC",
+	"\xB4\xEB\xC8\xB8",
+	"\xB9\xE8\xC6\xB2",
+	"\xB4\xEB\xC8\xAD",
+	"\xB8\xF0\xB5\xCE"
+};
 
-std::string g_strGameType[8] = { "\xbd\xba\xc6\xae\xb7\xce\xc5\xa9",
-	"\xb8\xc5\xc4\xa1", "30\xc0\xce\xb4\xeb\xc8\xb8",
-	"30\xc0\xce\xc6\xc0\xc0\xfc", "\xb1\xe6\xb5\xe5\xb4\xeb\xc0\xfc",
-	"\xc6\xce\xb9\xe8\xc6\xb2", "\xbe\xee\xc7\xc1\xb7\xce\xc4\xa1",
-	"\xb4\xeb\xc8\xad" };
-
-int GetCateByGameType(int gameType)
-{
-	switch (gameType)
-	{
-	case GAME_TYPE_30S:
+// lobbymain.cpp:241
+int GetCateByGameType(int type) {
+	switch (type) {
+	case 4:
 		return 1;
-	case GAME_TYPE_30S_TEAM:
+	case 5:
 		return 1;
-	case GAME_TYPE_GUILD_MATCH:
+	case 6:
 		return 1;
-	case GAME_TYPE_SKINS:
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
+	case 7:
 		return 2;
-	case GAME_TYPE_AVATARCHAT:
+	case 9:
+		return 2;
+	case 10:
+		return 2;
+	case 2:
 		return 3;
-	case GAME_TYPE_STROKE:
+	case 0:
 		return 0;
-	case GAME_TYPE_TEAM:
+	case 1:
 		return 0;
-	case GAME_TYPE_MATCH:
+	case 3:
+		return 0;
+	case 8:
 		return 0;
 	}
 	return 0;
 }
 
-long GetShotTimeLimitByGameType(int gameType)
-{
-	switch (gameType)
-	{
-	case GAME_TYPE_AVATARCHAT:
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
+// lobbymain.cpp:259
+long GetShotTimeLimitByGameType(int type) {
+	switch (type) {
+	case 0:
+		return 40000;
+	case 1:
+		return 40000;
+	case 2:
 		return 0;
-	case GAME_TYPE_STROKE:
+	case 3:
 		return 40000;
-	case GAME_TYPE_TEAM:
+	case 4:
+		return 0;
+	case 5:
+		return 0;
+	case 6:
+		return 0;
+	case 7:
 		return 40000;
-	case GAME_TYPE_MATCH:
+	case 8:
 		return 40000;
-	case GAME_TYPE_APPROACH:
+	case 9:
 		return 40000;
-	case GAME_TYPE_NEW_APPROACH:
+	case 10:
 		return 40000;
 	}
 	return 40000;
 }
 
-long GetGameTimeLimitByGameType(int gameType)
-{
-	switch (gameType)
-	{
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
+// lobbymain.cpp:277
+long GetGameTimeLimitByGameType(int type) {
+	switch (type) {
+	case 0:
+		return 0;
+	case 1:
+		return 0;
+	case 2:
+		return 0;
+	case 3:
+		return 0;
+	case 4:
 		return 2400000;
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
+	case 5:
+		return 2400000;
+	case 6:
+		return 2400000;
+	case 7:
+		return 0;
+	case 8:
+		return 0;
+	case 9:
 		return 40000;
-	case GAME_TYPE_STROKE:
+	case 10:
+		return 40000;
+	}
+	return 0;
+}
+
+// lobbymain.cpp:296
+unsigned char GetRandGameTypeByCate(int cate) {
+	switch (cate) {
+	case 0:
 		return 0;
-	case GAME_TYPE_TEAM:
-		return 0;
-	case GAME_TYPE_MATCH:
-		return 0;
-	case GAME_TYPE_AVATARCHAT:
+	case 1:
+		return 4;
+	case 2:
+		return 10;
+	case 3:
+		return 2;
+	case 4:
 		return 0;
 	}
 	return 0;
 }
 
-unsigned char GetRandGameTypeByCate(int cate)
-{
-	switch (cate)
-	{
-	case 1:
-		return GAME_TYPE_30S;
-	case 2:
-		return GAME_TYPE_NEW_APPROACH;
-	case 3:
-		return GAME_TYPE_AVATARCHAT;
-	case 0:
-		return GAME_TYPE_STROKE;
-	case 4:
-		return GAME_TYPE_STROKE;
+// lobbymain.cpp:393 (run-time type and factory registration of CLobbyMain)
+const WRTTI CLobbyMain::m_RTTI("CLobbyMain", &CTaskMain::m_RTTI);
+
+IObject* CLobbyMainMakeInstance(void) {
+	return new CLobbyMain;
+}
+
+struct __impCLobbyMain {
+	__impCLobbyMain(void) {
+		ObjectFactory().AddObjectFunctor(CLobbyMainMakeInstance, "CLobbyMain");
+		ActorFactory().AddActorClass("CLobbyMain");
 	}
-	return GAME_TYPE_STROKE;
+};
+static __impCLobbyMain s_impCLobbyMain;
+
+// lobbymain.cpp:394
+const sFRESH_MSGMAP* CLobbyMain::GetMessageMap(void) const {
+	return &CLobbyMain::_MsgMap;
 }
 
-static const char* GetGameTypeText(unsigned char gameType)
-{
-	switch (gameType)
-	{
-	case GAME_TYPE_STROKE:
-		return K2L_Compatibility("\xbd\xba\xc6\xae\xb7\xce\xc5\xa9");
-	case GAME_TYPE_AVATARCHAT:
-		return K2L_Compatibility("\xc3\xa4\xc6\xc3\xb9\xe6");
-	case GAME_TYPE_MATCH:
-		return K2L_Compatibility("\xb8\xc5\xc4\xa1");
-	case GAME_TYPE_30S:
-		return K2L_Compatibility("\xb4\xeb\xc8\xb8");
-	case GAME_TYPE_30S_TEAM:
-		return K2L_Compatibility("\xb4\xeb\xc8\xb8\xc6\xc0\xc0\xfc");
-	case GAME_TYPE_GUILD_MATCH:
-		return K2L_Compatibility("\xb1\xe6\xb5\xe5\xb4\xeb\xc0\xfc");
-	case GAME_TYPE_SKINS:
-		return K2L_Compatibility("\xc6\xce\xb9\xe8\xc6\xb2");
-	case GAME_TYPE_REALMYROOM:
-		return K2L_Compatibility("\xb8\xae\xbe\xf3\xb8\xb6\xc0\xcc\xb7\xeb");
-	case GAME_TYPE_NEW_APPROACH:
-		return K2L_Compatibility("\xbe\xee\xc7\xc1\xb7\xce\xc4\xa1");
+sFRESH_MSGMAP CLobbyMain::_MsgMap = { &CTaskMain::_MsgMap, &CLobbyMain::_MsgEntries[0] };
+
+sFRESH_ENTRY CLobbyMain::_MsgEntries[] = {
+	// lobbymain.cpp:408
+	{ "LOGIN", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnLogin_Init },
+	// lobbymain.cpp:409
+	{ "LOGIN", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnLogin_Finish },
+	// lobbymain.cpp:399
+	{ "BLANK", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnBlank_Init },
+	// lobbymain.cpp:400
+	{ "BLANK", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnBlank_Finish },
+	// lobbymain.cpp:403
+	{ "SECOND_PWD", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnSecond_Pwd_Init },
+	// lobbymain.cpp:404
+	{ "SECOND_PWD", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnSecond_Pwd_Finish },
+	// lobbymain.cpp:408
+	{ "TOPPAGE", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_Init },
+	// lobbymain.cpp:409
+	{ "TOPPAGE", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_Finish },
+	// lobbymain.cpp:419
+	{ "TOPPAGE", FRCMD_DESTROY, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_Destroy },
+	// lobbymain.cpp:420
+	{ "TOPPAGE.gameplay", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_GameInit },
+	// lobbymain.cpp:412
+	{ "TOPPAGE.gameplay", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_GameUp },
+	// lobbymain.cpp:413
+	{ "TOPPAGE.family", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_FamilyInit },
+	// lobbymain.cpp:414
+	{ "TOPPAGE.family", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_FamilyUp },
+	// lobbymain.cpp:415
+	{ "TOPPAGE.pangyastudy", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_PangysStudyInit },
+	// lobbymain.cpp:416
+	{ "TOPPAGE.pangyastudy", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_PangysStudyUp },
+	// lobbymain.cpp:419
+	{ "TOPPAGE.notice", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_NoticeInit },
+	// lobbymain.cpp:420
+	{ "TOPPAGE.notice", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_NoticeUp },
+	// lobbymain.cpp:421
+	{ "TOPPAGE.server", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_ServerInit },
+	// lobbymain.cpp:422
+	{ "TOPPAGE.server", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_ServerUp },
+	// lobbymain.cpp:423
+	{ "TOPPAGE.pcbang", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_PcbangInit },
+	// lobbymain.cpp:424
+	{ "TOPPAGE.pcbang", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_PcbangUp },
+	// lobbymain.cpp:425
+	{ "TOPPAGE.rental_expired", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_RentalExpiredAlramInit },
+	// lobbymain.cpp:426
+	{ "TOPPAGE.rental_expired", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_RentalExpiredAlramUp },
+	// lobbymain.cpp:427
+	{ "TOPPAGE.event1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_Event1Init },
+	// lobbymain.cpp:428
+	{ "TOPPAGE.event1", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_Event1Up },
+	// lobbymain.cpp:430
+	{ "TOPPAGE.new_2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_NewInit },
+	// lobbymain.cpp:431
+	{ "TOPPAGE.new_2", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_NewOwnerDraw },
+	// lobbymain.cpp:451
+	{ "TOPPAGE.TopIcon1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TopIcon1Init },
+	// lobbymain.cpp:452
+	{ "TOPPAGE.TopIcon1", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TopIcon1Up },
+	// lobbymain.cpp:454
+	{ "TOPPAGE.TopIcon2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TopIcon2Init },
+	// lobbymain.cpp:455
+	{ "TOPPAGE.TopIcon2", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TopIcon2Up },
+	// lobbymain.cpp:457
+	{ "TOPPAGE.TopIcon3", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TopIcon3Init },
+	// lobbymain.cpp:458
+	{ "TOPPAGE.TopIcon3", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TopIcon3Up },
+	// lobbymain.cpp:460
+	{ "TOPPAGE.TopIcon4", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TopIcon4Init },
+	// lobbymain.cpp:461
+	{ "TOPPAGE.TopIcon4", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TopIcon4Up },
+	// lobbymain.cpp:463
+	{ "TOPPAGE.TopIcon5", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TopIcon5Init },
+	// lobbymain.cpp:464
+	{ "TOPPAGE.TopIcon5", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TopIcon5Up },
+	// lobbymain.cpp:466
+	{ "TOPPAGE.TopIcon6", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TopIcon6Init },
+	// lobbymain.cpp:467
+	{ "TOPPAGE.TopIcon6", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TopIcon6Up },
+	// lobbymain.cpp:476
+	{ "TOPPAGE.pointevent", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_PointEventInit },
+	// lobbymain.cpp:477
+	{ "TOPPAGE.pointevent", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_PointEventDown },
+	// lobbymain.cpp:480
+	{ "TOPPAGE.valevent_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_ValEventInit },
+	// lobbymain.cpp:481
+	{ "TOPPAGE.valevent_btn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_ValEventDown },
+	// lobbymain.cpp:484
+	{ "TOPPAGE.worldtourevent", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_WorldTourEventInit },
+	// lobbymain.cpp:485
+	{ "TOPPAGE.worldtourevent", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_WorldTourEventDown },
+	// lobbymain.cpp:488
+	{ "TOPPAGE.findebortevent", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_FindEbortEventInit },
+	// lobbymain.cpp:489
+	{ "TOPPAGE.findebortevent", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_FindEbortEventDown },
+	// lobbymain.cpp:492
+	{ "TOPPAGE.halloween2007event", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_Halloween2007Init },
+	// lobbymain.cpp:493
+	{ "TOPPAGE.halloween2007event", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_Halloween2007EvenDown },
+	// lobbymain.cpp:496
+	{ "TOPPAGE.Christmas2007Event", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_Christmas2007EventInit },
+	// lobbymain.cpp:497
+	{ "TOPPAGE.Christmas2007Event", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_Christmas2007EventDown },
+	// lobbymain.cpp:506
+	{ "TOPPAGE.ticketexchage", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TicketExchangeInit },
+	// lobbymain.cpp:507
+	{ "TOPPAGE.ticketexchage", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TicketExchangeDown },
+	// lobbymain.cpp:510
+	{ "TOPPAGE.MissionEvent", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_MissionEventInit },
+	// lobbymain.cpp:511
+	{ "TOPPAGE.MissionEvent", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_MissionEventDown },
+	// lobbymain.cpp:514
+	{ "TOPPAGE.BingoEvent", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_BingoEventInit },
+	// lobbymain.cpp:515
+	{ "TOPPAGE.BingoEvent", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_BingoEventDown },
+	// lobbymain.cpp:518
+	{ "TOPPAGE.KoohBirthdayEvent", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_KoohBirthdayEventInit },
+	// lobbymain.cpp:519
+	{ "TOPPAGE.KoohBirthdayEvent", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_KoohBirthdayEventDown },
+	// lobbymain.cpp:522
+	{ "TOPPAGE.treasureisland", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnToppage_TreasureIslandInit },
+	// lobbymain.cpp:523
+	{ "TOPPAGE.treasureisland", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_TreasureIslandLBDown },
+	// lobbymain.cpp:559
+	{ "TOPPAGE.ubar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBarInit },
+	// lobbymain.cpp:560
+	{ "TOPPAGE.ubar.back", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BackInit },
+	// lobbymain.cpp:561
+	{ "TOPPAGE.ubar.back", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BackUp },
+	// lobbymain.cpp:562
+	{ "TOPPAGE.ubar.back", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:563
+	{ "TOPPAGE.ubar.back", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:564
+	{ "TOPPAGE.ubar.front", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_FrontInit },
+	// lobbymain.cpp:565
+	{ "TOPPAGE.ubar.front", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_FrontUp },
+	// lobbymain.cpp:566
+	{ "TOPPAGE.ubar.front", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:567
+	{ "TOPPAGE.ubar.front", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:568
+	{ "TOPPAGE.ubar.shop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ShopInit },
+	// lobbymain.cpp:569
+	{ "TOPPAGE.ubar.shop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ShopUp },
+	// lobbymain.cpp:570
+	{ "TOPPAGE.ubar.shop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:571
+	{ "TOPPAGE.ubar.shop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:572
+	{ "TOPPAGE.ubar.myroom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MyRoomInit },
+	// lobbymain.cpp:573
+	{ "TOPPAGE.ubar.myroom", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MyRoomUp },
+	// lobbymain.cpp:574
+	{ "TOPPAGE.ubar.myroom", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:575
+	{ "TOPPAGE.ubar.myroom", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:576
+	{ "TOPPAGE.ubar.itemstorage", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ItemStorageInit },
+	// lobbymain.cpp:577
+	{ "TOPPAGE.ubar.itemstorage", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ItemStorageUp },
+	// lobbymain.cpp:578
+	{ "TOPPAGE.ubar.itemstorage", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:579
+	{ "TOPPAGE.ubar.itemstorage", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:580
+	{ "TOPPAGE.ubar.gift", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GiftInit },
+	// lobbymain.cpp:581
+	{ "TOPPAGE.ubar.gift", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GiftUp },
+	// lobbymain.cpp:582
+	{ "TOPPAGE.ubar.gift", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:583
+	{ "TOPPAGE.ubar.gift", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:584
+	{ "TOPPAGE.ubar.cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_CookieInit },
+	// lobbymain.cpp:585
+	{ "TOPPAGE.ubar.cookie", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_CookieUp },
+	// lobbymain.cpp:586
+	{ "TOPPAGE.ubar.cookie", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:587
+	{ "TOPPAGE.ubar.cookie", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:588
+	{ "TOPPAGE.ubar.game", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GameInit },
+	// lobbymain.cpp:589
+	{ "TOPPAGE.ubar.game", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GameUp },
+	// lobbymain.cpp:590
+	{ "TOPPAGE.ubar.game", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:591
+	{ "TOPPAGE.ubar.game", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:592
+	{ "TOPPAGE.ubar.server", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ServerInit },
+	// lobbymain.cpp:593
+	{ "TOPPAGE.ubar.server", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ServerUp },
+	// lobbymain.cpp:594
+	{ "TOPPAGE.ubar.server", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:595
+	{ "TOPPAGE.ubar.server", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:596
+	{ "TOPPAGE.ubar.exit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ExitInit },
+	// lobbymain.cpp:597
+	{ "TOPPAGE.ubar.exit", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ExitUp },
+	// lobbymain.cpp:598
+	{ "TOPPAGE.ubar.exit", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:599
+	{ "TOPPAGE.ubar.exit", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:600
+	{ "TOPPAGE.ubar.tabbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TabBtnInit },
+	// lobbymain.cpp:601
+	{ "TOPPAGE.ubar.tabbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TabBtnUp },
+	// lobbymain.cpp:604
+	{ "TOPPAGE.utab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderTab_Init },
+	// lobbymain.cpp:606
+	{ "TOPPAGE.utab.magicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MagicBoxInit },
+	// lobbymain.cpp:607
+	{ "TOPPAGE.utab.magicbox", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MagicBoxUp },
+	// lobbymain.cpp:608
+	{ "TOPPAGE.utab.magicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:609
+	{ "TOPPAGE.utab.magicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:611
+	{ "TOPPAGE.utab.tikimagicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TikiMagicBoxInit },
+	// lobbymain.cpp:612
+	{ "TOPPAGE.utab.tikimagicbox", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TikiMagicBoxUp },
+	// lobbymain.cpp:613
+	{ "TOPPAGE.utab.tikimagicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:614
+	{ "TOPPAGE.utab.tikimagicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:636
+	{ "TOPPAGE.utab.scratch", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ScratchInit },
+	// lobbymain.cpp:637
+	{ "TOPPAGE.utab.scratch", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ScratchUp },
+	// lobbymain.cpp:638
+	{ "TOPPAGE.utab.scratch", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:639
+	{ "TOPPAGE.utab.scratch", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:641
+	{ "TOPPAGE.utab.bongdarishop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BongdariShopInit },
+	// lobbymain.cpp:642
+	{ "TOPPAGE.utab.bongdarishop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BongdariShopUp },
+	// lobbymain.cpp:643
+	{ "TOPPAGE.utab.bongdarishop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:644
+	{ "TOPPAGE.utab.bongdarishop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:645
+	{ "TOPPAGE.utab.ranking", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_RankingInit },
+	// lobbymain.cpp:646
+	{ "TOPPAGE.utab.ranking", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_RankingUp },
+	// lobbymain.cpp:647
+	{ "TOPPAGE.utab.ranking", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:648
+	{ "TOPPAGE.utab.ranking", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:649
+	{ "TOPPAGE.utab.guild", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GuildInit },
+	// lobbymain.cpp:650
+	{ "TOPPAGE.utab.guild", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GuildUp },
+	// lobbymain.cpp:651
+	{ "TOPPAGE.utab.guild", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:652
+	{ "TOPPAGE.utab.guild", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:653
+	{ "TOPPAGE.utab.notice", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_NoticeInit },
+	// lobbymain.cpp:654
+	{ "TOPPAGE.utab.notice", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_NoticeUp },
+	// lobbymain.cpp:655
+	{ "TOPPAGE.utab.notice", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:656
+	{ "TOPPAGE.utab.notice", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:659
+	{ "TOPPAGE.utab.maket", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MaketInit },
+	// lobbymain.cpp:660
+	{ "TOPPAGE.utab.maket", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MaketUp },
+	// lobbymain.cpp:661
+	{ "TOPPAGE.utab.maket", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:662
+	{ "TOPPAGE.utab.maket", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:673
+	{ "TOPPAGE.obar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_Init },
+	// lobbymain.cpp:674
+	{ "TOPPAGE.obar.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_TitleInit },
+	// lobbymain.cpp:675
+	{ "TOPPAGE.obar.site", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SiteInit },
+	// lobbymain.cpp:676
+	{ "TOPPAGE.obar.char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharInit },
+	// lobbymain.cpp:677
+	{ "TOPPAGE.obar.char", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CharDown },
+	// lobbymain.cpp:678
+	{ "TOPPAGE.obar.char", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharOwnerDraw },
+	// lobbymain.cpp:679
+	{ "TOPPAGE.obar.caddie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieInit },
+	// lobbymain.cpp:680
+	{ "TOPPAGE.obar.caddie", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CaddieDown },
+	// lobbymain.cpp:681
+	{ "TOPPAGE.obar.caddie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieOwnerDraw },
+	// lobbymain.cpp:682
+	{ "TOPPAGE.obar.club", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubInit },
+	// lobbymain.cpp:683
+	{ "TOPPAGE.obar.club", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_ClubDown },
+	// lobbymain.cpp:684
+	{ "TOPPAGE.obar.club", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubOwnerDraw },
+	// lobbymain.cpp:685
+	{ "TOPPAGE.obar.aztec", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecInit },
+	// lobbymain.cpp:686
+	{ "TOPPAGE.obar.aztec", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_AztecDown },
+	// lobbymain.cpp:687
+	{ "TOPPAGE.obar.aztec", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecOwnerDraw },
+	// lobbymain.cpp:688
+	{ "TOPPAGE.obar.mascot", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotInit },
+	// lobbymain.cpp:689
+	{ "TOPPAGE.obar.mascot", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MascotDown },
+	// lobbymain.cpp:690
+	{ "TOPPAGE.obar.mascot", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotOwnerDraw },
+	// lobbymain.cpp:691
+	{ "TOPPAGE.obar.char_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelInit },
+	// lobbymain.cpp:692
+	{ "TOPPAGE.obar.char_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelOwnerDraw },
+	// lobbymain.cpp:693
+	{ "TOPPAGE.obar.caddie_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelInit },
+	// lobbymain.cpp:694
+	{ "TOPPAGE.obar.caddie_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelOwnerDraw },
+	// lobbymain.cpp:695
+	{ "TOPPAGE.obar.club_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelInit },
+	// lobbymain.cpp:696
+	{ "TOPPAGE.obar.club_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelOwnerDraw },
+	// lobbymain.cpp:697
+	{ "TOPPAGE.obar.aztec_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelInit },
+	// lobbymain.cpp:698
+	{ "TOPPAGE.obar.aztec_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelOwnerDraw },
+	// lobbymain.cpp:699
+	{ "TOPPAGE.obar.mascot_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelInit },
+	// lobbymain.cpp:700
+	{ "TOPPAGE.obar.mascot_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelOwnerDraw },
+	// lobbymain.cpp:701
+	{ "TOPPAGE.obar.pang_cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieInit },
+	// lobbymain.cpp:702
+	{ "TOPPAGE.obar.pang_cookie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieOwnerDraw },
+	// lobbymain.cpp:703
+	{ "TOPPAGE.obar.onelinemsg_req", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineReqBtnInit },
+	// lobbymain.cpp:704
+	{ "TOPPAGE.obar.onelinemsg_req", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OneLineReqBtnUp },
+	// lobbymain.cpp:705
+	{ "TOPPAGE.obar.onelineview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewInit },
+	// lobbymain.cpp:706
+	{ "TOPPAGE.obar.onelineview", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewOwnerDraw },
+	// lobbymain.cpp:707
+	{ "TOPPAGE.obar.spcard", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SpecialCardInit },
+	// lobbymain.cpp:708
+	{ "TOPPAGE.obar.spcard", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_SpecialCardUp },
+	// lobbymain.cpp:709
+	{ "TOPPAGE.obar.spcard", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:710
+	{ "TOPPAGE.obar.spcard", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:711
+	{ "TOPPAGE.obar.messenger", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MessengerInit },
+	// lobbymain.cpp:712
+	{ "TOPPAGE.obar.messenger", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MessengerUp },
+	// lobbymain.cpp:713
+	{ "TOPPAGE.obar.messenger", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:714
+	{ "TOPPAGE.obar.messenger", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:715
+	{ "TOPPAGE.obar.myinfo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MyInfoInit },
+	// lobbymain.cpp:716
+	{ "TOPPAGE.obar.myinfo", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MyInfoUp },
+	// lobbymain.cpp:717
+	{ "TOPPAGE.obar.myinfo", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:718
+	{ "TOPPAGE.obar.myinfo", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:719
+	{ "TOPPAGE.obar.option", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OptionInit },
+	// lobbymain.cpp:720
+	{ "TOPPAGE.obar.option", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OptionUp },
+	// lobbymain.cpp:721
+	{ "TOPPAGE.obar.option", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:722
+	{ "TOPPAGE.obar.option", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:725
+	{ "TOPPAGE.ubar.undertab_tooltip", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TabToolTipInit },
+	// lobbymain.cpp:726
+	{ "TOPPAGE.obar.messenger_bubble", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleInit },
+	// lobbymain.cpp:727
+	{ "TOPPAGE.obar.messenger_bubble", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleOwnerDraw },
+	// lobbymain.cpp:728
+	{ "TOPPAGE.obar.messenger_desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleEditInit },
+	// lobbymain.cpp:729
+	{ "TOPPAGE.obar.messenger_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerAlarmBtnInit },
+	// lobbymain.cpp:730
+	{ "TOPPAGE.obar.messenger_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerAlarmBtnUp },
+	// lobbymain.cpp:731
+	{ "TOPPAGE.obar.gift_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerGiftAlarmBtnInit },
+	// lobbymain.cpp:732
+	{ "TOPPAGE.obar.gift_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerGiftAlarmBtnUp },
+	// lobbymain.cpp:733
+	{ "TOPPAGE.obar.tooltip", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarTooltipOwnerDraw },
+	// lobbymain.cpp:734
+	{ "TOPPAGE.treasure_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnTreasureAlarmInit },
+	// lobbymain.cpp:735
+	{ "TOPPAGE.treasure_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnTreasureAlarmUp },
+	// lobbymain.cpp:738
+	{ "TOPPAGE.FirstConnect", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnFirstConnectOwnerDraw },
+	// lobbymain.cpp:741
+	{ "TOPPAGE.Go_UCCShop", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_UCCShopBtnUp },
+	// lobbymain.cpp:742
+	{ "TOPPAGE.Go_CardShop", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnToppage_CardShopBtnUp },
+	// lobbymain.cpp:745
+	{ "SERVERLIST", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnServer_Init },
+	// lobbymain.cpp:746
+	{ "SERVERLIST", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnServer_Finish },
+	// lobbymain.cpp:749
+	{ "ROOMLIST", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_Init },
+	// lobbymain.cpp:750
+	{ "ROOMLIST", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_Finish },
+	// lobbymain.cpp:751
+	{ "ROOMLIST", FRCMD_DESTROY, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_Destroy },
+	// lobbymain.cpp:753
+	{ "ROOMLIST.roomlist", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomListInit },
+	// lobbymain.cpp:754
+	{ "ROOMLIST.roomlist", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomListOwnerDraw },
+	// lobbymain.cpp:755
+	{ "ROOMLIST.roomlist", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomListLDown },
+	// lobbymain.cpp:756
+	{ "ROOMLIST.roomlist", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomListRUp },
+	// lobbymain.cpp:757
+	{ "ROOMLIST.roomlist", FRCMD_DBLCLICK, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomListDClick },
+	// lobbymain.cpp:759
+	{ "ROOMLIST.room_no", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortNoInit },
+	// lobbymain.cpp:760
+	{ "ROOMLIST.room_no", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortNoDown },
+	// lobbymain.cpp:761
+	{ "ROOMLIST.room_no", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortNoOwnerDraw },
+	// lobbymain.cpp:763
+	{ "ROOMLIST.btn_cate_total", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateAll_BtnInit },
+	// lobbymain.cpp:764
+	{ "ROOMLIST.btn_cate_total", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateAll_BtnDown },
+	// lobbymain.cpp:765
+	{ "ROOMLIST.btn_cate_vs", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateVS_BtnInit },
+	// lobbymain.cpp:766
+	{ "ROOMLIST.btn_cate_vs", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateVS_BtnDown },
+	// lobbymain.cpp:767
+	{ "ROOMLIST.btn_cate_mass", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateMass_BtnInit },
+	// lobbymain.cpp:768
+	{ "ROOMLIST.btn_cate_mass", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateMass_BtnDown },
+	// lobbymain.cpp:769
+	{ "ROOMLIST.btn_cate_battle", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateBattle_BtnInit },
+	// lobbymain.cpp:770
+	{ "ROOMLIST.btn_cate_battle", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateBattle_BtnDown },
+	// lobbymain.cpp:771
+	{ "ROOMLIST.btn_cate_chat", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateChat_BtnInit },
+	// lobbymain.cpp:772
+	{ "ROOMLIST.btn_cate_chat", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateChat_BtnDown },
+	// lobbymain.cpp:780
+	{ "ROOMLIST.room_hole", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortHoleInit },
+	// lobbymain.cpp:781
+	{ "ROOMLIST.room_hole", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortHoleDown },
+	// lobbymain.cpp:782
+	{ "ROOMLIST.room_hole", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortHoleOwnerDraw },
+	// lobbymain.cpp:783
+	{ "ROOMLIST.room_course", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCourseInit },
+	// lobbymain.cpp:784
+	{ "ROOMLIST.room_course", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCourseDown },
+	// lobbymain.cpp:785
+	{ "ROOMLIST.room_course", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCourseOwnerDraw },
+	// lobbymain.cpp:786
+	{ "ROOMLIST.room_state", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortStateInit },
+	// lobbymain.cpp:787
+	{ "ROOMLIST.room_state", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortStateDown },
+	// lobbymain.cpp:788
+	{ "ROOMLIST.room_state", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortStateOwnerDraw },
+	// lobbymain.cpp:790
+	{ "ROOMLIST.cate_vs_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateVS_ListInit },
+	// lobbymain.cpp:791
+	{ "ROOMLIST.cate_vs_list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateVS_ListLUp },
+	// lobbymain.cpp:792
+	{ "ROOMLIST.cate_vs_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateVS_ListOwnerDraw },
+	// lobbymain.cpp:793
+	{ "ROOMLIST.cate_mass_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateMass_ListInit },
+	// lobbymain.cpp:794
+	{ "ROOMLIST.cate_mass_list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateMass_ListLUp },
+	// lobbymain.cpp:795
+	{ "ROOMLIST.cate_mass_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateMass_ListOwnerDraw },
+	// lobbymain.cpp:796
+	{ "ROOMLIST.cate_battle_list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateBattle_ListInit },
+	// lobbymain.cpp:797
+	{ "ROOMLIST.cate_battle_list", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_RoomSortCateBattle_ListLUp },
+	// lobbymain.cpp:798
+	{ "ROOMLIST.cate_battle_list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_RoomSortCateBattle_ListOwnerDraw },
+	// lobbymain.cpp:801
+	{ "ROOMLIST.chatbg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgInit },
+	// lobbymain.cpp:802
+	{ "ROOMLIST.chatbg", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgOwnerDraw },
+	// lobbymain.cpp:803
+	{ "ROOMLIST.chatwndbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatWndBtnInit },
+	// lobbymain.cpp:804
+	{ "ROOMLIST.chatwndbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnChatWndBtnUp },
+	// lobbymain.cpp:805
+	{ "ROOMLIST.emoticon", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnEmoticonInit },
+	// lobbymain.cpp:806
+	{ "ROOMLIST.emoticon", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnEmoticonBtnUp },
+	// lobbymain.cpp:807
+	{ "ROOMLIST.language", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnLanguageInit },
+	// lobbymain.cpp:808
+	{ "ROOMLIST.chatinput", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatInputInit },
+	// lobbymain.cpp:809
+	{ "ROOMLIST.chatinput", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatInputEnterKey },
+	// lobbymain.cpp:810
+	{ "ROOMLIST.chattarget", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetInit },
+	// lobbymain.cpp:811
+	{ "ROOMLIST.chattarget", FRCMD_LBUTTONDOWN, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetBtnDown },
+	// lobbymain.cpp:812
+	{ "ROOMLIST.chattarget", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatTargetEnterKey },
+	// lobbymain.cpp:813
+	{ "ROOMLIST.chatview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_ChatViewInit },
+	// lobbymain.cpp:814
+	{ "ROOMLIST.report", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnReportBtnUp },
+	// lobbymain.cpp:820
+	{ "ROOMLIST.makeroom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_MakeRoomInit },
+	// lobbymain.cpp:821
+	{ "ROOMLIST.makeroom", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_MakeRoomUp },
+	// lobbymain.cpp:824
+	{ "ROOMLIST.guildinfo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_GuildInfoInit },
+	// lobbymain.cpp:825
+	{ "ROOMLIST.guildinfo", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_GuildInfoLButtonUp },
+	// lobbymain.cpp:836
+	{ "ROOMLIST.userlist", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserListInit },
+	// lobbymain.cpp:837
+	{ "ROOMLIST.userlist", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_UserListLBtnUp },
+	// lobbymain.cpp:838
+	{ "ROOMLIST.userlist", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_UserListRBtnUp },
+	// lobbymain.cpp:839
+	{ "ROOMLIST.userlist", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserListOwnerDraw },
+	// lobbymain.cpp:841
+	{ "ROOMLIST.user_gender", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortGenderInit },
+	// lobbymain.cpp:842
+	{ "ROOMLIST.user_gender", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_UserSortGenderUp },
+	// lobbymain.cpp:843
+	{ "ROOMLIST.user_gender", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortGenderOwnerDraw },
+	// lobbymain.cpp:844
+	{ "ROOMLIST.user_level", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortLevelInit },
+	// lobbymain.cpp:845
+	{ "ROOMLIST.user_level", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_UserSortLevelUp },
+	// lobbymain.cpp:846
+	{ "ROOMLIST.user_level", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortLevelOwnerDraw },
+	// lobbymain.cpp:852
+	{ "ROOMLIST.user_guild", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortGuildInit },
+	// lobbymain.cpp:853
+	{ "ROOMLIST.user_guild", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_UserSortGuildUp },
+	// lobbymain.cpp:854
+	{ "ROOMLIST.user_guild", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortGuildOwnerDraw },
+	// lobbymain.cpp:855
+	{ "ROOMLIST.user_nick", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortNickInit },
+	// lobbymain.cpp:856
+	{ "ROOMLIST.user_nick", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnRoomList_UserSortNickUp },
+	// lobbymain.cpp:857
+	{ "ROOMLIST.user_nick", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_UserSortNickOwnerDraw },
+	// lobbymain.cpp:859
+	{ "ROOMLIST.ubar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBarInit },
+	// lobbymain.cpp:860
+	{ "ROOMLIST.ubar.back", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BackInit },
+	// lobbymain.cpp:861
+	{ "ROOMLIST.ubar.back", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BackUp },
+	// lobbymain.cpp:862
+	{ "ROOMLIST.ubar.back", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:863
+	{ "ROOMLIST.ubar.back", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:864
+	{ "ROOMLIST.ubar.front", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_FrontInit },
+	// lobbymain.cpp:865
+	{ "ROOMLIST.ubar.front", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_FrontUp },
+	// lobbymain.cpp:866
+	{ "ROOMLIST.ubar.front", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:867
+	{ "ROOMLIST.ubar.front", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:868
+	{ "ROOMLIST.ubar.shop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ShopInit },
+	// lobbymain.cpp:869
+	{ "ROOMLIST.ubar.shop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ShopUp },
+	// lobbymain.cpp:870
+	{ "ROOMLIST.ubar.shop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:871
+	{ "ROOMLIST.ubar.shop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:872
+	{ "ROOMLIST.ubar.myroom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MyRoomInit },
+	// lobbymain.cpp:873
+	{ "ROOMLIST.ubar.myroom", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MyRoomUp },
+	// lobbymain.cpp:874
+	{ "ROOMLIST.ubar.myroom", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:875
+	{ "ROOMLIST.ubar.myroom", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:876
+	{ "ROOMLIST.ubar.itemstorage", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ItemStorageInit },
+	// lobbymain.cpp:877
+	{ "ROOMLIST.ubar.itemstorage", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ItemStorageUp },
+	// lobbymain.cpp:878
+	{ "ROOMLIST.ubar.itemstorage", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:879
+	{ "ROOMLIST.ubar.itemstorage", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:880
+	{ "ROOMLIST.ubar.gift", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GiftInit },
+	// lobbymain.cpp:881
+	{ "ROOMLIST.ubar.gift", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GiftUp },
+	// lobbymain.cpp:882
+	{ "ROOMLIST.ubar.gift", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:883
+	{ "ROOMLIST.ubar.gift", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:884
+	{ "ROOMLIST.ubar.cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_CookieInit },
+	// lobbymain.cpp:885
+	{ "ROOMLIST.ubar.cookie", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_CookieUp },
+	// lobbymain.cpp:886
+	{ "ROOMLIST.ubar.cookie", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:887
+	{ "ROOMLIST.ubar.cookie", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:888
+	{ "ROOMLIST.ubar.game", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GameInit },
+	// lobbymain.cpp:889
+	{ "ROOMLIST.ubar.game", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GameUp },
+	// lobbymain.cpp:890
+	{ "ROOMLIST.ubar.game", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:891
+	{ "ROOMLIST.ubar.game", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:892
+	{ "ROOMLIST.ubar.server", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ServerInit },
+	// lobbymain.cpp:893
+	{ "ROOMLIST.ubar.server", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ServerUp },
+	// lobbymain.cpp:894
+	{ "ROOMLIST.ubar.server", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:895
+	{ "ROOMLIST.ubar.server", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:896
+	{ "ROOMLIST.ubar.exit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ExitInit },
+	// lobbymain.cpp:897
+	{ "ROOMLIST.ubar.exit", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ExitUp },
+	// lobbymain.cpp:898
+	{ "ROOMLIST.ubar.exit", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:899
+	{ "ROOMLIST.ubar.exit", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:900
+	{ "ROOMLIST.ubar.tabbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TabBtnInit },
+	// lobbymain.cpp:901
+	{ "ROOMLIST.ubar.tabbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TabBtnUp },
+	// lobbymain.cpp:904
+	{ "ROOMLIST.utab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderTab_Init },
+	// lobbymain.cpp:906
+	{ "ROOMLIST.utab.magicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MagicBoxInit },
+	// lobbymain.cpp:907
+	{ "ROOMLIST.utab.magicbox", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MagicBoxUp },
+	// lobbymain.cpp:908
+	{ "ROOMLIST.utab.magicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:909
+	{ "ROOMLIST.utab.magicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:911
+	{ "ROOMLIST.utab.tikimagicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TikiMagicBoxInit },
+	// lobbymain.cpp:912
+	{ "ROOMLIST.utab.tikimagicbox", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TikiMagicBoxUp },
+	// lobbymain.cpp:913
+	{ "ROOMLIST.utab.tikimagicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:914
+	{ "ROOMLIST.utab.tikimagicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:936
+	{ "ROOMLIST.utab.scratch", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ScratchInit },
+	// lobbymain.cpp:937
+	{ "ROOMLIST.utab.scratch", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ScratchUp },
+	// lobbymain.cpp:938
+	{ "ROOMLIST.utab.scratch", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:939
+	{ "ROOMLIST.utab.scratch", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:941
+	{ "ROOMLIST.utab.bongdarishop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BongdariShopInit },
+	// lobbymain.cpp:942
+	{ "ROOMLIST.utab.bongdarishop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BongdariShopUp },
+	// lobbymain.cpp:943
+	{ "ROOMLIST.utab.bongdarishop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:944
+	{ "ROOMLIST.utab.bongdarishop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:945
+	{ "ROOMLIST.utab.ranking", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_RankingInit },
+	// lobbymain.cpp:946
+	{ "ROOMLIST.utab.ranking", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_RankingUp },
+	// lobbymain.cpp:947
+	{ "ROOMLIST.utab.ranking", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:948
+	{ "ROOMLIST.utab.ranking", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:949
+	{ "ROOMLIST.utab.guild", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GuildInit },
+	// lobbymain.cpp:950
+	{ "ROOMLIST.utab.guild", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GuildUp },
+	// lobbymain.cpp:951
+	{ "ROOMLIST.utab.guild", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:952
+	{ "ROOMLIST.utab.guild", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:953
+	{ "ROOMLIST.utab.notice", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_NoticeInit },
+	// lobbymain.cpp:954
+	{ "ROOMLIST.utab.notice", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_NoticeUp },
+	// lobbymain.cpp:955
+	{ "ROOMLIST.utab.notice", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:956
+	{ "ROOMLIST.utab.notice", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:959
+	{ "ROOMLIST.utab.maket", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MaketInit },
+	// lobbymain.cpp:960
+	{ "ROOMLIST.utab.maket", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MaketUp },
+	// lobbymain.cpp:961
+	{ "ROOMLIST.utab.maket", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:962
+	{ "ROOMLIST.utab.maket", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:973
+	{ "ROOMLIST.obar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_Init },
+	// lobbymain.cpp:974
+	{ "ROOMLIST.obar.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_TitleInit },
+	// lobbymain.cpp:975
+	{ "ROOMLIST.obar.site", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SiteInit },
+	// lobbymain.cpp:976
+	{ "ROOMLIST.obar.char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharInit },
+	// lobbymain.cpp:977
+	{ "ROOMLIST.obar.char", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CharDown },
+	// lobbymain.cpp:978
+	{ "ROOMLIST.obar.char", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharOwnerDraw },
+	// lobbymain.cpp:979
+	{ "ROOMLIST.obar.caddie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieInit },
+	// lobbymain.cpp:980
+	{ "ROOMLIST.obar.caddie", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CaddieDown },
+	// lobbymain.cpp:981
+	{ "ROOMLIST.obar.caddie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieOwnerDraw },
+	// lobbymain.cpp:982
+	{ "ROOMLIST.obar.club", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubInit },
+	// lobbymain.cpp:983
+	{ "ROOMLIST.obar.club", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_ClubDown },
+	// lobbymain.cpp:984
+	{ "ROOMLIST.obar.club", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubOwnerDraw },
+	// lobbymain.cpp:985
+	{ "ROOMLIST.obar.aztec", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecInit },
+	// lobbymain.cpp:986
+	{ "ROOMLIST.obar.aztec", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_AztecDown },
+	// lobbymain.cpp:987
+	{ "ROOMLIST.obar.aztec", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecOwnerDraw },
+	// lobbymain.cpp:988
+	{ "ROOMLIST.obar.mascot", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotInit },
+	// lobbymain.cpp:989
+	{ "ROOMLIST.obar.mascot", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MascotDown },
+	// lobbymain.cpp:990
+	{ "ROOMLIST.obar.mascot", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotOwnerDraw },
+	// lobbymain.cpp:991
+	{ "ROOMLIST.obar.char_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelInit },
+	// lobbymain.cpp:992
+	{ "ROOMLIST.obar.char_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelOwnerDraw },
+	// lobbymain.cpp:993
+	{ "ROOMLIST.obar.caddie_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelInit },
+	// lobbymain.cpp:994
+	{ "ROOMLIST.obar.caddie_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelOwnerDraw },
+	// lobbymain.cpp:995
+	{ "ROOMLIST.obar.club_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelInit },
+	// lobbymain.cpp:996
+	{ "ROOMLIST.obar.club_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelOwnerDraw },
+	// lobbymain.cpp:997
+	{ "ROOMLIST.obar.aztec_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelInit },
+	// lobbymain.cpp:998
+	{ "ROOMLIST.obar.aztec_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelOwnerDraw },
+	// lobbymain.cpp:999
+	{ "ROOMLIST.obar.mascot_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelInit },
+	// lobbymain.cpp:1000
+	{ "ROOMLIST.obar.mascot_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelOwnerDraw },
+	// lobbymain.cpp:1001
+	{ "ROOMLIST.obar.pang_cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieInit },
+	// lobbymain.cpp:1002
+	{ "ROOMLIST.obar.pang_cookie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieOwnerDraw },
+	// lobbymain.cpp:1003
+	{ "ROOMLIST.obar.onelinemsg_req", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineReqBtnInit },
+	// lobbymain.cpp:1004
+	{ "ROOMLIST.obar.onelinemsg_req", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OneLineReqBtnUp },
+	// lobbymain.cpp:1005
+	{ "ROOMLIST.obar.onelineview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewInit },
+	// lobbymain.cpp:1006
+	{ "ROOMLIST.obar.onelineview", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewOwnerDraw },
+	// lobbymain.cpp:1007
+	{ "ROOMLIST.obar.spcard", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SpecialCardInit },
+	// lobbymain.cpp:1008
+	{ "ROOMLIST.obar.spcard", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_SpecialCardUp },
+	// lobbymain.cpp:1009
+	{ "ROOMLIST.obar.spcard", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1010
+	{ "ROOMLIST.obar.spcard", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1011
+	{ "ROOMLIST.obar.messenger", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MessengerInit },
+	// lobbymain.cpp:1012
+	{ "ROOMLIST.obar.messenger", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MessengerUp },
+	// lobbymain.cpp:1013
+	{ "ROOMLIST.obar.messenger", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1014
+	{ "ROOMLIST.obar.messenger", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1015
+	{ "ROOMLIST.obar.myinfo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MyInfoInit },
+	// lobbymain.cpp:1016
+	{ "ROOMLIST.obar.myinfo", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MyInfoUp },
+	// lobbymain.cpp:1017
+	{ "ROOMLIST.obar.myinfo", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1018
+	{ "ROOMLIST.obar.myinfo", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1019
+	{ "ROOMLIST.obar.option", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OptionInit },
+	// lobbymain.cpp:1020
+	{ "ROOMLIST.obar.option", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OptionUp },
+	// lobbymain.cpp:1021
+	{ "ROOMLIST.obar.option", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1022
+	{ "ROOMLIST.obar.option", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1024
+	{ "ROOMLIST.obar.messenger_bubble", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleInit },
+	// lobbymain.cpp:1025
+	{ "ROOMLIST.obar.messenger_bubble", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleOwnerDraw },
+	// lobbymain.cpp:1026
+	{ "ROOMLIST.obar.messenger_desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleEditInit },
+	// lobbymain.cpp:1027
+	{ "ROOMLIST.obar.messenger_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerAlarmBtnInit },
+	// lobbymain.cpp:1028
+	{ "ROOMLIST.obar.messenger_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerAlarmBtnUp },
+	// lobbymain.cpp:1029
+	{ "ROOMLIST.obar.gift_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerGiftAlarmBtnInit },
+	// lobbymain.cpp:1030
+	{ "ROOMLIST.obar.gift_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerGiftAlarmBtnUp },
+	// lobbymain.cpp:1031
+	{ "ROOMLIST.obar.tooltip", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarTooltipOwnerDraw },
+	// lobbymain.cpp:1032
+	{ "ROOMLIST.treasure_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnTreasureAlarmInit },
+	// lobbymain.cpp:1033
+	{ "ROOMLIST.treasure_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnTreasureAlarmUp },
+	// lobbymain.cpp:1036
+	{ "GAMEROOM", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_Init },
+	// lobbymain.cpp:1037
+	{ "GAMEROOM", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_Finish },
+	// lobbymain.cpp:1038
+	{ "GAMEROOM", FRCMD_DESTROY, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_Destroy },
+	// lobbymain.cpp:1041
+	{ "GAMEROOM.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_TitleInit },
+	// lobbymain.cpp:1043
+	{ "GAMEROOM.background", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_BackGroundInit },
+	// lobbymain.cpp:1044
+	{ "GAMEROOM.pet0", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_Pet0Init },
+	// lobbymain.cpp:1045
+	{ "GAMEROOM.pet1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_Pet1Init },
+	// lobbymain.cpp:1046
+	{ "GAMEROOM.pet2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_Pet2Init },
+	// lobbymain.cpp:1047
+	{ "GAMEROOM.pet3", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_Pet3Init },
+	// lobbymain.cpp:1048
+	{ "GAMEROOM.user", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_RoomUserInit },
+	// lobbymain.cpp:1049
+	{ "GAMEROOM.user", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_RoomUserOwnerDraw },
+	// lobbymain.cpp:1050
+	{ "GAMEROOM.user", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserLBtnUp },
+	// lobbymain.cpp:1051
+	{ "GAMEROOM.user", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserRBtnUp },
+	// lobbymain.cpp:1052
+	{ "GAMEROOM.user", FRCMD_DBLCLICK, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserDClick },
+	// lobbymain.cpp:1054
+	{ "GAMEROOM.chatbg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgInit },
+	// lobbymain.cpp:1055
+	{ "GAMEROOM.chatbg", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgOwnerDraw },
+	// lobbymain.cpp:1056
+	{ "GAMEROOM.chatwndbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatWndBtnInit },
+	// lobbymain.cpp:1057
+	{ "GAMEROOM.chatwndbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnChatWndBtnUp },
+	// lobbymain.cpp:1058
+	{ "GAMEROOM.emoticon", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnEmoticonInit },
+	// lobbymain.cpp:1059
+	{ "GAMEROOM.emoticon", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnEmoticonBtnUp },
+	// lobbymain.cpp:1060
+	{ "GAMEROOM.language", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnLanguageInit },
+	// lobbymain.cpp:1061
+	{ "GAMEROOM.chatinput", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatInputInit },
+	// lobbymain.cpp:1062
+	{ "GAMEROOM.chatinput", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatInputEnterKey },
+	// lobbymain.cpp:1063
+	{ "GAMEROOM.chattarget", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetInit },
+	// lobbymain.cpp:1064
+	{ "GAMEROOM.chattarget", FRCMD_LBUTTONDOWN, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetBtnDown },
+	// lobbymain.cpp:1065
+	{ "GAMEROOM.chattarget", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatTargetEnterKey },
+	// lobbymain.cpp:1066
+	{ "GAMEROOM.chatview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_ChatViewInit },
+	// lobbymain.cpp:1067
+	{ "GAMEROOM.report", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnReportBtnUp },
+	// lobbymain.cpp:1069
+	{ "GAMEROOM.map_background", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapBgInit },
+	// lobbymain.cpp:1070
+	{ "GAMEROOM.map", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapInit },
+	// lobbymain.cpp:1071
+	{ "GAMEROOM.map", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapBtnUp },
+	// lobbymain.cpp:1072
+	{ "GAMEROOM.mapprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapPrevInit },
+	// lobbymain.cpp:1073
+	{ "GAMEROOM.mapnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapNextInit },
+	// lobbymain.cpp:1074
+	{ "GAMEROOM.mapprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapPrevBtnUp },
+	// lobbymain.cpp:1075
+	{ "GAMEROOM.mapnext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapNextBtnUp },
+	// lobbymain.cpp:1076
+	{ "GAMEROOM.mapcomboex", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapHoleComboInit },
+	// lobbymain.cpp:1077
+	{ "GAMEROOM.mapcomboex", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapHoleComboDown },
+	// lobbymain.cpp:1078
+	{ "GAMEROOM.overgauge", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapGaugeInit },
+	// lobbymain.cpp:1079
+	{ "GAMEROOM.maplock", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapLockInit },
+	// lobbymain.cpp:1081
+	{ "GAMEROOM.start_tip", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_StartTipInit },
+	// lobbymain.cpp:1082
+	{ "GAMEROOM.ready_tip", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ReadyTipInit },
+	// lobbymain.cpp:1083
+	{ "GAMEROOM.start", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_StartInit },
+	// lobbymain.cpp:1084
+	{ "GAMEROOM.start", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_StartBtnUp },
+	// lobbymain.cpp:1086
+	{ "GAMEROOM.ready", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ReadyInit },
+	// lobbymain.cpp:1087
+	{ "GAMEROOM.ready", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ReadyBtnUp },
+	// lobbymain.cpp:1089
+	{ "GAMEROOM.change_team", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ChangeTeamBtnInit },
+	// lobbymain.cpp:1090
+	{ "GAMEROOM.change_team", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ChangeTeamBtnUp },
+	// lobbymain.cpp:1091
+	{ "GAMEROOM.invite", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_UserListInit },
+	// lobbymain.cpp:1092
+	{ "GAMEROOM.invite", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_UserListBtnUp },
+	// lobbymain.cpp:1093
+	{ "GAMEROOM.modify", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_RoomOptionInit },
+	// lobbymain.cpp:1094
+	{ "GAMEROOM.modify", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomOptionBtnUp },
+	// lobbymain.cpp:1096
+	{ "GAMEROOM.powerbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_PowerBarInit },
+	// lobbymain.cpp:1097
+	{ "GAMEROOM.controlbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ControlBarInit },
+	// lobbymain.cpp:1098
+	{ "GAMEROOM.accuracybar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AccuracyBarInit },
+	// lobbymain.cpp:1099
+	{ "GAMEROOM.spinbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_SpinBarInit },
+	// lobbymain.cpp:1100
+	{ "GAMEROOM.curvebar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CurveBarInit },
+	// lobbymain.cpp:1101
+	{ "GAMEROOM.epower", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_PowerEditInit },
+	// lobbymain.cpp:1102
+	{ "GAMEROOM.econtrol", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ControlEditInit },
+	// lobbymain.cpp:1103
+	{ "GAMEROOM.eaccuracy", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AccuracyEditInit },
+	// lobbymain.cpp:1104
+	{ "GAMEROOM.espin", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_SpinEditInit },
+	// lobbymain.cpp:1105
+	{ "GAMEROOM.ecurve", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CurveEditInit },
+	// lobbymain.cpp:1108
+	{ "GAMEROOM.cur_char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharInit },
+	// lobbymain.cpp:1109
+	{ "GAMEROOM.cur_char", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CharDown },
+	// lobbymain.cpp:1110
+	{ "GAMEROOM.cur_char", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharOwnerDraw },
+	// lobbymain.cpp:1111
+	{ "GAMEROOM.cur_caddie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieInit },
+	// lobbymain.cpp:1112
+	{ "GAMEROOM.cur_caddie", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CaddieDown },
+	// lobbymain.cpp:1113
+	{ "GAMEROOM.cur_caddie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieOwnerDraw },
+	// lobbymain.cpp:1114
+	{ "GAMEROOM.cur_club", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubInit },
+	// lobbymain.cpp:1115
+	{ "GAMEROOM.cur_club", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ClubDown },
+	// lobbymain.cpp:1116
+	{ "GAMEROOM.cur_club", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubOwnerDraw },
+	// lobbymain.cpp:1117
+	{ "GAMEROOM.cur_aztec", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecInit },
+	// lobbymain.cpp:1118
+	{ "GAMEROOM.cur_aztec", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_AztecDown },
+	// lobbymain.cpp:1119
+	{ "GAMEROOM.cur_aztec", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecOwnerDraw },
+	// lobbymain.cpp:1120
+	{ "GAMEROOM.cur_mascot", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotInit },
+	// lobbymain.cpp:1121
+	{ "GAMEROOM.cur_mascot", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MascotDown },
+	// lobbymain.cpp:1122
+	{ "GAMEROOM.cur_mascot", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotOwnerDraw },
+	// lobbymain.cpp:1123
+	{ "GAMEROOM.cur_equip_item", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_EquipItemInit },
+	// lobbymain.cpp:1124
+	{ "GAMEROOM.cur_equip_item", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_EquipItemDown },
+	// lobbymain.cpp:1125
+	{ "GAMEROOM.cur_equip_item", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_EquipItemOwnerDraw },
+	// lobbymain.cpp:1127
+	{ "GAMEROOM.cur_char_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharSelInit },
+	// lobbymain.cpp:1128
+	{ "GAMEROOM.cur_char_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CharSelDown },
+	// lobbymain.cpp:1129
+	{ "GAMEROOM.cur_char_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharSelOwnerDraw },
+	// lobbymain.cpp:1130
+	{ "GAMEROOM.cur_caddie_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieSelInit },
+	// lobbymain.cpp:1131
+	{ "GAMEROOM.cur_caddie_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CaddieSelDown },
+	// lobbymain.cpp:1132
+	{ "GAMEROOM.cur_caddie_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieSelOwnerDraw },
+	// lobbymain.cpp:1133
+	{ "GAMEROOM.cur_club_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubSelInit },
+	// lobbymain.cpp:1134
+	{ "GAMEROOM.cur_club_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ClubSelDown },
+	// lobbymain.cpp:1135
+	{ "GAMEROOM.cur_club_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubSelOwnerDraw },
+	// lobbymain.cpp:1136
+	{ "GAMEROOM.cur_aztec_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecSelInit },
+	// lobbymain.cpp:1137
+	{ "GAMEROOM.cur_aztec_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_AztecSelDown },
+	// lobbymain.cpp:1138
+	{ "GAMEROOM.cur_aztec_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecSelOwnerDraw },
+	// lobbymain.cpp:1139
+	{ "GAMEROOM.cur_mascot_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotSelInit },
+	// lobbymain.cpp:1140
+	{ "GAMEROOM.cur_mascot_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MascotSelDown },
+	// lobbymain.cpp:1141
+	{ "GAMEROOM.cur_mascot_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotSelOwnerDraw },
+	// lobbymain.cpp:1143
+	{ "GAMEROOM.ubar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBarInit },
+	// lobbymain.cpp:1144
+	{ "GAMEROOM.ubar.back", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BackInit },
+	// lobbymain.cpp:1145
+	{ "GAMEROOM.ubar.back", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BackUp },
+	// lobbymain.cpp:1146
+	{ "GAMEROOM.ubar.back", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1147
+	{ "GAMEROOM.ubar.back", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1148
+	{ "GAMEROOM.ubar.front", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_FrontInit },
+	// lobbymain.cpp:1149
+	{ "GAMEROOM.ubar.front", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_FrontUp },
+	// lobbymain.cpp:1150
+	{ "GAMEROOM.ubar.front", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1151
+	{ "GAMEROOM.ubar.front", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1152
+	{ "GAMEROOM.ubar.shop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ShopInit },
+	// lobbymain.cpp:1153
+	{ "GAMEROOM.ubar.shop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ShopUp },
+	// lobbymain.cpp:1154
+	{ "GAMEROOM.ubar.shop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1155
+	{ "GAMEROOM.ubar.shop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1156
+	{ "GAMEROOM.ubar.myroom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MyRoomInit },
+	// lobbymain.cpp:1157
+	{ "GAMEROOM.ubar.myroom", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MyRoomUp },
+	// lobbymain.cpp:1158
+	{ "GAMEROOM.ubar.myroom", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1159
+	{ "GAMEROOM.ubar.myroom", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1160
+	{ "GAMEROOM.ubar.itemstorage", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ItemStorageInit },
+	// lobbymain.cpp:1161
+	{ "GAMEROOM.ubar.itemstorage", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ItemStorageUp },
+	// lobbymain.cpp:1162
+	{ "GAMEROOM.ubar.itemstorage", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1163
+	{ "GAMEROOM.ubar.itemstorage", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1164
+	{ "GAMEROOM.ubar.gift", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GiftInit },
+	// lobbymain.cpp:1165
+	{ "GAMEROOM.ubar.gift", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GiftUp },
+	// lobbymain.cpp:1166
+	{ "GAMEROOM.ubar.gift", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1167
+	{ "GAMEROOM.ubar.gift", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1168
+	{ "GAMEROOM.ubar.cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_CookieInit },
+	// lobbymain.cpp:1169
+	{ "GAMEROOM.ubar.cookie", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_CookieUp },
+	// lobbymain.cpp:1170
+	{ "GAMEROOM.ubar.cookie", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1171
+	{ "GAMEROOM.ubar.cookie", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1172
+	{ "GAMEROOM.ubar.game", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GameInit },
+	// lobbymain.cpp:1173
+	{ "GAMEROOM.ubar.game", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GameUp },
+	// lobbymain.cpp:1174
+	{ "GAMEROOM.ubar.game", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1175
+	{ "GAMEROOM.ubar.game", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1176
+	{ "GAMEROOM.ubar.server", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ServerInit },
+	// lobbymain.cpp:1177
+	{ "GAMEROOM.ubar.server", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ServerUp },
+	// lobbymain.cpp:1178
+	{ "GAMEROOM.ubar.server", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1179
+	{ "GAMEROOM.ubar.server", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1180
+	{ "GAMEROOM.ubar.exit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ExitInit },
+	// lobbymain.cpp:1181
+	{ "GAMEROOM.ubar.exit", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ExitUp },
+	// lobbymain.cpp:1182
+	{ "GAMEROOM.ubar.exit", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1183
+	{ "GAMEROOM.ubar.exit", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1184
+	{ "GAMEROOM.ubar.tabbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TabBtnInit },
+	// lobbymain.cpp:1185
+	{ "GAMEROOM.ubar.tabbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TabBtnUp },
+	// lobbymain.cpp:1188
+	{ "GAMEROOM.utab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderTab_Init },
+	// lobbymain.cpp:1190
+	{ "GAMEROOM.utab.magicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MagicBoxInit },
+	// lobbymain.cpp:1191
+	{ "GAMEROOM.utab.magicbox", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MagicBoxUp },
+	// lobbymain.cpp:1192
+	{ "GAMEROOM.utab.magicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1193
+	{ "GAMEROOM.utab.magicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1195
+	{ "GAMEROOM.utab.tikimagicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TikiMagicBoxInit },
+	// lobbymain.cpp:1196
+	{ "GAMEROOM.utab.tikimagicbox", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TikiMagicBoxUp },
+	// lobbymain.cpp:1197
+	{ "GAMEROOM.utab.tikimagicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1198
+	{ "GAMEROOM.utab.tikimagicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1220
+	{ "GAMEROOM.utab.scratch", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ScratchInit },
+	// lobbymain.cpp:1221
+	{ "GAMEROOM.utab.scratch", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ScratchUp },
+	// lobbymain.cpp:1222
+	{ "GAMEROOM.utab.scratch", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1223
+	{ "GAMEROOM.utab.scratch", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1225
+	{ "GAMEROOM.utab.bongdarishop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BongdariShopInit },
+	// lobbymain.cpp:1226
+	{ "GAMEROOM.utab.bongdarishop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BongdariShopUp },
+	// lobbymain.cpp:1227
+	{ "GAMEROOM.utab.bongdarishop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1228
+	{ "GAMEROOM.utab.bongdarishop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1229
+	{ "GAMEROOM.utab.ranking", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_RankingInit },
+	// lobbymain.cpp:1230
+	{ "GAMEROOM.utab.ranking", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_RankingUp },
+	// lobbymain.cpp:1231
+	{ "GAMEROOM.utab.ranking", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1232
+	{ "GAMEROOM.utab.ranking", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1233
+	{ "GAMEROOM.utab.guild", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GuildInit },
+	// lobbymain.cpp:1234
+	{ "GAMEROOM.utab.guild", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GuildUp },
+	// lobbymain.cpp:1235
+	{ "GAMEROOM.utab.guild", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1236
+	{ "GAMEROOM.utab.guild", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1237
+	{ "GAMEROOM.utab.notice", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_NoticeInit },
+	// lobbymain.cpp:1238
+	{ "GAMEROOM.utab.notice", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_NoticeUp },
+	// lobbymain.cpp:1239
+	{ "GAMEROOM.utab.notice", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1240
+	{ "GAMEROOM.utab.notice", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1243
+	{ "GAMEROOM.utab.maket", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MaketInit },
+	// lobbymain.cpp:1244
+	{ "GAMEROOM.utab.maket", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MaketUp },
+	// lobbymain.cpp:1245
+	{ "GAMEROOM.utab.maket", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1246
+	{ "GAMEROOM.utab.maket", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1257
+	{ "GAMEROOM.obar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_Init },
+	// lobbymain.cpp:1258
+	{ "GAMEROOM.obar.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_TitleInit },
+	// lobbymain.cpp:1259
+	{ "GAMEROOM.obar.site", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SiteInit },
+	// lobbymain.cpp:1260
+	{ "GAMEROOM.obar.char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharInit },
+	// lobbymain.cpp:1261
+	{ "GAMEROOM.obar.char", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CharDown },
+	// lobbymain.cpp:1262
+	{ "GAMEROOM.obar.char", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharOwnerDraw },
+	// lobbymain.cpp:1263
+	{ "GAMEROOM.obar.caddie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieInit },
+	// lobbymain.cpp:1264
+	{ "GAMEROOM.obar.caddie", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CaddieDown },
+	// lobbymain.cpp:1265
+	{ "GAMEROOM.obar.caddie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieOwnerDraw },
+	// lobbymain.cpp:1266
+	{ "GAMEROOM.obar.club", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubInit },
+	// lobbymain.cpp:1267
+	{ "GAMEROOM.obar.club", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_ClubDown },
+	// lobbymain.cpp:1268
+	{ "GAMEROOM.obar.club", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubOwnerDraw },
+	// lobbymain.cpp:1269
+	{ "GAMEROOM.obar.aztec", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecInit },
+	// lobbymain.cpp:1270
+	{ "GAMEROOM.obar.aztec", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_AztecDown },
+	// lobbymain.cpp:1271
+	{ "GAMEROOM.obar.aztec", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecOwnerDraw },
+	// lobbymain.cpp:1272
+	{ "GAMEROOM.obar.mascot", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotInit },
+	// lobbymain.cpp:1273
+	{ "GAMEROOM.obar.mascot", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MascotDown },
+	// lobbymain.cpp:1274
+	{ "GAMEROOM.obar.mascot", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotOwnerDraw },
+	// lobbymain.cpp:1275
+	{ "GAMEROOM.obar.char_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelInit },
+	// lobbymain.cpp:1276
+	{ "GAMEROOM.obar.char_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelOwnerDraw },
+	// lobbymain.cpp:1277
+	{ "GAMEROOM.obar.caddie_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelInit },
+	// lobbymain.cpp:1278
+	{ "GAMEROOM.obar.caddie_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelOwnerDraw },
+	// lobbymain.cpp:1279
+	{ "GAMEROOM.obar.club_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelInit },
+	// lobbymain.cpp:1280
+	{ "GAMEROOM.obar.club_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelOwnerDraw },
+	// lobbymain.cpp:1281
+	{ "GAMEROOM.obar.aztec_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelInit },
+	// lobbymain.cpp:1282
+	{ "GAMEROOM.obar.aztec_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelOwnerDraw },
+	// lobbymain.cpp:1283
+	{ "GAMEROOM.obar.mascot_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelInit },
+	// lobbymain.cpp:1284
+	{ "GAMEROOM.obar.mascot_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelOwnerDraw },
+	// lobbymain.cpp:1285
+	{ "GAMEROOM.obar.pang_cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieInit },
+	// lobbymain.cpp:1286
+	{ "GAMEROOM.obar.pang_cookie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieOwnerDraw },
+	// lobbymain.cpp:1287
+	{ "GAMEROOM.obar.onelinemsg_req", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineReqBtnInit },
+	// lobbymain.cpp:1288
+	{ "GAMEROOM.obar.onelinemsg_req", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OneLineReqBtnUp },
+	// lobbymain.cpp:1289
+	{ "GAMEROOM.obar.onelineview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewInit },
+	// lobbymain.cpp:1290
+	{ "GAMEROOM.obar.onelineview", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewOwnerDraw },
+	// lobbymain.cpp:1291
+	{ "GAMEROOM.obar.spcard", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SpecialCardInit },
+	// lobbymain.cpp:1292
+	{ "GAMEROOM.obar.spcard", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_SpecialCardUp },
+	// lobbymain.cpp:1293
+	{ "GAMEROOM.obar.spcard", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1294
+	{ "GAMEROOM.obar.spcard", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1295
+	{ "GAMEROOM.obar.messenger", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MessengerInit },
+	// lobbymain.cpp:1296
+	{ "GAMEROOM.obar.messenger", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MessengerUp },
+	// lobbymain.cpp:1297
+	{ "GAMEROOM.obar.messenger", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1298
+	{ "GAMEROOM.obar.messenger", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1299
+	{ "GAMEROOM.obar.myinfo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MyInfoInit },
+	// lobbymain.cpp:1300
+	{ "GAMEROOM.obar.myinfo", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MyInfoUp },
+	// lobbymain.cpp:1301
+	{ "GAMEROOM.obar.myinfo", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1302
+	{ "GAMEROOM.obar.myinfo", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1303
+	{ "GAMEROOM.obar.option", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OptionInit },
+	// lobbymain.cpp:1304
+	{ "GAMEROOM.obar.option", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OptionUp },
+	// lobbymain.cpp:1305
+	{ "GAMEROOM.obar.option", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1306
+	{ "GAMEROOM.obar.option", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1308
+	{ "GAMEROOM.obar.messenger_bubble", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleInit },
+	// lobbymain.cpp:1309
+	{ "GAMEROOM.obar.messenger_bubble", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleOwnerDraw },
+	// lobbymain.cpp:1310
+	{ "GAMEROOM.obar.messenger_desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleEditInit },
+	// lobbymain.cpp:1311
+	{ "GAMEROOM.obar.messenger_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerAlarmBtnInit },
+	// lobbymain.cpp:1312
+	{ "GAMEROOM.obar.messenger_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerAlarmBtnUp },
+	// lobbymain.cpp:1313
+	{ "GAMEROOM.obar.gift_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerGiftAlarmBtnInit },
+	// lobbymain.cpp:1314
+	{ "GAMEROOM.obar.gift_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerGiftAlarmBtnUp },
+	// lobbymain.cpp:1315
+	{ "GAMEROOM.obar.tooltip", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarTooltipOwnerDraw },
+	// lobbymain.cpp:1316
+	{ "GAMEROOM.treasure_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnTreasureAlarmInit },
+	// lobbymain.cpp:1317
+	{ "GAMEROOM.treasure_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnTreasureAlarmUp },
+	// lobbymain.cpp:1320
+	{ "GAMEROOM_EXT", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_Init },
+	// lobbymain.cpp:1321
+	{ "GAMEROOM_EXT", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExt_Finish },
+	// lobbymain.cpp:1322
+	{ "GAMEROOM_EXT", FRCMD_DESTROY, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExt_Destroy },
+	// lobbymain.cpp:1324
+	{ "GAMEROOM_EXT.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_TitleInit },
+	// lobbymain.cpp:1325
+	{ "GAMEROOM_EXT.room_event", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_EventOwnerDraw },
+	// lobbymain.cpp:1327
+	{ "GAMEROOM_EXT.user", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_RoomUserInit },
+	// lobbymain.cpp:1328
+	{ "GAMEROOM_EXT.user", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_RoomUserOwnerDraw },
+	// lobbymain.cpp:1329
+	{ "GAMEROOM_EXT.user", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserLBtnUp },
+	// lobbymain.cpp:1330
+	{ "GAMEROOM_EXT.user", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserRBtnUp },
+	// lobbymain.cpp:1331
+	{ "GAMEROOM_EXT.user", FRCMD_DBLCLICK, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserDClick },
+	// lobbymain.cpp:1332
+	{ "GAMEROOM_EXT.30_team1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamTab1Init },
+	// lobbymain.cpp:1333
+	{ "GAMEROOM_EXT.30_team2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamTab2Init },
+	// lobbymain.cpp:1334
+	{ "GAMEROOM_EXT.30_guild1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildTab1Init },
+	// lobbymain.cpp:1335
+	{ "GAMEROOM_EXT.30_guild2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildTab2Init },
+	// lobbymain.cpp:1336
+	{ "GAMEROOM_EXT.30_team_num", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamNumInit },
+	// lobbymain.cpp:1337
+	{ "GAMEROOM_EXT.30_team_num", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamNumOwnerDraw },
+	// lobbymain.cpp:1338
+	{ "GAMEROOM_EXT.30_guild_num", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildNumInit },
+	// lobbymain.cpp:1339
+	{ "GAMEROOM_EXT.30_guild_num", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildNumOwnerDraw },
+	// lobbymain.cpp:1341
+	{ "GAMEROOM_EXT.chatbg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgInit },
+	// lobbymain.cpp:1342
+	{ "GAMEROOM_EXT.chatbg", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgOwnerDraw },
+	// lobbymain.cpp:1343
+	{ "GAMEROOM_EXT.chatwndbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatWndBtnInit },
+	// lobbymain.cpp:1344
+	{ "GAMEROOM_EXT.chatwndbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnChatWndBtnUp },
+	// lobbymain.cpp:1345
+	{ "GAMEROOM_EXT.emoticon", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnEmoticonInit },
+	// lobbymain.cpp:1346
+	{ "GAMEROOM_EXT.emoticon", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnEmoticonBtnUp },
+	// lobbymain.cpp:1347
+	{ "GAMEROOM_EXT.language", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnLanguageInit },
+	// lobbymain.cpp:1348
+	{ "GAMEROOM_EXT.chatinput", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatInputInit },
+	// lobbymain.cpp:1349
+	{ "GAMEROOM_EXT.chatinput", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatInputEnterKey },
+	// lobbymain.cpp:1350
+	{ "GAMEROOM_EXT.chattarget", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetInit },
+	// lobbymain.cpp:1351
+	{ "GAMEROOM_EXT.chattarget", FRCMD_LBUTTONDOWN, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetBtnDown },
+	// lobbymain.cpp:1352
+	{ "GAMEROOM_EXT.chattarget", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatTargetEnterKey },
+	// lobbymain.cpp:1353
+	{ "GAMEROOM_EXT.chatview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_ChatViewInit },
+	// lobbymain.cpp:1354
+	{ "GAMEROOM_EXT.report", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnReportBtnUp },
+	// lobbymain.cpp:1356
+	{ "GAMEROOM_EXT.map_background", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapBgInit },
+	// lobbymain.cpp:1357
+	{ "GAMEROOM_EXT.map", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapInit },
+	// lobbymain.cpp:1358
+	{ "GAMEROOM_EXT.map", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapBtnUp },
+	// lobbymain.cpp:1359
+	{ "GAMEROOM_EXT.mapprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapPrevInit },
+	// lobbymain.cpp:1360
+	{ "GAMEROOM_EXT.mapnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapNextInit },
+	// lobbymain.cpp:1361
+	{ "GAMEROOM_EXT.mapprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapPrevBtnUp },
+	// lobbymain.cpp:1362
+	{ "GAMEROOM_EXT.mapnext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapNextBtnUp },
+	// lobbymain.cpp:1363
+	{ "GAMEROOM_EXT.mapcomboex", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapHoleComboInit },
+	// lobbymain.cpp:1364
+	{ "GAMEROOM_EXT.mapcomboex", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MapHoleComboDown },
+	// lobbymain.cpp:1366
+	{ "GAMEROOM_EXT.overgauge", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapGaugeInit },
+	// lobbymain.cpp:1367
+	{ "GAMEROOM_EXT.maplock", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MapLockInit },
+	// lobbymain.cpp:1369
+	{ "GAMEROOM_EXT.start_tip", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_StartTipInit },
+	// lobbymain.cpp:1370
+	{ "GAMEROOM_EXT.ready_tip", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ReadyTipInit },
+	// lobbymain.cpp:1371
+	{ "GAMEROOM_EXT.start", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_StartInit },
+	// lobbymain.cpp:1372
+	{ "GAMEROOM_EXT.start", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_StartBtnUp },
+	// lobbymain.cpp:1374
+	{ "GAMEROOM_EXT.ready", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ReadyInit },
+	// lobbymain.cpp:1375
+	{ "GAMEROOM_EXT.ready", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ReadyBtnUp },
+	// lobbymain.cpp:1377
+	{ "GAMEROOM_EXT.change_team", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ChangeTeamBtnInit },
+	// lobbymain.cpp:1378
+	{ "GAMEROOM_EXT.change_team", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ChangeTeamBtnUp },
+	// lobbymain.cpp:1379
+	{ "GAMEROOM_EXT.invite", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildInviteInit },
+	// lobbymain.cpp:1380
+	{ "GAMEROOM_EXT.invite", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExt_GuildInviteLBtnUp },
+	// lobbymain.cpp:1381
+	{ "GAMEROOM_EXT.modify", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_RoomOptionInit },
+	// lobbymain.cpp:1382
+	{ "GAMEROOM_EXT.modify", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomOptionBtnUp },
+	// lobbymain.cpp:1384
+	{ "GAMEROOM_EXT.powerbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_PowerBarInit },
+	// lobbymain.cpp:1385
+	{ "GAMEROOM_EXT.controlbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ControlBarInit },
+	// lobbymain.cpp:1386
+	{ "GAMEROOM_EXT.accuracybar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AccuracyBarInit },
+	// lobbymain.cpp:1387
+	{ "GAMEROOM_EXT.spinbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_SpinBarInit },
+	// lobbymain.cpp:1388
+	{ "GAMEROOM_EXT.curvebar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CurveBarInit },
+	// lobbymain.cpp:1389
+	{ "GAMEROOM_EXT.epower", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_PowerEditInit },
+	// lobbymain.cpp:1390
+	{ "GAMEROOM_EXT.econtrol", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ControlEditInit },
+	// lobbymain.cpp:1391
+	{ "GAMEROOM_EXT.eaccuracy", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AccuracyEditInit },
+	// lobbymain.cpp:1392
+	{ "GAMEROOM_EXT.espin", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_SpinEditInit },
+	// lobbymain.cpp:1393
+	{ "GAMEROOM_EXT.ecurve", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CurveEditInit },
+	// lobbymain.cpp:1395
+	{ "GAMEROOM_EXT.cur_char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharInit },
+	// lobbymain.cpp:1396
+	{ "GAMEROOM_EXT.cur_char", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CharDown },
+	// lobbymain.cpp:1397
+	{ "GAMEROOM_EXT.cur_char", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharOwnerDraw },
+	// lobbymain.cpp:1398
+	{ "GAMEROOM_EXT.cur_caddie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieInit },
+	// lobbymain.cpp:1399
+	{ "GAMEROOM_EXT.cur_caddie", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CaddieDown },
+	// lobbymain.cpp:1400
+	{ "GAMEROOM_EXT.cur_caddie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieOwnerDraw },
+	// lobbymain.cpp:1401
+	{ "GAMEROOM_EXT.cur_club", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubInit },
+	// lobbymain.cpp:1402
+	{ "GAMEROOM_EXT.cur_club", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ClubDown },
+	// lobbymain.cpp:1403
+	{ "GAMEROOM_EXT.cur_club", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubOwnerDraw },
+	// lobbymain.cpp:1404
+	{ "GAMEROOM_EXT.cur_aztec", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecInit },
+	// lobbymain.cpp:1405
+	{ "GAMEROOM_EXT.cur_aztec", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_AztecDown },
+	// lobbymain.cpp:1406
+	{ "GAMEROOM_EXT.cur_aztec", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecOwnerDraw },
+	// lobbymain.cpp:1407
+	{ "GAMEROOM_EXT.cur_mascot", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotInit },
+	// lobbymain.cpp:1408
+	{ "GAMEROOM_EXT.cur_mascot", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MascotDown },
+	// lobbymain.cpp:1409
+	{ "GAMEROOM_EXT.cur_mascot", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotOwnerDraw },
+	// lobbymain.cpp:1410
+	{ "GAMEROOM_EXT.cur_equip_item", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_EquipItemInit },
+	// lobbymain.cpp:1411
+	{ "GAMEROOM_EXT.cur_equip_item", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_EquipItemDown },
+	// lobbymain.cpp:1412
+	{ "GAMEROOM_EXT.cur_equip_item", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_EquipItemOwnerDraw },
+	// lobbymain.cpp:1414
+	{ "GAMEROOM_EXT.cur_char_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharSelInit },
+	// lobbymain.cpp:1415
+	{ "GAMEROOM_EXT.cur_char_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CharSelDown },
+	// lobbymain.cpp:1416
+	{ "GAMEROOM_EXT.cur_char_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CharSelOwnerDraw },
+	// lobbymain.cpp:1417
+	{ "GAMEROOM_EXT.cur_caddie_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieSelInit },
+	// lobbymain.cpp:1418
+	{ "GAMEROOM_EXT.cur_caddie_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_CaddieSelDown },
+	// lobbymain.cpp:1419
+	{ "GAMEROOM_EXT.cur_caddie_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_CaddieSelOwnerDraw },
+	// lobbymain.cpp:1420
+	{ "GAMEROOM_EXT.cur_club_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubSelInit },
+	// lobbymain.cpp:1421
+	{ "GAMEROOM_EXT.cur_club_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ClubSelDown },
+	// lobbymain.cpp:1422
+	{ "GAMEROOM_EXT.cur_club_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ClubSelOwnerDraw },
+	// lobbymain.cpp:1423
+	{ "GAMEROOM_EXT.cur_aztec_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecSelInit },
+	// lobbymain.cpp:1424
+	{ "GAMEROOM_EXT.cur_aztec_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_AztecSelDown },
+	// lobbymain.cpp:1425
+	{ "GAMEROOM_EXT.cur_aztec_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_AztecSelOwnerDraw },
+	// lobbymain.cpp:1426
+	{ "GAMEROOM_EXT.cur_mascot_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotSelInit },
+	// lobbymain.cpp:1427
+	{ "GAMEROOM_EXT.cur_mascot_sel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_MascotSelDown },
+	// lobbymain.cpp:1428
+	{ "GAMEROOM_EXT.cur_mascot_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_MascotSelOwnerDraw },
+	// lobbymain.cpp:1430
+	{ "GAMEROOM_EXT.ubar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBarInit },
+	// lobbymain.cpp:1431
+	{ "GAMEROOM_EXT.ubar.back", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BackInit },
+	// lobbymain.cpp:1432
+	{ "GAMEROOM_EXT.ubar.back", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BackUp },
+	// lobbymain.cpp:1433
+	{ "GAMEROOM_EXT.ubar.back", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1434
+	{ "GAMEROOM_EXT.ubar.back", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1435
+	{ "GAMEROOM_EXT.ubar.front", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_FrontInit },
+	// lobbymain.cpp:1436
+	{ "GAMEROOM_EXT.ubar.front", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_FrontUp },
+	// lobbymain.cpp:1437
+	{ "GAMEROOM_EXT.ubar.front", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1438
+	{ "GAMEROOM_EXT.ubar.front", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1439
+	{ "GAMEROOM_EXT.ubar.shop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ShopInit },
+	// lobbymain.cpp:1440
+	{ "GAMEROOM_EXT.ubar.shop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ShopUp },
+	// lobbymain.cpp:1441
+	{ "GAMEROOM_EXT.ubar.shop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1442
+	{ "GAMEROOM_EXT.ubar.shop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1443
+	{ "GAMEROOM_EXT.ubar.myroom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MyRoomInit },
+	// lobbymain.cpp:1444
+	{ "GAMEROOM_EXT.ubar.myroom", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MyRoomUp },
+	// lobbymain.cpp:1445
+	{ "GAMEROOM_EXT.ubar.myroom", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1446
+	{ "GAMEROOM_EXT.ubar.myroom", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1447
+	{ "GAMEROOM_EXT.ubar.itemstorage", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ItemStorageInit },
+	// lobbymain.cpp:1448
+	{ "GAMEROOM_EXT.ubar.itemstorage", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ItemStorageUp },
+	// lobbymain.cpp:1449
+	{ "GAMEROOM_EXT.ubar.itemstorage", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1450
+	{ "GAMEROOM_EXT.ubar.itemstorage", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1451
+	{ "GAMEROOM_EXT.ubar.gift", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GiftInit },
+	// lobbymain.cpp:1452
+	{ "GAMEROOM_EXT.ubar.gift", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GiftUp },
+	// lobbymain.cpp:1453
+	{ "GAMEROOM_EXT.ubar.gift", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1454
+	{ "GAMEROOM_EXT.ubar.gift", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1455
+	{ "GAMEROOM_EXT.ubar.cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_CookieInit },
+	// lobbymain.cpp:1456
+	{ "GAMEROOM_EXT.ubar.cookie", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_CookieUp },
+	// lobbymain.cpp:1457
+	{ "GAMEROOM_EXT.ubar.cookie", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1458
+	{ "GAMEROOM_EXT.ubar.cookie", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1459
+	{ "GAMEROOM_EXT.ubar.game", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GameInit },
+	// lobbymain.cpp:1460
+	{ "GAMEROOM_EXT.ubar.game", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GameUp },
+	// lobbymain.cpp:1461
+	{ "GAMEROOM_EXT.ubar.game", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1462
+	{ "GAMEROOM_EXT.ubar.game", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1463
+	{ "GAMEROOM_EXT.ubar.server", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ServerInit },
+	// lobbymain.cpp:1464
+	{ "GAMEROOM_EXT.ubar.server", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ServerUp },
+	// lobbymain.cpp:1465
+	{ "GAMEROOM_EXT.ubar.server", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1466
+	{ "GAMEROOM_EXT.ubar.server", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1467
+	{ "GAMEROOM_EXT.ubar.exit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ExitInit },
+	// lobbymain.cpp:1468
+	{ "GAMEROOM_EXT.ubar.exit", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ExitUp },
+	// lobbymain.cpp:1469
+	{ "GAMEROOM_EXT.ubar.exit", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1470
+	{ "GAMEROOM_EXT.ubar.exit", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1471
+	{ "GAMEROOM_EXT.ubar.tabbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TabBtnInit },
+	// lobbymain.cpp:1472
+	{ "GAMEROOM_EXT.ubar.tabbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TabBtnUp },
+	// lobbymain.cpp:1475
+	{ "GAMEROOM_EXT.utab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderTab_Init },
+	// lobbymain.cpp:1477
+	{ "GAMEROOM_EXT.utab.magicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MagicBoxInit },
+	// lobbymain.cpp:1478
+	{ "GAMEROOM_EXT.utab.magicbox", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MagicBoxUp },
+	// lobbymain.cpp:1479
+	{ "GAMEROOM_EXT.utab.magicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1480
+	{ "GAMEROOM_EXT.utab.magicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1482
+	{ "GAMEROOM_EXT.utab.tikimagicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TikiMagicBoxInit },
+	// lobbymain.cpp:1483
+	{ "GAMEROOM_EXT.utab.tikimagicbox", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TikiMagicBoxUp },
+	// lobbymain.cpp:1484
+	{ "GAMEROOM_EXT.utab.tikimagicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1485
+	{ "GAMEROOM_EXT.utab.tikimagicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1507
+	{ "GAMEROOM_EXT.utab.scratch", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ScratchInit },
+	// lobbymain.cpp:1508
+	{ "GAMEROOM_EXT.utab.scratch", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ScratchUp },
+	// lobbymain.cpp:1509
+	{ "GAMEROOM_EXT.utab.scratch", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1510
+	{ "GAMEROOM_EXT.utab.scratch", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1512
+	{ "GAMEROOM_EXT.utab.bongdarishop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BongdariShopInit },
+	// lobbymain.cpp:1513
+	{ "GAMEROOM_EXT.utab.bongdarishop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BongdariShopUp },
+	// lobbymain.cpp:1514
+	{ "GAMEROOM_EXT.utab.bongdarishop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1515
+	{ "GAMEROOM_EXT.utab.bongdarishop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1516
+	{ "GAMEROOM_EXT.utab.ranking", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_RankingInit },
+	// lobbymain.cpp:1517
+	{ "GAMEROOM_EXT.utab.ranking", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_RankingUp },
+	// lobbymain.cpp:1518
+	{ "GAMEROOM_EXT.utab.ranking", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1519
+	{ "GAMEROOM_EXT.utab.ranking", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1520
+	{ "GAMEROOM_EXT.utab.guild", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GuildInit },
+	// lobbymain.cpp:1521
+	{ "GAMEROOM_EXT.utab.guild", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GuildUp },
+	// lobbymain.cpp:1522
+	{ "GAMEROOM_EXT.utab.guild", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1523
+	{ "GAMEROOM_EXT.utab.guild", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1524
+	{ "GAMEROOM_EXT.utab.notice", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_NoticeInit },
+	// lobbymain.cpp:1525
+	{ "GAMEROOM_EXT.utab.notice", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_NoticeUp },
+	// lobbymain.cpp:1526
+	{ "GAMEROOM_EXT.utab.notice", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1527
+	{ "GAMEROOM_EXT.utab.notice", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1530
+	{ "GAMEROOM_EXT.utab.maket", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MaketInit },
+	// lobbymain.cpp:1531
+	{ "GAMEROOM_EXT.utab.maket", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MaketUp },
+	// lobbymain.cpp:1532
+	{ "GAMEROOM_EXT.utab.maket", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1533
+	{ "GAMEROOM_EXT.utab.maket", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1544
+	{ "GAMEROOM_EXT.obar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_Init },
+	// lobbymain.cpp:1545
+	{ "GAMEROOM_EXT.obar.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_TitleInit },
+	// lobbymain.cpp:1546
+	{ "GAMEROOM_EXT.obar.site", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SiteInit },
+	// lobbymain.cpp:1547
+	{ "GAMEROOM_EXT.obar.char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharInit },
+	// lobbymain.cpp:1548
+	{ "GAMEROOM_EXT.obar.char", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CharDown },
+	// lobbymain.cpp:1549
+	{ "GAMEROOM_EXT.obar.char", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharOwnerDraw },
+	// lobbymain.cpp:1550
+	{ "GAMEROOM_EXT.obar.caddie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieInit },
+	// lobbymain.cpp:1551
+	{ "GAMEROOM_EXT.obar.caddie", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CaddieDown },
+	// lobbymain.cpp:1552
+	{ "GAMEROOM_EXT.obar.caddie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieOwnerDraw },
+	// lobbymain.cpp:1553
+	{ "GAMEROOM_EXT.obar.club", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubInit },
+	// lobbymain.cpp:1554
+	{ "GAMEROOM_EXT.obar.club", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_ClubDown },
+	// lobbymain.cpp:1555
+	{ "GAMEROOM_EXT.obar.club", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubOwnerDraw },
+	// lobbymain.cpp:1556
+	{ "GAMEROOM_EXT.obar.aztec", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecInit },
+	// lobbymain.cpp:1557
+	{ "GAMEROOM_EXT.obar.aztec", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_AztecDown },
+	// lobbymain.cpp:1558
+	{ "GAMEROOM_EXT.obar.aztec", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecOwnerDraw },
+	// lobbymain.cpp:1559
+	{ "GAMEROOM_EXT.obar.mascot", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotInit },
+	// lobbymain.cpp:1560
+	{ "GAMEROOM_EXT.obar.mascot", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MascotDown },
+	// lobbymain.cpp:1561
+	{ "GAMEROOM_EXT.obar.mascot", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotOwnerDraw },
+	// lobbymain.cpp:1562
+	{ "GAMEROOM_EXT.obar.char_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelInit },
+	// lobbymain.cpp:1563
+	{ "GAMEROOM_EXT.obar.char_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelOwnerDraw },
+	// lobbymain.cpp:1564
+	{ "GAMEROOM_EXT.obar.caddie_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelInit },
+	// lobbymain.cpp:1565
+	{ "GAMEROOM_EXT.obar.caddie_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelOwnerDraw },
+	// lobbymain.cpp:1566
+	{ "GAMEROOM_EXT.obar.club_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelInit },
+	// lobbymain.cpp:1567
+	{ "GAMEROOM_EXT.obar.club_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelOwnerDraw },
+	// lobbymain.cpp:1568
+	{ "GAMEROOM_EXT.obar.aztec_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelInit },
+	// lobbymain.cpp:1569
+	{ "GAMEROOM_EXT.obar.aztec_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelOwnerDraw },
+	// lobbymain.cpp:1570
+	{ "GAMEROOM_EXT.obar.mascot_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelInit },
+	// lobbymain.cpp:1571
+	{ "GAMEROOM_EXT.obar.mascot_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelOwnerDraw },
+	// lobbymain.cpp:1572
+	{ "GAMEROOM_EXT.obar.pang_cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieInit },
+	// lobbymain.cpp:1573
+	{ "GAMEROOM_EXT.obar.pang_cookie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieOwnerDraw },
+	// lobbymain.cpp:1574
+	{ "GAMEROOM_EXT.obar.onelinemsg_req", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineReqBtnInit },
+	// lobbymain.cpp:1575
+	{ "GAMEROOM_EXT.obar.onelinemsg_req", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OneLineReqBtnUp },
+	// lobbymain.cpp:1576
+	{ "GAMEROOM_EXT.obar.onelineview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewInit },
+	// lobbymain.cpp:1577
+	{ "GAMEROOM_EXT.obar.onelineview", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewOwnerDraw },
+	// lobbymain.cpp:1578
+	{ "GAMEROOM_EXT.obar.spcard", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SpecialCardInit },
+	// lobbymain.cpp:1579
+	{ "GAMEROOM_EXT.obar.spcard", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_SpecialCardUp },
+	// lobbymain.cpp:1580
+	{ "GAMEROOM_EXT.obar.spcard", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1581
+	{ "GAMEROOM_EXT.obar.spcard", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1582
+	{ "GAMEROOM_EXT.obar.messenger", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MessengerInit },
+	// lobbymain.cpp:1583
+	{ "GAMEROOM_EXT.obar.messenger", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MessengerUp },
+	// lobbymain.cpp:1584
+	{ "GAMEROOM_EXT.obar.messenger", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1585
+	{ "GAMEROOM_EXT.obar.messenger", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1586
+	{ "GAMEROOM_EXT.obar.myinfo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MyInfoInit },
+	// lobbymain.cpp:1587
+	{ "GAMEROOM_EXT.obar.myinfo", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MyInfoUp },
+	// lobbymain.cpp:1588
+	{ "GAMEROOM_EXT.obar.myinfo", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1589
+	{ "GAMEROOM_EXT.obar.myinfo", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1590
+	{ "GAMEROOM_EXT.obar.option", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OptionInit },
+	// lobbymain.cpp:1591
+	{ "GAMEROOM_EXT.obar.option", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OptionUp },
+	// lobbymain.cpp:1592
+	{ "GAMEROOM_EXT.obar.option", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1593
+	{ "GAMEROOM_EXT.obar.option", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1594
+	{ "GAMEROOM_EXT.countdown", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_CountdownInit },
+	// lobbymain.cpp:1596
+	{ "GAMEROOM_EXT.obar.messenger_bubble", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleInit },
+	// lobbymain.cpp:1597
+	{ "GAMEROOM_EXT.obar.messenger_bubble", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleOwnerDraw },
+	// lobbymain.cpp:1598
+	{ "GAMEROOM_EXT.obar.messenger_desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleEditInit },
+	// lobbymain.cpp:1599
+	{ "GAMEROOM_EXT.obar.messenger_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerAlarmBtnInit },
+	// lobbymain.cpp:1600
+	{ "GAMEROOM_EXT.obar.messenger_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerAlarmBtnUp },
+	// lobbymain.cpp:1601
+	{ "GAMEROOM_EXT.obar.gift_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerGiftAlarmBtnInit },
+	// lobbymain.cpp:1602
+	{ "GAMEROOM_EXT.obar.gift_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerGiftAlarmBtnUp },
+	// lobbymain.cpp:1603
+	{ "GAMEROOM_EXT.obar.tooltip", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarTooltipOwnerDraw },
+	// lobbymain.cpp:1604
+	{ "GAMEROOM_EXT.treasure_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnTreasureAlarmInit },
+	// lobbymain.cpp:1605
+	{ "GAMEROOM_EXT.treasure_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnTreasureAlarmUp },
+	// lobbymain.cpp:1608
+	{ "GAMEROOM_EXTRES", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExtRes_Init },
+	// lobbymain.cpp:1609
+	{ "GAMEROOM_EXTRES", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExtRes_Finish },
+	// lobbymain.cpp:1610
+	{ "GAMEROOM_EXTRES", FRCMD_DESTROY, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExtRes_Destroy },
+	// lobbymain.cpp:1613
+	{ "GAMEROOM_EXTRES.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_TitleInit },
+	// lobbymain.cpp:1614
+	{ "GAMEROOM_EXTRES.room_event", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_EventOwnerDraw },
+	// lobbymain.cpp:1616
+	{ "GAMEROOM_EXTRES.user", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_RoomUserInit },
+	// lobbymain.cpp:1617
+	{ "GAMEROOM_EXTRES.user", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_RoomUserOwnerDraw },
+	// lobbymain.cpp:1618
+	{ "GAMEROOM_EXTRES.user", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserLBtnUp },
+	// lobbymain.cpp:1619
+	{ "GAMEROOM_EXTRES.user", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserRBtnUp },
+	// lobbymain.cpp:1620
+	{ "GAMEROOM_EXTRES.user", FRCMD_DBLCLICK, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_RoomUserDClick },
+	// lobbymain.cpp:1621
+	{ "GAMEROOM_EXTRES.30_team1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamTab1Init },
+	// lobbymain.cpp:1622
+	{ "GAMEROOM_EXTRES.30_team2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamTab2Init },
+	// lobbymain.cpp:1623
+	{ "GAMEROOM_EXTRES.30_guild1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildTab1Init },
+	// lobbymain.cpp:1624
+	{ "GAMEROOM_EXTRES.30_guild2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildTab2Init },
+	// lobbymain.cpp:1625
+	{ "GAMEROOM_EXTRES.30_team_num", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamNumInit },
+	// lobbymain.cpp:1626
+	{ "GAMEROOM_EXTRES.30_team_num", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_TeamNumOwnerDraw },
+	// lobbymain.cpp:1627
+	{ "GAMEROOM_EXTRES.30_guild_num", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildNumInit },
+	// lobbymain.cpp:1628
+	{ "GAMEROOM_EXTRES.30_guild_num", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_GuildNumOwnerDraw },
+	// lobbymain.cpp:1629
+	{ "GAMEROOM_EXTRES.score_gb", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExtRes_GuildScoreGaugeInit },
+	// lobbymain.cpp:1631
+	{ "GAMEROOM_EXTRES.chatbg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgInit },
+	// lobbymain.cpp:1632
+	{ "GAMEROOM_EXTRES.chatbg", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatBgOwnerDraw },
+	// lobbymain.cpp:1633
+	{ "GAMEROOM_EXTRES.chatwndbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatWndBtnInit },
+	// lobbymain.cpp:1634
+	{ "GAMEROOM_EXTRES.chatwndbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnChatWndBtnUp },
+	// lobbymain.cpp:1635
+	{ "GAMEROOM_EXTRES.emoticon", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnEmoticonInit },
+	// lobbymain.cpp:1636
+	{ "GAMEROOM_EXTRES.emoticon", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnEmoticonBtnUp },
+	// lobbymain.cpp:1637
+	{ "GAMEROOM_EXTRES.language", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnLanguageInit },
+	// lobbymain.cpp:1638
+	{ "GAMEROOM_EXTRES.chatinput", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatInputInit },
+	// lobbymain.cpp:1639
+	{ "GAMEROOM_EXTRES.chatinput", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatInputEnterKey },
+	// lobbymain.cpp:1640
+	{ "GAMEROOM_EXTRES.chattarget", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetInit },
+	// lobbymain.cpp:1641
+	{ "GAMEROOM_EXTRES.chattarget", FRCMD_LBUTTONDOWN, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChatTargetBtnDown },
+	// lobbymain.cpp:1642
+	{ "GAMEROOM_EXTRES.chattarget", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&CLobbyMain::OnChatTargetEnterKey },
+	// lobbymain.cpp:1643
+	{ "GAMEROOM_EXTRES.chatview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnRoomList_ChatViewInit },
+	// lobbymain.cpp:1644
+	{ "GAMEROOM_EXTRES.report", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnReportBtnUp },
+	// lobbymain.cpp:1646
+	{ "GAMEROOM_EXTRES.rankframe", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_FrameInit },
+	// lobbymain.cpp:1647
+	{ "GAMEROOM_EXTRES.rankingtab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExtRes_RoomUserRankTabInit },
+	// lobbymain.cpp:1648
+	{ "GAMEROOM_EXTRES.ranking", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExtRes_RoomUserRankInit },
+	// lobbymain.cpp:1649
+	{ "GAMEROOM_EXTRES.ranking", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExtRes_RoomUserRankOwnerDraw },
+	// lobbymain.cpp:1650
+	{ "GAMEROOM_EXTRES.ranking", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExtRes_RoomUserRankLBtnUp },
+	// lobbymain.cpp:1651
+	{ "GAMEROOM_EXTRES.ranking", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExtRes_RoomUserRankRBtnUp },
+	// lobbymain.cpp:1652
+	{ "GAMEROOM_EXTRES.guildranking", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExtRes_RoomGuildRankInit },
+	// lobbymain.cpp:1653
+	{ "GAMEROOM_EXTRES.guildranking", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExtRes_RoomGuildRankOwnerDraw },
+	// lobbymain.cpp:1654
+	{ "GAMEROOM_EXTRES.guildranking", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExtRes_RoomGuildRankLBtnUp },
+	// lobbymain.cpp:1655
+	{ "GAMEROOM_EXTRES.guildranking", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExtRes_RoomGuildRankRBtnUp },
+	// lobbymain.cpp:1656
+	{ "GAMEROOM_EXTRES.score", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoom_ScoreInit },
+	// lobbymain.cpp:1657
+	{ "GAMEROOM_EXTRES.score", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoom_ScoreBtnUp },
+	// lobbymain.cpp:1658
+	{ "GAMEROOM_EXTRES.user_info", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnGameRoomExt_UserInfoInit },
+	// lobbymain.cpp:1659
+	{ "GAMEROOM_EXTRES.user_info", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExt_UserInfoLBtnUp },
+	// lobbymain.cpp:1662
+	{ "GAMEROOM_EXTRES.ubar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBarInit },
+	// lobbymain.cpp:1663
+	{ "GAMEROOM_EXTRES.ubar.back", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BackInit },
+	// lobbymain.cpp:1664
+	{ "GAMEROOM_EXTRES.ubar.back", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BackUp },
+	// lobbymain.cpp:1665
+	{ "GAMEROOM_EXTRES.ubar.back", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnChannelRoomCloseBtnInit },
+	// lobbymain.cpp:1666
+	{ "GAMEROOM_EXTRES.ubar.back", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnGameRoomExt_ResCloseBtnUp },
+	// lobbymain.cpp:1667
+	{ "GAMEROOM_EXTRES.ubar.back", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1668
+	{ "GAMEROOM_EXTRES.ubar.back", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1669
+	{ "GAMEROOM_EXTRES.ubar.front", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_FrontInit },
+	// lobbymain.cpp:1670
+	{ "GAMEROOM_EXTRES.ubar.front", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_FrontUp },
+	// lobbymain.cpp:1671
+	{ "GAMEROOM_EXTRES.ubar.front", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1672
+	{ "GAMEROOM_EXTRES.ubar.front", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1673
+	{ "GAMEROOM_EXTRES.ubar.shop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ShopInit },
+	// lobbymain.cpp:1674
+	{ "GAMEROOM_EXTRES.ubar.shop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ShopUp },
+	// lobbymain.cpp:1675
+	{ "GAMEROOM_EXTRES.ubar.shop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1676
+	{ "GAMEROOM_EXTRES.ubar.shop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1677
+	{ "GAMEROOM_EXTRES.ubar.myroom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MyRoomInit },
+	// lobbymain.cpp:1678
+	{ "GAMEROOM_EXTRES.ubar.myroom", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MyRoomUp },
+	// lobbymain.cpp:1679
+	{ "GAMEROOM_EXTRES.ubar.myroom", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1680
+	{ "GAMEROOM_EXTRES.ubar.myroom", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1681
+	{ "GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ItemStorageInit },
+	// lobbymain.cpp:1682
+	{ "GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ItemStorageUp },
+	// lobbymain.cpp:1683
+	{ "GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1684
+	{ "GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1685
+	{ "GAMEROOM_EXTRES.ubar.gift", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GiftInit },
+	// lobbymain.cpp:1686
+	{ "GAMEROOM_EXTRES.ubar.gift", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GiftUp },
+	// lobbymain.cpp:1687
+	{ "GAMEROOM_EXTRES.ubar.gift", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1688
+	{ "GAMEROOM_EXTRES.ubar.gift", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1689
+	{ "GAMEROOM_EXTRES.ubar.cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_CookieInit },
+	// lobbymain.cpp:1690
+	{ "GAMEROOM_EXTRES.ubar.cookie", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_CookieUp },
+	// lobbymain.cpp:1691
+	{ "GAMEROOM_EXTRES.ubar.cookie", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1692
+	{ "GAMEROOM_EXTRES.ubar.cookie", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1693
+	{ "GAMEROOM_EXTRES.ubar.game", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GameInit },
+	// lobbymain.cpp:1694
+	{ "GAMEROOM_EXTRES.ubar.game", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GameUp },
+	// lobbymain.cpp:1695
+	{ "GAMEROOM_EXTRES.ubar.game", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1696
+	{ "GAMEROOM_EXTRES.ubar.game", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1697
+	{ "GAMEROOM_EXTRES.ubar.server", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ServerInit },
+	// lobbymain.cpp:1698
+	{ "GAMEROOM_EXTRES.ubar.server", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ServerUp },
+	// lobbymain.cpp:1699
+	{ "GAMEROOM_EXTRES.ubar.server", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1700
+	{ "GAMEROOM_EXTRES.ubar.server", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1701
+	{ "GAMEROOM_EXTRES.ubar.exit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ExitInit },
+	// lobbymain.cpp:1702
+	{ "GAMEROOM_EXTRES.ubar.exit", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ExitUp },
+	// lobbymain.cpp:1703
+	{ "GAMEROOM_EXTRES.ubar.exit", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1704
+	{ "GAMEROOM_EXTRES.ubar.exit", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1705
+	{ "GAMEROOM_EXTRES.ubar.tabbtn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TabBtnInit },
+	// lobbymain.cpp:1706
+	{ "GAMEROOM_EXTRES.ubar.tabbtn", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TabBtnUp },
+	// lobbymain.cpp:1709
+	{ "GAMEROOM_EXTRES.utab", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderTab_Init },
+	// lobbymain.cpp:1711
+	{ "GAMEROOM_EXTRES.utab.magicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MagicBoxInit },
+	// lobbymain.cpp:1712
+	{ "GAMEROOM_EXTRES.utab.magicbox", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MagicBoxUp },
+	// lobbymain.cpp:1713
+	{ "GAMEROOM_EXTRES.utab.magicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1714
+	{ "GAMEROOM_EXTRES.utab.magicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1716
+	{ "GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_TikiMagicBoxInit },
+	// lobbymain.cpp:1717
+	{ "GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_TikiMagicBoxUp },
+	// lobbymain.cpp:1718
+	{ "GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1719
+	{ "GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1741
+	{ "GAMEROOM_EXTRES.utab.scratch", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_ScratchInit },
+	// lobbymain.cpp:1742
+	{ "GAMEROOM_EXTRES.utab.scratch", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_ScratchUp },
+	// lobbymain.cpp:1743
+	{ "GAMEROOM_EXTRES.utab.scratch", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1744
+	{ "GAMEROOM_EXTRES.utab.scratch", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1746
+	{ "GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_BongdariShopInit },
+	// lobbymain.cpp:1747
+	{ "GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_BongdariShopUp },
+	// lobbymain.cpp:1748
+	{ "GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1749
+	{ "GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1750
+	{ "GAMEROOM_EXTRES.utab.ranking", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_RankingInit },
+	// lobbymain.cpp:1751
+	{ "GAMEROOM_EXTRES.utab.ranking", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_RankingUp },
+	// lobbymain.cpp:1752
+	{ "GAMEROOM_EXTRES.utab.ranking", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1753
+	{ "GAMEROOM_EXTRES.utab.ranking", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1754
+	{ "GAMEROOM_EXTRES.utab.guild", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_GuildInit },
+	// lobbymain.cpp:1755
+	{ "GAMEROOM_EXTRES.utab.guild", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_GuildUp },
+	// lobbymain.cpp:1756
+	{ "GAMEROOM_EXTRES.utab.guild", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1757
+	{ "GAMEROOM_EXTRES.utab.guild", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1758
+	{ "GAMEROOM_EXTRES.utab.notice", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_NoticeInit },
+	// lobbymain.cpp:1759
+	{ "GAMEROOM_EXTRES.utab.notice", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_NoticeUp },
+	// lobbymain.cpp:1760
+	{ "GAMEROOM_EXTRES.utab.notice", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1761
+	{ "GAMEROOM_EXTRES.utab.notice", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1764
+	{ "GAMEROOM_EXTRES.utab.maket", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnUnderBar_MaketInit },
+	// lobbymain.cpp:1765
+	{ "GAMEROOM_EXTRES.utab.maket", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnUnderBar_MaketUp },
+	// lobbymain.cpp:1766
+	{ "GAMEROOM_EXTRES.utab.maket", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1767
+	{ "GAMEROOM_EXTRES.utab.maket", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1778
+	{ "GAMEROOM_EXTRES.obar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_Init },
+	// lobbymain.cpp:1779
+	{ "GAMEROOM_EXTRES.obar.title", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_TitleInit },
+	// lobbymain.cpp:1780
+	{ "GAMEROOM_EXTRES.obar.site", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SiteInit },
+	// lobbymain.cpp:1781
+	{ "GAMEROOM_EXTRES.obar.char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharInit },
+	// lobbymain.cpp:1782
+	{ "GAMEROOM_EXTRES.obar.char", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CharDown },
+	// lobbymain.cpp:1783
+	{ "GAMEROOM_EXTRES.obar.char", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharOwnerDraw },
+	// lobbymain.cpp:1784
+	{ "GAMEROOM_EXTRES.obar.caddie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieInit },
+	// lobbymain.cpp:1785
+	{ "GAMEROOM_EXTRES.obar.caddie", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_CaddieDown },
+	// lobbymain.cpp:1786
+	{ "GAMEROOM_EXTRES.obar.caddie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieOwnerDraw },
+	// lobbymain.cpp:1787
+	{ "GAMEROOM_EXTRES.obar.club", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubInit },
+	// lobbymain.cpp:1788
+	{ "GAMEROOM_EXTRES.obar.club", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_ClubDown },
+	// lobbymain.cpp:1789
+	{ "GAMEROOM_EXTRES.obar.club", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubOwnerDraw },
+	// lobbymain.cpp:1790
+	{ "GAMEROOM_EXTRES.obar.aztec", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecInit },
+	// lobbymain.cpp:1791
+	{ "GAMEROOM_EXTRES.obar.aztec", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_AztecDown },
+	// lobbymain.cpp:1792
+	{ "GAMEROOM_EXTRES.obar.aztec", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecOwnerDraw },
+	// lobbymain.cpp:1793
+	{ "GAMEROOM_EXTRES.obar.mascot", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotInit },
+	// lobbymain.cpp:1794
+	{ "GAMEROOM_EXTRES.obar.mascot", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MascotDown },
+	// lobbymain.cpp:1795
+	{ "GAMEROOM_EXTRES.obar.mascot", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotOwnerDraw },
+	// lobbymain.cpp:1796
+	{ "GAMEROOM_EXTRES.obar.char_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelInit },
+	// lobbymain.cpp:1797
+	{ "GAMEROOM_EXTRES.obar.char_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CharSelOwnerDraw },
+	// lobbymain.cpp:1798
+	{ "GAMEROOM_EXTRES.obar.caddie_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelInit },
+	// lobbymain.cpp:1799
+	{ "GAMEROOM_EXTRES.obar.caddie_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_CaddieSelOwnerDraw },
+	// lobbymain.cpp:1800
+	{ "GAMEROOM_EXTRES.obar.club_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelInit },
+	// lobbymain.cpp:1801
+	{ "GAMEROOM_EXTRES.obar.club_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_ClubSelOwnerDraw },
+	// lobbymain.cpp:1802
+	{ "GAMEROOM_EXTRES.obar.aztec_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelInit },
+	// lobbymain.cpp:1803
+	{ "GAMEROOM_EXTRES.obar.aztec_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_AztecSelOwnerDraw },
+	// lobbymain.cpp:1804
+	{ "GAMEROOM_EXTRES.obar.mascot_sel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelInit },
+	// lobbymain.cpp:1805
+	{ "GAMEROOM_EXTRES.obar.mascot_sel", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MascotSelOwnerDraw },
+	// lobbymain.cpp:1806
+	{ "GAMEROOM_EXTRES.obar.pang_cookie", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieInit },
+	// lobbymain.cpp:1807
+	{ "GAMEROOM_EXTRES.obar.pang_cookie", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_PangCookieOwnerDraw },
+	// lobbymain.cpp:1808
+	{ "GAMEROOM_EXTRES.obar.onelinemsg_req", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineReqBtnInit },
+	// lobbymain.cpp:1809
+	{ "GAMEROOM_EXTRES.obar.onelinemsg_req", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OneLineReqBtnUp },
+	// lobbymain.cpp:1810
+	{ "GAMEROOM_EXTRES.obar.onelineview", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewInit },
+	// lobbymain.cpp:1811
+	{ "GAMEROOM_EXTRES.obar.onelineview", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OneLineViewOwnerDraw },
+	// lobbymain.cpp:1812
+	{ "GAMEROOM_EXTRES.obar.spcard", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_SpecialCardInit },
+	// lobbymain.cpp:1813
+	{ "GAMEROOM_EXTRES.obar.spcard", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_SpecialCardUp },
+	// lobbymain.cpp:1814
+	{ "GAMEROOM_EXTRES.obar.spcard", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1815
+	{ "GAMEROOM_EXTRES.obar.spcard", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1816
+	{ "GAMEROOM_EXTRES.obar.messenger", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MessengerInit },
+	// lobbymain.cpp:1817
+	{ "GAMEROOM_EXTRES.obar.messenger", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MessengerUp },
+	// lobbymain.cpp:1818
+	{ "GAMEROOM_EXTRES.obar.messenger", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1819
+	{ "GAMEROOM_EXTRES.obar.messenger", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1820
+	{ "GAMEROOM_EXTRES.obar.myinfo", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_MyInfoInit },
+	// lobbymain.cpp:1821
+	{ "GAMEROOM_EXTRES.obar.myinfo", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_MyInfoUp },
+	// lobbymain.cpp:1822
+	{ "GAMEROOM_EXTRES.obar.myinfo", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1823
+	{ "GAMEROOM_EXTRES.obar.myinfo", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1824
+	{ "GAMEROOM_EXTRES.obar.option", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnOverBar_OptionInit },
+	// lobbymain.cpp:1825
+	{ "GAMEROOM_EXTRES.obar.option", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnOverBar_OptionUp },
+	// lobbymain.cpp:1826
+	{ "GAMEROOM_EXTRES.obar.option", FRCMD_HOVERON, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOn },
+	// lobbymain.cpp:1827
+	{ "GAMEROOM_EXTRES.obar.option", FRCMD_HOVEROFF, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarHoverOff },
+	// lobbymain.cpp:1829
+	{ "GAMEROOM_EXTRES.obar.messenger_bubble", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleInit },
+	// lobbymain.cpp:1830
+	{ "GAMEROOM_EXTRES.obar.messenger_bubble", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleOwnerDraw },
+	// lobbymain.cpp:1831
+	{ "GAMEROOM_EXTRES.obar.messenger_desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerBubbleEditInit },
+	// lobbymain.cpp:1832
+	{ "GAMEROOM_EXTRES.obar.messenger_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerAlarmBtnInit },
+	// lobbymain.cpp:1833
+	{ "GAMEROOM_EXTRES.obar.messenger_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerAlarmBtnUp },
+	// lobbymain.cpp:1834
+	{ "GAMEROOM_EXTRES.obar.gift_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnMessengerGiftAlarmBtnInit },
+	// lobbymain.cpp:1835
+	{ "GAMEROOM_EXTRES.obar.gift_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnMessengerGiftAlarmBtnUp },
+	// lobbymain.cpp:1836
+	{ "GAMEROOM_EXTRES.obar.tooltip", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnBarTooltipOwnerDraw },
+	// lobbymain.cpp:1838
+	{ "GAMEROOM_EXTRES.treasure_alarm", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CTaskMain::OnTreasureAlarmInit },
+	{ "GAMEROOM_EXTRES.treasure_alarm", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&CTaskMain::OnTreasureAlarmUp },
+	// lobbymain.cpp:1841
+	{ "CREATE", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_Init },
+	// lobbymain.cpp:1842
+	{ "CREATE", FRCMD_FINISH, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreate_Finish },
+	// lobbymain.cpp:1843
+	{ "CREATE", FRCMD_DESTROY, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreate_Destroy },
+	// lobbymain.cpp:1845
+	{ "CREATE.pet", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreatePetInit },
+	// lobbymain.cpp:1846
+	{ "CREATE.pet", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreatePetOwnerDraw },
+	// lobbymain.cpp:1847
+	{ "CREATE.char", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_CharInit },
+	// lobbymain.cpp:1848
+	{ "CREATE.charprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_CharPrevInit },
+	// lobbymain.cpp:1849
+	{ "CREATE.charnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_CharNextInit },
+	// lobbymain.cpp:1850
+	{ "CREATE.hair", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_HairInit },
+	// lobbymain.cpp:1851
+	{ "CREATE.hairprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_HairPrevInit },
+	// lobbymain.cpp:1852
+	{ "CREATE.hairprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreate_HairPrevBtnUp },
+	// lobbymain.cpp:1853
+	{ "CREATE.hairnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_HairNextInit },
+	// lobbymain.cpp:1854
+	{ "CREATE.hairnext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreate_HairNextBtnUp },
+	// lobbymain.cpp:1855
+	{ "CREATE.shirt", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_ShirtsInit },
+	// lobbymain.cpp:1856
+	{ "CREATE.shirtprev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_ShirtsPrevInit },
+	// lobbymain.cpp:1857
+	{ "CREATE.shirtprev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreate_ShirtsPrevBtnUp },
+	// lobbymain.cpp:1858
+	{ "CREATE.shirtnext", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_ShirtsNextInit },
+	// lobbymain.cpp:1859
+	{ "CREATE.shirtnext", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreate_ShirtsNextBtnUp },
+	// lobbymain.cpp:1860
+	{ "CREATE.create", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&CLobbyMain::OnCreate_CreateBtnUp },
+	// lobbymain.cpp:1861
+	{ "CREATE.desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_DescInit },
+	// lobbymain.cpp:1862
+	{ "CREATE.warning", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::OnCreate_WarningInit },
+	// lobbymain.cpp:1863
+	{ "CREATE.powerbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::On_PowerBarInit },
+	// lobbymain.cpp:1864
+	{ "CREATE.controlbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::On_ControlBarInit },
+	// lobbymain.cpp:1865
+	{ "CREATE.accuratebar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::On_AccuracyBarInit },
+	// lobbymain.cpp:1867
+	{ "CREATE.spinbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::On_SpinBarInit },
+	{ "CREATE.curvebar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&CLobbyMain::On_CurveBarInit },
+	// lobbymain.cpp:1871
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// lobbymain.cpp:1879
+bool FinishUserCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
+		return false;
 	}
-	return "";
+	if (!rhs) {
+		return true;
+	}
+
+	const sRoomPlayer* pLhs = (const sRoomPlayer*)lhs;
+	const sRoomPlayer* pRhs = (const sRoomPlayer*)rhs;
+
+	return WSingleton<CSharedDoc>::Instance()->m_gameResultList[WSingleton<CSharedDoc>::Instance()->GetIndex(pLhs->m_uid)].m_finishOrder < WSingleton<CSharedDoc>::Instance()->m_gameResultList[WSingleton<CSharedDoc>::Instance()->GetIndex(pRhs->m_uid)].m_finishOrder;
 }
 
-bool ApproachRankUserCompare(const void* a, const void* b);
-bool RankUserCompare(const void* a, const void* b);
-bool FinishUserCompare(const void* a, const void* b);
-bool ConnectionUserCompare(const void* a, const void* b);
-
-bool ApproachRankUserCompare(const void* a, const void* b)
-{
-	const sRivalData* pA = (const sRivalData*)a;
-	const sRivalData* pB = (const sRivalData*)b;
-
-	if (pA->quitOrder > pB->quitOrder)
-		return true;
-
-	if (pA->quitOrder < pB->quitOrder)
+// lobbymain.cpp:1896
+bool ConnectionUserCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (pA->approachResultDistance < pB->approachResultDistance)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	if (pA->approachResultDistance > pB->approachResultDistance)
-		return false;
+	const sRoomPlayer* pLhs = (const sRoomPlayer*)lhs;
+	const sRoomPlayer* pRhs = (const sRoomPlayer*)rhs;
 
-	if (pA->approachTime > pB->approachTime)
-		return true;
-
-	if (pA->approachTime < pB->approachTime)
-		return false;
-
-	return pA->order < pB->order;
+	return pLhs->m_connection < pRhs->m_connection;
 }
 
-bool RankUserCompare(const void* a, const void* b)
-{
-	const sRivalData* pA = (const sRivalData*)a;
-	const sRivalData* pB = (const sRivalData*)b;
-
-	if (pA->quitOrder > pB->quitOrder)
-		return true;
-
-	if (pA->quitOrder < pB->quitOrder)
-		return false;
-
-	if (pA->totalScore < pB->totalScore)
-		return true;
-
-	if (pA->totalScore > pB->totalScore)
-		return false;
-
-	if (pA->totalPang > pB->totalPang)
-		return true;
-
-	if (pA->totalPang < pB->totalPang)
-		return false;
-
-	return pA->order < pB->order;
-}
-
-static int s_roomCate = 4;
-static int s_roomGameType = -1;
-
-IMPLEMENT_ACTOR(CLobbyMain, CTaskMain)
-BEGIN_FRESH_MSGMAP(CLobbyMain, CTaskMain)
-ON_FRESH_VI("LOGIN", FRCMD_INIT, CLobbyMain::OnLogin_Init)
-ON_FRESH_VV("LOGIN", FRCMD_FINISH, CLobbyMain::OnLogin_Finish)
-ON_FRESH_VI("BLANK", FRCMD_INIT, CLobbyMain::OnBlank_Init)
-ON_FRESH_VV("BLANK", FRCMD_FINISH, CLobbyMain::OnBlank_Finish)
-
-ON_FRESH_VI("SECOND_PWD", FRCMD_INIT, CLobbyMain::OnSecond_Pwd_Init)
-ON_FRESH_VV("SECOND_PWD", FRCMD_FINISH, CLobbyMain::OnSecond_Pwd_Finish)
-
-ON_FRESH_VI("TOPPAGE", FRCMD_INIT, CLobbyMain::OnToppage_Init)
-ON_FRESH_VV("TOPPAGE", FRCMD_FINISH, CLobbyMain::OnToppage_Finish)
-ON_FRESH_VV("TOPPAGE", FRCMD_DESTROY, CLobbyMain::OnToppage_Destroy)
-ON_FRESH_VI("TOPPAGE.gameplay", FRCMD_INIT, CLobbyMain::OnToppage_GameInit)
-ON_FRESH_VV("TOPPAGE.gameplay", FRCMD_LBUTTONDOWN, CLobbyMain::OnToppage_GameUp)
-ON_FRESH_VI("TOPPAGE.family", FRCMD_INIT, CLobbyMain::OnToppage_FamilyInit)
-ON_FRESH_VV("TOPPAGE.family", FRCMD_LBUTTONDOWN, CLobbyMain::OnToppage_FamilyUp)
-ON_FRESH_VI("TOPPAGE.pangyastudy", FRCMD_INIT,
-	CLobbyMain::OnToppage_PangysStudyInit)
-ON_FRESH_VV("TOPPAGE.pangyastudy", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_PangysStudyUp)
-
-ON_FRESH_VI("TOPPAGE.notice", FRCMD_INIT, CLobbyMain::OnToppage_NoticeInit)
-ON_FRESH_VV("TOPPAGE.notice", FRCMD_LBUTTONDOWN, CLobbyMain::OnToppage_NoticeUp)
-ON_FRESH_VI("TOPPAGE.server", FRCMD_INIT, CLobbyMain::OnToppage_ServerInit)
-ON_FRESH_VV("TOPPAGE.server", FRCMD_LBUTTONDOWN, CLobbyMain::OnToppage_ServerUp)
-ON_FRESH_VI("TOPPAGE.pcbang", FRCMD_INIT, CLobbyMain::OnToppage_PcbangInit)
-ON_FRESH_VV("TOPPAGE.pcbang", FRCMD_LBUTTONDOWN, CLobbyMain::OnToppage_PcbangUp)
-ON_FRESH_VI("TOPPAGE.rental_expired", FRCMD_INIT,
-	CLobbyMain::OnToppage_RentalExpiredAlramInit)
-ON_FRESH_VV("TOPPAGE.rental_expired", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_RentalExpiredAlramUp)
-ON_FRESH_VI("TOPPAGE.event1", FRCMD_INIT, CLobbyMain::OnToppage_Event1Init)
-ON_FRESH_VV("TOPPAGE.event1", FRCMD_LBUTTONDOWN, CLobbyMain::OnToppage_Event1Up)
-
-ON_FRESH_VI("TOPPAGE.new_2", FRCMD_INIT, CLobbyMain::OnToppage_NewInit)
-ON_FRESH_VI("TOPPAGE.new_2", FRCMD_OWNERDRAW,
-	CLobbyMain::OnToppage_NewOwnerDraw)
-
-ON_FRESH_VI("TOPPAGE.TopIcon1", FRCMD_INIT, CLobbyMain::OnToppage_TopIcon1Init)
-ON_FRESH_VV("TOPPAGE.TopIcon1", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_TopIcon1Up)
-
-ON_FRESH_VI("TOPPAGE.TopIcon2", FRCMD_INIT, CLobbyMain::OnToppage_TopIcon2Init)
-ON_FRESH_VV("TOPPAGE.TopIcon2", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_TopIcon2Up)
-
-ON_FRESH_VI("TOPPAGE.TopIcon3", FRCMD_INIT, CLobbyMain::OnToppage_TopIcon3Init)
-ON_FRESH_VV("TOPPAGE.TopIcon3", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_TopIcon3Up)
-
-ON_FRESH_VI("TOPPAGE.TopIcon4", FRCMD_INIT, CLobbyMain::OnToppage_TopIcon4Init)
-ON_FRESH_VV("TOPPAGE.TopIcon4", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_TopIcon4Up)
-
-ON_FRESH_VI("TOPPAGE.TopIcon5", FRCMD_INIT, CLobbyMain::OnToppage_TopIcon5Init)
-ON_FRESH_VV("TOPPAGE.TopIcon5", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_TopIcon5Up)
-
-ON_FRESH_VI("TOPPAGE.TopIcon6", FRCMD_INIT, CLobbyMain::OnToppage_TopIcon6Init)
-ON_FRESH_VV("TOPPAGE.TopIcon6", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_TopIcon6Up)
-
-ON_FRESH_VI("TOPPAGE.pointevent", FRCMD_INIT,
-	CLobbyMain::OnToppage_PointEventInit)
-ON_FRESH_VV("TOPPAGE.pointevent", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_PointEventDown)
-
-ON_FRESH_VI("TOPPAGE.valevent_btn", FRCMD_INIT,
-	CLobbyMain::OnToppage_ValEventInit)
-ON_FRESH_VV("TOPPAGE.valevent_btn", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_ValEventDown)
-
-ON_FRESH_VI("TOPPAGE.worldtourevent", FRCMD_INIT,
-	CLobbyMain::OnToppage_WorldTourEventInit)
-ON_FRESH_VV("TOPPAGE.worldtourevent", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_WorldTourEventDown)
-
-ON_FRESH_VI("TOPPAGE.findebortevent", FRCMD_INIT,
-	CLobbyMain::OnToppage_FindEbortEventInit)
-ON_FRESH_VV("TOPPAGE.findebortevent", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_FindEbortEventDown)
-
-ON_FRESH_VI("TOPPAGE.halloween2007event", FRCMD_INIT,
-	CLobbyMain::OnToppage_Halloween2007Init)
-ON_FRESH_VV("TOPPAGE.halloween2007event", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_Halloween2007EvenDown)
-
-ON_FRESH_VI("TOPPAGE.Christmas2007Event", FRCMD_INIT,
-	CLobbyMain::OnToppage_Christmas2007EventInit)
-ON_FRESH_VV("TOPPAGE.Christmas2007Event", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_Christmas2007EventDown)
-
-ON_FRESH_VI("TOPPAGE.ticketexchage", FRCMD_INIT,
-	CLobbyMain::OnToppage_TicketExchangeInit)
-ON_FRESH_VV("TOPPAGE.ticketexchage", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_TicketExchangeDown)
-
-ON_FRESH_VI("TOPPAGE.MissionEvent", FRCMD_INIT,
-	CLobbyMain::OnToppage_MissionEventInit)
-ON_FRESH_VV("TOPPAGE.MissionEvent", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_MissionEventDown)
-
-ON_FRESH_VI("TOPPAGE.BingoEvent", FRCMD_INIT,
-	CLobbyMain::OnToppage_BingoEventInit)
-ON_FRESH_VV("TOPPAGE.BingoEvent", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_BingoEventDown)
-
-ON_FRESH_VI("TOPPAGE.KoohBirthdayEvent", FRCMD_INIT,
-	CLobbyMain::OnToppage_KoohBirthdayEventInit)
-ON_FRESH_VV("TOPPAGE.KoohBirthdayEvent", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_KoohBirthdayEventDown)
-
-ON_FRESH_VI("TOPPAGE.treasureisland", FRCMD_INIT,
-	CLobbyMain::OnToppage_TreasureIslandInit)
-ON_FRESH_VV("TOPPAGE.treasureisland", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnToppage_TreasureIslandLBDown)
-
-ON_FRESH_VI("TOPPAGE.ubar", FRCMD_INIT, CTaskMain::OnUnderBarInit)
-ON_FRESH_VI("TOPPAGE.ubar.back", FRCMD_INIT, CTaskMain::OnUnderBar_BackInit)
-ON_FRESH_VV("TOPPAGE.ubar.back", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BackUp)
-ON_FRESH_VI("TOPPAGE.ubar.back", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.back", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.front", FRCMD_INIT, CTaskMain::OnUnderBar_FrontInit)
-ON_FRESH_VV("TOPPAGE.ubar.front", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_FrontUp)
-ON_FRESH_VI("TOPPAGE.ubar.front", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.front", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.shop", FRCMD_INIT, CTaskMain::OnUnderBar_ShopInit)
-ON_FRESH_VV("TOPPAGE.ubar.shop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ShopUp)
-ON_FRESH_VI("TOPPAGE.ubar.shop", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.shop", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.myroom", FRCMD_INIT, CTaskMain::OnUnderBar_MyRoomInit)
-ON_FRESH_VV("TOPPAGE.ubar.myroom", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MyRoomUp)
-ON_FRESH_VI("TOPPAGE.ubar.myroom", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.myroom", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.itemstorage", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ItemStorageInit)
-ON_FRESH_VV("TOPPAGE.ubar.itemstorage", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_ItemStorageUp)
-ON_FRESH_VI("TOPPAGE.ubar.itemstorage", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.itemstorage", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.gift", FRCMD_INIT, CTaskMain::OnUnderBar_GiftInit)
-ON_FRESH_VV("TOPPAGE.ubar.gift", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GiftUp)
-ON_FRESH_VI("TOPPAGE.ubar.gift", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.gift", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.cookie", FRCMD_INIT, CTaskMain::OnUnderBar_CookieInit)
-ON_FRESH_VV("TOPPAGE.ubar.cookie", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_CookieUp)
-ON_FRESH_VI("TOPPAGE.ubar.cookie", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.cookie", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.game", FRCMD_INIT, CTaskMain::OnUnderBar_GameInit)
-ON_FRESH_VV("TOPPAGE.ubar.game", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GameUp)
-ON_FRESH_VI("TOPPAGE.ubar.game", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.game", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.server", FRCMD_INIT, CTaskMain::OnUnderBar_ServerInit)
-ON_FRESH_VV("TOPPAGE.ubar.server", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ServerUp)
-ON_FRESH_VI("TOPPAGE.ubar.server", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.server", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.exit", FRCMD_INIT, CTaskMain::OnUnderBar_ExitInit)
-ON_FRESH_VV("TOPPAGE.ubar.exit", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ExitUp)
-ON_FRESH_VI("TOPPAGE.ubar.exit", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.ubar.exit", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.ubar.tabbtn", FRCMD_INIT, CTaskMain::OnUnderBar_TabBtnInit)
-ON_FRESH_VV("TOPPAGE.ubar.tabbtn", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_TabBtnUp)
-
-ON_FRESH_VI("TOPPAGE.utab", FRCMD_INIT, CTaskMain::OnUnderTab_Init)
-
-ON_FRESH_VI("TOPPAGE.utab.magicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MagicBoxInit)
-ON_FRESH_VV("TOPPAGE.utab.magicbox", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MagicBoxUp)
-ON_FRESH_VI("TOPPAGE.utab.magicbox", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.magicbox", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("TOPPAGE.utab.tikimagicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TikiMagicBoxInit)
-ON_FRESH_VV("TOPPAGE.utab.tikimagicbox", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_TikiMagicBoxUp)
-ON_FRESH_VI("TOPPAGE.utab.tikimagicbox", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.tikimagicbox", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("TOPPAGE.utab.scratch", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ScratchInit)
-ON_FRESH_VV("TOPPAGE.utab.scratch", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ScratchUp)
-ON_FRESH_VI("TOPPAGE.utab.scratch", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.scratch", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("TOPPAGE.utab.bongdarishop", FRCMD_INIT,
-	CTaskMain::OnUnderBar_BongdariShopInit)
-ON_FRESH_VV("TOPPAGE.utab.bongdarishop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BongdariShopUp)
-ON_FRESH_VI("TOPPAGE.utab.bongdarishop", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.bongdarishop", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.utab.ranking", FRCMD_INIT,
-	CTaskMain::OnUnderBar_RankingInit)
-ON_FRESH_VV("TOPPAGE.utab.ranking", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_RankingUp)
-ON_FRESH_VI("TOPPAGE.utab.ranking", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.ranking", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.utab.guild", FRCMD_INIT, CTaskMain::OnUnderBar_GuildInit)
-ON_FRESH_VV("TOPPAGE.utab.guild", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GuildUp)
-ON_FRESH_VI("TOPPAGE.utab.guild", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.guild", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.utab.notice", FRCMD_INIT, CTaskMain::OnUnderBar_NoticeInit)
-ON_FRESH_VV("TOPPAGE.utab.notice", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_NoticeUp)
-ON_FRESH_VI("TOPPAGE.utab.notice", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.notice", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("TOPPAGE.utab.maket", FRCMD_INIT, CTaskMain::OnUnderBar_MaketInit)
-ON_FRESH_VV("TOPPAGE.utab.maket", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_MaketUp)
-ON_FRESH_VI("TOPPAGE.utab.maket", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.utab.maket", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("TOPPAGE.obar", FRCMD_INIT, CTaskMain::OnOverBar_Init)
-ON_FRESH_VI("TOPPAGE.obar.title", FRCMD_INIT, CTaskMain::OnOverBar_TitleInit)
-ON_FRESH_VI("TOPPAGE.obar.site", FRCMD_INIT, CTaskMain::OnOverBar_SiteInit)
-ON_FRESH_VI("TOPPAGE.obar.char", FRCMD_INIT, CTaskMain::OnOverBar_CharInit)
-ON_FRESH_VV("TOPPAGE.obar.char", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CharDown)
-ON_FRESH_VI("TOPPAGE.obar.char", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.caddie", FRCMD_INIT, CTaskMain::OnOverBar_CaddieInit)
-ON_FRESH_VV("TOPPAGE.obar.caddie", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CaddieDown)
-ON_FRESH_VI("TOPPAGE.obar.caddie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.club", FRCMD_INIT, CTaskMain::OnOverBar_ClubInit)
-ON_FRESH_VV("TOPPAGE.obar.club", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_ClubDown)
-ON_FRESH_VI("TOPPAGE.obar.club", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.aztec", FRCMD_INIT, CTaskMain::OnOverBar_AztecInit)
-ON_FRESH_VV("TOPPAGE.obar.aztec", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_AztecDown)
-ON_FRESH_VI("TOPPAGE.obar.aztec", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.mascot", FRCMD_INIT, CTaskMain::OnOverBar_MascotInit)
-ON_FRESH_VV("TOPPAGE.obar.mascot", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MascotDown)
-ON_FRESH_VI("TOPPAGE.obar.mascot", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.char_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CharSelInit)
-ON_FRESH_VI("TOPPAGE.obar.char_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharSelOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.caddie_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CaddieSelInit)
-ON_FRESH_VI("TOPPAGE.obar.caddie_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieSelOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.club_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_ClubSelInit)
-ON_FRESH_VI("TOPPAGE.obar.club_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubSelOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.aztec_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_AztecSelInit)
-ON_FRESH_VI("TOPPAGE.obar.aztec_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecSelOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.mascot_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_MascotSelInit)
-ON_FRESH_VI("TOPPAGE.obar.mascot_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotSelOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.pang_cookie", FRCMD_INIT,
-	CTaskMain::OnOverBar_PangCookieInit)
-ON_FRESH_VI("TOPPAGE.obar.pang_cookie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_PangCookieOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.onelinemsg_req", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineReqBtnInit)
-ON_FRESH_VV("TOPPAGE.obar.onelinemsg_req", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OneLineReqBtnUp)
-ON_FRESH_VI("TOPPAGE.obar.onelineview", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineViewInit)
-ON_FRESH_VI("TOPPAGE.obar.onelineview", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_OneLineViewOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.spcard", FRCMD_INIT,
-	CTaskMain::OnOverBar_SpecialCardInit)
-ON_FRESH_VV("TOPPAGE.obar.spcard", FRCMD_LBUTTONUP,
-	CTaskMain::OnOverBar_SpecialCardUp)
-ON_FRESH_VI("TOPPAGE.obar.spcard", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.obar.spcard", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.obar.messenger", FRCMD_INIT,
-	CTaskMain::OnOverBar_MessengerInit)
-ON_FRESH_VV("TOPPAGE.obar.messenger", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MessengerUp)
-ON_FRESH_VI("TOPPAGE.obar.messenger", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.obar.messenger", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.obar.myinfo", FRCMD_INIT, CTaskMain::OnOverBar_MyInfoInit)
-ON_FRESH_VV("TOPPAGE.obar.myinfo", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MyInfoUp)
-ON_FRESH_VI("TOPPAGE.obar.myinfo", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.obar.myinfo", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("TOPPAGE.obar.option", FRCMD_INIT, CTaskMain::OnOverBar_OptionInit)
-ON_FRESH_VV("TOPPAGE.obar.option", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OptionUp)
-ON_FRESH_VI("TOPPAGE.obar.option", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("TOPPAGE.obar.option", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("TOPPAGE.ubar.undertab_tooltip", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TabToolTipInit)
-ON_FRESH_VI("TOPPAGE.obar.messenger_bubble", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleInit)
-ON_FRESH_VI("TOPPAGE.obar.messenger_bubble", FRCMD_OWNERDRAW,
-	CTaskMain::OnMessengerBubbleOwnerDraw)
-ON_FRESH_VI("TOPPAGE.obar.messenger_desc", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleEditInit)
-ON_FRESH_VI("TOPPAGE.obar.messenger_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerAlarmBtnInit)
-ON_FRESH_VV("TOPPAGE.obar.messenger_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerAlarmBtnUp)
-ON_FRESH_VI("TOPPAGE.obar.gift_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerGiftAlarmBtnInit)
-ON_FRESH_VV("TOPPAGE.obar.gift_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerGiftAlarmBtnUp)
-ON_FRESH_VI("TOPPAGE.obar.tooltip", FRCMD_OWNERDRAW,
-	CTaskMain::OnBarTooltipOwnerDraw)
-ON_FRESH_VI("TOPPAGE.treasure_alarm", FRCMD_INIT,
-	CTaskMain::OnTreasureAlarmInit)
-ON_FRESH_VV("TOPPAGE.treasure_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnTreasureAlarmUp)
-
-ON_FRESH_VI("TOPPAGE.FirstConnect", FRCMD_OWNERDRAW,
-	CLobbyMain::OnFirstConnectOwnerDraw)
-
-ON_FRESH_VV("TOPPAGE.Go_UCCShop", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_UCCShopBtnUp)
-ON_FRESH_VV("TOPPAGE.Go_CardShop", FRCMD_LBUTTONUP,
-	CLobbyMain::OnToppage_CardShopBtnUp)
-
-ON_FRESH_VI("SERVERLIST", FRCMD_INIT, CLobbyMain::OnServer_Init)
-ON_FRESH_VV("SERVERLIST", FRCMD_FINISH, CLobbyMain::OnServer_Finish)
-
-ON_FRESH_VI("ROOMLIST", FRCMD_INIT, CLobbyMain::OnRoomList_Init)
-ON_FRESH_VV("ROOMLIST", FRCMD_FINISH, CLobbyMain::OnRoomList_Finish)
-ON_FRESH_VV("ROOMLIST", FRCMD_DESTROY, CLobbyMain::OnRoomList_Destroy)
-
-ON_FRESH_VI("ROOMLIST.roomlist", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomListInit)
-ON_FRESH_VI("ROOMLIST.roomlist", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomListOwnerDraw)
-ON_FRESH_VV("ROOMLIST.roomlist", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomListLDown)
-ON_FRESH_VV("ROOMLIST.roomlist", FRCMD_RBUTTONUP,
-	CLobbyMain::OnRoomList_RoomListRUp)
-ON_FRESH_VV("ROOMLIST.roomlist", FRCMD_DBLCLICK,
-	CLobbyMain::OnRoomList_RoomListDClick)
-
-ON_FRESH_VI("ROOMLIST.room_no", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortNoInit)
-ON_FRESH_VV("ROOMLIST.room_no", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortNoDown)
-ON_FRESH_VI("ROOMLIST.room_no", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomSortNoOwnerDraw)
-
-ON_FRESH_VI("ROOMLIST.btn_cate_total", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateAll_BtnInit)
-ON_FRESH_VV("ROOMLIST.btn_cate_total", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateAll_BtnDown)
-ON_FRESH_VI("ROOMLIST.btn_cate_vs", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateVS_BtnInit)
-ON_FRESH_VV("ROOMLIST.btn_cate_vs", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateVS_BtnDown)
-ON_FRESH_VI("ROOMLIST.btn_cate_mass", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateMass_BtnInit)
-ON_FRESH_VV("ROOMLIST.btn_cate_mass", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateMass_BtnDown)
-ON_FRESH_VI("ROOMLIST.btn_cate_battle", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateBattle_BtnInit)
-ON_FRESH_VV("ROOMLIST.btn_cate_battle", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateBattle_BtnDown)
-ON_FRESH_VI("ROOMLIST.btn_cate_chat", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateChat_BtnInit)
-ON_FRESH_VV("ROOMLIST.btn_cate_chat", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateChat_BtnDown)
-
-ON_FRESH_VI("ROOMLIST.room_hole", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortHoleInit)
-ON_FRESH_VV("ROOMLIST.room_hole", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortHoleDown)
-ON_FRESH_VI("ROOMLIST.room_hole", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomSortHoleOwnerDraw)
-ON_FRESH_VI("ROOMLIST.room_course", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCourseInit)
-ON_FRESH_VV("ROOMLIST.room_course", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCourseDown)
-ON_FRESH_VI("ROOMLIST.room_course", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomSortCourseOwnerDraw)
-ON_FRESH_VI("ROOMLIST.room_state", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortStateInit)
-ON_FRESH_VV("ROOMLIST.room_state", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortStateDown)
-ON_FRESH_VI("ROOMLIST.room_state", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomSortStateOwnerDraw)
-
-ON_FRESH_VI("ROOMLIST.cate_vs_list", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateVS_ListInit)
-ON_FRESH_VV("ROOMLIST.cate_vs_list", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateVS_ListLUp)
-ON_FRESH_VI("ROOMLIST.cate_vs_list", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomSortCateVS_ListOwnerDraw)
-ON_FRESH_VI("ROOMLIST.cate_mass_list", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateMass_ListInit)
-ON_FRESH_VV("ROOMLIST.cate_mass_list", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateMass_ListLUp)
-ON_FRESH_VI("ROOMLIST.cate_mass_list", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomSortCateMass_ListOwnerDraw)
-ON_FRESH_VI("ROOMLIST.cate_battle_list", FRCMD_INIT,
-	CLobbyMain::OnRoomList_RoomSortCateBattle_ListInit)
-ON_FRESH_VV("ROOMLIST.cate_battle_list", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_RoomSortCateBattle_ListLUp)
-ON_FRESH_VI("ROOMLIST.cate_battle_list", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_RoomSortCateBattle_ListOwnerDraw)
-
-ON_FRESH_VI("ROOMLIST.chatbg", FRCMD_INIT, CLobbyMain::OnChatBgInit)
-ON_FRESH_VI("ROOMLIST.chatbg", FRCMD_OWNERDRAW, CLobbyMain::OnChatBgOwnerDraw)
-ON_FRESH_VI("ROOMLIST.chatwndbtn", FRCMD_INIT, CLobbyMain::OnChatWndBtnInit)
-ON_FRESH_VV("ROOMLIST.chatwndbtn", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatWndBtnUp)
-ON_FRESH_VI("ROOMLIST.emoticon", FRCMD_INIT, CLobbyMain::OnEmoticonInit)
-ON_FRESH_VV("ROOMLIST.emoticon", FRCMD_LBUTTONDOWN, CLobbyMain::OnEmoticonBtnUp)
-ON_FRESH_VI("ROOMLIST.language", FRCMD_INIT, CLobbyMain::OnLanguageInit)
-ON_FRESH_VI("ROOMLIST.chatinput", FRCMD_INIT, CLobbyMain::OnChatInputInit)
-ON_FRESH_BI("ROOMLIST.chatinput", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatInputEnterKey)
-ON_FRESH_VI("ROOMLIST.chattarget", FRCMD_INIT, CLobbyMain::OnChatTargetInit)
-ON_FRESH_VI("ROOMLIST.chattarget", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatTargetBtnDown)
-ON_FRESH_BI("ROOMLIST.chattarget", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatTargetEnterKey)
-ON_FRESH_VI("ROOMLIST.chatview", FRCMD_INIT,
-	CLobbyMain::OnRoomList_ChatViewInit)
-ON_FRESH_VV("ROOMLIST.report", FRCMD_LBUTTONDOWN, CLobbyMain::OnReportBtnUp)
-
-ON_FRESH_VI("ROOMLIST.makeroom", FRCMD_INIT,
-	CLobbyMain::OnRoomList_MakeRoomInit)
-ON_FRESH_VV("ROOMLIST.makeroom", FRCMD_LBUTTONUP,
-	CLobbyMain::OnRoomList_MakeRoomUp)
-
-ON_FRESH_VI("ROOMLIST.guildinfo", FRCMD_INIT,
-	CLobbyMain::OnRoomList_GuildInfoInit)
-ON_FRESH_VV("ROOMLIST.guildinfo", FRCMD_LBUTTONUP,
-	CLobbyMain::OnRoomList_GuildInfoLButtonUp)
-
-ON_FRESH_VI("ROOMLIST.userlist", FRCMD_INIT,
-	CLobbyMain::OnRoomList_UserListInit)
-ON_FRESH_VV("ROOMLIST.userlist", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_UserListLBtnUp)
-ON_FRESH_VV("ROOMLIST.userlist", FRCMD_RBUTTONUP,
-	CLobbyMain::OnRoomList_UserListRBtnUp)
-ON_FRESH_VI("ROOMLIST.userlist", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_UserListOwnerDraw)
-
-ON_FRESH_VI("ROOMLIST.user_gender", FRCMD_INIT,
-	CLobbyMain::OnRoomList_UserSortGenderInit)
-ON_FRESH_VV("ROOMLIST.user_gender", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_UserSortGenderUp)
-ON_FRESH_VI("ROOMLIST.user_gender", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_UserSortGenderOwnerDraw)
-ON_FRESH_VI("ROOMLIST.user_level", FRCMD_INIT,
-	CLobbyMain::OnRoomList_UserSortLevelInit)
-ON_FRESH_VV("ROOMLIST.user_level", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_UserSortLevelUp)
-ON_FRESH_VI("ROOMLIST.user_level", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_UserSortLevelOwnerDraw)
-
-ON_FRESH_VI("ROOMLIST.user_guild", FRCMD_INIT,
-	CLobbyMain::OnRoomList_UserSortGuildInit)
-ON_FRESH_VV("ROOMLIST.user_guild", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_UserSortGuildUp)
-ON_FRESH_VI("ROOMLIST.user_guild", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_UserSortGuildOwnerDraw)
-ON_FRESH_VI("ROOMLIST.user_nick", FRCMD_INIT,
-	CLobbyMain::OnRoomList_UserSortNickInit)
-ON_FRESH_VV("ROOMLIST.user_nick", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnRoomList_UserSortNickUp)
-ON_FRESH_VI("ROOMLIST.user_nick", FRCMD_OWNERDRAW,
-	CLobbyMain::OnRoomList_UserSortNickOwnerDraw)
-
-ON_FRESH_VI("ROOMLIST.ubar", FRCMD_INIT, CTaskMain::OnUnderBarInit)
-ON_FRESH_VI("ROOMLIST.ubar.back", FRCMD_INIT, CTaskMain::OnUnderBar_BackInit)
-ON_FRESH_VV("ROOMLIST.ubar.back", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BackUp)
-ON_FRESH_VI("ROOMLIST.ubar.back", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.back", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.front", FRCMD_INIT, CTaskMain::OnUnderBar_FrontInit)
-ON_FRESH_VV("ROOMLIST.ubar.front", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_FrontUp)
-ON_FRESH_VI("ROOMLIST.ubar.front", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.front", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.shop", FRCMD_INIT, CTaskMain::OnUnderBar_ShopInit)
-ON_FRESH_VV("ROOMLIST.ubar.shop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ShopUp)
-ON_FRESH_VI("ROOMLIST.ubar.shop", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.shop", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.myroom", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MyRoomInit)
-ON_FRESH_VV("ROOMLIST.ubar.myroom", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MyRoomUp)
-ON_FRESH_VI("ROOMLIST.ubar.myroom", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.myroom", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.itemstorage", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ItemStorageInit)
-ON_FRESH_VV("ROOMLIST.ubar.itemstorage", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_ItemStorageUp)
-ON_FRESH_VI("ROOMLIST.ubar.itemstorage", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.itemstorage", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.gift", FRCMD_INIT, CTaskMain::OnUnderBar_GiftInit)
-ON_FRESH_VV("ROOMLIST.ubar.gift", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GiftUp)
-ON_FRESH_VI("ROOMLIST.ubar.gift", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.gift", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.cookie", FRCMD_INIT,
-	CTaskMain::OnUnderBar_CookieInit)
-ON_FRESH_VV("ROOMLIST.ubar.cookie", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_CookieUp)
-ON_FRESH_VI("ROOMLIST.ubar.cookie", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.cookie", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.game", FRCMD_INIT, CTaskMain::OnUnderBar_GameInit)
-ON_FRESH_VV("ROOMLIST.ubar.game", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GameUp)
-ON_FRESH_VI("ROOMLIST.ubar.game", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.game", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.server", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ServerInit)
-ON_FRESH_VV("ROOMLIST.ubar.server", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ServerUp)
-ON_FRESH_VI("ROOMLIST.ubar.server", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.server", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.exit", FRCMD_INIT, CTaskMain::OnUnderBar_ExitInit)
-ON_FRESH_VV("ROOMLIST.ubar.exit", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ExitUp)
-ON_FRESH_VI("ROOMLIST.ubar.exit", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.ubar.exit", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.ubar.tabbtn", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TabBtnInit)
-ON_FRESH_VV("ROOMLIST.ubar.tabbtn", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_TabBtnUp)
-
-ON_FRESH_VI("ROOMLIST.utab", FRCMD_INIT, CTaskMain::OnUnderTab_Init)
-
-ON_FRESH_VI("ROOMLIST.utab.magicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MagicBoxInit)
-ON_FRESH_VV("ROOMLIST.utab.magicbox", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MagicBoxUp)
-ON_FRESH_VI("ROOMLIST.utab.magicbox", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.magicbox", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("ROOMLIST.utab.tikimagicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TikiMagicBoxInit)
-ON_FRESH_VV("ROOMLIST.utab.tikimagicbox", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_TikiMagicBoxUp)
-ON_FRESH_VI("ROOMLIST.utab.tikimagicbox", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.tikimagicbox", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("ROOMLIST.utab.scratch", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ScratchInit)
-ON_FRESH_VV("ROOMLIST.utab.scratch", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ScratchUp)
-ON_FRESH_VI("ROOMLIST.utab.scratch", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.scratch", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("ROOMLIST.utab.bongdarishop", FRCMD_INIT,
-	CTaskMain::OnUnderBar_BongdariShopInit)
-ON_FRESH_VV("ROOMLIST.utab.bongdarishop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BongdariShopUp)
-ON_FRESH_VI("ROOMLIST.utab.bongdarishop", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.bongdarishop", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.utab.ranking", FRCMD_INIT,
-	CTaskMain::OnUnderBar_RankingInit)
-ON_FRESH_VV("ROOMLIST.utab.ranking", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_RankingUp)
-ON_FRESH_VI("ROOMLIST.utab.ranking", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.ranking", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.utab.guild", FRCMD_INIT, CTaskMain::OnUnderBar_GuildInit)
-ON_FRESH_VV("ROOMLIST.utab.guild", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GuildUp)
-ON_FRESH_VI("ROOMLIST.utab.guild", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.guild", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.utab.notice", FRCMD_INIT,
-	CTaskMain::OnUnderBar_NoticeInit)
-ON_FRESH_VV("ROOMLIST.utab.notice", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_NoticeUp)
-ON_FRESH_VI("ROOMLIST.utab.notice", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.notice", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("ROOMLIST.utab.maket", FRCMD_INIT, CTaskMain::OnUnderBar_MaketInit)
-ON_FRESH_VV("ROOMLIST.utab.maket", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_MaketUp)
-ON_FRESH_VI("ROOMLIST.utab.maket", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.utab.maket", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("ROOMLIST.obar", FRCMD_INIT, CTaskMain::OnOverBar_Init)
-ON_FRESH_VI("ROOMLIST.obar.title", FRCMD_INIT, CTaskMain::OnOverBar_TitleInit)
-ON_FRESH_VI("ROOMLIST.obar.site", FRCMD_INIT, CTaskMain::OnOverBar_SiteInit)
-ON_FRESH_VI("ROOMLIST.obar.char", FRCMD_INIT, CTaskMain::OnOverBar_CharInit)
-ON_FRESH_VV("ROOMLIST.obar.char", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CharDown)
-ON_FRESH_VI("ROOMLIST.obar.char", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.caddie", FRCMD_INIT, CTaskMain::OnOverBar_CaddieInit)
-ON_FRESH_VV("ROOMLIST.obar.caddie", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CaddieDown)
-ON_FRESH_VI("ROOMLIST.obar.caddie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.club", FRCMD_INIT, CTaskMain::OnOverBar_ClubInit)
-ON_FRESH_VV("ROOMLIST.obar.club", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_ClubDown)
-ON_FRESH_VI("ROOMLIST.obar.club", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.aztec", FRCMD_INIT, CTaskMain::OnOverBar_AztecInit)
-ON_FRESH_VV("ROOMLIST.obar.aztec", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_AztecDown)
-ON_FRESH_VI("ROOMLIST.obar.aztec", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.mascot", FRCMD_INIT, CTaskMain::OnOverBar_MascotInit)
-ON_FRESH_VV("ROOMLIST.obar.mascot", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MascotDown)
-ON_FRESH_VI("ROOMLIST.obar.mascot", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.char_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CharSelInit)
-ON_FRESH_VI("ROOMLIST.obar.char_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharSelOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.caddie_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CaddieSelInit)
-ON_FRESH_VI("ROOMLIST.obar.caddie_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieSelOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.club_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_ClubSelInit)
-ON_FRESH_VI("ROOMLIST.obar.club_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubSelOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.aztec_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_AztecSelInit)
-ON_FRESH_VI("ROOMLIST.obar.aztec_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecSelOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.mascot_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_MascotSelInit)
-ON_FRESH_VI("ROOMLIST.obar.mascot_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotSelOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.pang_cookie", FRCMD_INIT,
-	CTaskMain::OnOverBar_PangCookieInit)
-ON_FRESH_VI("ROOMLIST.obar.pang_cookie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_PangCookieOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.onelinemsg_req", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineReqBtnInit)
-ON_FRESH_VV("ROOMLIST.obar.onelinemsg_req", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OneLineReqBtnUp)
-ON_FRESH_VI("ROOMLIST.obar.onelineview", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineViewInit)
-ON_FRESH_VI("ROOMLIST.obar.onelineview", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_OneLineViewOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.spcard", FRCMD_INIT,
-	CTaskMain::OnOverBar_SpecialCardInit)
-ON_FRESH_VV("ROOMLIST.obar.spcard", FRCMD_LBUTTONUP,
-	CTaskMain::OnOverBar_SpecialCardUp)
-ON_FRESH_VI("ROOMLIST.obar.spcard", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.obar.spcard", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.obar.messenger", FRCMD_INIT,
-	CTaskMain::OnOverBar_MessengerInit)
-ON_FRESH_VV("ROOMLIST.obar.messenger", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MessengerUp)
-ON_FRESH_VI("ROOMLIST.obar.messenger", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.obar.messenger", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.obar.myinfo", FRCMD_INIT, CTaskMain::OnOverBar_MyInfoInit)
-ON_FRESH_VV("ROOMLIST.obar.myinfo", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MyInfoUp)
-ON_FRESH_VI("ROOMLIST.obar.myinfo", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.obar.myinfo", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("ROOMLIST.obar.option", FRCMD_INIT, CTaskMain::OnOverBar_OptionInit)
-ON_FRESH_VV("ROOMLIST.obar.option", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OptionUp)
-ON_FRESH_VI("ROOMLIST.obar.option", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("ROOMLIST.obar.option", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("ROOMLIST.obar.messenger_bubble", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleInit)
-ON_FRESH_VI("ROOMLIST.obar.messenger_bubble", FRCMD_OWNERDRAW,
-	CTaskMain::OnMessengerBubbleOwnerDraw)
-ON_FRESH_VI("ROOMLIST.obar.messenger_desc", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleEditInit)
-ON_FRESH_VI("ROOMLIST.obar.messenger_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerAlarmBtnInit)
-ON_FRESH_VV("ROOMLIST.obar.messenger_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerAlarmBtnUp)
-ON_FRESH_VI("ROOMLIST.obar.gift_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerGiftAlarmBtnInit)
-ON_FRESH_VV("ROOMLIST.obar.gift_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerGiftAlarmBtnUp)
-ON_FRESH_VI("ROOMLIST.obar.tooltip", FRCMD_OWNERDRAW,
-	CTaskMain::OnBarTooltipOwnerDraw)
-ON_FRESH_VI("ROOMLIST.treasure_alarm", FRCMD_INIT,
-	CTaskMain::OnTreasureAlarmInit)
-ON_FRESH_VV("ROOMLIST.treasure_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnTreasureAlarmUp)
-
-ON_FRESH_VI("GAMEROOM", FRCMD_INIT, CLobbyMain::OnGameRoom_Init)
-ON_FRESH_VV("GAMEROOM", FRCMD_FINISH, CLobbyMain::OnGameRoom_Finish)
-ON_FRESH_VV("GAMEROOM", FRCMD_DESTROY, CLobbyMain::OnGameRoom_Destroy)
-
-ON_FRESH_VI("GAMEROOM.title", FRCMD_INIT, CLobbyMain::OnGameRoom_TitleInit)
-
-ON_FRESH_VI("GAMEROOM.background", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_BackGroundInit)
-ON_FRESH_VI("GAMEROOM.pet0", FRCMD_INIT, CLobbyMain::OnGameRoom_Pet0Init)
-ON_FRESH_VI("GAMEROOM.pet1", FRCMD_INIT, CLobbyMain::OnGameRoom_Pet1Init)
-ON_FRESH_VI("GAMEROOM.pet2", FRCMD_INIT, CLobbyMain::OnGameRoom_Pet2Init)
-ON_FRESH_VI("GAMEROOM.pet3", FRCMD_INIT, CLobbyMain::OnGameRoom_Pet3Init)
-ON_FRESH_VI("GAMEROOM.user", FRCMD_INIT, CLobbyMain::OnGameRoom_RoomUserInit)
-ON_FRESH_VI("GAMEROOM.user", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_RoomUserOwnerDraw)
-ON_FRESH_VV("GAMEROOM.user", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_RoomUserLBtnUp)
-ON_FRESH_VV("GAMEROOM.user", FRCMD_RBUTTONUP,
-	CLobbyMain::OnGameRoom_RoomUserRBtnUp)
-ON_FRESH_VV("GAMEROOM.user", FRCMD_DBLCLICK,
-	CLobbyMain::OnGameRoom_RoomUserDClick)
-
-ON_FRESH_VI("GAMEROOM.chatbg", FRCMD_INIT, CLobbyMain::OnChatBgInit)
-ON_FRESH_VI("GAMEROOM.chatbg", FRCMD_OWNERDRAW, CLobbyMain::OnChatBgOwnerDraw)
-ON_FRESH_VI("GAMEROOM.chatwndbtn", FRCMD_INIT, CLobbyMain::OnChatWndBtnInit)
-ON_FRESH_VV("GAMEROOM.chatwndbtn", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatWndBtnUp)
-ON_FRESH_VI("GAMEROOM.emoticon", FRCMD_INIT, CLobbyMain::OnEmoticonInit)
-ON_FRESH_VV("GAMEROOM.emoticon", FRCMD_LBUTTONDOWN, CLobbyMain::OnEmoticonBtnUp)
-ON_FRESH_VI("GAMEROOM.language", FRCMD_INIT, CLobbyMain::OnLanguageInit)
-ON_FRESH_VI("GAMEROOM.chatinput", FRCMD_INIT, CLobbyMain::OnChatInputInit)
-ON_FRESH_BI("GAMEROOM.chatinput", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatInputEnterKey)
-ON_FRESH_VI("GAMEROOM.chattarget", FRCMD_INIT, CLobbyMain::OnChatTargetInit)
-ON_FRESH_VI("GAMEROOM.chattarget", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatTargetBtnDown)
-ON_FRESH_BI("GAMEROOM.chattarget", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatTargetEnterKey)
-ON_FRESH_VI("GAMEROOM.chatview", FRCMD_INIT,
-	CLobbyMain::OnRoomList_ChatViewInit)
-ON_FRESH_VV("GAMEROOM.report", FRCMD_LBUTTONDOWN, CLobbyMain::OnReportBtnUp)
-
-ON_FRESH_VI("GAMEROOM.map_background", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapBgInit)
-ON_FRESH_VI("GAMEROOM.map", FRCMD_INIT, CLobbyMain::OnGameRoom_MapInit)
-ON_FRESH_VV("GAMEROOM.map", FRCMD_LBUTTONUP, CLobbyMain::OnGameRoom_MapBtnUp)
-ON_FRESH_VI("GAMEROOM.mapprev", FRCMD_INIT, CLobbyMain::OnGameRoom_MapPrevInit)
-ON_FRESH_VI("GAMEROOM.mapnext", FRCMD_INIT, CLobbyMain::OnGameRoom_MapNextInit)
-ON_FRESH_VV("GAMEROOM.mapprev", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_MapPrevBtnUp)
-ON_FRESH_VV("GAMEROOM.mapnext", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_MapNextBtnUp)
-ON_FRESH_VI("GAMEROOM.mapcomboex", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapHoleComboInit)
-ON_FRESH_VV("GAMEROOM.mapcomboex", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_MapHoleComboDown)
-ON_FRESH_VI("GAMEROOM.overgauge", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapGaugeInit)
-ON_FRESH_VI("GAMEROOM.maplock", FRCMD_INIT, CLobbyMain::OnGameRoom_MapLockInit)
-
-ON_FRESH_VI("GAMEROOM.start_tip", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_StartTipInit)
-ON_FRESH_VI("GAMEROOM.ready_tip", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ReadyTipInit)
-ON_FRESH_VI("GAMEROOM.start", FRCMD_INIT, CLobbyMain::OnGameRoom_StartInit)
-ON_FRESH_VV("GAMEROOM.start", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_StartBtnUp)
-
-ON_FRESH_VI("GAMEROOM.ready", FRCMD_INIT, CLobbyMain::OnGameRoom_ReadyInit)
-ON_FRESH_VV("GAMEROOM.ready", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_ReadyBtnUp)
-
-ON_FRESH_VI("GAMEROOM.change_team", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ChangeTeamBtnInit)
-ON_FRESH_VV("GAMEROOM.change_team", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_ChangeTeamBtnUp)
-ON_FRESH_VI("GAMEROOM.invite", FRCMD_INIT, CLobbyMain::OnGameRoom_UserListInit)
-ON_FRESH_VV("GAMEROOM.invite", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_UserListBtnUp)
-ON_FRESH_VI("GAMEROOM.modify", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_RoomOptionInit)
-ON_FRESH_VV("GAMEROOM.modify", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_RoomOptionBtnUp)
-
-ON_FRESH_VI("GAMEROOM.powerbar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_PowerBarInit)
-ON_FRESH_VI("GAMEROOM.controlbar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ControlBarInit)
-ON_FRESH_VI("GAMEROOM.accuracybar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_AccuracyBarInit)
-ON_FRESH_VI("GAMEROOM.spinbar", FRCMD_INIT, CLobbyMain::OnGameRoom_SpinBarInit)
-ON_FRESH_VI("GAMEROOM.curvebar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CurveBarInit)
-ON_FRESH_VI("GAMEROOM.epower", FRCMD_INIT, CLobbyMain::OnGameRoom_PowerEditInit)
-ON_FRESH_VI("GAMEROOM.econtrol", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ControlEditInit)
-ON_FRESH_VI("GAMEROOM.eaccuracy", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_AccuracyEditInit)
-ON_FRESH_VI("GAMEROOM.espin", FRCMD_INIT, CLobbyMain::OnGameRoom_SpinEditInit)
-ON_FRESH_VI("GAMEROOM.ecurve", FRCMD_INIT, CLobbyMain::OnGameRoom_CurveEditInit)
-
-ON_FRESH_VI("GAMEROOM.cur_char", FRCMD_INIT, CLobbyMain::OnGameRoom_CharInit)
-ON_FRESH_VV("GAMEROOM.cur_char", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CharDown)
-ON_FRESH_VI("GAMEROOM.cur_char", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CharOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_caddie", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CaddieInit)
-ON_FRESH_VV("GAMEROOM.cur_caddie", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CaddieDown)
-ON_FRESH_VI("GAMEROOM.cur_caddie", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CaddieOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_club", FRCMD_INIT, CLobbyMain::OnGameRoom_ClubInit)
-ON_FRESH_VV("GAMEROOM.cur_club", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_ClubDown)
-ON_FRESH_VI("GAMEROOM.cur_club", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_ClubOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_aztec", FRCMD_INIT, CLobbyMain::OnGameRoom_AztecInit)
-ON_FRESH_VV("GAMEROOM.cur_aztec", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_AztecDown)
-ON_FRESH_VI("GAMEROOM.cur_aztec", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_AztecOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_mascot", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MascotInit)
-ON_FRESH_VV("GAMEROOM.cur_mascot", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_MascotDown)
-ON_FRESH_VI("GAMEROOM.cur_mascot", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_MascotOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_equip_item", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_EquipItemInit)
-ON_FRESH_VV("GAMEROOM.cur_equip_item", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_EquipItemDown)
-ON_FRESH_VI("GAMEROOM.cur_equip_item", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_EquipItemOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM.cur_char_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CharSelInit)
-ON_FRESH_VV("GAMEROOM.cur_char_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CharSelDown)
-ON_FRESH_VI("GAMEROOM.cur_char_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CharSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_caddie_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CaddieSelInit)
-ON_FRESH_VV("GAMEROOM.cur_caddie_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CaddieSelDown)
-ON_FRESH_VI("GAMEROOM.cur_caddie_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CaddieSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_club_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ClubSelInit)
-ON_FRESH_VV("GAMEROOM.cur_club_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_ClubSelDown)
-ON_FRESH_VI("GAMEROOM.cur_club_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_ClubSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_aztec_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_AztecSelInit)
-ON_FRESH_VV("GAMEROOM.cur_aztec_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_AztecSelDown)
-ON_FRESH_VI("GAMEROOM.cur_aztec_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_AztecSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.cur_mascot_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MascotSelInit)
-ON_FRESH_VV("GAMEROOM.cur_mascot_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_MascotSelDown)
-ON_FRESH_VI("GAMEROOM.cur_mascot_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_MascotSelOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM.ubar", FRCMD_INIT, CTaskMain::OnUnderBarInit)
-ON_FRESH_VI("GAMEROOM.ubar.back", FRCMD_INIT, CTaskMain::OnUnderBar_BackInit)
-ON_FRESH_VV("GAMEROOM.ubar.back", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BackUp)
-ON_FRESH_VI("GAMEROOM.ubar.back", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.back", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.front", FRCMD_INIT, CTaskMain::OnUnderBar_FrontInit)
-ON_FRESH_VV("GAMEROOM.ubar.front", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_FrontUp)
-ON_FRESH_VI("GAMEROOM.ubar.front", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.front", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.shop", FRCMD_INIT, CTaskMain::OnUnderBar_ShopInit)
-ON_FRESH_VV("GAMEROOM.ubar.shop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ShopUp)
-ON_FRESH_VI("GAMEROOM.ubar.shop", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.shop", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.myroom", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MyRoomInit)
-ON_FRESH_VV("GAMEROOM.ubar.myroom", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MyRoomUp)
-ON_FRESH_VI("GAMEROOM.ubar.myroom", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.myroom", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.itemstorage", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ItemStorageInit)
-ON_FRESH_VV("GAMEROOM.ubar.itemstorage", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_ItemStorageUp)
-ON_FRESH_VI("GAMEROOM.ubar.itemstorage", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.itemstorage", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.gift", FRCMD_INIT, CTaskMain::OnUnderBar_GiftInit)
-ON_FRESH_VV("GAMEROOM.ubar.gift", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GiftUp)
-ON_FRESH_VI("GAMEROOM.ubar.gift", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.gift", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.cookie", FRCMD_INIT,
-	CTaskMain::OnUnderBar_CookieInit)
-ON_FRESH_VV("GAMEROOM.ubar.cookie", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_CookieUp)
-ON_FRESH_VI("GAMEROOM.ubar.cookie", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.cookie", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.game", FRCMD_INIT, CTaskMain::OnUnderBar_GameInit)
-ON_FRESH_VV("GAMEROOM.ubar.game", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GameUp)
-ON_FRESH_VI("GAMEROOM.ubar.game", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.game", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.server", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ServerInit)
-ON_FRESH_VV("GAMEROOM.ubar.server", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ServerUp)
-ON_FRESH_VI("GAMEROOM.ubar.server", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.server", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.exit", FRCMD_INIT, CTaskMain::OnUnderBar_ExitInit)
-ON_FRESH_VV("GAMEROOM.ubar.exit", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ExitUp)
-ON_FRESH_VI("GAMEROOM.ubar.exit", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.ubar.exit", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.ubar.tabbtn", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TabBtnInit)
-ON_FRESH_VV("GAMEROOM.ubar.tabbtn", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_TabBtnUp)
-
-ON_FRESH_VI("GAMEROOM.utab", FRCMD_INIT, CTaskMain::OnUnderTab_Init)
-
-ON_FRESH_VI("GAMEROOM.utab.magicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MagicBoxInit)
-ON_FRESH_VV("GAMEROOM.utab.magicbox", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MagicBoxUp)
-ON_FRESH_VI("GAMEROOM.utab.magicbox", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.magicbox", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM.utab.tikimagicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TikiMagicBoxInit)
-ON_FRESH_VV("GAMEROOM.utab.tikimagicbox", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_TikiMagicBoxUp)
-ON_FRESH_VI("GAMEROOM.utab.tikimagicbox", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.tikimagicbox", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM.utab.scratch", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ScratchInit)
-ON_FRESH_VV("GAMEROOM.utab.scratch", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ScratchUp)
-ON_FRESH_VI("GAMEROOM.utab.scratch", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.scratch", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM.utab.bongdarishop", FRCMD_INIT,
-	CTaskMain::OnUnderBar_BongdariShopInit)
-ON_FRESH_VV("GAMEROOM.utab.bongdarishop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BongdariShopUp)
-ON_FRESH_VI("GAMEROOM.utab.bongdarishop", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.bongdarishop", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.utab.ranking", FRCMD_INIT,
-	CTaskMain::OnUnderBar_RankingInit)
-ON_FRESH_VV("GAMEROOM.utab.ranking", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_RankingUp)
-ON_FRESH_VI("GAMEROOM.utab.ranking", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.ranking", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.utab.guild", FRCMD_INIT, CTaskMain::OnUnderBar_GuildInit)
-ON_FRESH_VV("GAMEROOM.utab.guild", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GuildUp)
-ON_FRESH_VI("GAMEROOM.utab.guild", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.guild", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.utab.notice", FRCMD_INIT,
-	CTaskMain::OnUnderBar_NoticeInit)
-ON_FRESH_VV("GAMEROOM.utab.notice", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_NoticeUp)
-ON_FRESH_VI("GAMEROOM.utab.notice", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.notice", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM.utab.maket", FRCMD_INIT, CTaskMain::OnUnderBar_MaketInit)
-ON_FRESH_VV("GAMEROOM.utab.maket", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_MaketUp)
-ON_FRESH_VI("GAMEROOM.utab.maket", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.utab.maket", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM.obar", FRCMD_INIT, CTaskMain::OnOverBar_Init)
-ON_FRESH_VI("GAMEROOM.obar.title", FRCMD_INIT, CTaskMain::OnOverBar_TitleInit)
-ON_FRESH_VI("GAMEROOM.obar.site", FRCMD_INIT, CTaskMain::OnOverBar_SiteInit)
-ON_FRESH_VI("GAMEROOM.obar.char", FRCMD_INIT, CTaskMain::OnOverBar_CharInit)
-ON_FRESH_VV("GAMEROOM.obar.char", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CharDown)
-ON_FRESH_VI("GAMEROOM.obar.char", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.caddie", FRCMD_INIT, CTaskMain::OnOverBar_CaddieInit)
-ON_FRESH_VV("GAMEROOM.obar.caddie", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CaddieDown)
-ON_FRESH_VI("GAMEROOM.obar.caddie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.club", FRCMD_INIT, CTaskMain::OnOverBar_ClubInit)
-ON_FRESH_VV("GAMEROOM.obar.club", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_ClubDown)
-ON_FRESH_VI("GAMEROOM.obar.club", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.aztec", FRCMD_INIT, CTaskMain::OnOverBar_AztecInit)
-ON_FRESH_VV("GAMEROOM.obar.aztec", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_AztecDown)
-ON_FRESH_VI("GAMEROOM.obar.aztec", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.mascot", FRCMD_INIT, CTaskMain::OnOverBar_MascotInit)
-ON_FRESH_VV("GAMEROOM.obar.mascot", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MascotDown)
-ON_FRESH_VI("GAMEROOM.obar.mascot", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.char_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CharSelInit)
-ON_FRESH_VI("GAMEROOM.obar.char_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.caddie_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CaddieSelInit)
-ON_FRESH_VI("GAMEROOM.obar.caddie_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.club_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_ClubSelInit)
-ON_FRESH_VI("GAMEROOM.obar.club_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.aztec_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_AztecSelInit)
-ON_FRESH_VI("GAMEROOM.obar.aztec_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.mascot_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_MascotSelInit)
-ON_FRESH_VI("GAMEROOM.obar.mascot_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.pang_cookie", FRCMD_INIT,
-	CTaskMain::OnOverBar_PangCookieInit)
-ON_FRESH_VI("GAMEROOM.obar.pang_cookie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_PangCookieOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.onelinemsg_req", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineReqBtnInit)
-ON_FRESH_VV("GAMEROOM.obar.onelinemsg_req", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OneLineReqBtnUp)
-ON_FRESH_VI("GAMEROOM.obar.onelineview", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineViewInit)
-ON_FRESH_VI("GAMEROOM.obar.onelineview", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_OneLineViewOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.spcard", FRCMD_INIT,
-	CTaskMain::OnOverBar_SpecialCardInit)
-ON_FRESH_VV("GAMEROOM.obar.spcard", FRCMD_LBUTTONUP,
-	CTaskMain::OnOverBar_SpecialCardUp)
-ON_FRESH_VI("GAMEROOM.obar.spcard", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.obar.spcard", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.obar.messenger", FRCMD_INIT,
-	CTaskMain::OnOverBar_MessengerInit)
-ON_FRESH_VV("GAMEROOM.obar.messenger", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MessengerUp)
-ON_FRESH_VI("GAMEROOM.obar.messenger", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.obar.messenger", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.obar.myinfo", FRCMD_INIT, CTaskMain::OnOverBar_MyInfoInit)
-ON_FRESH_VV("GAMEROOM.obar.myinfo", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MyInfoUp)
-ON_FRESH_VI("GAMEROOM.obar.myinfo", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.obar.myinfo", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM.obar.option", FRCMD_INIT, CTaskMain::OnOverBar_OptionInit)
-ON_FRESH_VV("GAMEROOM.obar.option", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OptionUp)
-ON_FRESH_VI("GAMEROOM.obar.option", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM.obar.option", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM.obar.messenger_bubble", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleInit)
-ON_FRESH_VI("GAMEROOM.obar.messenger_bubble", FRCMD_OWNERDRAW,
-	CTaskMain::OnMessengerBubbleOwnerDraw)
-ON_FRESH_VI("GAMEROOM.obar.messenger_desc", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleEditInit)
-ON_FRESH_VI("GAMEROOM.obar.messenger_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerAlarmBtnInit)
-ON_FRESH_VV("GAMEROOM.obar.messenger_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerAlarmBtnUp)
-ON_FRESH_VI("GAMEROOM.obar.gift_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerGiftAlarmBtnInit)
-ON_FRESH_VV("GAMEROOM.obar.gift_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerGiftAlarmBtnUp)
-ON_FRESH_VI("GAMEROOM.obar.tooltip", FRCMD_OWNERDRAW,
-	CTaskMain::OnBarTooltipOwnerDraw)
-ON_FRESH_VI("GAMEROOM.treasure_alarm", FRCMD_INIT,
-	CTaskMain::OnTreasureAlarmInit)
-ON_FRESH_VV("GAMEROOM.treasure_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnTreasureAlarmUp)
-
-ON_FRESH_VI("GAMEROOM_EXT", FRCMD_INIT, CLobbyMain::OnGameRoomExt_Init)
-ON_FRESH_VV("GAMEROOM_EXT", FRCMD_FINISH, CLobbyMain::OnGameRoomExt_Finish)
-ON_FRESH_VV("GAMEROOM_EXT", FRCMD_DESTROY, CLobbyMain::OnGameRoomExt_Destroy)
-
-ON_FRESH_VI("GAMEROOM_EXT.title", FRCMD_INIT, CLobbyMain::OnGameRoom_TitleInit)
-ON_FRESH_VI("GAMEROOM_EXT.room_event", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_EventOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM_EXT.user", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_RoomUserInit)
-ON_FRESH_VI("GAMEROOM_EXT.user", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExt_RoomUserOwnerDraw)
-ON_FRESH_VV("GAMEROOM_EXT.user", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_RoomUserLBtnUp)
-ON_FRESH_VV("GAMEROOM_EXT.user", FRCMD_RBUTTONUP,
-	CLobbyMain::OnGameRoom_RoomUserRBtnUp)
-ON_FRESH_VV("GAMEROOM_EXT.user", FRCMD_DBLCLICK,
-	CLobbyMain::OnGameRoom_RoomUserDClick)
-ON_FRESH_VI("GAMEROOM_EXT.30_team1", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_TeamTab1Init)
-ON_FRESH_VI("GAMEROOM_EXT.30_team2", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_TeamTab2Init)
-ON_FRESH_VI("GAMEROOM_EXT.30_guild1", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_GuildTab1Init)
-ON_FRESH_VI("GAMEROOM_EXT.30_guild2", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_GuildTab2Init)
-ON_FRESH_VI("GAMEROOM_EXT.30_team_num", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_TeamNumInit)
-ON_FRESH_VI("GAMEROOM_EXT.30_team_num", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExt_TeamNumOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.30_guild_num", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_GuildNumInit)
-ON_FRESH_VI("GAMEROOM_EXT.30_guild_num", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExt_GuildNumOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM_EXT.chatbg", FRCMD_INIT, CLobbyMain::OnChatBgInit)
-ON_FRESH_VI("GAMEROOM_EXT.chatbg", FRCMD_OWNERDRAW,
-	CLobbyMain::OnChatBgOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.chatwndbtn", FRCMD_INIT, CLobbyMain::OnChatWndBtnInit)
-ON_FRESH_VV("GAMEROOM_EXT.chatwndbtn", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatWndBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.emoticon", FRCMD_INIT, CLobbyMain::OnEmoticonInit)
-ON_FRESH_VV("GAMEROOM_EXT.emoticon", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnEmoticonBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.language", FRCMD_INIT, CLobbyMain::OnLanguageInit)
-ON_FRESH_VI("GAMEROOM_EXT.chatinput", FRCMD_INIT, CLobbyMain::OnChatInputInit)
-ON_FRESH_BI("GAMEROOM_EXT.chatinput", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatInputEnterKey)
-ON_FRESH_VI("GAMEROOM_EXT.chattarget", FRCMD_INIT, CLobbyMain::OnChatTargetInit)
-ON_FRESH_VI("GAMEROOM_EXT.chattarget", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatTargetBtnDown)
-ON_FRESH_BI("GAMEROOM_EXT.chattarget", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatTargetEnterKey)
-ON_FRESH_VI("GAMEROOM_EXT.chatview", FRCMD_INIT,
-	CLobbyMain::OnRoomList_ChatViewInit)
-ON_FRESH_VV("GAMEROOM_EXT.report", FRCMD_LBUTTONDOWN, CLobbyMain::OnReportBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXT.map_background", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapBgInit)
-ON_FRESH_VI("GAMEROOM_EXT.map", FRCMD_INIT, CLobbyMain::OnGameRoom_MapInit)
-ON_FRESH_VV("GAMEROOM_EXT.map", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_MapBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.mapprev", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapPrevInit)
-ON_FRESH_VI("GAMEROOM_EXT.mapnext", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapNextInit)
-ON_FRESH_VV("GAMEROOM_EXT.mapprev", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_MapPrevBtnUp)
-ON_FRESH_VV("GAMEROOM_EXT.mapnext", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_MapNextBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.mapcomboex", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapHoleComboInit)
-ON_FRESH_VV("GAMEROOM_EXT.mapcomboex", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_MapHoleComboDown)
-
-ON_FRESH_VI("GAMEROOM_EXT.overgauge", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapGaugeInit)
-ON_FRESH_VI("GAMEROOM_EXT.maplock", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MapLockInit)
-
-ON_FRESH_VI("GAMEROOM_EXT.start_tip", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_StartTipInit)
-ON_FRESH_VI("GAMEROOM_EXT.ready_tip", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ReadyTipInit)
-ON_FRESH_VI("GAMEROOM_EXT.start", FRCMD_INIT, CLobbyMain::OnGameRoom_StartInit)
-ON_FRESH_VV("GAMEROOM_EXT.start", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_StartBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXT.ready", FRCMD_INIT, CLobbyMain::OnGameRoom_ReadyInit)
-ON_FRESH_VV("GAMEROOM_EXT.ready", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_ReadyBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXT.change_team", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ChangeTeamBtnInit)
-ON_FRESH_VV("GAMEROOM_EXT.change_team", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_ChangeTeamBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.invite", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_GuildInviteInit)
-ON_FRESH_VV("GAMEROOM_EXT.invite", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoomExt_GuildInviteLBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.modify", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_RoomOptionInit)
-ON_FRESH_VV("GAMEROOM_EXT.modify", FRCMD_LBUTTONUP,
-	CLobbyMain::OnGameRoom_RoomOptionBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXT.powerbar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_PowerBarInit)
-ON_FRESH_VI("GAMEROOM_EXT.controlbar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ControlBarInit)
-ON_FRESH_VI("GAMEROOM_EXT.accuracybar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_AccuracyBarInit)
-ON_FRESH_VI("GAMEROOM_EXT.spinbar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_SpinBarInit)
-ON_FRESH_VI("GAMEROOM_EXT.curvebar", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CurveBarInit)
-ON_FRESH_VI("GAMEROOM_EXT.epower", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_PowerEditInit)
-ON_FRESH_VI("GAMEROOM_EXT.econtrol", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ControlEditInit)
-ON_FRESH_VI("GAMEROOM_EXT.eaccuracy", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_AccuracyEditInit)
-ON_FRESH_VI("GAMEROOM_EXT.espin", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_SpinEditInit)
-ON_FRESH_VI("GAMEROOM_EXT.ecurve", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CurveEditInit)
-
-ON_FRESH_VI("GAMEROOM_EXT.cur_char", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CharInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_char", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CharDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_char", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CharOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_caddie", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CaddieInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_caddie", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CaddieDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_caddie", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CaddieOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_club", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ClubInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_club", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_ClubDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_club", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_ClubOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_aztec", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_AztecInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_aztec", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_AztecDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_aztec", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_AztecOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_mascot", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MascotInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_mascot", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_MascotDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_mascot", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_MascotOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_equip_item", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_EquipItemInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_equip_item", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_EquipItemDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_equip_item", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_EquipItemOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM_EXT.cur_char_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CharSelInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_char_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CharSelDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_char_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CharSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_caddie_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_CaddieSelInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_caddie_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_CaddieSelDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_caddie_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_CaddieSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_club_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ClubSelInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_club_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_ClubSelDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_club_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_ClubSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_aztec_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_AztecSelInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_aztec_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_AztecSelDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_aztec_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_AztecSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.cur_mascot_sel", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_MascotSelInit)
-ON_FRESH_VV("GAMEROOM_EXT.cur_mascot_sel", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_MascotSelDown)
-ON_FRESH_VI("GAMEROOM_EXT.cur_mascot_sel", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_MascotSelOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM_EXT.ubar", FRCMD_INIT, CTaskMain::OnUnderBarInit)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.back", FRCMD_INIT,
-	CTaskMain::OnUnderBar_BackInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.back", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BackUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.back", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.back", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.front", FRCMD_INIT,
-	CTaskMain::OnUnderBar_FrontInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.front", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_FrontUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.front", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.front", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.shop", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ShopInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.shop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ShopUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.shop", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.shop", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.myroom", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MyRoomInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.myroom", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MyRoomUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.myroom", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.myroom", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.itemstorage", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ItemStorageInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.itemstorage", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_ItemStorageUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.itemstorage", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.itemstorage", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.gift", FRCMD_INIT,
-	CTaskMain::OnUnderBar_GiftInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.gift", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GiftUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.gift", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.gift", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.cookie", FRCMD_INIT,
-	CTaskMain::OnUnderBar_CookieInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.cookie", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_CookieUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.cookie", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.cookie", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.game", FRCMD_INIT,
-	CTaskMain::OnUnderBar_GameInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.game", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GameUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.game", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.game", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.server", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ServerInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.server", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ServerUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.server", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.server", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.exit", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ExitInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.exit", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ExitUp)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.exit", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.exit", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.ubar.tabbtn", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TabBtnInit)
-ON_FRESH_VV("GAMEROOM_EXT.ubar.tabbtn", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_TabBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXT.utab", FRCMD_INIT, CTaskMain::OnUnderTab_Init)
-
-ON_FRESH_VI("GAMEROOM_EXT.utab.magicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MagicBoxInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.magicbox", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MagicBoxUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.magicbox", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.magicbox", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXT.utab.tikimagicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TikiMagicBoxInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.tikimagicbox", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_TikiMagicBoxUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.tikimagicbox", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.tikimagicbox", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXT.utab.scratch", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ScratchInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.scratch", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ScratchUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.scratch", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.scratch", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXT.utab.bongdarishop", FRCMD_INIT,
-	CTaskMain::OnUnderBar_BongdariShopInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.bongdarishop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BongdariShopUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.bongdarishop", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.bongdarishop", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.utab.ranking", FRCMD_INIT,
-	CTaskMain::OnUnderBar_RankingInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.ranking", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_RankingUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.ranking", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.ranking", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.utab.guild", FRCMD_INIT,
-	CTaskMain::OnUnderBar_GuildInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.guild", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GuildUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.guild", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.guild", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.utab.notice", FRCMD_INIT,
-	CTaskMain::OnUnderBar_NoticeInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.notice", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_NoticeUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.notice", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.notice", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXT.utab.maket", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MaketInit)
-ON_FRESH_VV("GAMEROOM_EXT.utab.maket", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_MaketUp)
-ON_FRESH_VI("GAMEROOM_EXT.utab.maket", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.utab.maket", FRCMD_HOVEROFF, CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXT.obar", FRCMD_INIT, CTaskMain::OnOverBar_Init)
-ON_FRESH_VI("GAMEROOM_EXT.obar.title", FRCMD_INIT,
-	CTaskMain::OnOverBar_TitleInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.site", FRCMD_INIT, CTaskMain::OnOverBar_SiteInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.char", FRCMD_INIT, CTaskMain::OnOverBar_CharInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.char", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CharDown)
-ON_FRESH_VI("GAMEROOM_EXT.obar.char", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.caddie", FRCMD_INIT,
-	CTaskMain::OnOverBar_CaddieInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.caddie", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CaddieDown)
-ON_FRESH_VI("GAMEROOM_EXT.obar.caddie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.club", FRCMD_INIT, CTaskMain::OnOverBar_ClubInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.club", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_ClubDown)
-ON_FRESH_VI("GAMEROOM_EXT.obar.club", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.aztec", FRCMD_INIT,
-	CTaskMain::OnOverBar_AztecInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.aztec", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_AztecDown)
-ON_FRESH_VI("GAMEROOM_EXT.obar.aztec", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.mascot", FRCMD_INIT,
-	CTaskMain::OnOverBar_MascotInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.mascot", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MascotDown)
-ON_FRESH_VI("GAMEROOM_EXT.obar.mascot", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.char_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CharSelInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.char_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.caddie_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CaddieSelInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.caddie_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.club_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_ClubSelInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.club_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.aztec_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_AztecSelInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.aztec_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.mascot_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_MascotSelInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.mascot_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.pang_cookie", FRCMD_INIT,
-	CTaskMain::OnOverBar_PangCookieInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.pang_cookie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_PangCookieOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.onelinemsg_req", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineReqBtnInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.onelinemsg_req", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OneLineReqBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.obar.onelineview", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineViewInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.onelineview", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_OneLineViewOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.spcard", FRCMD_INIT,
-	CTaskMain::OnOverBar_SpecialCardInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.spcard", FRCMD_LBUTTONUP,
-	CTaskMain::OnOverBar_SpecialCardUp)
-ON_FRESH_VI("GAMEROOM_EXT.obar.spcard", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.obar.spcard", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.obar.messenger", FRCMD_INIT,
-	CTaskMain::OnOverBar_MessengerInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.messenger", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MessengerUp)
-ON_FRESH_VI("GAMEROOM_EXT.obar.messenger", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.obar.messenger", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.obar.myinfo", FRCMD_INIT,
-	CTaskMain::OnOverBar_MyInfoInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.myinfo", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MyInfoUp)
-ON_FRESH_VI("GAMEROOM_EXT.obar.myinfo", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.obar.myinfo", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.obar.option", FRCMD_INIT,
-	CTaskMain::OnOverBar_OptionInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.option", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OptionUp)
-ON_FRESH_VI("GAMEROOM_EXT.obar.option", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXT.obar.option", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXT.countdown", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_CountdownInit)
-
-ON_FRESH_VI("GAMEROOM_EXT.obar.messenger_bubble", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.messenger_bubble", FRCMD_OWNERDRAW,
-	CTaskMain::OnMessengerBubbleOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.obar.messenger_desc", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleEditInit)
-ON_FRESH_VI("GAMEROOM_EXT.obar.messenger_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerAlarmBtnInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.messenger_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerAlarmBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.obar.gift_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerGiftAlarmBtnInit)
-ON_FRESH_VV("GAMEROOM_EXT.obar.gift_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerGiftAlarmBtnUp)
-ON_FRESH_VI("GAMEROOM_EXT.obar.tooltip", FRCMD_OWNERDRAW,
-	CTaskMain::OnBarTooltipOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXT.treasure_alarm", FRCMD_INIT,
-	CTaskMain::OnTreasureAlarmInit)
-ON_FRESH_VV("GAMEROOM_EXT.treasure_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnTreasureAlarmUp)
-
-ON_FRESH_VI("GAMEROOM_EXTRES", FRCMD_INIT, CLobbyMain::OnGameRoomExtRes_Init)
-ON_FRESH_VV("GAMEROOM_EXTRES", FRCMD_FINISH,
-	CLobbyMain::OnGameRoomExtRes_Finish)
-ON_FRESH_VV("GAMEROOM_EXTRES", FRCMD_DESTROY,
-	CLobbyMain::OnGameRoomExtRes_Destroy)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.title", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_TitleInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.room_event", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoom_EventOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.user", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_RoomUserInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.user", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExt_RoomUserOwnerDraw)
-ON_FRESH_VV("GAMEROOM_EXTRES.user", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_RoomUserLBtnUp)
-ON_FRESH_VV("GAMEROOM_EXTRES.user", FRCMD_RBUTTONUP,
-	CLobbyMain::OnGameRoom_RoomUserRBtnUp)
-ON_FRESH_VV("GAMEROOM_EXTRES.user", FRCMD_DBLCLICK,
-	CLobbyMain::OnGameRoom_RoomUserDClick)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_team1", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_TeamTab1Init)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_team2", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_TeamTab2Init)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_guild1", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_GuildTab1Init)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_guild2", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_GuildTab2Init)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_team_num", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_TeamNumInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_team_num", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExt_TeamNumOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_guild_num", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_GuildNumInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.30_guild_num", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExt_GuildNumOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.score_gb", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExtRes_GuildScoreGaugeInit)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.chatbg", FRCMD_INIT, CLobbyMain::OnChatBgInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.chatbg", FRCMD_OWNERDRAW,
-	CLobbyMain::OnChatBgOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.chatwndbtn", FRCMD_INIT,
-	CLobbyMain::OnChatWndBtnInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.chatwndbtn", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatWndBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.emoticon", FRCMD_INIT, CLobbyMain::OnEmoticonInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.emoticon", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnEmoticonBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.language", FRCMD_INIT, CLobbyMain::OnLanguageInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.chatinput", FRCMD_INIT,
-	CLobbyMain::OnChatInputInit)
-ON_FRESH_BI("GAMEROOM_EXTRES.chatinput", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatInputEnterKey)
-ON_FRESH_VI("GAMEROOM_EXTRES.chattarget", FRCMD_INIT,
-	CLobbyMain::OnChatTargetInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.chattarget", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnChatTargetBtnDown)
-ON_FRESH_BI("GAMEROOM_EXTRES.chattarget", FRCMD_ENTERKEY,
-	CLobbyMain::OnChatTargetEnterKey)
-ON_FRESH_VI("GAMEROOM_EXTRES.chatview", FRCMD_INIT,
-	CLobbyMain::OnRoomList_ChatViewInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.report", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnReportBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.rankframe", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_FrameInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.rankingtab", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExtRes_RoomUserRankTabInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.ranking", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExtRes_RoomUserRankInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.ranking", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExtRes_RoomUserRankOwnerDraw)
-ON_FRESH_VV("GAMEROOM_EXTRES.ranking", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoomExtRes_RoomUserRankLBtnUp)
-ON_FRESH_VV("GAMEROOM_EXTRES.ranking", FRCMD_RBUTTONUP,
-	CLobbyMain::OnGameRoomExtRes_RoomUserRankRBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.guildranking", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExtRes_RoomGuildRankInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.guildranking", FRCMD_OWNERDRAW,
-	CLobbyMain::OnGameRoomExtRes_RoomGuildRankOwnerDraw)
-ON_FRESH_VV("GAMEROOM_EXTRES.guildranking", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoomExtRes_RoomGuildRankLBtnUp)
-ON_FRESH_VV("GAMEROOM_EXTRES.guildranking", FRCMD_RBUTTONUP,
-	CLobbyMain::OnGameRoomExtRes_RoomGuildRankRBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.score", FRCMD_INIT,
-	CLobbyMain::OnGameRoom_ScoreInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.score", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoom_ScoreBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.user_info", FRCMD_INIT,
-	CLobbyMain::OnGameRoomExt_UserInfoInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.user_info", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoomExt_UserInfoLBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar", FRCMD_INIT, CTaskMain::OnUnderBarInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.back", FRCMD_INIT,
-	CTaskMain::OnUnderBar_BackInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.back", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BackUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.back", FRCMD_INIT,
-	CLobbyMain::OnChannelRoomCloseBtnInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.back", FRCMD_LBUTTONDOWN,
-	CLobbyMain::OnGameRoomExt_ResCloseBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.back", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.back", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.front", FRCMD_INIT,
-	CTaskMain::OnUnderBar_FrontInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.front", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_FrontUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.front", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.front", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.shop", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ShopInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.shop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ShopUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.shop", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.shop", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.myroom", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MyRoomInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.myroom", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MyRoomUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.myroom", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.myroom", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ItemStorageInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_ItemStorageUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.itemstorage", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.gift", FRCMD_INIT,
-	CTaskMain::OnUnderBar_GiftInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.gift", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GiftUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.gift", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.gift", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.cookie", FRCMD_INIT,
-	CTaskMain::OnUnderBar_CookieInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.cookie", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_CookieUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.cookie", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.cookie", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.game", FRCMD_INIT,
-	CTaskMain::OnUnderBar_GameInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.game", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GameUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.game", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.game", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.server", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ServerInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.server", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ServerUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.server", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.server", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.exit", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ExitInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.exit", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ExitUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.exit", FRCMD_HOVERON, CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.exit", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.ubar.tabbtn", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TabBtnInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.ubar.tabbtn", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_TabBtnUp)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.utab", FRCMD_INIT, CTaskMain::OnUnderTab_Init)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.magicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MagicBoxInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.magicbox", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_MagicBoxUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.magicbox", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.magicbox", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_INIT,
-	CTaskMain::OnUnderBar_TikiMagicBoxInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_TikiMagicBoxUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.tikimagicbox", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.scratch", FRCMD_INIT,
-	CTaskMain::OnUnderBar_ScratchInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.scratch", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_ScratchUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.scratch", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.scratch", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_INIT,
-	CTaskMain::OnUnderBar_BongdariShopInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_BongdariShopUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.bongdarishop", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.ranking", FRCMD_INIT,
-	CTaskMain::OnUnderBar_RankingInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.ranking", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_RankingUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.ranking", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.ranking", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.guild", FRCMD_INIT,
-	CTaskMain::OnUnderBar_GuildInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.guild", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_GuildUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.guild", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.guild", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.notice", FRCMD_INIT,
-	CTaskMain::OnUnderBar_NoticeInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.notice", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnUnderBar_NoticeUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.notice", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.notice", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.maket", FRCMD_INIT,
-	CTaskMain::OnUnderBar_MaketInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.utab.maket", FRCMD_LBUTTONUP,
-	CTaskMain::OnUnderBar_MaketUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.maket", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.utab.maket", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.obar", FRCMD_INIT, CTaskMain::OnOverBar_Init)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.title", FRCMD_INIT,
-	CTaskMain::OnOverBar_TitleInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.site", FRCMD_INIT,
-	CTaskMain::OnOverBar_SiteInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.char", FRCMD_INIT,
-	CTaskMain::OnOverBar_CharInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.char", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CharDown)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.char", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.caddie", FRCMD_INIT,
-	CTaskMain::OnOverBar_CaddieInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.caddie", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_CaddieDown)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.caddie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.club", FRCMD_INIT,
-	CTaskMain::OnOverBar_ClubInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.club", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_ClubDown)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.club", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.aztec", FRCMD_INIT,
-	CTaskMain::OnOverBar_AztecInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.aztec", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_AztecDown)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.aztec", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.mascot", FRCMD_INIT,
-	CTaskMain::OnOverBar_MascotInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.mascot", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MascotDown)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.mascot", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.char_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CharSelInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.char_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CharSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.caddie_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_CaddieSelInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.caddie_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_CaddieSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.club_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_ClubSelInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.club_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_ClubSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.aztec_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_AztecSelInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.aztec_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_AztecSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.mascot_sel", FRCMD_INIT,
-	CTaskMain::OnOverBar_MascotSelInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.mascot_sel", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_MascotSelOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.pang_cookie", FRCMD_INIT,
-	CTaskMain::OnOverBar_PangCookieInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.pang_cookie", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_PangCookieOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.onelinemsg_req", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineReqBtnInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.onelinemsg_req", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OneLineReqBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.onelineview", FRCMD_INIT,
-	CTaskMain::OnOverBar_OneLineViewInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.onelineview", FRCMD_OWNERDRAW,
-	CTaskMain::OnOverBar_OneLineViewOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.spcard", FRCMD_INIT,
-	CTaskMain::OnOverBar_SpecialCardInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.spcard", FRCMD_LBUTTONUP,
-	CTaskMain::OnOverBar_SpecialCardUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.spcard", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.spcard", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.messenger", FRCMD_INIT,
-	CTaskMain::OnOverBar_MessengerInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.messenger", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MessengerUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.messenger", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.messenger", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.myinfo", FRCMD_INIT,
-	CTaskMain::OnOverBar_MyInfoInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.myinfo", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_MyInfoUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.myinfo", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.myinfo", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.option", FRCMD_INIT,
-	CTaskMain::OnOverBar_OptionInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.option", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnOverBar_OptionUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.option", FRCMD_HOVERON,
-	CTaskMain::OnBarHoverOn)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.option", FRCMD_HOVEROFF,
-	CTaskMain::OnBarHoverOff)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.messenger_bubble", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.messenger_bubble", FRCMD_OWNERDRAW,
-	CTaskMain::OnMessengerBubbleOwnerDraw)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.messenger_desc", FRCMD_INIT,
-	CTaskMain::OnMessengerBubbleEditInit)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.messenger_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerAlarmBtnInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.messenger_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerAlarmBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.gift_alarm", FRCMD_INIT,
-	CTaskMain::OnMessengerGiftAlarmBtnInit)
-ON_FRESH_VV("GAMEROOM_EXTRES.obar.gift_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnMessengerGiftAlarmBtnUp)
-ON_FRESH_VI("GAMEROOM_EXTRES.obar.tooltip", FRCMD_OWNERDRAW,
-	CTaskMain::OnBarTooltipOwnerDraw)
-
-ON_FRESH_VI("GAMEROOM_EXTRES.treasure_alarm", FRCMD_INIT,
-	CTaskMain::OnTreasureAlarmInit)
-
-ON_FRESH_VV("GAMEROOM_EXTRES.treasure_alarm", FRCMD_LBUTTONDOWN,
-	CTaskMain::OnTreasureAlarmUp)
-ON_FRESH_VI("CREATE", FRCMD_INIT, CLobbyMain::OnCreate_Init)
-ON_FRESH_VV("CREATE", FRCMD_FINISH, CLobbyMain::OnCreate_Finish)
-
-ON_FRESH_VV("CREATE", FRCMD_DESTROY, CLobbyMain::OnCreate_Destroy)
-ON_FRESH_VI("CREATE.pet", FRCMD_INIT, CLobbyMain::OnCreatePetInit)
-ON_FRESH_VV("CREATE.pet", FRCMD_OWNERDRAW, CLobbyMain::OnCreatePetOwnerDraw)
-ON_FRESH_VI("CREATE.char", FRCMD_INIT, CLobbyMain::OnCreate_CharInit)
-ON_FRESH_VI("CREATE.charprev", FRCMD_INIT, CLobbyMain::OnCreate_CharPrevInit)
-ON_FRESH_VI("CREATE.charnext", FRCMD_INIT, CLobbyMain::OnCreate_CharNextInit)
-ON_FRESH_VI("CREATE.hair", FRCMD_INIT, CLobbyMain::OnCreate_HairInit)
-ON_FRESH_VI("CREATE.hairprev", FRCMD_INIT, CLobbyMain::OnCreate_HairPrevInit)
-ON_FRESH_VV("CREATE.hairprev", FRCMD_LBUTTONUP,
-	CLobbyMain::OnCreate_HairPrevBtnUp)
-ON_FRESH_VI("CREATE.hairnext", FRCMD_INIT, CLobbyMain::OnCreate_HairNextInit)
-ON_FRESH_VV("CREATE.hairnext", FRCMD_LBUTTONUP,
-	CLobbyMain::OnCreate_HairNextBtnUp)
-ON_FRESH_VI("CREATE.shirt", FRCMD_INIT, CLobbyMain::OnCreate_ShirtsInit)
-ON_FRESH_VI("CREATE.shirtprev", FRCMD_INIT, CLobbyMain::OnCreate_ShirtsPrevInit)
-ON_FRESH_VV("CREATE.shirtprev", FRCMD_LBUTTONUP,
-	CLobbyMain::OnCreate_ShirtsPrevBtnUp)
-ON_FRESH_VI("CREATE.shirtnext", FRCMD_INIT, CLobbyMain::OnCreate_ShirtsNextInit)
-ON_FRESH_VV("CREATE.shirtnext", FRCMD_LBUTTONUP,
-	CLobbyMain::OnCreate_ShirtsNextBtnUp)
-ON_FRESH_VV("CREATE.create", FRCMD_LBUTTONUP, CLobbyMain::OnCreate_CreateBtnUp)
-ON_FRESH_VI("CREATE.desc", FRCMD_INIT, CLobbyMain::OnCreate_DescInit)
-ON_FRESH_VI("CREATE.warning", FRCMD_INIT, CLobbyMain::OnCreate_WarningInit)
-ON_FRESH_VI("CREATE.powerbar", FRCMD_INIT, CLobbyMain::On_PowerBarInit)
-ON_FRESH_VI("CREATE.controlbar", FRCMD_INIT, CLobbyMain::On_ControlBarInit)
-ON_FRESH_VI("CREATE.accuratebar", FRCMD_INIT, CLobbyMain::On_AccuracyBarInit)
-ON_FRESH_VI("CREATE.spinbar", FRCMD_INIT, CLobbyMain::On_SpinBarInit)
-
-ON_FRESH_VI("CREATE.curvebar", FRCMD_INIT, CLobbyMain::On_CurveBarInit)
-
-END_FRESH_MSGMAP()
-
-bool FinishUserCompare(const void* a, const void* b)
-{
-	if (!a)
-		return false;
-
-	if (!b)
-		return true;
-
-	const sSlotInfo* pA = (const sSlotInfo*)a;
-	const sSlotInfo* pB = (const sSlotInfo*)b;
-
-	return Doc()->m_rivalList[Doc()->GetIndex(pA->dwGuid)].finishOrder <
-		Doc()->m_rivalList[Doc()->GetIndex(pB->dwGuid)].finishOrder;
-}
-
-bool ConnectionUserCompare(const void* a, const void* b)
-{
-	if (!a)
-		return false;
-
-	if (!b)
-		return true;
-
-	const sSlotInfo* pA = (const sSlotInfo*)a;
-	const sSlotInfo* pB = (const sSlotInfo*)b;
-
-	return pA->connectionRank < pB->connectionRank;
-}
-
-CLobbyMain::CLobbyMain()
-{
-	Doc()->m_shopName = "";
-
-	m_pLoginDlg = NULL;
-	m_pUniteResultDlg = NULL;
-	m_pTreasureGift = NULL;
-	m_pReservedDlg75c = NULL;
-	m_pWaitDlg = NULL;
-	m_pCreateChar = NULL;
-	m_pCreateDesc = NULL;
-	m_pCreateHair = NULL;
-	m_pCreateShirt = NULL;
-	m_pPointEventDlg = NULL;
-	m_pWorldTourEventDlg = NULL;
-	m_pFindEbortEventDlg = NULL;
-	m_pQuickStartDlg = NULL;
-	m_bOverBarFlag0 = false;
-	m_bOverBarFlag1 = false;
-	m_bCateSelected = false;
-	m_pChar = NULL;
-	m_pCaddie = NULL;
-	m_pAztec = NULL;
-	m_pClub = NULL;
-	m_pMascot = NULL;
-	m_pEquipItem = NULL;
-	m_pCharSel = NULL;
-	m_pCaddieSel = NULL;
-	m_pAztecSel = NULL;
-	m_pClubSel = NULL;
-	m_pMascotSel = NULL;
-	m_masterOID = 0xffffffff;
-	m_fKbdManualTime = -10.0f;
-	m_roomPassword[0] = 0;
-	m_bInitSlot = true;
-	m_bRoomSortRev = false;
-	m_userSort = USER_SORT_NICK;
-	m_bUserSortRev = false;
-	m_pTitleFont = NULL;
-	m_pRoomUserRankTab = NULL;
-	m_bCaddieWarning = false;
-	memset(m_caddieWarning, 0, sizeof(m_caddieWarning));
+// lobbymain.cpp:1918
+CLobbyMain::CLobbyMain(void) {
+	WSingleton<CSharedDoc>::Instance()->m_lobbyMessage = "";
+
+	m_loginDlg = NULL;
+	m_resultReportDlg = NULL;
+	m_approachGiftDlg = NULL;
+	m_resultDlg = NULL;
+	m_waitDlg = NULL;
+	m_createCharEdit = NULL;
+	m_createDescEdit = NULL;
+	m_createHairEdit = NULL;
+	m_createShirtsEdit = NULL;
+	m_pointEventDlg = NULL;
+	m_worldTourEventDlg = NULL;
+	m_findEbortEventDlg = NULL;
+	m_extraEventDlg = NULL;
+	m_overBarButtonDown = false;
+	m_subSelectionPending = false;
+	m_roomListDirty = false;
+	m_charViewer = NULL;
+	m_caddieViewer = NULL;
+	m_aztecViewer = NULL;
+	m_clubViewer = NULL;
+	m_mascotViewer = NULL;
+	m_equipItemViewer = NULL;
+	m_charSelViewer = NULL;
+	m_caddieSelViewer = NULL;
+	m_aztecSelViewer = NULL;
+	m_clubSelViewer = NULL;
+	m_mascotSelViewer = NULL;
+	m_roomMasterUid = -1;
+	m_waitDlgTime = -10.0f;
+	m_storedText[0] = 0;
+	m_chatWndOpen = true;
+	m_roomSortPending = false;
+	m_userSort = USERSORT_DEFAULT;
+	m_userSortPending = false;
+	m_titleFont = NULL;
+	m_userRankTabArea = NULL;
+	m_caddieWarningPending = false;
+	memset(m_warningCaddies, 0, sizeof(m_warningCaddies));
 
 	ResetControl();
 
-	m_bLoginBlock = false;
+	m_scrollActive = false;
 
-	m_autoStartTime = 15.0f;
+	m_autoStartCountdown = 15.0f;
 
-	m_pToppagePointEvent = NULL;
+	m_toppagePointEventBtn = NULL;
 
-	for (int i = 0; i < 3; i++)
-		m_pLoginBmp[i] = NULL;
+	m_loginBitmaps[0] = NULL;
+	m_loginBitmaps[1] = NULL;
+	m_loginBitmaps[2] = NULL;
 
-	m_pNewBmp = NULL;
+	m_newTabBitmap = NULL;
 
-	m_reserved3b0 = 0;
-	m_bUseReport = false;
+	m_pendingDlg = NULL;
+	m_useReportEnabled = false;
 
-	m_pToppageWorldTourEvent = NULL;
+	m_toppageWorldTourBtn = NULL;
 
-	m_reserved3cc = 0;
+	m_secondPwdDlg = NULL;
 
-	m_pToppageHalloween2007Event = NULL;
-	m_pHalloweenEventDlg = NULL;
-	m_pHalloweenEventGiftDlg = NULL;
+	m_toppageHalloweenBtn = NULL;
+	m_halloweenEventDlg = NULL;
+	m_halloweenEvent2Dlg = NULL;
 
-	m_pToppageChristmas2007Event = NULL;
-	m_pChristmasEventDlg = NULL;
+	m_toppageChristmasBtn = NULL;
+	m_christmasEventDlg = NULL;
 
-	m_pToppageChristmasSockEvent = NULL;
-	m_pChristmasSockEventDlg = NULL;
+	m_toppageChristmasSockBtn = NULL;
+	m_christmasSockEventDlg = NULL;
 
-	m_pToppageTicketExchange = NULL;
-	m_pTicketExchangeDlg = NULL;
+	m_toppageTicketExchangeBtn = NULL;
+	m_ticketExchangeDlg = NULL;
 
-	m_pToppageMissionEvent = NULL;
-	m_pMissionEventDlg = NULL;
+	m_toppageMissionBtn = NULL;
+	m_missionEventDlg = NULL;
 
-	m_pToppageBingoEvent = NULL;
-	m_pBingoEventDlg = NULL;
+	m_toppageBingoBtn = NULL;
+	m_bingoEventDlg = NULL;
 
-	m_pToppageEvent1 = NULL;
+	m_toppageEvent1Btn = NULL;
 
-	m_reserved1e4 = 0;
+	m_toppageExtraBtn = NULL;
 
-	m_pQuickResultDlg = NULL;
+	m_quickResultDlg = NULL;
 
-	m_pReservedDlg490 = NULL;
-	m_pValEventDlg = NULL;
-	m_pCreateNickDlg = NULL;
-	m_topBtnIndex = 0;
-	m_event1Dir = 1.0f;
+	m_quickResultDlg2 = NULL;
+	m_valEventDlg = NULL;
+	m_createNickDlg = NULL;
+	m_topPageBtnIndex = 0;
+	m_toppageBtnScale = 1.0f;
 
-	CIconManager::Instance()->ClearInformation();
+	WSingleton<CIconManager>::Instance()->ClearInformation();
 }
 
-CLobbyMain::~CLobbyMain()
-{
-	for (std::map<unsigned long, sRoomSlot>::iterator it =
-			 Doc()->m_roomSlotMap.begin();
-		it != Doc()->m_roomSlotMap.end(); it++)
-	{
-		if (it->second.pExhibition)
-		{
-			delete it->second.pExhibition;
-			it->second.pExhibition = NULL;
-		}
+// lobbymain.cpp:2087
+CLobbyMain::~CLobbyMain(void) {
+	std::map<unsigned long, sRoomSlot>::iterator it;
+	for (it = CSharedDoc::Instance()->m_roomSlotMap.begin(); it != CSharedDoc::Instance()->m_roomSlotMap.end(); ++it) {
+		if (it->second.m_pPet) { delete it->second.m_pPet; it->second.m_pPet = NULL; }
 	}
 
-	this << MsgObject(NULL, 2, 0, 0, 0, 0, 0);
+	this << MsgObject(0, 2, 0, 0, 0, 0, 0);
 }
 
-void CLobbyMain::OnPreLoadInit()
-{
+// lobbymain.cpp:2097
+void CLobbyMain::OnPreLoadInit(void) {
 	CTaskMain::OnPreLoadInit();
 
-	CMouseCursor::Instance()->SetAutoHide(false);
+	WSingleton<CMouseCursor>::Instance()->SetAutoHide(false);
 }
 
-void CLobbyMain::OnLoad()
-{
+// lobbymain.cpp:2109
+void CLobbyMain::OnLoad(void) {
 	CTaskMain::OnLoad();
 }
 
-void CLobbyMain::OnInit()
-{
+// lobbymain.cpp:2118
+void CLobbyMain::OnInit(void) {
 	g_pFresh->GetManager()->SetExclusiveKey(true);
 
 	CTaskMain::OnInit();
 
-	if (!m_pTreasureGift)
-	{
-		m_resultDelay = 1.0f;
+	if (m_approachGiftDlg == NULL)
+		m_approachGiftTimer = 1.0f;
+
+	WPolySoup::sCamera* camera = GOLFDOC()->m_pPolySoup->FindCamera("DefaultCamera");
+	if (camera != NULL) {
+		g_camera = camera->m_matrix;
+		g_view->SetFOV(camera->m_fov * 0.017453292f);
 	}
 
-	WPolySoup::sCamera* camera =
-		GOLFDOC()->m_pPolySoup->FindCamera("DefaultCamera");
-	if (camera)
-	{
-		g_camera = camera->mat;
-		g_view->SetFOV(camera->fov * g_DEGTORAD);
-	}
-
-	m_bgCameraDir = 1.0f;
-	m_bBgCameraPause = false;
+	m_bgCameraPaused = false;
+	m_bgCameraDirection = 1.0f;
 	m_bgCameraMoveTime = g_CurrentTime;
 
-	m_cateListTime[0] = 0;
-	m_cateListTime[1] = 0;
-	m_cateListTime[2] = 0;
+	m_cateNewRoom[0] = 0;
+	m_cateNewRoom[1] = 0;
+	m_cateNewRoom[2] = 0;
 
-	for (int i = 0; i < 3; i++)
-	{
-		m_pLoginBmp[i] = (Bitmap*)g_pFresh->GetBitmap(MakeStr("login_%02d", i));
+	for (int i = 0; i < 3; i++) {
+		m_loginBitmaps[i] = g_pFresh->GetBitmap(MakeStr("login_%02d", i));
 	}
 
-	m_pNewBmp = (Bitmap*)g_pFresh->GetBitmap("tap_new2");
+	m_newTabBitmap = g_pFresh->GetBitmap("tap_new2");
 }
 
-void CLobbyMain::OnDestroy()
-{
+// lobbymain.cpp:2165
+void CLobbyMain::OnDestroy(void) {
 	CTaskMain::OnDestroy();
 }
 
-void CLobbyMain::ProcessLobbyBgCamera(float dt)
-{
-	if (!Doc()->m_bBackgroundVideo)
-	{
-		if (m_bBgCameraPause)
-		{
-			if (g_CurrentTime - m_bgCameraPauseTime > 2000)
-			{
-				m_bBgCameraPause = false;
-				m_bgCameraDir *= -1.0f;
-				m_bgCameraMoveTime = g_CurrentTime;
-			}
-		}
-		else
-		{
-			if (g_CurrentTime - m_bgCameraMoveTime > 80000)
-			{
-				m_bBgCameraPause = true;
-				m_bgCameraPauseTime = g_CurrentTime;
-			}
-			else
-			{
-				float ratio = 1.0f;
-				if (g_CurrentTime - m_bgCameraMoveTime < 2000)
-					ratio = (g_CurrentTime - m_bgCameraMoveTime) * 0.0005f;
-				else if (g_CurrentTime - m_bgCameraMoveTime > 78000)
-					ratio = 1.0f -
-						(g_CurrentTime - m_bgCameraMoveTime - 78000) * 0.0005f;
+// lobbymain.cpp:2174
+// Pans the lobby's background camera sideways for 80 seconds, waits 2 seconds
+// and pans back, easing in and out over 2 seconds (0.3 units per second).
+void CLobbyMain::ProcessLobbyBgCamera(float dt) {
+	if (CSharedDoc::Instance()->m_3DBackgroundOff)
+		return;
 
-				g_camera.pivot +=
-					g_camera.xa * m_bgCameraDir * dt * 0.3f * ratio;
-			}
+	if (m_bgCameraPaused) {
+		if (g_CurrentTime - m_bgCameraPauseTime > 2000) {
+			m_bgCameraPaused = false;
+			m_bgCameraDirection *= -1.0f;
+			m_bgCameraMoveTime = g_CurrentTime;
 		}
+		return;
 	}
+
+	unsigned long elapsed = g_CurrentTime - m_bgCameraMoveTime;
+	if (elapsed > 80000) {
+		m_bgCameraPaused = true;
+		m_bgCameraPauseTime = g_CurrentTime;
+		return;
+	}
+
+	float speed = 1.0f;
+	if (elapsed < 2000)
+		speed = elapsed * 0.0005f;
+	else if (elapsed > 78000)
+		speed = 1.0f - (elapsed - 78000) * 0.0005f;
+
+	g_camera.pivot += g_camera.xa * m_bgCameraDirection * dt * 0.3f * speed;
 }
 
-void CLobbyMain::ProcessAdministrator(float dt)
-{
-	if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1))
-	{
-		if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") ||
-			!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT"))
-		{
-			if (g_input->GetDown("FUNC_10", true))
-			{
-				if (m_selOID != 0xffffffff)
-				{
-					WSendPacket packet((enumClientPacket)0x4c);
-					packet.Encode4(m_selOID);
-					packet.Send(TO_GAME);
-				}
+// lobbymain.cpp:2215
+// Administrator hotkeys: F10 in a game room acts on the selected user,
+// Ctrl+Insert in the room list on the selected room.
+void CLobbyMain::ProcessAdministrator(float) {
+	if (CSharedDoc::Instance()->GetPangyaUserInfo().identityBits.administrator) {
+		if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") == 0
+			|| stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") == 0) {
+			if (g_input->GetDown("FUNC_10", true) && m_selectedUserId != 0xFFFFFFFF) {
+				WSendPacket packet((enumClientPacket)0x4C);
+				packet.Encode4(m_selectedUserId);
+				packet.Send(SEND_TO_DEFAULT);
 			}
 		}
 
-		if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST"))
-		{
-			if ((g_input->Get("LCONTROL", false) ||
-					g_input->Get("RCONTROL", false)) &&
-				g_input->GetDown("INSERT", true))
-			{
-				if (m_pSelRoom)
-				{
-					WSendPacket packet((enumClientPacket)0x5d);
-					packet.Encode2(m_pSelRoom->roomGuid);
-					packet.Send(TO_GAME);
+		if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST") == 0) {
+			if ((g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false))
+				&& g_input->GetDown("INSERT", true)) {
+				if (m_selectedRoomData) {
+					WSendPacket packet((enumClientPacket)0x5D);
+					packet.Encode2(static_cast<sRoomInfo*>(m_selectedRoomData)->m_roomNumber);
+					packet.Send(SEND_TO_DEFAULT);
 				}
 			}
 		}
 	}
 }
 
-void CLobbyMain::ProcessDialogKeyboard(float dt)
-{
-	if (m_pNoticeDlg)
-	{
-		if (g_input->GetDown("\xc1\xc2", false))
-			m_pNoticeDlg->Prev();
-		else if (g_input->GetDown("\xbf\xec", false))
-			m_pNoticeDlg->Next();
+// lobbymain.cpp:2251
+// Dialog keys: left/right page the notice dialogs, up/down scroll the room
+// list, Page Up/Down walk the chat history (chat input) or the chat targets
+// (target edit); the chat input is coloured by the chat target.
+void CLobbyMain::ProcessDialogKeyboard(float) {
+	if (m_noticeDlg) {
+		if (g_input->GetDown("\xC1\xC2", false))   // left
+			m_noticeDlg->Prev();
+		else if (g_input->GetDown("\xBF\xEC", false))   // right
+			m_noticeDlg->Next();
 	}
 
-	if (m_pPCBangNoticeDlg)
-	{
-		if (g_input->GetDown("\xc1\xc2", false))
-			m_pPCBangNoticeDlg->Prev();
-		else if (g_input->GetDown("\xbf\xec", false))
-			m_pPCBangNoticeDlg->Next();
+	if (m_pcbangNoticeDlg) {
+		if (g_input->GetDown("\xC1\xC2", false))
+			m_pcbangNoticeDlg->Prev();
+		else if (g_input->GetDown("\xBF\xEC", false))
+			m_pcbangNoticeDlg->Next();
 	}
 
-	if (m_pGuildNoticeDlg)
-	{
-		if (g_input->GetDown("\xc1\xc2", false))
-			((FrGuildNoticeDlg*)m_pGuildNoticeDlg)->Prev();
-		else if (g_input->GetDown("\xbf\xec", false))
-			((FrGuildNoticeDlg*)m_pGuildNoticeDlg)->Next();
+	if (m_guildNoticeDlg) {
+		if (g_input->GetDown("\xC1\xC2", false))
+			m_guildNoticeDlg->Prev();
+		else if (g_input->GetDown("\xBF\xEC", false))
+			m_guildNoticeDlg->Next();
 	}
 
-	if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST") &&
-		m_pRoomList && !m_pEmoticonDlg)
-	{
-		if (g_input->GetDown("\xbb\xf3", false))
-			m_pRoomList->GetScrollBar()->ScrollUp(1);
+	if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST") == 0 && m_roomListBox && !m_emoticonDlg) {
+		if (g_input->GetDown("\xBB\xF3", false))   // up
+			m_roomListBox->GetScrollBar()->ScrollUp(1);
 
-		if (g_input->GetDown("\xc7\xcf", false))
-			m_pRoomList->GetScrollBar()->ScrollDown(1);
+		if (g_input->GetDown("\xC7\xCF", false))   // down
+			m_roomListBox->GetScrollBar()->ScrollDown(1);
 	}
 
-	if (m_pChatTarget && m_pChatInput)
-	{
-		if (g_input->GetDown("PAGE_UP", true))
-		{
-			if ((bool)((m_pChatInput->m_nFlags >> 4) & 1) &&
-				Doc()->m_chatHistory.size() > 0)
-			{
-				std::list<std::string>::iterator it = std::find(
-					Doc()->m_chatHistory.begin(), Doc()->m_chatHistory.end(),
-					m_pChatInput->GetLine(1, false));
-				if (it != Doc()->m_chatHistory.end())
-				{
-					if (it != Doc()->m_chatHistory.begin())
-					{
-						CChatMsg::Instance()->SetChatText((*--it).c_str(),
-							false);
+	if (m_chatTargetCombo && m_chatEdit) {
+		CSharedDoc* doc = CSharedDoc::Instance();
+
+		if (g_input->GetDown("PAGE_UP", true)) {
+			if (m_chatEdit->HasKeyFocus() && doc->m_chatHistory.size() > 0) {
+				const char* line = m_chatEdit->GetLine(1, false);
+				std::list<std::string>::iterator it = std::find(CSharedDoc::Instance()->m_chatHistory.begin(), CSharedDoc::Instance()->m_chatHistory.end(), line);
+				if (it != CSharedDoc::Instance()->m_chatHistory.end()) {
+					if (it != CSharedDoc::Instance()->m_chatHistory.begin()) {
+						--it;
+						CChatMsg::Instance()->SetChatText(it->c_str(), false);
 					}
+				} else {
+					CChatMsg::Instance()->SetChatText(CSharedDoc::Instance()->m_chatHistory.back().c_str(), false);
 				}
-				else
-				{
-					CChatMsg::Instance()->SetChatText(
-						Doc()->m_chatHistory.back().c_str(), false);
-				}
+			} else if (m_chatTargetCombo->HasKeyFocus() && doc->m_list4CD8.size() > 0) {
+				CChatMsg::Instance()->SetChatText(doc->GetPrevChatTarget(m_chatTargetCombo->GetLine(1, false)), false);
 			}
-			else if ((bool)((m_pChatTarget->m_nFlags >> 4) & 1) &&
-				Doc()->m_reservedChatList.size() > 0)
-			{
-				CChatMsg::Instance()->SetChatText(
-					Doc()->GetPrevChatTarget(m_pChatTarget->GetLine(1, false)),
-					false);
-			}
-		}
-		else if (g_input->GetDown("PAGE_DOWN", true))
-		{
-			if ((bool)((m_pChatInput->m_nFlags >> 4) & 1) &&
-				Doc()->m_chatHistory.size() > 0)
-			{
-				std::list<std::string>::iterator it = std::find(
-					Doc()->m_chatHistory.begin(), Doc()->m_chatHistory.end(),
-					m_pChatInput->GetLine(1, false));
-				if (it != Doc()->m_chatHistory.end())
-				{
-					if (++it != Doc()->m_chatHistory.end())
-						CChatMsg::Instance()->SetChatText((*it).c_str(), false);
+		} else if (g_input->GetDown("PAGE_DOWN", true)) {
+			if (m_chatEdit->HasKeyFocus() && doc->m_chatHistory.size() > 0) {
+				const char* line = m_chatEdit->GetLine(1, false);
+				std::list<std::string>::iterator it = std::find(CSharedDoc::Instance()->m_chatHistory.begin(), CSharedDoc::Instance()->m_chatHistory.end(), line);
+				if (it != CSharedDoc::Instance()->m_chatHistory.end()) {
+					++it;
+					if (it != CSharedDoc::Instance()->m_chatHistory.end())
+						CChatMsg::Instance()->SetChatText(it->c_str(), false);
 					else
 						CChatMsg::Instance()->SetChatText("", false);
 				}
-			}
-			else if ((bool)((m_pChatTarget->m_nFlags >> 4) & 1) &&
-				Doc()->m_reservedChatList.size() > 0)
-			{
-				CChatMsg::Instance()->SetChatText(
-					Doc()->GetNextChatTarget(m_pChatTarget->GetLine(1, false)),
-					false);
+			} else if (m_chatTargetCombo->HasKeyFocus() && doc->m_list4CD8.size() > 0) {
+				CChatMsg::Instance()->SetChatText(doc->GetNextChatTarget(m_chatTargetCombo->GetLine(1, false)), false);
 			}
 		}
 
-		if (!strlen(m_pChatTarget->GetLine(1, false)) ||
-			!strcmp(m_pChatTarget->GetLine(1, false),
-				"\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4"))
-			m_pChatInput->SetFontColor(0xffffffff);
-		else if (!strlen(m_pChatTarget->GetLine(1, false)) ||
-			!strcmp(m_pChatTarget->GetLine(1, false),
-				"\xb1\xe6\xb5\xe5\xbf\xa1\xb0\xd4"))
-			m_pChatInput->SetFontColor(0xff5bffb0);
-		else
-			m_pChatInput->SetFontColor(0xffcf67ff);
+		if (strlen(m_chatTargetCombo->GetLine(1, false)) == 0
+			|| strcmp(m_chatTargetCombo->GetLine(1, false), "\xB8\xF0\xB5\xCE\xBF\xA1\xB0\xD4") == 0) {   // "to all"
+			m_chatEdit->SetFontColor(0xFFFFFFFF);
+		} else if (strlen(m_chatTargetCombo->GetLine(1, false)) == 0
+			|| strcmp(m_chatTargetCombo->GetLine(1, false), "\xB1\xE6\xB5\xE5\xBF\xA1\xB0\xD4") == 0) {   // "to the guild"
+			m_chatEdit->SetFontColor(0xFF5BFFB0);
+		} else {
+			m_chatEdit->SetFontColor(0xFFCF67FF);
+		}
 	}
 }
 
-void CLobbyMain::ProcessLobbyPetSync(float dt)
-{
-	for (std::map<unsigned long, sRoomSlot>::iterator it =
-			 Doc()->m_roomSlotMap.begin();
-		it != Doc()->m_roomSlotMap.end(); it++)
-	{
-		if (it->second.pExhibition)
-		{
-			it->second.pExhibition->Process(dt, false);
+// lobbymain.cpp:2346
+// Runs the room's pets and, in the game room, sends the local player's pet
+// direction and motion changes to the others.
+void CLobbyMain::ProcessLobbyPetSync(float dt) {
+	std::map<unsigned long, sRoomSlot>::const_iterator it;
+	for (it = CSharedDoc::Instance()->m_roomSlotMap.begin(); it != CSharedDoc::Instance()->m_roomSlotMap.end(); ++it) {
+		if (it->second.m_pPet == NULL)
+			continue;
 
-			if (it->first == MyGuid(false) &&
-				!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM"))
-			{
-				if (it->second.pExhibition->IsDirectionChanged())
-				{
-					float dir = it->second.pExhibition->GetDirection();
+		it->second.m_pPet->Process(dt, false);
 
-					WSendPacket packet((enumClientPacket)0x63);
-					packet.Encode1(0);
-					packet.EncodeBuffer(&dir, 4);
-					packet.Send(TO_GAME);
-				}
+		if (it->first == CSharedDoc::Instance()->GetPangyaUserInfo().guid
+			&& stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") == 0) {
+			if (it->second.m_pPet->IsDirectionChanged()) {
+				float direction = it->second.m_pPet->GetDirection();
 
-				if (it->second.pExhibition->IsNextMotion())
-				{
-					WSendPacket packet((enumClientPacket)0x63);
-					packet.Encode1(1);
-					packet.EncodeStr(
-						std::string(it->second.pExhibition->GetMotionName()));
-					packet.Send(TO_GAME);
-				}
+				WSendPacket packet((enumClientPacket)0x63);
+				packet.Encode1(0);
+				packet.EncodeBuffer(&direction, 4);
+				packet.Send(SEND_TO_DEFAULT);
+			}
+
+			if (it->second.m_pPet->IsNextMotion()) {
+				WSendPacket packet((enumClientPacket)0x63);
+				packet.Encode1(1);
+				packet.EncodeStr(std::string(it->second.m_pPet->GetMotionName()));
+				packet.Send(SEND_TO_DEFAULT);
 			}
 		}
 	}
 }
 
-void CLobbyMain::ProcessLobbyUI(float dt)
-{
-	if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "LOGIN") &&
-		!m_bLoginBlock)
-	{
-		if (m_pLoginDlg)
-		{
-			if ((FrLoginDlg::GetState() == (eLoginState)0 ||
-					FrLoginDlg::GetState() == (eLoginState)5) &&
-				timeGetTime() - g_mouse->GetLastInputTime() > 60000 &&
-				timeGetTime() - g_ime->GetLastInputTime() > 60000)
-			{
-				m_pLoginDlg->SetFadeout(true);
+// lobbymain.cpp:2416
+// The lobby's per-frame UI: the login dialog's idle fade, the approach gift
+// and result dialogs' timeout, chat hotkeys, the IME language mark, closing
+// the category lists and the selection bars, the start tip blink, the
+// result screen's clock, the away state, the Event1 button bobbing and the
+// treasure hunt's approach gift.
+void CLobbyMain::ProcessLobbyUI(float dt) {
+	if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "LOGIN") == 0 && !m_scrollActive) {
+		if (m_loginDlg) {
+			if ((FrLoginDlg::GetState() == 0 || FrLoginDlg::GetState() == 5)
+				&& timeGetTime() - g_mouse->GetLastInputTime() > 60000
+				&& timeGetTime() - g_ime->GetLastInputTime() > 60000) {
+				m_loginDlg->SetFadeout(true);
 
-				CMouseCursor::Instance()->SetActive(false);
+				WSingleton<CMouseCursor>::Instance()->SetActive(false);
 			}
-		}
-		else
-		{
-			if ((g_mouse->IsUpdated() || g_ime->IsUpdated()) && !g_bQuit)
-			{
-				m_pLoginDlg = CreateForm<FrLoginDlg>(g_pFresh->GetManager(),
-					this, "login", NULL);
-				m_pLoginDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnLoginDlgResult, 10);
-				CMouseCursor::Instance()->SetActive(true);
-			}
+		} else if ((g_mouse->IsUpdated() || g_ime->IsUpdated()) && !g_bQuit) {
+			m_loginDlg = CreateForm<FrLoginDlg>(g_pFresh->GetManager(), this, "login", NULL);
+			m_loginDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnLoginDlgResult, 10);
+			WSingleton<CMouseCursor>::Instance()->SetActive(true);
 		}
 	}
 
-	if (m_resultDelay <= 0.0f)
-	{
-		m_resultDelay += dt;
+	if (m_approachGiftTimer <= 0.0f) {
+		m_approachGiftTimer += dt;
 
-		bool bTimeOut = false;
-		if (m_resultDelay > 0.0f)
-			bTimeOut = true;
+		bool expired = false;
+		if (m_approachGiftTimer > 0.0f)
+			expired = true;
 
-		if (g_input->GetDown("ESCAPE", true) == 1)
-		{
-			if (m_pUniteResultDlg)
-			{
-				if (m_pUniteResultDlg->GetDone())
-					if (!m_pUniteResultDlg->CheckChildDlgVisible())
-						bTimeOut = true;
-			}
-			else
-			{
-				bTimeOut = true;
-			}
+		if (g_input->GetDown("ESCAPE", true) == 1) {
+			FrUniteResultDlg* resultDlg = (FrUniteResultDlg*)m_resultReportDlg;
+			if (resultDlg == NULL)
+				expired = true;
+			else if (resultDlg->m_escClosable && !resultDlg->CheckChildDlgVisible())
+				expired = true;
 		}
 
-		if (bTimeOut)
-		{
-			m_resultDelay = 1.0f;
+		if (expired) {
+			m_approachGiftTimer = 1.0f;
 
-			if (m_levelupForms.size())
-			{
-				for (unsigned int i = 0; i < m_levelupForms.size(); i++)
-				{
-					if (m_levelupForms[i])
-					{
-						m_levelupForms[i]->Close(FrNONE, true);
-						m_levelupForms[i] = NULL;
+			if (!m_levelupDlgs.empty()) {
+				for (unsigned int i = 0; i < m_levelupDlgs.size(); i++) {
+					if (m_levelupDlgs[i]) {
+						m_levelupDlgs[i]->Close((eFormRet)0, true);
+						m_levelupDlgs[i] = NULL;
 					}
 				}
-				m_levelupForms.clear();
+				m_levelupDlgs.clear();
 			}
 
-			if (m_pUniteResultDlg)
-				m_pUniteResultDlg->Close(false);
+			if (m_resultReportDlg)
+				m_resultReportDlg->Close(false);
 
 			if (CUserInfo::Instance() && CUserInfo::Instance()->GetDlg())
 				CUserInfo::Instance()->Close();
 
-			if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(),
-					"GAMEROOM_EXTRES"))
-			{
-				if (Doc()->m_roomInfo.realGameType != 14)
-				{
+			if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES") == 0) {
+				if (CSharedDoc::Instance()->m_roomInfo.m_roomMode != 14) {
 					OpenLayout("GAMEROOM_EXT");
-					HandleMsg(MsgObject(NULL, 0xf, 0, 0, 0, 0, 0));
-					HandleMsg(MsgObject(NULL, 0x2f, 0, 0, 0, 0, 0));
-				}
-				else
-				{
+					HandleMsg(MsgObject(0, 0x0F, 0, 0, 0, 0, 0));
+					HandleMsg(MsgObject(0, 0x2F, 0, 0, 0, 0, 0));
+				} else {
 					SendRoomExitPacket();
 				}
 			}
 		}
-	}
-	else if (m_pTreasureGift)
-	{
-		m_pTreasureGift->Close(true);
-		m_pTreasureGift = NULL;
+	} else if (m_approachGiftDlg) {
+		m_approachGiftDlg->Close(true);
+		m_approachGiftDlg = NULL;
 	}
 
-	if ((g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false)) &&
-		g_input->GetDown("EMOTICON", false))
-	{
-		if (!CRankingInfo::Instance()->GetDlg() &&
-			!CMessengerInfo::Instance()->IsVisible())
+	if ((g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false)) && g_input->GetDown("EMOTICON", false)) {
+		if (!CRankingInfo::Instance()->GetDlg() && !CMessengerInfo::Instance()->IsVisible())
 			OnEmoticonBtnUp();
 	}
 
-	if ((g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false)) &&
-		g_input->GetDown("REPLAY", false))
-	{
+	if ((g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false)) && g_input->GetDown("REPLAY", false))
 		OnGameRoom_StartBtnUp();
-	}
 
-	if (m_pLanguage)
-	{
-		static bool s_bEnglish = true;
-		if (g_ime->IsAlphaNumericMode() != s_bEnglish)
-		{
-			s_bEnglish = g_ime->IsAlphaNumericMode();
+	if (m_languageArea) {
+		if (g_ime->IsAlphaNumericMode() != data_ab2830) {
+			data_ab2830 = g_ime->IsAlphaNumericMode();
+			m_languageArea->SetBgImg(data_ab2830 ? "chat_eng" : "chat_kor");
 
-			if (s_bEnglish)
-				m_pLanguage->SetBgImg("chat_eng");
-			else
-				m_pLanguage->SetBgImg("chat_kor");
-
-			if (m_pOnelineReqDlg)
-				m_pOnelineReqDlg->SetLanguage(s_bEnglish);
+			if (m_onelineReqDlg)
+				((FrOnelineReqDlg*)m_onelineReqDlg)->SetLanguage(data_ab2830);
 		}
 	}
 
-	if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST"))
-	{
+	if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST") == 0) {
 		if (g_input->GetButton(LEFT_BUTTON) == 2)
-			m_bOverBarFlag0 = true;
+			m_overBarButtonDown = true;
 
-		if (((m_pRoomSortCateVSList && m_pRoomSortCateVSList->IsVisible()) ||
-				(m_pRoomSortCateMassList &&
-					m_pRoomSortCateMassList->IsVisible()) ||
-				(m_pRoomSortCateBattleList &&
-					m_pRoomSortCateBattleList->IsVisible())) &&
-			m_bOverBarFlag0 && g_input->GetButton(LEFT_BUTTON) == 1)
-		{
-			m_bOverBarFlag0 = false;
-			m_pRoomSortCateVSList->SetVisible(false);
+		if ((m_cateVSList && m_cateVSList->IsVisible())
+			|| (m_cateMassList && m_cateMassList->IsVisible())
+			|| (m_cateBattleList && m_cateBattleList->IsVisible())) {
+			if (m_overBarButtonDown && g_input->GetButton(LEFT_BUTTON) == 1) {
+				m_overBarButtonDown = false;
+				m_cateVSList->SetVisible(false);
+			}
 		}
 	}
 
-	if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") ||
-		!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT"))
-	{
+	if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") == 0
+		|| stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") == 0) {
 		if (g_input->GetButton(LEFT_BUTTON) == 2)
-			m_bOverBarFlag0 = true;
+			m_overBarButtonDown = true;
 
-		if (m_bOverBarFlag1 && m_bOverBarFlag0 &&
-			g_input->GetButton(LEFT_BUTTON) == 1)
-		{
-			m_bOverBarFlag0 = false;
-			m_bOverBarFlag1 = false;
+		if (m_subSelectionPending && m_overBarButtonDown && g_input->GetButton(LEFT_BUTTON) == 1) {
+			m_overBarButtonDown = false;
+			m_subSelectionPending = false;
 			SendChangedUserInfo();
 			InitControlsSelectedUserInfo();
 		}
 	}
 
-	if (m_bNewBlink)
-	{
-		m_newBlinkTime += dt;
-		if (m_newBlinkTime > 0.2f)
-		{
-			m_newBlinkTime -= 0.2f;
-			m_newBlinkCount++;
+	if (m_tipBlinking) {
+		m_tipBlinkTime += dt;
+		if (m_tipBlinkTime > 0.2f) {
+			m_tipBlinkTime -= 0.2f;
+			m_tipBlinkCount++;
 
-			if (m_pCurTip)
-				m_pCurTip->SetVisible(!m_pCurTip->IsVisible());
+			if (m_blinkTipArea)
+				m_blinkTipArea->SetVisible(!m_blinkTipArea->IsVisible());
 
-			if (m_newBlinkCount == 3)
-			{
-				m_bNewBlink = false;
-				m_newBlinkCount = 0;
+			if (m_tipBlinkCount == 3) {
+				m_tipBlinking = false;
+				m_tipBlinkCount = 0;
 			}
 		}
 	}
 
-	if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES"))
-	{
-		if (Doc()->m_golfGame.gameTimeLimit + Doc()->m_approachStartTime >
-			g_CurrentTime)
-		{
-			unsigned long sec =
-				(Doc()->m_golfGame.gameTimeLimit + Doc()->m_approachStartTime -
-					g_CurrentTime) /
-				1000;
-			HandleMsg(MsgObject(this, 0x10,
-				(int)MakeStr("%02d:%02d", sec / 60, sec % 60), 0, 0, 0, 0));
+	if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES") == 0) {
+		unsigned long endTime = CSharedDoc::Instance()->m_gameTimeLimit + CSharedDoc::Instance()->m_gameStartTime;
+		const char* text;
+		if (endTime > g_CurrentTime) {
+			unsigned long seconds = (endTime - g_CurrentTime) / 1000;
+			text = MakeStr("%02d:%02d", seconds / 60, seconds % 60);
+		} else {
+			text = "00:00";
 		}
-		else
-		{
-			HandleMsg(MsgObject(this, 0x10, (int)"00:00", 0, 0, 0, 0));
-		}
+		HandleMsg(MsgObject(this, 0x10, (intptr_t)text, 0, 0, 0, 0));
 	}
 
-	if (m_fKbdManualTime < 0.0f &&
-		(!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") ||
-			!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT")))
-	{
-		bool bChanged = false;
-		if (m_bIdle)
-		{
-			if (g_mouse->IsUpdated() || g_ime->IsUpdated())
-			{
-				bChanged = true;
-				m_bIdle = false;
+	if (m_waitDlgTime < 0.0f
+		&& (stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") == 0
+			|| stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") == 0)) {
+		bool awayChanged = false;
+		CSharedDoc* doc = CSharedDoc::Instance();
+
+		if (m_away) {
+			if (g_mouse->IsUpdated() || g_ime->IsUpdated()) {
+				awayChanged = true;
+				m_away = false;
 			}
 
-			if (timeGetTime() - g_mouse->GetLastInputTime() > 300000 &&
-				timeGetTime() - g_ime->GetLastInputTime() > 300000)
-			{
-				std::list<sSlotInfo>::iterator it =
-					std::find(Doc()->m_slotList.begin(),
-						Doc()->m_slotList.end(), MyGuid(false));
-				if (it != Doc()->m_slotList.end() && ((*it).bMaster))
-				{
-					WSendPacket packet((enumClientPacket)0xf);
+			// Five minutes away: the room master is told to kick the player.
+			if (timeGetTime() - g_mouse->GetLastInputTime() > 300000
+				&& timeGetTime() - g_ime->GetLastInputTime() > 300000) {
+				std::list<sRoomPlayer>::iterator it;
+				for (it = doc->m_roomPlayerList.begin(); it != doc->m_roomPlayerList.end(); ++it) {
+					if (it->m_uid == doc->GetPangyaUserInfo().guid)
+						break;
+				}
+
+				if (it != doc->m_roomPlayerList.end() && (it->m_attribute & 0x18)) {
+					WSendPacket packet((enumClientPacket)0x0F);
 					packet.Encode1(0);
-					packet.Encode2(0xffff);
+					packet.Encode2(0xFFFF);
 					packet.Encode8(0);
 					packet.Encode8(0);
-					packet.Send(TO_GAME);
+					packet.Send(SEND_TO_DEFAULT);
 
-					this << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
+					this << MsgObject(0, 1, 0, 0, 0, 0, 0);
 				}
 			}
+		} else if (timeGetTime() - g_mouse->GetLastInputTime() > 60000
+			&& timeGetTime() - g_ime->GetLastInputTime() > 60000) {
+			m_away = true;
+			awayChanged = true;
 		}
-		else
-		{
-			if (timeGetTime() - g_mouse->GetLastInputTime() > 60000 &&
-				timeGetTime() - g_ime->GetLastInputTime() > 60000)
-			{
-				m_bIdle = true;
-				bChanged = true;
+
+		if (awayChanged) {
+			std::list<sRoomPlayer>::iterator it;
+			for (it = doc->m_roomPlayerList.begin(); it != doc->m_roomPlayerList.end(); ++it) {
+				if (it->m_uid == doc->GetPangyaUserInfo().guid)
+					break;
 			}
-		}
 
-		if (bChanged)
-		{
-			std::list<sSlotInfo>::iterator it =
-				std::find(Doc()->m_slotList.begin(), Doc()->m_slotList.end(),
-					MyGuid(false));
-
-			if (it == Doc()->m_slotList.end())
+			if (it == doc->m_roomPlayerList.end())
 				return;
 
-			if ((*it).bMaster)
-			{
-				WSendPacket packet((enumClientPacket)0xa);
-				packet.Encode2(0xffff);
+			if (it->m_attribute & 0x18) {
+				WSendPacket packet((enumClientPacket)0x0A);
+				packet.Encode2(0xFFFF);
 				packet.Encode1(1);
 				packet.Encode1(9);
-				packet.Encode1(m_bIdle ? 1 : 0);
-				packet.Send(TO_GAME);
+				packet.Encode1(m_away != false);
+				packet.Send(SEND_TO_DEFAULT);
 			}
 
 			WSendPacket packet((enumClientPacket)0x32);
-			packet.Encode1(m_bIdle ? 1 : 0);
-			packet.Send(TO_GAME);
+			packet.Encode1(m_away != false);
+			packet.Send(SEND_TO_DEFAULT);
 		}
 	}
 
-	if (IsLocalContent((localContentType_t)0x18) &&
-		!IsLocalContent((localContentType_t)0x48))
-	{
-		if (m_pToppageEvent1)
-		{
-			if (m_pToppageEvent1->IsVisible())
-			{
-				WRect rect;
-				rect = m_pToppageEvent1->GetRect();
-				rect.y += dt * m_event1Dir * 8.0f;
+	if (IsLocalContent((localContentType_t)0x18) && !IsLocalContent((localContentType_t)0x48)) {
+		if (m_toppageEvent1Btn && m_toppageEvent1Btn->IsVisible()) {
+			WRect rect = m_toppageEvent1Btn->GetRect();
+			float top = dt * m_toppageBtnScale * 8.0f + rect.y;
 
-				if ((rect.y > m_event1Rect.y + 15.0f && m_event1Dir > 0.0f) ||
-					(rect.y < m_event1Rect.y - 15.0f && m_event1Dir < 0.0f))
-					m_event1Dir *= -1.0f;
+			if ((top > m_event1IconRect.y + 15.0f && m_toppageBtnScale > 0.0f)
+				|| (top < m_event1IconRect.y - 15.0f && m_toppageBtnScale < 0.0f))
+				m_toppageBtnScale *= -1.0f;
 
-				m_pToppageEvent1->MoveWindow(WPoint(rect.x, rect.y));
-			}
+			WPoint pt;
+			pt.x = rect.x;
+			pt.y = top;
+			m_toppageEvent1Btn->MoveWindow(pt);
 		}
 	}
 
-	if (Doc()->GetAppGiftDownLoadState() == 2)
-	{
-		if (Doc()->m_golfGame.gameType == GAME_TYPE_NEW_APPROACH)
-		{
-			if (!m_pTreasureGift)
-			{
-				unsigned int count = CTHunter::Instance()->GetGiftSize();
-
-				if (count <= 8)
-					m_resultDelay = -9.0f;
-				else if (count <= 16)
-					m_resultDelay = -12.0f;
-				else
-					m_resultDelay = -20.0f;
-
-				m_pTreasureGift = CreateForm<FrTreasureGift>(
-					g_pFresh->GetManager(), this, "trgift", NULL);
-				m_pTreasureGift->SetApproachMode();
-				m_pTreasureGift->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnApproachGiftDlgResult, 12);
-				m_pTreasureGift->SetTimeLimit(12.0f);
-				m_pTreasureGift->EnableDrag(false);
-				m_pTreasureGift->SetFixed(true);
-				Doc()->SetAppGiftDownloadState(
-					(CSharedDoc::eAppGiftDownloadState)0);
-			}
-		}
-	}
-}
-
-void CLobbyMain::ProcessAutoStart(float dt)
-{
-	sRoomInfo* pRoom = &Doc()->m_roomInfo;
-
-	if (m_autoStartTime > 0.0f &&
-		!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") &&
-		(m_bCanStart || m_bAutoStart) &&
-		pRoom->nUserNum >= Max((Doc()->m_curGameServer.property & 2) ? 5 : 10,
-							   pRoom->nUserLimit * 3 / 4) &&
-		Doc()->m_roomInfo.gameType != GAME_TYPE_GUILD_MATCH &&
-		!pRoom->bAdminMaster)
-	{
-		m_autoStartTime -= dt;
-
-		if (m_autoStartTime < 6.0f && m_autoStartTime + dt > 6.0f)
-			this << MsgObject(NULL, 3,
-				(int)"(\xbe\xcb\xb8\xb2)\xc2\xfc\xbf\xa9\xc0\xce\xbf\xf8\xc0\xcc \xc0\xfc\xbf\xf8 \xc1\xd8\xba\xf1\xbf\xcf\xb7\xe1\xb0\xa1 \xb5\xc7\xbe\xfa\xc0\xb8\xb9\xc7\xb7\xce 5\xc3\xca \xc8\xc4\xbf\xa1 \xb0\xd4\xc0\xd3\xc0\xbb \xc0\xda\xb5\xbf \xbd\xc3\xc0\xdb\xc7\xd5\xb4\xcf\xb4\xd9.",
-				0xffff7878, 0, 0, 0);
-		else if (m_autoStartTime < 5.0f && m_autoStartTime + dt > 5.0f)
-			this << MsgObject(NULL, 3,
-				(int)"(\xbe\xcb\xb8\xb2)\xb0\xd4\xc0\xd3\xbd\xc3\xc0\xdb 5\xc3\xca\xc0\xfc\xc0\xd4\xb4\xcf\xb4\xd9.",
-				0xffff7878, 0, 0, 0);
-		else if (m_autoStartTime < 4.0f && m_autoStartTime + dt > 4.0f)
-			this << MsgObject(NULL, 3,
-				(int)"(\xbe\xcb\xb8\xb2)\xb0\xd4\xc0\xd3\xbd\xc3\xc0\xdb 4\xc3\xca\xc0\xfc\xc0\xd4\xb4\xcf\xb4\xd9.",
-				0xffff7878, 0, 0, 0);
-		else if (m_autoStartTime < 3.0f && m_autoStartTime + dt > 3.0f)
-			this << MsgObject(NULL, 3,
-				(int)"(\xbe\xcb\xb8\xb2)\xb0\xd4\xc0\xd3\xbd\xc3\xc0\xdb 3\xc3\xca\xc0\xfc\xc0\xd4\xb4\xcf\xb4\xd9.",
-				0xffff7878, 0, 0, 0);
-		else if (m_autoStartTime < 2.0f && m_autoStartTime + dt > 2.0f)
-			this << MsgObject(NULL, 3,
-				(int)"(\xbe\xcb\xb8\xb2)\xb0\xd4\xc0\xd3\xbd\xc3\xc0\xdb 2\xc3\xca\xc0\xfc\xc0\xd4\xb4\xcf\xb4\xd9.",
-				0xffff7878, 0, 0, 0);
-		else if (m_autoStartTime < 1.0f && m_autoStartTime + dt > 1.0f)
-		{
-			m_bAutoStart = false;
-			this << MsgObject(NULL, 3,
-				(int)"(\xbe\xcb\xb8\xb2)\xb0\xd4\xc0\xd3\xbd\xc3\xc0\xdb 1\xc3\xca\xc0\xfc\xc0\xd4\xb4\xcf\xb4\xd9.",
-				0xffff7878, 0, 0, 0);
-		}
-		else if (m_autoStartTime < 0.0f && m_masterOID == MyGuid(false) &&
-			Doc()->m_roomInfo.gameType != GAME_TYPE_GUILD_MATCH)
-			OnGameRoom_StartBtnUp();
-	}
-	else
-	{
-		if (Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-			m_autoStartTime = 6.0f;
+	if (CSharedDoc::Instance()->m_value5D08 == 2 && CSharedDoc::Instance()->m_roomType == 10 && m_approachGiftDlg == NULL) {
+		unsigned char giftCount = CTHunter::Instance()->GetGiftSize();
+		if (giftCount <= 8)
+			m_approachGiftTimer = -9.0f;
+		else if (giftCount <= 16)
+			m_approachGiftTimer = -12.0f;
 		else
-			m_autoStartTime = 15.0f;
+			m_approachGiftTimer = -20.0f;
+
+		FrTreasureGift* dlg = CreateForm<FrTreasureGift>(g_pFresh->GetManager(), this, "trgift", NULL);
+		m_approachGiftDlg = dlg;
+		dlg->SetApproachMode();
+		m_approachGiftDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnApproachGiftDlgResult, 0x0C);
+		m_approachGiftDlg->SetTimeLimit(12.0f);
+		m_approachGiftDlg->EnableDrag(false);
+		m_approachGiftDlg->SetFixed(true);
+		CSharedDoc::Instance()->m_value5D08 = 0;
 	}
 }
 
-void CLobbyMain::OnProcess(float dt)
-{
+// lobbymain.cpp:2817
+// The game room's auto start: once enough players are in a non-guild room
+// that allows it, counts down m_autoStartCountdown, announcing the last five
+// seconds, and starts the game for the room master at zero.
+void CLobbyMain::ProcessAutoStart(float dt) {
+	sRoomInfo& room = CSharedDoc::Instance()->m_roomInfo;
+
+	if (m_autoStartCountdown > 0.0f
+		&& stricmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") == 0
+		&& (m_roomOptionD || m_autoStartArmed)) {
+		// TODO: the dword at CSharedDoc 0x4B4F (bit 1: 5 players are enough)
+		// overlaps m_serverChannel's name in the current SharedDoc layout.
+		int minPlayers = (CSharedDoc::Instance()->m_serverChannel.name[0x3D] & 2) ? 5 : 10;
+		int needed = room.m_userLimit * 3 / 4;
+		if (minPlayers >= needed)
+			needed = minPlayers;
+
+		if (room.m_userCount >= needed && room.m_gameType != 6 && room.m_option[1] == 0) {
+			float left = m_autoStartCountdown - dt;
+			m_autoStartCountdown = left;
+
+			const char* text;
+			if (left < 6.0f && left + dt > 6.0f) {
+				// TODO: the text runs on past its first 32 bytes (77 in all).
+				text = "(\xBE\xCB\xB8\xB2)\xC2\xFC\xBF\xA9\xC0\xCE\xBF\xF8\xC0\xCC \xC0\xFC\xBF\xF8 \xC1\xD8\xBA\xF1\xBF\xCF\xB7\xE1\xB0\xA1";
+			} else if (left < 5.0f && left + dt > 5.0f) {
+				text = "(\xBE\xCB\xB8\xB2)\xB0\xD4\xC0\xD3\xBD\xC3\xC0\xDB 5\xC3\xCA\xC0\xFC\xC0\xD4\xB4\xCF\xB4\xD9.";
+			} else if (left < 4.0f && left + dt > 4.0f) {
+				text = "(\xBE\xCB\xB8\xB2)\xB0\xD4\xC0\xD3\xBD\xC3\xC0\xDB 4\xC3\xCA\xC0\xFC\xC0\xD4\xB4\xCF\xB4\xD9.";
+			} else if (left < 3.0f && left + dt > 3.0f) {
+				text = "(\xBE\xCB\xB8\xB2)\xB0\xD4\xC0\xD3\xBD\xC3\xC0\xDB 3\xC3\xCA\xC0\xFC\xC0\xD4\xB4\xCF\xB4\xD9.";
+			} else if (left < 2.0f && left + dt > 2.0f) {
+				text = "(\xBE\xCB\xB8\xB2)\xB0\xD4\xC0\xD3\xBD\xC3\xC0\xDB 2\xC3\xCA\xC0\xFC\xC0\xD4\xB4\xCF\xB4\xD9.";
+			} else if (left < 1.0f && left + dt > 1.0f) {
+				m_autoStartArmed = false;
+				text = "(\xBE\xCB\xB8\xB2)\xB0\xD4\xC0\xD3\xBD\xC3\xC0\xDB 1\xC3\xCA\xC0\xFC\xC0\xD4\xB4\xCF\xB4\xD9.";
+			} else {
+				if (left < 0.0f && m_roomMasterUid == CSharedDoc::Instance()->GetPangyaUserInfo().guid
+					&& CSharedDoc::Instance()->m_roomInfo.m_gameType != 6)
+					OnGameRoom_StartBtnUp();
+				return;
+			}
+
+			this << MsgObject(0, 3, (intptr_t)text, 0xFFFF7878, 0, 0, 0);
+			return;
+		}
+	}
+
+	if (CSharedDoc::Instance()->m_roomInfo.m_gameType == 6)
+		m_autoStartCountdown = 6.0f;
+	else
+		m_autoStartCountdown = 15.0f;
+}
+
+// lobbymain.cpp:2856
+void CLobbyMain::OnProcess(float dt) {
 	CTaskMain::OnProcess(dt);
 
 	ProcessLobbyBgCamera(dt);
 	ProcessLobbyPetSync(dt);
 
-	if (IsLocalContent(S3_GM_TOOLKIT))
+	if (IsLocalContent((localContentType_t)0x0A))
 		ProcessAdministrator(dt);
 
 	ProcessDialogKeyboard(dt);
@@ -3070,3817 +3157,1662 @@ void CLobbyMain::OnProcess(float dt)
 	ProcessAutoStart(dt);
 	ResetControlsRoomListSort(dt);
 
-	if (IsLocalContent((localContentType_t)0x4c) &&
-		g_pFresh->IsCurrentLayout("TOPPAGE"))
+	if (IsLocalContent((localContentType_t)0x4C) && g_pFresh->IsCurrentLayout("TOPPAGE"))
 		AnimateWebEventButton(dt);
 
-	if (IsLocalContent(S4_UCC))
-	{
+	if (IsLocalContent((localContentType_t)0x57))
 		RefreshAllUccClothes();
-	}
 }
 
-void CLobbyMain::AnimateWebEventButton(float dt)
-{
-	static float s_time;
-	static int s_index;
+// lobbymain.cpp:2889
+// Cycles the Christmas event button through its "xmas_main_i<n>" frames
+// (1, 2, 3, 2), one every 0.3 seconds.
+void CLobbyMain::AnimateWebEventButton(float dt) {
 	static int s_frame;
-	s_time += dt;
-	if (s_time > 0.3f)
-	{
-		s_time = 0.0f;
+	static int s_frameIndex;
+	static float s_frameTime;
+
+	s_frameTime += dt;
+	if (s_frameTime > 0.3f) {
 		int frames[4] = { 1, 2, 3, 2 };
 
-		s_index++;
-		if (s_index > 3)
-			s_index = 0;
+		s_frameTime = 0.0f;
+		if (++s_frameIndex > 3)
+			s_frameIndex = 0;
+		s_frame = frames[s_frameIndex];
 
-		s_frame = frames[s_index];
-		char buf[4] = { 0 };
-		std::string name = "xmas_main_i";
-		name += itoa(s_frame, buf, 10);
+		char number[4] = { 0, };
+		std::string image("xmas_main_i");
+		image += itoa(s_frame, number, 10);
 
-		if (m_pToppageChristmas2007Event)
-		{
-			m_pToppageChristmas2007Event->SetButtonImg(name.c_str(),
-				FrButton::NORMAL);
-			m_pToppageChristmas2007Event->SetButtonImg(name.c_str(),
-				FrButton::OVER);
+		if (m_toppageChristmasBtn) {
+			m_toppageChristmasBtn->SetButtonImg(image.c_str(), FrButton::NORMAL);
+			m_toppageChristmasBtn->SetButtonImg(image.c_str(), FrButton::OVER);
 		}
 	}
 }
 
-void CLobbyMain::OnDisplay()
-{
+// lobbymain.cpp:2917
+void CLobbyMain::OnDisplay(void) {
 }
-void CLobbyMain::HandleMsg(const MsgObject& msg)
-{
-	switch (msg.message)
-	{
-	case 0x5b:
-	{
-		std::map<unsigned long, sRoomSlot>::iterator it =
-			Doc()->m_roomSlotMap.find(msg.param1);
-		if (it == Doc()->m_roomSlotMap.end())
-			return;
 
-		if (Doc()->m_roomSlotMap[msg.param1].pExhibition == NULL)
-			return;
-
-		switch (msg.param2)
-		{
-		case 0:
-			Doc()->m_roomSlotMap[msg.param1].pExhibition->SetDirection(
-				*(float*)msg.param3);
-			break;
-
-		case 1:
-			Doc()->m_roomSlotMap[msg.param1].pExhibition->SetMotion(
-				(const char*)msg.param3, false, 0.0f);
-			break;
-		}
-	}
-	break;
-
-	case 0x59:
-	{
-		std::map<unsigned long, sRoomSlot>::iterator it;
-		for (it = Doc()->m_roomSlotMap.begin();
-			it != Doc()->m_roomSlotMap.end(); ++it)
-		{
-			if (it->second.pExhibition)
-			{
-				delete it->second.pExhibition;
-				it->second.pExhibition = NULL;
-			}
-		}
-		Doc()->m_roomSlotMap.clear();
-
-		for (int i = 0; i < 4; i++)
-		{
-			if (m_pPet[i])
-				m_pPet[i]->SetMouseEvent(false);
-		}
-	}
-	break;
-
-	case 0x5a:
-	{
-		sSlotInfo* pSlot = (sSlotInfo*)msg.param1;
-		sCharacterInfo* pCharInfo = (sCharacterInfo*)msg.param2;
-
-		sRoomSlot slot;
-		slot.pArea = m_pPet[pSlot->connectionRank - 1];
-		slot.pExhibition = NULL;
-		slot.charInfo = *pCharInfo;
-
-		slot.bAngelWing = pSlot->angelicWings;
-		slot.bGachaWing = pSlot->angelicWingsEffect;
-
-		Doc()->m_roomSlotMap[pSlot->dwGuid] = slot;
-		ShowPet(pSlot->dwGuid);
-	}
-	break;
-
-	case 0x4f:
-	{
-		sFriend* pFriend = BuddyMGR->GetBuddy(m_selUID);
-
-		if (pFriend == NULL)
-			return;
-
-		FrForm* pForm =
-			CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_yesno");
-		pForm->SetMessage(MakeStr("%s\xb4\xd4\xc0\xbb \xc4\xa3\xb1\xb8 "
-								  "\xb8\xae\xbd\xba\xc6\xae\xbf\xa1\xbc\xad "
-								  "\xbb\xe8\xc1\xa6\xc7\xcf\xbd\xc3\xb0\xda"
-								  "\xbd\xc0\xb4\xcf\xb1\xee?",
-							  pFriend->NickName),
-			false);
-		pForm->Open((FRESH_PFN_RESULT)&CLobbyMain::OnRemoveFriendDlgResult, 0);
-	}
-	break;
+// lobbymain.cpp:2921
+void CLobbyMain::HandleMsg(const MsgObject& msg) {
+	switch (msg.m_msg) {
+	// TODO(boot): 0x5B: lobbymain.cpp:2945, a room slot exhibition motion/direction (CSharedDoc 0x12B8 map of sRoomSlot, CExhibition::SetMotion/SetDirection)
+	// TODO(boot): 0x59: lobbymain.cpp:2968, delete the room slot exhibitions and clear the map, re-enable the pet areas
+	// TODO(boot): 0x5A: lobbymain.cpp:2981, set a room slot (sRoomSlot from param1/param2) and ShowPet
+	// TODO(boot): 0x4F: lobbymain.cpp:2999, ask to remove the friend m_removeFriendUid ("notify_yesno", OnRemoveFriendDlgResult)
 
 	case 0x44:
-		OpenEventPrizeForm((unsigned char)msg.param1);
+		// lobbymain.cpp:3017
+		OpenEventPrizeForm((unsigned char)msg.m_param1);
 		break;
 
-	case 0:
-	{
-		if (g_pFresh == NULL)
-			return;
+	case 0: {
+		// lobbymain.cpp:3021, open a layout
+		if (g_pFresh) {
+			const char* name = (const char*)msg.m_param1;
 
-		const char* layout = (const char*)msg.param1;
+			if (!g_pFresh->IsCurrentLayout(name)) {
+				CloseAllDialogs();
+				ResetControl();
 
-		if (g_pFresh->IsCurrentLayout(layout))
-			return;
+				if (stricmp(name, "TOPPAGE") == 0) {
+					CIconManager::Instance()->ClearInformation();
+					AfxGetTask()->SetWhisper(false);
+				} else {
+					AfxGetTask()->SetWhisper(true);
+				}
 
-		CloseAllDialogs();
-		ResetControl();
-
-		if (!stricmp(layout, "TOPPAGE"))
-		{
-			CIconManager::Instance()->ClearInformation();
-
-			AfxGetTask()->SetWhisper(false);
+				g_pFresh->OpenLayout(name, this, false);
+				WSingleton<CMouseCursor>::Instance()->Toggle(true);
+				CheckTikiReport(name);
+			}
 		}
-		else
-		{
-			AfxGetTask()->SetWhisper(true);
-		}
-
-		g_pFresh->OpenLayout(layout, this, false);
-		CMouseCursor::Instance()->Toggle(true);
-
-		CheckTikiReport(layout);
+		break;
 	}
-	break;
 
-	case 3:
-	{
-		if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") ||
-			!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT") ||
-			!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES"))
-		{
+	case 0x03:
+		// lobbymain.cpp:3088, a chat line: kept for the chat view outside
+		// the game room layouts
+		if (strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM")
+			&& strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT")
+			&& strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES")) {
 			sChatLine line;
-			line.text = (const char*)msg.param1;
-			line.color = msg.param2;
+			line.m_text = (const char*)msg.m_param1;
+			line.m_color = msg.m_param2;
+			CSharedDoc::Instance()->m_chatLineList.push_back(line);
+		}
+		if (m_chatView)
+			m_chatView->AddLine((const char*)msg.m_param1, msg.m_param2, false);
+		break;
 
-			Doc()->m_chatLineList.push_back(line);
+	// TODO(boot): 0x60: lobbymain.cpp:3104
+	case 0x0A: {
+		// lobbymain.cpp:3138, add a lobby user (hidden administrators
+		// only show to themselves or to administrators)
+		sBriefUserInfo* info = (sBriefUserInfo*)msg.m_param1;
+		CSharedDoc* doc = CSharedDoc::Instance();
+		if (info->uid == doc->m_userInfo.guid && doc->m_userInfo.IsIdentity(4)) {
+			if (info->lobbyFlags & 4)
+				break;
+		}
+		if (info->uid != doc->m_userInfo.guid && !doc->m_userInfo.identityBits.administrator
+			&& (info->identity & 0x14)) {
+			if (!info->invisible)
+				break;
+		}
+		if (m_userListBox) {
+			m_userListBox->AddItem(info);
+			RoomList_SortUserList(m_userSort);
+		}
+		if (m_userListDlg) {
+			m_userListDlg->AddUser((void*)msg.m_param1);
+			m_userListDlg->SortUserList();
+		}
+		break;
+	}
+
+	case 0x0C: {
+		// lobbymain.cpp:3174, remove a lobby user
+		sBriefUserInfo* info = (sBriefUserInfo*)msg.m_param1;
+		CSharedDoc* doc = CSharedDoc::Instance();
+		if (info->uid == doc->m_userInfo.guid && doc->m_userInfo.IsIdentity(4)) {
+			if (info->lobbyFlags & 4)
+				break;
+		}
+		if (m_userListBox)
+			m_userListBox->DelItem(info, msg.m_param2);
+		if (m_userListDlg)
+			m_userListDlg->DelUser((void*)msg.m_param1, msg.m_param2);
+		if (info->uid == m_selectedUserId) {
+			m_selectedUserId = -1;
+			m_removeFriendUid = -1;
+			if (m_userActionBtn)
+				m_userActionBtn->Enable(false);
+		}
+		break;
+	}
+
+	case 0x0B:
+		// lobbymain.cpp:3204, clear the lobby user list
+		if (m_userListBox)
+			m_userListBox->ClearItem();
+		m_selectedUserId = -1;
+		m_removeFriendUid = -1;
+		break;
+
+	case 0x04: {
+		// lobbymain.cpp:3213, add a room to the room list (filtered by the
+		// current game type, else by the current category)
+		if (m_roomListBox) {
+			sRoomInfo* room = (sRoomInfo*)msg.m_param1;
+			if (data_aa9eac[3] != -1) {
+				if (room->m_gameType == data_aa9eac[3])
+					m_roomListBox->AddItem(room);
+			} else if (GetCateByGameType(room->m_gameType) == data_aa9eac[2] || data_aa9eac[2] == ROOMCATE_ALL) {
+				m_roomListBox->AddItem(room);
+			}
+		}
+		break;
+	}
+
+	case 0x05: {
+		// lobbymain.cpp:3228, remove a room from the room list, keeping
+		// at least 6 lines
+		if (m_roomListBox) {
+			sRoomInfo* room = (sRoomInfo*)msg.m_param1;
+			if (data_aa9eac[3] != -1) {
+				if (room->m_gameType == data_aa9eac[3]) {
+					m_roomListBox->DelItem(room, msg.m_param2);
+					for (int i = m_roomListBox->GetCurrentItemSize(true); i < 6; i++)
+						m_roomListBox->AddItem(NULL);
+				}
+			} else if (GetCateByGameType(room->m_gameType) == data_aa9eac[2] || data_aa9eac[2] == ROOMCATE_ALL) {
+				m_roomListBox->DelItem(room, msg.m_param2);
+				for (int i = m_roomListBox->GetCurrentItemSize(true); i < 6; i++)
+					m_roomListBox->AddItem(NULL);
+			}
+		}
+		break;
+	}
+
+	case 0x06:
+		// lobbymain.cpp:3251, clear the room list
+		if (m_roomListBox)
+			m_roomListBox->ClearItem();
+		break;
+
+	case 0x0D: {
+		// lobbymain.cpp:3257, pad the room list to 6 lines (or drop empty
+		// lines past 6), then sort it
+		if (m_roomListBox) {
+			int size = m_roomListBox->GetCurrentItemSize(true);
+			if (size <= 6) {
+				for (; size < 6; size++)
+					m_roomListBox->AddItem(NULL);
+			} else {
+				int extra = size - 6;
+				FrListBox::ITEM_LIST::iterator it = m_roomListBox->m_itemList.begin();
+				while (it != m_roomListBox->m_itemList.end() && extra > 0) {
+					FrListBox::ITEM_LIST::iterator cur = it++;
+					if ((*cur)->pData == NULL) {
+						m_roomListBox->_DelItem(cur);
+						extra--;
+					}
+				}
+			}
+			RoomList_SortRoomList(m_roomSort, 0);
+		}
+		break;
+	}
+
+	case 0x07: {
+		// lobbymain.cpp:3293, a player entered the game room
+		if (CSharedDoc::Instance()->m_roomInfo.m_gameType == 5 || CSharedDoc::Instance()->m_roomInfo.m_gameType == 6) {
+			if (CSharedDoc::Instance()->m_gameOver) {
+				sSlotInfo* slot = (sSlotInfo*)msg.m_param1;
+				if (slot->m_attribute & 3)
+					m_slotList2.push_back(slot);
+				else
+					m_slotList1.push_back(slot);
+				RemakeTeam(false);
+			} else {
+				RemakeTeam(true);
+			}
+		} else if (m_roomUserListBox) {
+			m_roomUserListBox->AddItem((void*)msg.m_param1);
+			m_roomUserListBox->SortItem(ConnectionUserCompare);
 		}
 
-		if (m_pChatView)
-			m_pChatView->AddLine((const char*)msg.param1, msg.param2, false);
-	}
-	break;
-
-	case 0x60:
-	{
-		if (strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM"))
-			return;
-
-		std::string nick = (const char*)msg.param1;
-		std::string chat = (const char*)msg.param2;
-
-		int face = Doc()->m_chatManager.GetFaceIndex(chat.c_str());
-		if (face == 5)
-			break;
-
-		if (m_pRoomUser)
-		{
-			for (std::list<FrListItem*>::iterator it =
-					 m_pRoomUser->m_itemList.begin();
-				it != m_pRoomUser->m_itemList.end(); ++it)
-			{
-				sSlotInfo* pSlot = (sSlotInfo*)(*it)->pData;
-
-				if (pSlot)
-				{
-					if (!strcmp(pSlot->sNick, nick.c_str()))
-					{
-						if (Doc()->m_roomSlotMap[pSlot->dwGuid].pExhibition)
-						{
-							Doc()
-								->m_roomSlotMap[pSlot->dwGuid]
-								.pExhibition->SetChatFacial(face,
-									pSlot->tidChar);
-						}
+		if (CSharedDoc::Instance()->m_roomInfo.m_gameType == 4 || CSharedDoc::Instance()->m_roomInfo.m_gameType == 10) {
+			// lobbymain.cpp:3322, drop one empty line past 24
+			if (m_roomUserListBox && m_roomUserListBox->GetCurrentItemSize(true) > 24) {
+				FrListBox::ITEM_LIST::iterator it;
+				for (it = m_roomUserListBox->m_itemList.begin(); it != m_roomUserListBox->m_itemList.end(); ++it) {
+					if ((*it)->pData == NULL) {
+						m_roomUserListBox->_DelItem(it);
 						break;
 					}
 				}
+				m_roomUserListBox->SortItem(ConnectionUserCompare);
 			}
+			break;
 		}
-	}
-	break;
+		if (IsMassGame(CSharedDoc::Instance()->m_roomInfo.m_gameType))
+			break;
 
-	case 0xa:
-	{
-		sBriefUserInfo* pUser = (sBriefUserInfo*)msg.param1;
-
-		if (pUser->dwGuid == MyGuid(false) &&
-			(Doc()->m_myInfo.info.dwIdentity & 4))
-		{
-			if (pUser->state & 0x400)
-				return;
-		}
-
-		if (pUser->dwGuid != MyGuid(false) &&
-			!Doc()->m_myInfo.info.IsIdentity(4) && (pUser->dwIdentity & 0x14))
-		{
-			if (!(pUser->state & 1))
-				return;
-		}
-
-		if (m_pUserList)
-		{
-			m_pUserList->AddItem(pUser);
-			RoomList_SortUserList(m_userSort);
+		// lobbymain.cpp:3341, the player's slot (pet area, character)
+		sSlotInfo* player = (sSlotInfo*)msg.m_param1;
+		sRoomSlot slot;
+		// TODO(boot): sRoomSlot 0x0 = m_petArea[player->m_connection - 1]
+		// and the angel wing bits at 0x28C (player->m_flags57) need the
+		// members named in SharedDoc.h
+		slot.m_pPet = NULL;
+		slot.m_characterInfo = *(sCharacterInfo*)msg.m_param2;
+		CSharedDoc::Instance()->m_roomSlotMap[player->m_uid] = slot;
+		if (IsLocalContent((localContentType_t)0x54)) {
+			if (!(player->m_flags151.flag & 1))
+				ShowPet(player->m_uid);
+		} else {
+			ShowPet(player->m_uid);
 		}
 
-		if (m_pUserListDlg)
-		{
-			m_pUserListDlg->AddUser((void*)msg.param1);
-			m_pUserListDlg->SortUserList();
+		// lobbymain.cpp:3365, drop one empty line past 4
+		if (m_roomUserListBox && m_roomUserListBox->GetCurrentItemSize(true) > 4) {
+			FrListBox::ITEM_LIST::iterator it;
+			for (it = m_roomUserListBox->m_itemList.begin(); it != m_roomUserListBox->m_itemList.end(); ++it) {
+				if ((*it)->pData == NULL) {
+					m_roomUserListBox->_DelItem(it);
+					break;
+				}
+			}
+			m_roomUserListBox->SortItem(ConnectionUserCompare);
 		}
-	}
-	break;
-
-	case 0xc:
-	{
-		sBriefUserInfo* pUser = (sBriefUserInfo*)msg.param1;
-
-		if (pUser->dwGuid == MyGuid(false) &&
-			(Doc()->m_myInfo.info.dwIdentity & 4))
-		{
-			if (pUser->state & 0x400)
-				return;
-		}
-
-		if (m_pUserList)
-			m_pUserList->DelItem(pUser, msg.param2);
-
-		if (m_pUserListDlg)
-			m_pUserListDlg->DelUser((void*)msg.param1, msg.param2);
-
-		if (pUser->dwGuid == m_selOID)
-		{
-			m_selOID = 0xffffffff;
-			m_selUID = 0xffffffff;
-
-			if (m_pUserInfo)
-				m_pUserInfo->Enable(false);
-		}
-	}
-	break;
-
-	case 0xb:
-		if (m_pUserList)
-			m_pUserList->ClearItem();
-
-		m_selOID = 0xffffffff;
-		m_selUID = 0xffffffff;
 		break;
-
-	case 4:
-	{
-		if (m_pRoomList == NULL)
-			return;
-
-		sRoomInfo* pRoom = (sRoomInfo*)msg.param1;
-		if (s_roomGameType != -1)
-		{
-			if (pRoom->gameType == s_roomGameType)
-				m_pRoomList->AddItem(pRoom);
-		}
-		else if (GetCateByGameType(pRoom->gameType) == s_roomCate ||
-			s_roomCate == 4)
-			m_pRoomList->AddItem(pRoom);
 	}
-	break;
 
-	case 5:
-	{
-		if (m_pRoomList == NULL)
-			return;
-
-		sRoomInfo* pRoom = (sRoomInfo*)msg.param1;
-		if (s_roomGameType != -1)
-		{
-			if (pRoom->gameType == s_roomGameType)
-			{
-				m_pRoomList->DelItem(pRoom, msg.param2);
-				for (int i = m_pRoomList->GetCurrentItemSize(true); i < 6; i++)
-					m_pRoomList->AddItem(NULL);
-			}
-		}
-		else if (GetCateByGameType(pRoom->gameType) == s_roomCate ||
-			s_roomCate == 4)
-		{
-			m_pRoomList->DelItem(pRoom, msg.param2);
-			for (int i = m_pRoomList->GetCurrentItemSize(true); i < 6; i++)
-				m_pRoomList->AddItem(NULL);
-		}
-	}
-	break;
-
-	case 6:
-		if (m_pRoomList)
-			m_pRoomList->ClearItem();
-		break;
-
-	case 0xd:
-	{
-		if (m_pRoomList == NULL)
-			return;
-
-		int count = m_pRoomList->GetCurrentItemSize(true);
-		if (count <= 6)
-		{
-			for (int i = count; i < 6; i++)
-				m_pRoomList->AddItem(NULL);
-		}
-		else
-		{
-			int del = count - 6;
-			std::list<FrListItem*>::iterator it =
-				m_pRoomList->m_itemList.begin();
-			while (it != m_pRoomList->m_itemList.end() && del > 0)
-			{
-				if ((*it)->pData == NULL)
-				{
-					del--;
-					it = m_pRoomList->_DelItem(it);
-				}
-				else
-				{
-					++it;
-				}
-
-				if (del < 0)
-					break;
-			}
-		}
-
-		RoomList_SortRoomList(m_roomSort, 0);
-	}
-	break;
-
-	case 7:
-	{
-		if (Doc()->m_roomInfo.gameType == 5 || Doc()->m_roomInfo.gameType == 6)
-		{
-			if (Doc()->m_bGameOver)
-			{
-				sSlotInfo* pSlot = (sSlotInfo*)msg.param1;
-
-				if (pSlot->bTeam == 0)
-					m_redTeam.push_back(pSlot);
-				else
-					m_blueTeam.push_back(pSlot);
-
-				RemakeTeam(false);
-			}
-			else
-			{
-				RemakeTeam(true);
-			}
-		}
-		else
-		{
-			if (m_pRoomUser)
-			{
-				m_pRoomUser->AddItem((void*)msg.param1);
-				m_pRoomUser->SortItem(ConnectionUserCompare);
-			}
-		}
-
-		if (Doc()->m_roomInfo.gameType == 4 || Doc()->m_roomInfo.gameType == 10)
-		{
-			if (m_pRoomUser == NULL)
-				return;
-
-			if (m_pRoomUser->GetCurrentItemSize(true) <= 24)
-				return;
-
-			for (std::list<FrListItem*>::iterator it =
-					 m_pRoomUser->m_itemList.begin();
-				it != m_pRoomUser->m_itemList.end(); ++it)
-			{
-				if ((*it)->pData == NULL)
-				{
-					m_pRoomUser->_DelItem(it);
-					break;
-				}
-			}
-
-			m_pRoomUser->SortItem(ConnectionUserCompare);
-		}
-		else if (IsMassGame(Doc()->m_roomInfo.gameType))
-		{
-			return;
-		}
-		else
-		{
-			sSlotInfo* pSlot = (sSlotInfo*)msg.param1;
-
-			sRoomSlot slot;
-			slot.pArea = m_pPet[pSlot->connectionRank - 1];
-			slot.pExhibition = NULL;
-			slot.charInfo = *(sCharacterInfo*)msg.param2;
-
-			slot.bAngelWing = pSlot->angelicWings;
-			slot.bGachaWing = pSlot->angelicWingsEffect;
-
-			Doc()->m_roomSlotMap[pSlot->dwGuid] = slot;
-
-			if (IsLocalContent(S4_INVITE_FRIEND))
-			{
-				if (!pSlot->IsInvite)
-					ShowPet(pSlot->dwGuid);
-			}
-			else
-			{
-				ShowPet(pSlot->dwGuid);
-			}
-
-			if (m_pRoomUser == NULL)
-				return;
-
-			if (m_pRoomUser->GetCurrentItemSize(true) <= 4)
-				return;
-
-			for (std::list<FrListItem*>::iterator it =
-					 m_pRoomUser->m_itemList.begin();
-				it != m_pRoomUser->m_itemList.end(); ++it)
-			{
-				if ((*it)->pData == NULL)
-				{
-					m_pRoomUser->_DelItem(it);
-					break;
-				}
-			}
-
-			m_pRoomUser->SortItem(ConnectionUserCompare);
-		}
-	}
-	break;
-
-	case 8:
-	{
-		unsigned long guid = msg.param2;
-		int team = msg.param3;
-
-		if (Doc()->m_roomInfo.gameType == 5 || Doc()->m_roomInfo.gameType == 6)
-		{
-			if (Doc()->m_bGameOver)
-			{
+	case 0x08: {
+		// lobbymain.cpp:3396, a player left the game room
+		unsigned long uid = msg.m_param2;
+		if (CSharedDoc::Instance()->m_roomInfo.m_gameType == 5 || CSharedDoc::Instance()->m_roomInfo.m_gameType == 6) {
+			if (CSharedDoc::Instance()->m_gameOver) {
+				std::list<sSlotInfo*>& slots = msg.m_param3 ? m_slotList2 : m_slotList1;
 				std::list<sSlotInfo*>::iterator it;
-				if (team == 0)
-				{
-					for (it = m_redTeam.begin(); it != m_redTeam.end(); ++it)
-					{
-						if ((*it)->dwGuid == guid)
-						{
-							m_redTeam.erase(it);
-							break;
-						}
+				for (it = slots.begin(); it != slots.end(); ++it) {
+					if ((*it)->m_uid == uid) {
+						slots.erase(it);
+						break;
 					}
 				}
-				else
-				{
-					for (it = m_blueTeam.begin(); it != m_blueTeam.end(); ++it)
-					{
-						if ((*it)->dwGuid == guid)
-						{
-							m_blueTeam.erase(it);
-							break;
-						}
-					}
-				}
-
 				RemakeTeam(false);
-			}
-			else
-			{
+			} else {
 				RemakeTeam(true);
 			}
-		}
-		else
-		{
-			if (m_pRoomUser && msg.param1)
-				m_pRoomUser->DelItem((void*)msg.param1);
+		} else if (m_roomUserListBox && msg.m_param1) {
+			m_roomUserListBox->DelItem((void*)msg.m_param1);
 		}
 
-		if (Doc()->m_roomInfo.gameType == 4 || Doc()->m_roomInfo.gameType == 10)
-		{
-			if (m_pRoomUser)
-			{
-				if (m_pRoomUser->GetCurrentItemSize(true) < 24)
-					m_pRoomUser->AddItem(NULL);
+		if (CSharedDoc::Instance()->m_roomInfo.m_gameType == 4 || CSharedDoc::Instance()->m_roomInfo.m_gameType == 10) {
+			// lobbymain.cpp:3440, keep 24 lines
+			if (m_roomUserListBox && m_roomUserListBox->GetCurrentItemSize(true) < 24)
+				m_roomUserListBox->AddItem(NULL);
+		} else if (!IsMassGame(CSharedDoc::Instance()->m_roomInfo.m_gameType)) {
+			HidePet(uid);
+			std::map<unsigned long, sRoomSlot>::iterator it = CSharedDoc::Instance()->m_roomSlotMap.find(uid);
+			if (it != CSharedDoc::Instance()->m_roomSlotMap.end()) {
+				// TODO(boot): lobbymain.cpp:3453, the slot's pet area
+				// (sRoomSlot 0x0) SetMouseEvent(false)
+				CSharedDoc::Instance()->m_roomSlotMap.erase(it);
 			}
-		}
-		else if (!IsMassGame(Doc()->m_roomInfo.gameType))
-		{
-			HidePet(guid);
-
-			std::map<unsigned long, sRoomSlot>::iterator it =
-				Doc()->m_roomSlotMap.find(guid);
-			if (it != Doc()->m_roomSlotMap.end())
-			{
-				if (it->second.pArea)
-					it->second.pArea->SetMouseEvent(false);
-				Doc()->m_roomSlotMap.erase(it);
-			}
-
-			std::list<sSlotInfo>::iterator itSlot;
-			for (it = Doc()->m_roomSlotMap.begin();
-				it != Doc()->m_roomSlotMap.end(); ++it)
-			{
-				itSlot = std::find(Doc()->m_slotList.begin(),
-					Doc()->m_slotList.end(), it->first);
-
-				if (itSlot != Doc()->m_slotList.end())
-				{
-					it->second.pArea = m_pPet[itSlot->connectionRank - 1];
-
-					if (it->second.pExhibition)
-					{
-						it->second.pExhibition->SetCenter(
-							it->second.pArea->GetRect().x +
-								it->second.pArea->GetRect().w * 0.5f,
-							it->second.pArea->GetRect().y +
-								it->second.pArea->GetRect().h * 0.5f);
-
-						if (it->second.bGachaWing)
-							it->second.pExhibition->AttachAngelWingFx();
-					}
-				}
-			}
-
-			if (m_pRoomUser)
-			{
-				if (m_pRoomUser->GetCurrentItemSize(true) < 4)
-					m_pRoomUser->AddItem(NULL);
-			}
+			// TODO(boot): lobbymain.cpp:3460, re-place the remaining pets
+			// (sRoomSlot 0x0 = m_petArea[connection - 1], SetCenter on the
+			// area's centre, AttachAngelWingFx for bit 1 of 0x28C)
+			if (m_roomUserListBox && m_roomUserListBox->GetCurrentItemSize(true) < 4)
+				m_roomUserListBox->AddItem(NULL);
 		}
 
-		if (guid == m_selOID)
-		{
-			m_selOID = 0xffffffff;
-			m_selUID = 0xffffffff;
+		if (uid == m_selectedUserId) {
+			m_selectedUserId = -1;
+			m_removeFriendUid = -1;
 		}
+		break;
 	}
-	break;
 
-	case 9:
-	{
-		sSlotInfo* pSlot = (sSlotInfo*)msg.param1;
-
-		std::map<unsigned long, sRoomSlot>::iterator itRoom =
-			Doc()->m_roomSlotMap.find(pSlot->dwGuid);
-
-		if (itRoom != Doc()->m_roomSlotMap.end())
-		{
-			itRoom->second.bGachaWing = pSlot->angelicWingsEffect;
-			itRoom->second.bAngelWing = pSlot->angelicWings;
-		}
-
-		if (m_pRoomUser == NULL)
-			return;
-
-		for (std::list<FrListItem*>::iterator it =
-				 m_pRoomUser->m_itemList.begin();
-			it != m_pRoomUser->m_itemList.end(); ++it)
-		{
-			FrListItem* pItem = *it;
-			sSlotInfo* pInfo = (sSlotInfo*)pItem->pData;
-			if (pInfo)
-			{
-				if (pSlot->dwGuid == pInfo->dwGuid)
-				{
-					pInfo->angelicWings = pSlot->angelicWings;
-					pInfo->angelicWingsEffect = pSlot->angelicWingsEffect;
-					return;
+	case 0x09: {
+		// lobbymain.cpp:3495, a room player's angel wing bits changed
+		sRoomPlayer* player = (sRoomPlayer*)msg.m_param1;
+		// TODO(boot): lobbymain.cpp:3502, copy bits 0-1 of m_angelFlag into
+		// the room slot's 0x28C (not named in sRoomSlot yet)
+		if (m_roomUserListBox) {
+			FrListBox::ITEM_LIST::iterator it;
+			for (it = m_roomUserListBox->m_itemList.begin(); it != m_roomUserListBox->m_itemList.end(); ++it) {
+				sRoomPlayer* item = (sRoomPlayer*)(*it)->pData;
+				if (item && player->m_uid == item->m_uid) {
+					item->m_angelFlag = (item->m_angelFlag & ~3) | (player->m_angelFlag & 3);
+					break;
 				}
 			}
 		}
+		break;
 	}
-	break;
 
-	case 0xe:
-	{
-		if (Doc()->m_roomInfo.nUserNum > 1)
-		{
-			m_bNewBlink = true;
-			m_newBlinkTime = -10.0f;
-			m_pCurTip = m_pReadyTip;
+	case 0x0E:
+		// lobbymain.cpp:3532, rebuild the game room's user list
+		if (CSharedDoc::Instance()->m_roomInfo.m_userCount > 1) {
+			m_tipBlinking = true;
+			m_tipBlinkTime = -10.0f;
+			m_blinkTipArea = m_readyTipArea;
+		} else {
+			m_blinkTipArea = m_startTipArea;
 		}
-		else
-		{
-			m_pCurTip = m_pStartTip;
-		}
-
 		MakeRoomUserList();
-		this << MsgObject(NULL, 0xf, 0, 0, 0, 0, 0);
-	}
-	break;
-
-	case 0xf:
-	{
-		CSharedDoc* pDoc = Doc();
-		std::list<sSlotInfo>& slotList = pDoc->m_slotList;
-		bool bMaster = false;
-
-		if (pDoc->m_myInfo.info.IsIdentity(4))
-		{
-			bMaster = true;
-			m_masterOID = MyGuid(false);
-		}
-		else
-		{
-			std::list<sSlotInfo>::iterator it;
-			for (it = pDoc->m_slotList2.begin(); it != pDoc->m_slotList2.end();
-				++it)
-			{
-				sSlotInfo slot = *it;
-				if (slot.bMaster)
-				{
-					m_masterOID = slot.dwGuid;
-
-					if (m_masterOID == MyGuid(false))
-						bMaster = true;
-					break;
-				}
-			}
-
-			for (it = slotList.begin(); it != slotList.end(); ++it)
-			{
-				if (it->bMaster)
-				{
-					m_masterOID = it->dwGuid;
-
-					if (it->dwGuid == MyGuid(false))
-						bMaster = true;
-					break;
-				}
-			}
-		}
-
-		if (bMaster)
-		{
-			m_bReady = false;
-			m_bRoomStateReq = false;
-			m_pCurTip = m_pStartTip;
-		}
-
-		if (m_pMap)
-		{
-			if (Doc()->m_roomInfo.realGameType == 14)
-			{
-				m_pMap->Enable(false);
-			}
-			else
-			{
-				m_pMap->Enable(bMaster);
-			}
-		}
-
-		SetStartBtn(bMaster);
-		SetRoomControls(bMaster);
-
-		if (m_pUnused65c)
-			m_pUnused65c->Enable(bMaster && Doc()->m_roomInfo.gameType != 6);
-	}
-	break;
-
-	case 0x71:
-		RemakeTeam(true);
+		this << MsgObject(0, 0x0F, 0, 0, 0, 0, 0);
 		break;
 
-	case 0x10:
-	{
-		if (m_pTitle == NULL)
-			return;
+	// TODO(boot): 0x0F: lobbymain.cpp:3554, find the room master (identity bit 2, else the 0x18 attribute in CSharedDoc::m_roomPlayerList2 (protected) then m_roomPlayerList) into m_roomMasterUid; master: m_blinkTipArea = m_startTipArea, clear m_roomOptionA/B; m_mapBtn->Enable(roomMode != 14 && master), SetStartBtn, SetRoomControls, m_roomControlWnd->Enable(master && gameType != 6)
 
-		char szTime[32];
-		if (msg.param1)
-		{
-			strcpy(szTime, (const char*)msg.param1);
-		}
-		else if (IsMassGame(Doc()->m_roomInfo.gameType))
-		{
-			if (Doc()->m_roomInfo.gameType == 10)
-			{
-				sprintf(szTime, "%d\xc3\xca",
-					Doc()->m_roomInfo.gameTimeLimit / 1000);
-			}
+	// TODO(boot): 0x71: lobbymain.cpp:3628
+	// TODO(boot): 0x10: lobbymain.cpp:3635
+	// TODO(boot): 0x11: lobbymain.cpp:3711
 
-			if (Doc()->m_roomInfo.gameType == 6)
-			{
-				sprintf(szTime, "");
-			}
-			else
-			{
-				sprintf(szTime, "%d\xba\xd0",
-					Doc()->m_roomInfo.gameTimeLimit / 60000);
-			}
-		}
-		else
-		{
-			if (Doc()->m_roomInfo.shotTimeLimit == 0)
-				sprintf(szTime,
-					"\xbd\xc3\xb0\xa3\xc1\xa6\xc7\xd1\xbe\xf8\xc0\xbd");
-			else
-				sprintf(szTime, "%d\xc3\xca",
-					Doc()->m_roomInfo.shotTimeLimit / 1000);
-		}
-
-		const char* name;
-		if (!IsMassGame(Doc()->m_roomInfo.gameType) ||
-			Doc()->m_roomInfo.gameType == 10)
-		{
-			name = GetGameTypeName(Doc()->m_roomInfo.gameType);
-		}
-		else
-		{
-			IFF_STRUCT::sMatch* pMatch =
-				ItemManager()->FindMatch(Doc()->m_roomInfo.tidMatch);
-			if (pMatch == NULL)
-				name = GetGameTypeName(Doc()->m_roomInfo.gameType);
-			else if (Doc()->m_roomInfo.realGameType != 14)
-				name = pMatch->Name;
-			else
-				name = "\xbc\xc5\xc7\xc3\xc4\xda\xbd\xba";
-		}
-
-		m_pTitle->SetLine(1,
-			MakeStr("[%d]   %s %s    %s %s  %2d\xc8\xa6  (%d/%d)  %s",
-				Doc()->m_roomInfo.roomGuid,
-				Doc()->m_roomInfo.bPublic ? "" : "[\xba\xf1]",
-				Doc()->m_roomInfo.title, name,
-				Doc()->m_roomInfo.gameType == 5 ? "\xc6\xc0\xc0\xfc" : "",
-				Doc()->m_roomInfo.nHole, Doc()->m_roomInfo.nUserNum,
-				Doc()->m_roomInfo.nUserLimit, szTime),
-			0, false, 0);
-	}
-	break;
-
-	case 0x11:
-	{
-		unsigned char course = (unsigned char)msg.param1;
-
-		IFF_STRUCT::sCourse* pCourse = ItemManager()->FindCourse(
-			0x28000000 | (course >= 0x7f ? 0x7f : course));
-		if (pCourse)
-		{
-			if (m_pMap)
-				m_pMap->SetButtonImg(MakeStr("big_%s", pCourse->c.Icon),
-					FrButton::NORMAL);
-
-			if (m_pBackGround)
-			{
-				m_pBackGround->Open(
-					MakeStr("background%s.tga", strstr(pCourse->c.Icon, "_")));
-			}
-
-			if (m_pMapBg)
-			{
-				m_pMapBg->Open("map_background.tga");
-			}
-		}
-
-		if (m_pMapGauge)
-		{
-			m_pMapGauge->ResetGauge();
-			if (course < 0x7f)
-			{
-				unsigned long gauge = CTHunter::Instance()->GetTHunterGauge(
-					(eMapType)Doc()->m_roomInfo.mapType);
-				m_pMapGauge->SetPos(gauge < 701 ? 0 : gauge - 700);
-			}
-			else
-			{
-				m_pMapGauge->SetPos(0);
-			}
-		}
-
-		std::list<sSlotInfo>::iterator it = std::find(Doc()->m_slotList.begin(),
-			Doc()->m_slotList.end(), MyGuid(false));
-
-		if (it == Doc()->m_slotList.end())
-			return;
-
-		SetRoomControls(it->bMaster || Doc()->m_myInfo.info.IsIdentity(4));
-	}
-	break;
-
-	case 0x12:
-	{
+	case 0x12: {
+		// lobbymain.cpp:3756, reload the hole selection
 		ReLoadHoleItem();
-
-		int sel = msg.param1;
-		if (m_pMapHoleCombo)
-		{
-			if (Doc()->m_roomInfo.nHole == 18)
-			{
-				if (sel > 0)
-					sel = 1;
+		if (m_holeCombo) {
+			int index = msg.m_param1;
+			if (CSharedDoc::Instance()->m_roomInfo.m_holeCount == 18) {
+				if (index > 0)
+					index = 1;
 			}
-			m_pMapHoleCombo->SelectItem(sel);
+			m_holeCombo->SelectItem(index);
 		}
+		break;
 	}
-	break;
 
 	case 0x16:
-		m_bCreateRoom = msg.param1 != 0;
+		// lobbymain.cpp:3771
+		m_storedFlag = msg.m_param1 != 0;
 		break;
 
 	case 0x17:
-		*(int*)msg.param1 = m_bCreateRoom;
+		// lobbymain.cpp:3775
+		*(int*)msg.m_param1 = m_storedFlag;
 		break;
 
-	case 0x18:
-	{
-		for (std::list<sSlotInfo>::iterator it = Doc()->m_slotList.begin();
-			it != Doc()->m_slotList.end(); ++it)
-			it->bSleep = 0;
-
-		Doc()->m_bGameOver = false;
-
-		CMouseCursor::Instance()->SetMode(1);
-		CMouseCursor::Instance()->SetActive(false);
+	case 0x18: {
+		// lobbymain.cpp:3780, start the game
+		std::list<sRoomPlayer>::iterator it;
+		for (it = CSharedDoc::Instance()->m_roomPlayerList.begin(); it != CSharedDoc::Instance()->m_roomPlayerList.end(); ++it)
+			it->m_attribute &= ~4;
+		CSharedDoc::Instance()->m_gameOver = false;
+		WSingleton<CMouseCursor>::Instance()->m_mode = CMouseCursor::SCREEN_GAME;
+		WSingleton<CMouseCursor>::Instance()->SetActive(false);
 		CTaskManager::Instance()->ChangeTask("CGolfTask", "CGolfDoc", false);
+		break;
 	}
-	break;
 
-	case 0x1e:
-		if (m_pLoginDlg)
-		{
-			FrLoginDlg::SetState((eLoginState)msg.param1);
-			return;
+	case 0x1E:
+		// lobbymain.cpp:3792, login result state (CLobbyTask)
+		if (m_loginDlg) {
+			FrLoginDlg::SetState((eLoginState)msg.m_param1);
+			break;
 		}
-
-		if (msg.param1 == 13)
-			CTaskManager::Instance()->PostMsg(NULL, "Lobby", 0, (int)"CREATE",
-				0, 0, 0);
+		if (msg.m_param1 == 0xD)
+			CTaskManager::Instance()->PostMsg(0, "Lobby", 0, (intptr_t)"CREATE", 0, 0, 0);
 		break;
 
-	case 0x1f:
-		if (m_pServerDlg)
-			m_pServerDlg->SetState((gsLoginState_t)msg.param1);
+	case 0x1F:
+		// lobbymain.cpp:3806, game server login state
+		if (m_serverDlg)
+			m_serverDlg->SetState((gsLoginState_t)msg.m_param1);
 		break;
 
-	case 0x42:
-	{
-		_ISkinnedTheme* pTheme = S5::THEME::GetCurrentSkinnedTheme();
-		g_pFresh->GetManager()->GetDesktop()->SetWallPaper(
-			pTheme->GetRoomListBackGroundImgName(), true);
+	// TODO(boot): 0x42: lobbymain.cpp:3815, skinned theme (GetCurrentSkinnedTheme, FrDesktop::SetWallPaper, top page button images)
+	// TODO(boot): 0x30: lobbymain.cpp:3850, invite dialog (IsLocalContent 0x54, "invite" form, SetInvaiteInfo, OnInviteDlgResult)
 
-		THEME_BUTTONS buttons;
-		if (m_pMakeRoom)
-		{
-			pTheme->GetMakeRoomButtonImgName(buttons);
-			m_pMakeRoom->SetButtonImg(buttons.press, FrButton::PRESSED);
-			m_pMakeRoom->SetButtonImg(buttons.normal, FrButton::NORMAL);
-			m_pMakeRoom->SetButtonImg(buttons.over, FrButton::OVER);
+	case 0x31: {
+		// lobbymain.cpp:3880, the banish vote (not for the room master nor
+		// the player it is about)
+		unsigned long guid = CSharedDoc::Instance()->GetPangyaUserInfo().guid;
+		if (guid != m_roomMasterUid && guid != (unsigned long)msg.m_param2) {
+			FrForm* form = CreateForm<FrForm>(g_pFresh->GetManager(), this, "banish_vote", NULL);
+			form->SetMessage((const char*)msg.m_param1, false);
+			form->SetTimeLimit(5.0f);
+			form->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnVoteDlgResult, 1);
 		}
-
-		if (m_pGuildInfo)
-		{
-			pTheme->GetQuickStartButtonImgName(buttons);
-			m_pGuildInfo->SetButtonImg(buttons.press, FrButton::PRESSED);
-			m_pGuildInfo->SetButtonImg(buttons.normal, FrButton::NORMAL);
-			m_pGuildInfo->SetButtonImg(buttons.over, FrButton::OVER);
-		}
-
-		if (m_pOverBar)
-			S5::THEME::ChangeOverbarTheme(S5::THEME::GetCurrentSkinnedTheme(),
-				m_pOverBar);
+		break;
 	}
-	break;
 
-	case 0x30:
-	{
-		if (!IsLocalContent(S4_INVITE_FRIEND))
-			return;
-
-		if (m_pInviteDlg || Doc()->m_myInfo.roomIndex != 0xffff ||
-			!COption::Instance()->gIsInvitationAllowed())
-			return;
-
-		m_pInviteDlg =
-			CreateForm<FrInviteDlg>(g_pFresh->GetManager(), this, "invite");
-		m_pInviteDlg->SetInvaiteInfo(msg.param1, (unsigned char)msg.param2,
-			(unsigned short)msg.param3, msg.param4, MyUID());
-		std::string* pName = (std::string*)msg.param5;
-		m_pInviteDlg->SetMessage(
-			MakeStr(
-				"(%s)\xb4\xd4\xb2\xb2\xbc\xad \xb4\xe7\xbd\xc5\xc0\xbb "
-				"\xc3\xca\xb4\xeb\xc7\xcf\xbc\xcc\xbd\xc0\xb4\xcf\xb4\xd9.\n"
-				"\xc3\xca\xb4\xeb\xbf\xa1 \xc0\xc0\xc7\xcf\xbd\xc3\xb0\xda"
-				"\xbd\xc0\xb4\xcf\xb1\xee?",
-				pName->c_str(), 0),
-			false);
-		m_pInviteDlg->SetTimeLimit(5.0f);
-		m_pInviteDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnInviteDlgResult, 1);
+	case 0x23: {
+		// lobbymain.cpp:3892, a topmost notice
+		FrForm* form = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify", NULL);
+		form->SetMessage((const char*)msg.m_param1, false);
+		form->SetTimeLimit(5.0f);
+		form->Open((FRESH_RESULT_CALLBACK)0, 3);
+		form->SetTopmost(true);
+		form->FindNextTopFocus(false);
+		break;
 	}
-	break;
 
-	case 0x31:
-	{
-		if (MyGuid(false) == m_masterOID || MyGuid(false) == msg.param2)
-			return;
-
-		FrForm* pForm =
-			CreateForm<FrForm>(g_pFresh->GetManager(), this, "banish_vote");
-		pForm->SetMessage((const char*)msg.param1, false);
-		pForm->SetTimeLimit(5.0f);
-		pForm->Open((FRESH_PFN_RESULT)&CLobbyMain::OnVoteDlgResult, 1);
+	case 0x25: {
+		// lobbymain.cpp:3909, a notice that quits
+		FrForm* form = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify", NULL);
+		form->SetMessage((const char*)msg.m_param1, false);
+		form->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnNotifyQuitDlgResult, 3);
+		break;
 	}
-	break;
-
-	case 0x23:
-	{
-		FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(),
-			(FrCmdTarget*)this, "notify");
-		pForm->SetMessage((const char*)msg.param1, false);
-		pForm->SetTimeLimit(5.0f);
-		pForm->Open(NULL, 3);
-
-		pForm->SetTopmost(true);
-		pForm->FindNextTopFocus(false);
-	}
-	break;
-
-	case 0x25:
-	{
-		FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(),
-			(FrCmdTarget*)this, "notify");
-		pForm->SetMessage((const char*)msg.param1, false);
-		pForm->Open((FRESH_PFN_RESULT)&CLobbyMain::OnNotifyQuitDlgResult, 3);
-	}
-	break;
 
 	case 0x27:
-		strcpy(m_roomPassword, (const char*)msg.param1);
+		// lobbymain.cpp:3916
+		strcpy(m_storedText, (const char*)msg.m_param1);
 		break;
 
 	case 0x28:
-		*(char**)msg.param1 = m_roomPassword;
+		// lobbymain.cpp:3920
+		*(char**)msg.m_param1 = m_storedText;
 		break;
 
-	case 0x29:
-	{
-		unsigned long guid = msg.param1;
-		int state = msg.param2;
-
-		if (state == 2)
-		{
-			m_bRoomStateReq = false;
-			this << MsgObject(this, 0x23,
-				(int)"\xc1\xf6\xb1\xdd\xc0\xba \xb7\xb9\xb5\xf0\xc7\xd2 \xbc\xf6 "
-					 "\xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9. \xc0\xe1\xbd\xc3\xc8\xc4 "
-					 "\xb4\xd9\xbd\xc3 \xb7\xb9\xb5\xf0\xc7\xd8\xc1\xd6\xbc\xbc"
-					 "\xbf\xe4.",
-				0, 0, 0, 0);
-			return;
-		}
-
-		if (guid == MyGuid(false) || guid == 0xffffffff)
-		{
-			m_bRoomStateReq = false;
-			m_bReady = state == 0;
-			m_bNewBlink = state == 1;
-			m_newBlinkTime = -10.0f;
-
-			if (Doc()->m_roomInfo.gameType == 1 ||
-				Doc()->m_roomInfo.gameType == 5)
-			{
-				if (m_pChangeTeam)
-					m_pChangeTeam->Enable(!m_bReady);
-			}
-
-			if (m_pRoomUser)
-				m_pRoomUser->UseRightButton(!m_bReady);
-
-			if (m_pUserListDlg)
-				m_pUserListDlg->EnableRightButton(!m_bReady);
-		}
-
-		std::list<sSlotInfo>& slotList = Doc()->m_slotList;
-		std::list<sSlotInfo>::iterator it;
-		if (guid == 0xffffffff)
-		{
-			for (it = slotList.begin(); it != slotList.end(); ++it)
-				it->bReady = state == 0;
-		}
-		else
-		{
-			it = std::find(slotList.begin(), slotList.end(), guid);
-			if (it != slotList.end())
-				it->bReady = state == 0;
-		}
-
-		bool bMaster = false;
-		for (it = slotList.begin(); it != slotList.end(); ++it)
-		{
-			if (it->bMaster)
-			{
-				if (it->dwGuid == MyGuid(false))
-					bMaster = true;
-				break;
-			}
-		}
-
-		if (Doc()->m_myInfo.info.IsIdentity(4))
-			bMaster = true;
-
-		SetStartBtn(bMaster);
-		SetRoomControls(bMaster);
-	}
-	break;
-
-	case 0x46:
-	{
-		std::list<sSlotInfo>::iterator it = std::find(Doc()->m_slotList.begin(),
-			Doc()->m_slotList.end(), msg.param1);
-		if (it == Doc()->m_slotList.end())
-			return;
-
-		if (m_pChangeTeam)
-			m_pChangeTeam->SetButtonImg(it->bTeam == 0 ? "btn_teamchange_blue_n"
-													   : "btn_teamchange_red_n",
-				FrButton::NORMAL);
-
-		if (Doc()->m_roomInfo.gameType != 5)
-			return;
-
-		std::list<sSlotInfo*>::iterator itTeam;
-		if (msg.param2 == 0)
-		{
-			m_redTeam.push_back(&(*it));
-			for (itTeam = m_blueTeam.begin(); itTeam != m_blueTeam.end();
-				++itTeam)
-			{
-				if ((*itTeam)->dwGuid == it->dwGuid)
-				{
-					m_blueTeam.erase(itTeam);
-					break;
-				}
-			}
-		}
-		else
-		{
-			m_blueTeam.push_back(&(*it));
-			for (itTeam = m_redTeam.begin(); itTeam != m_redTeam.end();
-				++itTeam)
-			{
-				if ((*itTeam)->dwGuid == it->dwGuid)
-				{
-					m_redTeam.erase(itTeam);
-					break;
-				}
-			}
-		}
-
-		RemakeTeam(false);
-	}
-	break;
-
-	case 0x49:
-	{
-		unsigned long guid = msg.param1;
-		sCharacterInfo* pCharInfo = (sCharacterInfo*)msg.param2;
-
-		if (guid == MyGuid(true))
-		{
-			Doc()->m_myInfo.userEquip.guidChar = pCharInfo->guid;
-			Doc()->BuildMyPartTidList(*pCharInfo);
-			SetLevelBar();
-		}
-
-		std::list<sSlotInfo>::iterator it;
-		for (it = Doc()->m_slotList.begin(); it != Doc()->m_slotList.end();
-			++it)
-		{
-			if (it->dwGuid != guid)
-				continue;
-
-			sRoomSlot& slot = Doc()->m_roomSlotMap[guid];
-
-			it->tidChar = pCharInfo->tid;
-
-			slot.charInfo = *pCharInfo;
-
-			if (guid == MyGuid(true))
-			{
-				if (!slot.partTidList.SetTids(&slot.charInfo, 0xff) ||
-					!slot.partTidList.IsComboValid())
-				{
-					slot.partTidList.m_charTid = slot.charInfo.tid;
-					slot.partTidList.SetDefaultTids();
-				}
-
-				if (slot.pExhibition)
-					slot.pExhibition->SetModel(slot.partTidList,
-						slot.charInfo.tidAuxParts, NULL, 3.0f, 0);
-
-				if (slot.pExhibition && slot.bGachaWing)
-					slot.pExhibition->AttachAngelWingFx();
-
-				SetLevelBar();
-				SetRoomCharControl((eBtnDir)2);
-			}
-			else
-			{
-				ShowPet(guid);
-			}
-			break;
-		}
-	}
-	break;
-
-	case 0x4a:
-	{
-		unsigned long guid = msg.param1;
-		if (guid != MyGuid(true))
-			return;
-
-		Doc()->m_userInfo[0].caddieInfo = *(sCaddieInfo*)msg.param2;
-		Doc()->m_myInfo.userEquip.guidCaddie =
-			Doc()->m_userInfo[0].caddieInfo.guid;
-		SetLevelBar();
-	}
-	break;
-
-	case 0x4b:
-	{
-		unsigned long guid = msg.param1;
-		if (guid != MyGuid(true))
-			return;
-
-		Doc()->m_userInfo[0].clubInfo = *(sClubInfo*)msg.param2;
-		Doc()->m_myInfo.userEquip.guidClubSet =
-			Doc()->m_userInfo[0].clubInfo.guid;
-		SetLevelBar();
-	}
-	break;
-
-	case 0x4c:
-	{
-		unsigned long guid = msg.param1;
-		if (guid != MyGuid(true))
-			return;
-
-		Doc()->m_myInfo.userEquip.tidBall = msg.param2;
-		Doc()->m_userInfo[0].userEquip.tidBall = msg.param2;
-		SetLevelBar();
-	}
-	break;
-
-	case 0x4e:
-	{
-		unsigned long guid = msg.param1;
-		if (guid != MyGuid(true))
-			return;
-
-		Doc()->m_userInfo[0].mascotInfo = *(sMascotInfo*)msg.param2;
-		Doc()->m_myInfo.userEquip.guidMascot =
-			Doc()->m_userInfo[0].mascotInfo.guid;
-		SetLevelBar();
-	}
-	break;
-
-	case 0x2b:
-		m_bLockControls = msg.param1 == 1;
-
-		if (m_pStart)
-			m_pStart->Enable(!m_bLockControls);
-
-		if (m_pRoomClose)
-			m_pRoomClose->Enable(!m_bLockControls);
-
-		m_bNewBlink = !m_bLockControls;
-
-		if (m_pCurTip)
-			m_pCurTip->SetVisible(!m_bLockControls);
+	// TODO(boot): 0x29: lobbymain.cpp:3926
+	// TODO(boot): 0x46: lobbymain.cpp:4017, team change (btn_teamchange_*, RemakeTeam)
+	// TODO(boot): 0x49: lobbymain.cpp:4066, character parts (BuildMyPartTidList, SetLevelBar)
+	// TODO(boot): 0x4A, 0x4B, 0x4C, 0x4E: lobbymain.cpp:4115-4157, copy the local player records into CSharedDoc (0x1DF8, 0x1E11, 0x634/0x1524, 0x1E23) when param1 is the local id, then SetLevelBar
+	case 0x2B:
+		// lobbymain.cpp:4160, lock the room controls (param1 == 1)
+		m_roomOptionC = msg.m_param1 == 1;
+		if (m_startBtn)
+			m_startBtn->Enable(!m_roomOptionC);
+		if (m_channelRoomCloseBtn)
+			m_channelRoomCloseBtn->Enable(!m_roomOptionC);
+		m_tipBlinking = !m_roomOptionC;
+		if (m_blinkTipArea)
+			m_blinkTipArea->SetVisible(!m_roomOptionC);
 		break;
 
-	case 0x2c:
-		Doc()->m_underBarMask |= msg.param1;
-
-		if (Doc()->m_underBarMask == 0x1f)
-			Doc()->SortAllMyItemList();
+	case 0x2C:
+		// lobbymain.cpp:4179, one part of the owned item lists arrived; all
+		// five (bits 0-4) in: sort them
+		CSharedDoc::Instance()->m_lobbyStateValue |= msg.m_param1;
+		if (CSharedDoc::Instance()->m_lobbyStateValue == 0x1F)
+			CSharedDoc::Instance()->SortAllMyItemList();
 		break;
 
-	case 0x2a:
-		SortRank();
-		break;
+	// TODO(boot): 0x2A: lobbymain.cpp:4187, SortRank() (CLobbyMain::SortRank 0x7e7cc0 not declared yet)
+	// TODO(boot): 0x2D: lobbymain.cpp:4192, game results (CSharedDoc 0x455C/0x49E0, SortRank, "uniteresult" FrUniteResultDlg into m_resultReportDlg, OnResultDlgResult)
 
-	case 0x2d:
-	{
-		if (!Doc()->m_bGameOver)
-			return;
-
-		switch (Doc()->m_roomInfo.gameType)
-		{
-		case 4:
-		{
-			SortRank();
-
-			if (m_pExtFrame)
-				m_pExtFrame->SetVisible(false);
-			if (m_pRoomUserRankTab)
-				m_pRoomUserRankTab->SetVisible(false);
-			if (m_pRoomUserRank)
-				m_pRoomUserRank->SetVisible(false);
-			if (m_pRoomGuildRank)
-				m_pRoomGuildRank->SetVisible(false);
-			if (m_pScore)
-				m_pScore->SetVisible(false);
-			if (m_pUserInfo)
-				m_pUserInfo->SetVisible(false);
-
-			if (m_pUniteResultDlg == NULL)
-			{
-				m_pUniteResultDlg = CreateForm<FrUniteResultDlg>(
-					g_pFresh->GetManager(), this, "uniteresult");
-				m_pUniteResultDlg->EnableDrag(false);
-				m_pUniteResultDlg->SetFixed(true);
-				m_pUniteResultDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnResultDlgResult,
-					WPoint(68.0f, 48.0f), 0);
-			}
-
-			m_resultDelay = -20.0f;
-		}
-		break;
-
-		case 10:
-		{
-			if (m_pRoomUser)
-			{
-				unsigned char rank = 1;
-				for (std::list<FrListItem*>::iterator it =
-						 m_pRoomUser->m_itemList.begin();
-					it != m_pRoomUser->m_itemList.end(); ++it, rank++)
-				{
-					sSlotInfo* pSlot = (sSlotInfo*)(*it)->pData;
-					if (pSlot)
-						pSlot->connectionRank = rank;
-				}
-			}
-
-			Doc()->m_bGameOver = false;
-		}
-			return;
-
-		default:
-		{
-			SortRank();
-
-			if (m_pUniteResultDlg == NULL && Doc()->m_golfGame.gameType != 10)
-			{
-				m_pUniteResultDlg = CreateForm<FrUniteResultDlg>(
-					g_pFresh->GetManager(), this, "uniteresult");
-				m_pUniteResultDlg->EnableDrag(false);
-				m_pUniteResultDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnResultDlgResult,
-					WPoint(68.0f, 48.0f), 0);
-			}
-
-			m_resultDelay = -20.0f;
-		}
-		break;
-		}
-	}
-	break;
-
-	case 0x12d:
-	{
-		FrLevelupItemForm* pForm = CreateForm<FrLevelupItemForm>(
-			g_pFresh->GetManager(), (FrCmdTarget*)this, "levelupitem");
-
-		if (pForm == NULL)
-			return;
-
-		pForm->SetData(*(sLevelUpDone*)msg.param1);
-		pForm->Open((FRESH_PFN_RESULT)&CLobbyMain::OnLevelupFormResult, 3);
-
-		m_levelupForms.push_back(pForm);
-	}
-	break;
-
-	case 0x2e:
-		m_bInitSlot = false;
+	case 0x2E:
+		// lobbymain.cpp:4278
+		m_chatWndOpen = false;
 		break;
 
 	case 0x32:
-		if (m_pUserListDlg)
-			m_pUserListDlg->MakeUserList(Doc()->m_briefUserInfoMap);
+		// lobbymain.cpp:4282, rebuild the lobby user dialog
+		if (m_userListDlg)
+			m_userListDlg->MakeUserList(CSharedDoc::Instance()->m_userMap);
 		break;
 
 	case 0x33:
-	{
-		if (msg.param1 == 1)
-		{
-			this << MsgObject(this, 0x23,
-				(int)"\xc7\xf6\xc0\xe7 \xc1\xb8\xc0\xe7\xc7\xcf\xc1\xf6 "
-					 "\xbe\xca\xb4\xc2 \xb9\xe6\xc0\xd4\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-			return;
+		// lobbymain.cpp:4288, room enter answer (1: the room does not exist)
+		if (msg.m_param1 == 1) {
+			this << MsgObject(this, 0x23, (intptr_t)"\xC7\xF6\xC0\xE7 \xC1\xB8\xC0\xE7\xC7\xCF\xC1\xF6 \xBE\xCA\xB4\xC2 \xB9\xE6\xC0\xD4\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+			break;
 		}
-
 		EnableRoomEnterControls(false);
-
-		if (m_pDtRoomDlg || !m_pRoomList || !m_pRoomList->GetSelected())
-			return;
-
-		FrDtRoomDlg* pDlg = CreateForm<FrDtRoomDlg>(g_pFresh->GetManager(),
-			this, "detailroominfo");
-		m_pDtRoomDlg = pDlg;
-
-		pDlg->SetRoomInfo(*(sRoomInfo*)m_pRoomList->GetSelected()->pData);
-
-		m_pDtRoomDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnDtRoomDlgResult, 1);
-	}
-	break;
+		if (m_dtRoomDlg == NULL && m_roomListBox && m_roomListBox->GetSelected()) {
+			FrDtRoomDlg* dlg = CreateForm<FrDtRoomDlg>(g_pFresh->GetManager(), this, "detailroominfo", NULL);
+			m_dtRoomDlg = dlg;
+			dlg->SetRoomInfo(*(sRoomInfo*)m_roomListBox->GetSelected()->pData);
+			m_dtRoomDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnDtRoomDlgResult, 1);
+		}
+		break;
 
 	case 0x34:
-		memcpy(Doc()->m_myInfo.userEquip.tidItemSlot, (void*)msg.param1,
-			sizeof(Doc()->m_myInfo.userEquip.tidItemSlot));
+		// lobbymain.cpp:4313, the equipped consumables
+		memcpy(CSharedDoc::Instance()->m_equipItem, (const void*)msg.m_param1, sizeof(CSharedDoc::Instance()->m_equipItem));
 		break;
 
 	case 0x35:
-		if (IsLocalContent(S3_PARAN_CHANNELING))
-		{
+		// lobbymain.cpp:4329, posted with "TOPPAGE" once the channel is
+		// entered from the server list
+		if (IsLocalContent((localContentType_t)0x10))
 			OpenParanNickChange();
-			return;
-		}
-		OpenCaddieWarningForm();
+		else
+			OpenCaddieWarningForm();
 		break;
 
 	case 0x37:
-	{
-		if (Doc()->AddWhisperPartner(m_pChatTarget, (const char*)msg.param1))
-			m_pChatTarget->SetLine(1, (const char*)msg.param1, 0, false, 0);
-
+		// lobbymain.cpp:4365, whisper to a player: select them as the
+		// chat target and focus the chat input
+		if (CSharedDoc::Instance()->AddWhisperPartner(m_chatTargetCombo, (const char*)msg.m_param1))
+			m_chatTargetCombo->SetLine(1, (const char*)msg.m_param1, 0, false, 0);
 		if (CUserInfo::Instance()->IsVisible())
 			CUserInfo::Instance()->Close();
-
-		if (m_pUserListDlg)
-			m_pUserListDlg->Close(true);
-
-		if (m_pChatInput)
-			m_pChatInput->SetKeyFocus(true);
-	}
-	break;
+		if (m_userListDlg)
+			m_userListDlg->Close(true);
+		if (m_chatEdit)
+			m_chatEdit->SetKeyFocus(true);
+		break;
 
 	case 0x38:
-		Doc()->AddWhisperPartner(m_pChatTarget, (const char*)msg.param1);
+		// lobbymain.cpp:4377, add a whisper partner
+		CSharedDoc::Instance()->AddWhisperPartner(m_chatTargetCombo, (const char*)msg.m_param1);
 		break;
 
 	case 0x47:
-		Doc()->InitRecentWhisperList(m_pChatTarget);
-		Doc()->InitReservedChatList(m_pChatTarget, (eReservedChatPartner)0);
+		// lobbymain.cpp:4381, refill the chat target list
+		CSharedDoc::Instance()->InitRecentWhisperList(m_chatTargetCombo);
+		CSharedDoc::Instance()->InitReservedChatList(m_chatTargetCombo, (eReservedChatPartner)0);
 		break;
 
-	case 0x3a:
-	{
-		if (!(Doc()->m_curChannel.Type & 2))
-			return;
+	// TODO(boot): 0x3A: lobbymain.cpp:4387, walks CSharedDoc::m_channelList when the byte at CSharedDoc 0x4AFD has bit 1 (the loop does nothing)
+	// TODO(boot): 0x2F: lobbymain.cpp:4404
+	// TODO(boot): 0x3B: lobbymain.cpp:4454
+	// TODO(boot): 0x3D: lobbymain.cpp:4599, set or clear bit 2 of the attribute of the room player found by param1 (param2 == 1)
 
-		std::list<sChannelInfo>::iterator it = Doc()->m_channelList.begin();
-
-		for (; it != Doc()->m_channelList.end(); ++it)
-		{
-		}
-	}
-	break;
-
-	case 0x2f:
-	{
-		bool bTeam =
-			Doc()->m_roomInfo.gameType == 1 || Doc()->m_roomInfo.gameType == 5;
-		bool bGuild = Doc()->m_roomInfo.gameType == 6;
-
-		std::list<sSlotInfo>::iterator it;
-
-		if (!GalleryMode())
-		{
-			it = std::find(Doc()->m_slotList.begin(), Doc()->m_slotList.end(),
-				MyGuid(false));
-			if (it == Doc()->m_slotList.end())
-				return;
-		}
-		else
-		{
-			bTeam = false;
-		}
-
-		if (m_pChangeTeam)
-			m_pChangeTeam->Enable(bTeam);
-
-		if (m_pGuildTab[0])
-			m_pGuildTab[0]->SetVisible(bGuild);
-		if (m_pGuildTab[1])
-			m_pGuildTab[1]->SetVisible(bGuild);
-
-		if (m_pTeamTab[0])
-		{
-			if (bTeam)
-				m_pTeamTab[0]->SetBgImg("bar_redteam");
-			else
-				m_pTeamTab[0]->SetBgImg("bar_base");
-		}
-
-		if (m_pTeamTab[1])
-			m_pTeamTab[1]->SetVisible(bTeam);
-
-		if (!bTeam)
-			return;
-
-		if (m_pChangeTeam)
-			m_pChangeTeam->SetButtonImg(it->bTeam == 0 ? "btn_teamchange_blue_n"
-													   : "btn_teamchange_red_n",
-				FrButton::NORMAL);
-	}
-	break;
-
-	case 0x3b:
-	{
-		switch ((unsigned char)msg.param1)
-		{
-		case 2:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xc1\xa4\xbf\xf8\xc0\xcc \xc3\xca\xb0\xfa "
-					 "\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9",
-				0, 0, 0, 0);
-			break;
-
-		case 3:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xc1\xb8\xc0\xe7\xc7\xcf\xc1\xf6 \xbe\xca\xb4\xc2 "
-					 "\xb9\xe6\xc0\xd4\xb4\xcf\xb4\xd9",
-				0, 0, 0, 0);
-			break;
-
-		case 4:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xba\xf1\xb9\xd0\xb9\xf8\xc8\xa3\xb0\xa1 "
-					 "\xc6\xb2\xb7\xc8\xbd\xc0\xb4\xcf\xb4\xd9",
-				0, 0, 0, 0);
-			break;
-
-		case 7:
-		case 9:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xb9\xe6\xb8\xb8\xb5\xe9\xb1\xe2 \xbf\xe4\xc3\xbb\xc0\xcc "
-					 "\xbd\xc7\xc6\xd0\xc7\xdf\xbd\xc0\xb4\xcf\xb4\xd9",
-				0, 0, 0, 0);
-			break;
-
-		case 8:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xb0\xd4\xc0\xd3 \xc1\xf8\xc7\xe0\xc1\xdf\xc0\xce "
-					 "\xb9\xe6\xc0\xd4\xb4\xcf\xb4\xd9",
-				0, 0, 0, 0);
-			break;
-
-		case 5:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xc7\xf6\xc0\xe7 \xb7\xb9\xba\xa7\xbf\xa1\xbc\xad\xb4\xc2 \xb9\xe6\xc0\xbb \xb8\xb8\xb5\xe9\xb0\xc5\xb3\xaa \xb9\xe6\xbf\xa1 \xc0\xd4\xc0\xe5\xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-			break;
-
-		case 13:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xb1\xe6\xb5\xe5\xbf\xa1 \xb0\xa1\xc0\xd4\xc7\xd8\xbe\xdf "
-					 "\xc7\xd5\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-			break;
-
-		case 18:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xc8\xaf\xbb\xf3\xc0\xc7 \xc6\xce\xbe\xdf\xbc\xb6\xbf\xa1\xbc\xad\xb4\xc2 \xb9\xe6 \xb0\xb3\xbc\xb3\xc0\xcc \xba\xd2\xb0\xa1\xb4\xc9\xc7\xd5\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-			break;
-
-		case 12:
-		{
-			if (Doc()->m_curChannel.Type & 0x80)
-			{
-				FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(),
-					(FrCmdTarget*)this, "notify_yesno");
-				pForm->SetMessage(
-					"\xc7\xf6\xc0\xe7 \xc0\xfb\xb4\xe7\xc7\xd1 \xb8\xc5\xc4\xa1 \xc7\xc3\xb7\xb9\xc0\xcc\xbe\xee\xb0\xa1 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9\n \xb9\xe6\xc0\xbb \xb8\xb8\xb5\xe9\xb0\xed \xb1\xe2\xb4\xd9\xb8\xae\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-					false);
-				pForm->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnMatchRoomCreateDlgResult,
-					0);
-				return;
-			}
-
-			if ((Doc()->m_curChannel.Type & 0x400) &&
-				Doc()->m_myInfo.stat.Level < 11 &&
-				!Doc()->m_myInfo.info.IsIdentity(4))
-			{
-				this << MsgObject(NULL, 0x23,
-					(int)"\xb0\xd4\xc0\xd3\xc0\xbb \xc7\xd2 \xbc\xf6 \xc0\xd6\xb4\xc2 \xb9\xe6\xc0\xbb \xc3\xa3\xc1\xf6 \xb8\xf8\xc7\xdf\xbd\xc0\xb4\xcf\xb4\xd9.",
-					0, 0, 0, 0);
-				return;
-			}
-
-			WSendPacket packet((enumClientPacket)8);
-			packet.Encode1(0);
-
-			unsigned char gameType = 0x10;
-			unsigned char map = FirstMap();
-
-			if (Doc()->m_curChannel.Type & 2)
-			{
-				packet.Encode4(0);
-				packet.Encode4(2400000);
-
-				packet.Encode1(Doc()->m_gameTypeInfo[4].maxPlayer);
-
-				packet.Encode1(4);
-				packet.Encode1(18);
-			}
-			else if (Doc()->m_curChannel.Type & 0x80)
-			{
-				packet.Encode4(60000);
-				packet.Encode4(0);
-
-				packet.Encode1(Doc()->m_gameTypeInfo[3].maxPlayer);
-
-				packet.Encode1(3);
-				packet.Encode1(9);
-			}
-			else if (Doc()->m_curChannel.Type & 0x4000)
-			{
-				packet.Encode4(40000);
-				packet.Encode4(0);
-
-				packet.Encode1(Doc()->m_gameTypeInfo[7].maxPlayer);
-
-				packet.Encode1(7);
-				packet.Encode1(6);
-			}
-			else
-			{
-				gameType = GetRandGameTypeByCate(m_quickStartCate);
-
-				packet.Encode4(GetShotTimeLimitByGameType(gameType));
-				packet.Encode4(GetGameTimeLimitByGameType(gameType));
-
-				packet.Encode1(GetGameTypeInfo(gameType)->maxPlayer);
-
-				packet.Encode1(gameType);
-				packet.Encode1(GetGameTypeInfo(gameType)->holes);
-
-				if (gameType == 10)
-					map = 0x7f;
-			}
-
-			packet.Encode1(map);
-			packet.Encode1(gameType == 10 ? 2 : 0);
-			packet.EncodeStr(std::string(Doc()->GetDefaultTitle(gameType)));
-			packet.EncodeStr(std::string(""));
-			packet.Send(TO_GAME);
-
-			this << MsgObject(NULL, 0x16, 1, 0, 0, 0, 0);
-		}
-			return;
-
-		case 15:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xc6\xce\xb9\xe8\xc6\xb2\xbf\xa1 \xc7\xca\xbf\xe4\xc7\xd1 \xc6\xce\xc0\xcc \xba\xce\xc1\xb7\xc7\xd5\xb4\xcf\xb4\xd9",
-				0, 0, 0, 0);
-			break;
-
-		case 17:
-			this << MsgObject(NULL, 0x23,
-				(int)"\xbe\xee\xc7\xc1\xb7\xce\xc4\xa1\xb0\xd4\xc0\xd3\xbf\xa1 \xc7\xca\xbf\xe4\xc7\xd1 \xc6\xce\xc0\xcc \xba\xce\xc1\xb7\xc7\xd5\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-			break;
-		}
-
-		EnableRoomEnterControls(true);
-	}
-	break;
-
-	case 0x3d:
-	{
-		std::list<sSlotInfo>::iterator it = std::find(Doc()->m_slotList.begin(),
-			Doc()->m_slotList.end(), msg.param1);
-		if (it == Doc()->m_slotList.end())
-			return;
-
-		it->bSleep = msg.param2 == 1;
-	}
-	break;
-
-	case 0x3e:
-		OpenCreateInfo(msg.param1, (const char*)msg.param2);
+	case 0x3E:
+		// lobbymain.cpp:4609
+		OpenCreateInfo(msg.m_param1, (const char*)msg.m_param2);
 		break;
 
-	case 0x3f:
-		*(const char**)msg.param1 =
-			m_pChatInput ? m_pChatInput->GetLine(1, false) : NULL;
+	case 0x3F:
+		// lobbymain.cpp:4615, hand out the chat input line
+		*(const char**)msg.m_param1 = m_chatEdit ? m_chatEdit->GetLine(1, false) : NULL;
 		break;
 
 	case 0x40:
-		if (IsLocalContent(S3_PARAN_CHANNELING))
-		{
-			if (m_pParanNickDlg)
-			{
-				if (msg.param1 == 0)
-					m_pParanNickDlg->CloseDlg();
-				else
-					m_pParanNickDlg->EnableControls(true);
-			}
-		}
-
-		if (m_pOptionDlg)
-		{
-			if (msg.param1 == 0)
-			{
-				m_pOptionDlg->CloseDlg();
-				return;
-			}
-			m_pOptionDlg->EnableChangeNickControls(true);
-		}
-		break;
-
-	case 0x51:
-	{
-		FrUserInfoForm* pForm = USERINFODLG();
-		if (pForm == NULL)
-			return;
-
-		if (CUserInfo::Instance()->IsVisible() == true)
-		{
-			if (pForm->IsOpenAddFriendDlg())
-			{
-				pForm->SetRequestFriendData((const char*)msg.param1,
-					msg.param2);
-			}
-		}
-
-		FrUserListDlg* pDlg = m_pUserListDlg;
-		if (pDlg == NULL)
-			return;
-
-		if (!pDlg->IsOpenAddFriendDlg())
-			return;
-
-		pDlg->SetRequestFriendData((const char*)msg.param1, msg.param2);
-	}
-	break;
-
-	case 0x52:
-	{
-		FrUserInfoForm* pForm = USERINFODLG();
-		if (pForm)
-			return;
-
-		if (CUserInfo::Instance()->IsVisible() == true)
-		{
-			if (pForm->IsOpenAddFriendDlg())
-			{
-				pForm->SetRequestFriendData((const char*)msg.param1,
-					msg.param2);
-			}
-		}
-	}
-	break;
-
-	case 0x53:
-		OpenNewRecordForm();
-		break;
-
-	case 0x56:
-		Doc()->m_bTutorialResume = false;
-		CloseAllDialogs();
-
-		CTaskManager::Instance()->ChangeTask("CTutorialTask", "", false);
-		AfxPostMsg(NULL, "TutorialMain", 0, (int)"TUTORIAL_MAIN", 0, 0, 0);
-		break;
-
-	case 0x58:
-		m_bAutoStart = true;
-		break;
-
-	case 0x5c:
-	{
-		FrCaddieInfoDlg* pDlg = (FrCaddieInfoDlg*)g_pFresh->GetManager()
-									->GetDesktop()
-									->FindChildByName("caddie_info");
-		if (pDlg == NULL)
-		{
-			__rtti_obj = NULL;
-			return;
-		}
-
-		pDlg->EndContract(msg.param1);
-	}
-	break;
-
-	case 0x5e:
-	{
-		unsigned long guid = msg.param1;
-
-		if (Doc()->m_teamPlayerGuid[0] != guid &&
-			Doc()->m_teamPlayerGuid[1] != guid)
-			return;
-
-		sRivalData* pRival1 = GUILDMATCHUP(0);
-		sRivalData* pRival2 = GUILDMATCHUP(1);
-
-		if (pRival1 == NULL || pRival2 == NULL)
-			return;
-
-		int hole = msg.param2;
-
-		if (pRival1->holeStroke[hole - 1] == 0 ||
-			pRival2->holeStroke[hole - 1] == 0)
-			return;
-
-		char szMsg[1024];
-		if (pRival1->holeStroke[hole - 1] < pRival2->holeStroke[hole - 1])
-			sprintf(szMsg,
-				"%s\xb4\xd4\xc0\xcc %d\xc8\xa6\xbf\xa1\xbc\xad \xbd\xc2\xb8\xae\xc7\xcf\xbc\xcc\xbd\xc0\xb4\xcf\xb4\xd9",
-				pRival1->nickname, hole);
-		else if (pRival1->holeStroke[hole - 1] > pRival2->holeStroke[hole - 1])
-			sprintf(szMsg,
-				"%s\xb4\xd4\xc0\xba %d\xc8\xa6\xbf\xa1\xbc\xad \xc6\xd0\xb9\xe8\xc7\xcf\xbc\xcc\xbd\xc0\xb4\xcf\xb4\xd9",
-				pRival1->nickname, hole);
-		else
-			sprintf(szMsg,
-				"%d\xc8\xa6\xc0\xba \xb9\xab\xbd\xc2\xba\xce\xb0\xa1 \xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9",
-				hole);
-
-		this << MsgObject(NULL, 3, (int)szMsg, 0xffff7878, 0, 0, 0);
-	}
-	break;
-
-	case 0x5f:
-		m_masterOID = msg.param1;
-		break;
-
-	case 0xb3:
-	{
-		if (!Doc()->m_bBingoEvent)
-			return;
-
-		char szUrl[1024];
-		sprintf(szUrl, "www.pangya.com/pang_event_bingo.asp?userid=%s", MyId());
-
-		CBrowser::Instance()->Open(szUrl, false, false);
-		Doc()->m_bBingoEvent = false;
-	}
-	break;
-
-	case 0x61:
-	{
-		m_bCaddieWarning = true;
-		int count = msg.param1;
-		memset(m_caddieWarning, 0, sizeof(sCaddieInfo));
-		memcpy(m_caddieWarning, (void*)msg.param2, count * sizeof(sCaddieInfo));
-	}
-	break;
-
-	case 0x1f7:
-		GameExtResQuit();
-		break;
-
-	case 0x201:
-	{
-		if (!IsLocalContent((localContentType_t)0x15))
-			return;
-
-		if (m_pPointEventDlg == NULL)
-			m_pPointEventDlg = CreateForm<FrPointEventDlg>(
-				g_pFresh->GetManager(), this, "point_event_dlg");
-
-		if (m_pPointEventDlg == NULL)
-			return;
-
-		m_pPointEventDlg->SetMyPoint(Doc()->m_myInfo.info.dwPointPointEvent);
-		m_pPointEventDlg->SetIconRect(m_pToppagePointEvent->GetRect());
-		m_pPointEventDlg->Open(
-			(FRESH_PFN_RESULT)&CLobbyMain::OnPointEventDlgResult, 0x11);
-		m_pPointEventDlg->SetDesc(
-			"\xc7\xd8\xb4\xe7 \xc6\xf7\xc0\xce\xc6\xae\xb8\xa6 \xc8\xae\xc0\xce\xc7\xcf\xbd\xc3\xb0\xed \xc0\xcc\xba\xa5\xc6\xae\xbf\xa1 \xc2\xfc\xbf\xa9\xc7\xcf\xbc\xbc\xbf\xe4.");
-	}
-	break;
-
-	case 0x21c:
-	{
-		if (!IsLocalContent(S4_MATCHING_SYSTEM))
-			return;
-
-		std::string name = *(std::string*)msg.param1;
-		const char* mode = GetGameTypeText(*(unsigned char*)msg.param2);
-		unsigned long uid = *(unsigned long*)msg.param3;
-
-		if (m_pInviteDlg == NULL && Doc()->m_userInfoMod == 0)
-		{
-			m_pInviteDlg =
-				CreateForm<FrInviteDlg>(g_pFresh->GetManager(), this, "invite");
-			m_pInviteDlg->SetInvaiteInfo(0, 0, 0, uid, MyUID());
-			m_pInviteDlg->SetMessage(
-				MakeStr(
-					"(%s)\xb4\xd4\xb2\xb2\xbc\xad %s\xb8\xf0\xb5\xe5 \xb8\xc5\xc4\xaa \xbf\xe4\xc3\xbb\xc0\xbb\xc7\xcf\xbc\xcc\xbd\xc0\xb4\xcf\xb4\xd9.\n\xb8\xc5\xc4\xaa\xbf\xa1 \xc0\xc0\xc7\xcf\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-					name.c_str(), mode),
-				false);
-			m_pInviteDlg->SetTimeLimit(5.0f);
-			m_pInviteDlg->Open(
-				(FRESH_PFN_RESULT)&CLobbyMain::OnMatchingDlgResult, 1);
-		}
-		else
-		{
-			WSendPacket packet((enumClientPacket)0xb8);
-			packet.Encode4(uid);
-			packet.Encode1(0);
-			packet.Send(TO_GAME);
-		}
-	}
-	break;
-
-	case 0x21d:
-	{
-		if (!IsLocalContent(S4_MATCHING_SYSTEM))
-			return;
-
-		if (m_pQuickResultDlg)
-		{
-			int result = msg.param1;
-			m_pQuickResultDlg->SetContents((const char*)msg.param2);
-
-			if (result == 0)
-				m_pQuickResultDlg->SetOkbtnEnable(true);
-		}
-
-		Doc()->m_userInfoMod = 0;
-	}
-	break;
-
-	case 0x230:
-		if (m_pUserListDlg)
-			m_pUserListDlg->CloseInviteDelayDlg();
-		break;
-
-	case 0x240:
-	{
-		if (!IsLocalContent((localContentType_t)0x72))
-			return;
-
-		FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(),
-			(FrCmdTarget*)this, "notify");
-		WRect rect = pForm->GetRect();
-		pForm->SetRect(WRect(rect.x, rect.y, rect.w, rect.h));
-		pForm->SetTimeLimit(12.0f);
-		pForm->SetMessage(
-			"-\\c0xffff0000\\c\xb0\xe6\xc7\xb0 \xc0\xcc\xba\xa5\xc6\xae\\c0xff000000\\c\xbf\xa1 \xc0\xda\xb5\xbf\xc0\xb8\xb7\xce \xc0\xc0\xb8\xf0\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9",
-			false);
-		pForm->Open(NULL, 0);
-	}
-	break;
-
-	case 0x248:
-	{
-		if (IsLocalContent((localContentType_t)0x78) != true)
-			return;
-
-		if (m_pValEventDlg == NULL)
-			m_pValEventDlg = CreateForm<FrValEventDlg>(g_pFresh->GetManager(),
-				this, "valentine_event_s4");
-
-		if (m_pValEventDlg == NULL)
-			return;
-
-		m_pValEventDlg->SetGiftFlag(msg.param1);
-		m_pValEventDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnValEventDlgResult,
-			0x19);
-	}
-	break;
-
-	case 0x249:
-		if (msg.param1 == 1)
-		{
-			if (m_pCreateNickDlg == NULL)
-			{
-				m_pCreateNickDlg = CreateForm<FrCreateNickDlg>(
-					g_pFresh->GetManager(), this, "createnick");
-				if (m_pCreateNickDlg)
-					m_pCreateNickDlg->Open(
-						(FRESH_PFN_RESULT)&CLobbyMain::OnCreateNickResult, 0);
-			}
+		// lobbymain.cpp:4620, nickname change result (0: done)
+		if (IsLocalContent((localContentType_t)0x10) && m_paranNickChangeDlg) {
+			if (msg.m_param1 == 0)
+				m_paranNickChangeDlg->CloseDlg();
 			else
-			{
-				m_pCreateNickDlg->SetNick((const char*)msg.param2);
-			}
+				m_paranNickChangeDlg->EnableControls(true);
 		}
-		else if (msg.param1 == 0)
-		{
-			if (m_pCreateNickDlg)
-			{
-				strcpy(MyNick(), (const char*)msg.param2);
-				m_pCreateNickDlg->CloseDlg(1);
-				m_pCreateNickDlg = NULL;
-			}
-		}
-		else if (msg.param1 == 3)
-		{
-			if (!IsLocalContent(S4_NT_NICKNAME_CHANGE))
-				return;
-
-			if (m_pCreateNickDlg)
-				return;
-
-			m_pCreateNickDlg = CreateForm<FrCreateNickDlg>(
-				g_pFresh->GetManager(), this, "createnick");
-			if (m_pCreateNickDlg)
-			{
-				m_pCreateNickDlg->SetNick(MyNick());
-				m_pCreateNickDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnCreateNickResult, 0);
-			}
+		if (m_optionDlg) {
+			if (msg.m_param1 == 0)
+				m_optionDlg->CloseDlg();
+			else
+				m_optionDlg->EnableChangeNickControls(true);
 		}
 		break;
 
-	case 0x6d:
-		if (m_pTicketExchangeDlg)
-			m_pTicketExchangeDlg->Reponse(msg.param1,
-				(unsigned char)msg.param2);
-		break;
-
-	case 0x6e:
-		if (!IsLocalContent(S4_NT_NICKNAME_CHANGE))
-			return;
-
-		if (msg.param1 == 0)
-		{
-			if (m_pCreateNickDlg)
-				m_pCreateNickDlg->ReceiveCheckCode(msg.param2);
-		}
-		break;
-
-	case 0x6f:
-		if (!IsLocalContent(S4_NT_EVENT_MISSION))
-			return;
-
-		if (msg.param1 == 0)
-		{
-			m_pMissionEventDlg = CreateForm<FrMissionEventDlg>(
-				g_pFresh->GetManager(), (FrCmdTarget*)this, "mission_event");
-			if (m_pMissionEventDlg)
-			{
-				m_pMissionEventDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnMissionEventResult, 1);
-				m_pMissionEventDlg->EnableDrag(false);
-			}
-		}
-		else if (msg.param1 == 1)
-		{
-			const char* text = NULL;
-			switch (msg.param2)
-			{
-			case 0:
-				text =
-					"\xbb\xf3\xc7\xb0\xc0\xcc \xbf\xec\xc6\xed\xc0\xb8\xb7\xce \xc0\xfc\xb4\xde\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9. \xbf\xec\xc6\xed\xc7\xd4\xc0\xbb \xc8\xae\xc0\xce\xc7\xcf\xbc\xbc\xbf\xe4.";
-				break;
-			case 1:
-				text =
-					"\xc0\xcc\xb9\xcc \xb9\xde\xc0\xb8\xbc\xcc\xb3\xd7\xbf\xe4.";
-				break;
-			case 2:
-				text =
-					"\xbb\xf3\xc7\xb0\xc0\xcc \xc0\xfc\xb4\xde\xc0\xcc \xbd\xc7\xc6\xd0\xc7\xcf\xbf\xb4\xbd\xc0\xb4\xcf\xb4\xd9. \xb4\xd9\xbd\xc3 \xc7\xd1\xb9\xf8 \xbd\xc5\xc3\xbb\xc7\xd8\xc1\xd6\xbc\xbc\xbf\xe4.";
-				break;
-			}
-
-			this << MsgObject(NULL, 0x23, (int)text, 0, 0, 0, 0);
-		}
-		break;
-
-	case 0x70:
-		if (!IsLocalContent(S4_NT_EVENT_BINGO))
-			return;
-
-		if (msg.param1 == 0)
-		{
-			m_pBingoEventDlg = CreateForm<FrBingoEventDlg>(
-				g_pFresh->GetManager(), (FrCmdTarget*)this, "bingo_event");
-			if (m_pBingoEventDlg)
-			{
-				m_pBingoEventDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnBingoEventResult, 1);
-				m_pBingoEventDlg->EnableDrag(false);
-
-				m_pBingoEventDlg->SetBingoData(
-					(GlobalEnum::sBingoInfo*)msg.param2);
-			}
-		}
-		else if (msg.param1 == 1)
-		{
-			if (m_pBingoEventDlg)
-			{
-				m_pBingoEventDlg->SetBingoData(
-					(GlobalEnum::sBingoInfo*)msg.param2);
-				m_pBingoEventDlg->SetSelectedData(msg.param3, msg.param4,
-					*(unsigned int*)msg.param5);
-			}
-		}
-		else if (msg.param1 == 2)
-		{
-			if (m_pBingoEventDlg)
-			{
-				unsigned int* pCount = (unsigned int*)msg.param3;
-				m_pBingoEventDlg->SetGiftData(
-					(std::vector<unsigned long>*)msg.param2, *pCount);
-			}
-		}
-		break;
-
-	case 0x250:
-	{
-		if (!IsLocalContent((localContentType_t)0x8e))
-			return;
-
-		std::string skin = "BirthdayEventSkin1";
-		if (IsLocalContent((localContentType_t)0x9b))
-			skin = "BirthdayEventSkin2";
-
-		m_pBirthdayEventDlg = CreateForm<FrBirthdayEventDlg>(
-			g_pFresh->GetManager(), (FrCmdTarget*)this, skin.c_str());
-		if (m_pBirthdayEventDlg)
-		{
-			unsigned long* pMission = (unsigned long*)msg.param1;
-			unsigned long* pGift = (unsigned long*)msg.param2;
-
-			std::string eventName = "Kooh";
-			if (IsLocalContent((localContentType_t)0x94))
-				eventName = "Hana";
-			else if (IsLocalContent((localContentType_t)0x9b))
-				eventName = "Arin";
-
-			m_pBirthdayEventDlg->SetEventName(eventName);
-			m_pBirthdayEventDlg->SetMissionData(*pMission, *pGift);
-
-			std::vector<unsigned long>* pMissionList =
-				(std::vector<unsigned long>*)msg.param3;
-			std::vector<unsigned long>* pGiftList =
-				(std::vector<unsigned long>*)msg.param4;
-			m_pBirthdayEventDlg->SetMissionInfo(*pMissionList, *pGiftList);
-			m_pBirthdayEventDlg->Open(
-				(FRESH_PFN_RESULT)&CLobbyMain::OnKoohBirthdayEventDlg, 0x11);
-		}
-	}
-	break;
-
-	case 0x251:
-	{
-		unsigned long* pCount = (unsigned long*)msg.param1;
-
-		this << MsgObject(NULL, 0x23,
-			(int)"\xbb\xf3\xc7\xb0\xc0\xcc \xbf\xec\xc6\xed\xc0\xb8\xb7\xce \xc0\xfc\xb4\xde\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9. \xbf\xec\xc6\xed\xc7\xd4\xc0\xbb \xc8\xae\xc0\xce\xc7\xcf\xbc\xbc\xbf\xe4.",
-			0, 0, 0, 0);
-
-		if (m_pBirthdayEventDlg)
-			m_pBirthdayEventDlg->SetRemainGiftCount(*pCount);
-	}
-	break;
+	// TODO(boot): the other cases of the original fall to the default for
+	// now: 0x51-0x53, 0x56, 0x58, 0x5C, 0x5E, 0x5F, 0x61, 0x6D-0x70
+	// (lobbymain.cpp:4646-5069), 0xB3 (4784), 0x1F7 (4808, GameExtResQuit),
+	// 0x12D (4264, "levelupitem" FrLevelupItemForm), 0x201 and the ids
+	// 0x21D-0x251 (4895-5260).
 
 	case 0x41:
-		LogOut(0, "CLobbyMain::HandleMsg %d : %d %d %d %d %d\n", msg.message,
-			msg.param1, msg.param2, msg.param3, msg.param4, msg.param5);
-		break;
-
-	case 0x6b:
-		LogOut(0, "CLobbyMain::HandleMsg %d : %d %d %d %d %d\n", msg.message,
-			msg.param1, msg.param2, msg.param3, msg.param4, msg.param5);
-		break;
-
-	case 0xb2:
-		LogOut(0, "CLobbyMain::HandleMsg %d : %d %d %d %d %d\n", msg.message,
-			msg.param1, msg.param2, msg.param3, msg.param4, msg.param5);
-		break;
-
-	case 0xb4:
-		LogOut(0, "CLobbyMain::HandleMsg %d : %d %d %d %d %d\n", msg.message,
-			msg.param1, msg.param2, msg.param3, msg.param4, msg.param5);
-		break;
-
+	case 0x6B:
+	case 0xB2:
+	case 0xB4:
 	case 0x211:
-		LogOut(0, "CLobbyMain::HandleMsg %d : %d %d %d %d %d\n", msg.message,
-			msg.param1, msg.param2, msg.param3, msg.param4, msg.param5);
+	case 0x21B:
+		// ignored by the original (no HandleMsgCommon)
+		PG_BOOT_TODOF(("lobbymain.cpp:4620 empty case %#x (of 0x41, 0x6B, 0xB2, 0xB4, 0x211, 0x21B)", (unsigned)(msg.m_msg)));
 		break;
 
-	case 0x21b:
-		LogOut(0, "CLobbyMain::HandleMsg %d : %d %d %d %d %d\n", msg.message,
-			msg.param1, msg.param2, msg.param3, msg.param4, msg.param5);
-		break;
-
+#ifdef PG_BOOT_TRACE // trace cases for the TODO(boot) ids above (CMake build only)
+		goto pg_boot_todo_default_1; // a case falling through to the default
+	case 0x5B:
+		PG_BOOT_TODO("msg 0x5B: lobbymain.cpp:2945, a room slot exhibition motion/direction (CSharedDoc 0x12B8 map of sRoomSlot, CExhibition::SetMotion/SetDirection)");
+		goto pg_boot_todo_default_1;
+	case 0x59:
+		PG_BOOT_TODO("msg 0x59: lobbymain.cpp:2968, delete the room slot exhibitions and clear the map, re-enable the pet areas");
+		goto pg_boot_todo_default_1;
+	case 0x5A:
+		PG_BOOT_TODO("msg 0x5A: lobbymain.cpp:2981, set a room slot (sRoomSlot from param1/param2) and ShowPet");
+		goto pg_boot_todo_default_1;
+	case 0x4F:
+		PG_BOOT_TODO("msg 0x4F: lobbymain.cpp:2999, ask to remove the friend m_removeFriendUid (\"notify_yesno\", OnRemoveFriendDlgResult)");
+		goto pg_boot_todo_default_1;
+	case 0x60:
+		PG_BOOT_TODO("msg 0x60: lobbymain.cpp:3104");
+		goto pg_boot_todo_default_1;
+	case 0xF:
+		PG_BOOT_TODO("msg 0x0F: lobbymain.cpp:3554, find the room master (identity bit 2, else the 0x18 attribute in CSharedDoc::m_roomPlayerList2 (protected) then m_roomPlayerList) into m_roomMasterUid; master: m_blinkTipArea = m_startTipArea, clear m_roomOptionA/B; m_mapBtn->Enable(roomMode != 14 && master), SetStartBtn, SetRoomControls, m_roomControlWnd->Enable(master && gameType != 6)");
+		goto pg_boot_todo_default_1;
+	case 0x71:
+		PG_BOOT_TODO("msg 0x71: lobbymain.cpp:3628");
+		goto pg_boot_todo_default_1;
+	case 0x10:
+		PG_BOOT_TODO("msg 0x10: lobbymain.cpp:3635");
+		goto pg_boot_todo_default_1;
+	case 0x11:
+		PG_BOOT_TODO("msg 0x11: lobbymain.cpp:3711");
+		goto pg_boot_todo_default_1;
+	case 0x42:
+		PG_BOOT_TODO("msg 0x42: lobbymain.cpp:3815, skinned theme (GetCurrentSkinnedTheme, FrDesktop::SetWallPaper, top page button images)");
+		goto pg_boot_todo_default_1;
+	case 0x30:
+		PG_BOOT_TODO("msg 0x30: lobbymain.cpp:3850, invite dialog (IsLocalContent 0x54, \"invite\" form, SetInvaiteInfo, OnInviteDlgResult)");
+		goto pg_boot_todo_default_1;
+	case 0x29:
+		PG_BOOT_TODO("msg 0x29: lobbymain.cpp:3926");
+		goto pg_boot_todo_default_1;
+	case 0x46:
+		PG_BOOT_TODO("msg 0x46: lobbymain.cpp:4017, team change (btn_teamchange_*, RemakeTeam)");
+		goto pg_boot_todo_default_1;
+	case 0x49:
+		PG_BOOT_TODO("msg 0x49: lobbymain.cpp:4066, character parts (BuildMyPartTidList, SetLevelBar)");
+		goto pg_boot_todo_default_1;
+	case 0x4A:
+	case 0x4B:
+	case 0x4C:
+	case 0x4E:
+		PG_BOOT_TODO("msg 0x4A, 0x4B, 0x4C, 0x4E: lobbymain.cpp:4115-4157, copy the local player records into CSharedDoc (0x1DF8, 0x1E11, 0x634/0x1524, 0x1E23) when param1 is the local id, then SetLevelBar");
+		goto pg_boot_todo_default_1;
+	case 0x2A:
+		PG_BOOT_TODO("msg 0x2A: lobbymain.cpp:4187, SortRank() (CLobbyMain::SortRank 0x7e7cc0 not declared yet)");
+		goto pg_boot_todo_default_1;
+	case 0x2D:
+		PG_BOOT_TODO("msg 0x2D: lobbymain.cpp:4192, game results (CSharedDoc 0x455C/0x49E0, SortRank, \"uniteresult\" FrUniteResultDlg into m_resultReportDlg, OnResultDlgResult)");
+		goto pg_boot_todo_default_1;
+	case 0x3A:
+		PG_BOOT_TODO("msg 0x3A: lobbymain.cpp:4387, walks CSharedDoc::m_channelList when the byte at CSharedDoc 0x4AFD has bit 1 (the loop does nothing)");
+		goto pg_boot_todo_default_1;
+	case 0x2F:
+		PG_BOOT_TODO("msg 0x2F: lobbymain.cpp:4404");
+		goto pg_boot_todo_default_1;
+	case 0x3B:
+		PG_BOOT_TODO("msg 0x3B: lobbymain.cpp:4454");
+		goto pg_boot_todo_default_1;
+	case 0x3D:
+		PG_BOOT_TODO("msg 0x3D: lobbymain.cpp:4599, set or clear bit 2 of the attribute of the room player found by param1 (param2 == 1)");
+		goto pg_boot_todo_default_1;
+	pg_boot_todo_default_1:
+#endif
 	default:
+		// lobbymain.cpp:5265
 		HandleMsgCommon(msg);
+		break;
 	}
 }
-void CLobbyMain::_RefreshUccClothes(sSlotInfo* pSlot, unsigned long tid,
-	const char* uccIndex)
-{
-	if (pSlot == NULL)
-		return;
 
-	std::map<unsigned long, sRoomSlot>::iterator it =
-		Doc()->m_roomSlotMap.find(pSlot->dwGuid);
-	if (it == Doc()->m_roomSlotMap.end())
-		return;
-
-	if (!IsLocalContent(S4_GUID_BASE))
-		return;
-
-	sRoomSlot* pRoomSlot = &it->second;
-
-	if (pRoomSlot && pRoomSlot->pExhibition)
-	{
-		unsigned char index = (unsigned char)((tid >> 13) & 0x1f);
-		if (pRoomSlot->partTidList.m_tid[index] == tid)
-		{
-			unsigned long uid = pRoomSlot->partTidList.m_uid[index];
-
-			sUccClothes* pClothes = UccManager()->FindClothes(uid);
-
-			if (pClothes && !strcmpi(pClothes->uccIndex, uccIndex))
-			{
-				pRoomSlot->pExhibition->GetPetFrame()->SetPart(
-					&pRoomSlot->partTidList, tid, uid);
-				pRoomSlot->pExhibition->GetPetFrame()->SetPart(
-					&pRoomSlot->partTidList, tid, uid);
-			}
+// lobbymain.cpp:5360
+void CLobbyMain::OpenPCBangNoticeForm(void) {
+	if ((m_pcbangNoticeDlg == 0 && CLoginInfo::Instance()->IsPcBang())
+		|| CSharedDoc::Instance()->m_noticeShown) {
+		OnUnderBar_NoticeUp();
+		if (m_toppageNoticeBtn && m_noticeDlg) {
+			m_noticeDlg->SetIconRect(m_toppageNoticeBtn->GetRect());
 		}
 	}
 }
 
-void CLobbyMain::OpenPCBangNoticeForm()
-{
-	if (m_pPCBangNoticeDlg == NULL && CLoginInfo::Instance()->IsPcBang())
-	{
-		OnToppage_NoticeUp();
-	}
-	else if (Doc()->m_bShowNotice)
-	{
-		OnToppage_NoticeUp();
-	}
-}
-
-bool CLobbyMain::NeedsChangeNick()
-{
-	if (CLoginInfo::Instance()->IsWebLogin() &&
-		Doc()->m_myInfo.info.nChannelingFlag == 1 &&
-		!strcmp(Doc()->m_myInfo.info.sNick, Doc()->m_myInfo.info.sDisplayID))
+// lobbymain.cpp:5382
+bool CLobbyMain::NeedsChangeNick(void) {
+	if (CLoginInfo::Instance()->IsWebLogin()
+		&& CSharedDoc::Instance()->GetPangyaUserInfo().nameByEdit == 1
+		&& strcmp(CSharedDoc::Instance()->GetPangyaUserInfo().nickname, CSharedDoc::Instance()->m_loginId) == 0) {
 		return true;
+	}
 
 	return false;
 }
 
-void CLobbyMain::OpenParanNickChange()
-{
-	if (NeedsChangeNick() == true)
-	{
-		m_pParanNickDlg = CreateForm<FrParanNickDlg>(g_pFresh->GetManager(),
-			this, "changenick_paran");
-		m_pParanNickDlg->SetMessage(
-			"\xc6\xce\xbe\xdf\xbf\xa1\xbc\xad \xbb\xe7\xbf\xeb\xc7\xcf\xbd\xc7 \xb4\xeb\xc8\xad\xb8\xed\xc0\xbb \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbc\xbc\xbf\xe4.",
-			false);
-		m_pParanNickDlg->Open(
-			(FRESH_PFN_RESULT)&CLobbyMain::OnParanNickChangeResult, 0);
-	}
-	else
-	{
+// lobbymain.cpp:5394
+void CLobbyMain::OpenParanNickChange(void) {
+	if (NeedsChangeNick() == true) {
+		m_paranNickChangeDlg = CreateForm<FrParanNickDlg>(g_pFresh->GetManager(), this, "changenick_paran", NULL);
+		m_paranNickChangeDlg->SetMessage("\xc6\xce\xbe\xdf\xbf\xa1\xbc\xad \xbb\xe7\xbf\xeb\xc7\xcf\xbd\xc7 \xb4\xeb\xc8\xad\xb8\xed\xc0\xbb \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbc\xbc\xbf\xe4.", false);
+		m_paranNickChangeDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnParanNickChangeResult, 0);
+	} else {
 		OpenCaddieWarningForm();
 	}
 }
 
-void CLobbyMain::OpenCaddieWarningForm()
-{
-	if (m_bCaddieWarning && Doc()->IsOpenFirstLoginAlarm())
-	{
-		m_bCaddieWarning = false;
+// lobbymain.cpp:5409
+void CLobbyMain::OpenCaddieWarningForm(void) {
+	if (m_caddieWarningPending && CSharedDoc::Instance()->m_loginDlgCreated) {
+		m_caddieWarningPending = false;
 
-		for (int i = 0; i < 12; i++)
-		{
-			if (m_caddieWarning[i].guid != 0)
-			{
-				sCaddieInfo info = m_caddieWarning[i];
-				memset(&m_caddieWarning[i], 0, sizeof(sCaddieInfo));
+		for (int i = 0; i < 12; i++) {
+			if (m_warningCaddies[i].id != 0) {
+				sCaddieInfo info = m_warningCaddies[i];
+				memset(&m_warningCaddies[i], 0, sizeof(sCaddieInfo));
 
-				if (info.guid)
-				{
-					m_pCaddieWarningDlg = CreateForm<FrCaddieWarningDlg>(
-						g_pFresh->GetManager(), this, "caddie_warning");
-					m_pCaddieWarningDlg->SetCaddieInfo(info);
-					m_pCaddieWarningDlg->Open(
-						(FRESH_PFN_RESULT)&CLobbyMain::OnCaddieWarningDlgResult,
-						0x40);
+				if (info.id != 0) {
+					m_caddieWarningDlg = CreateForm<FrCaddieWarningDlg>(g_pFresh->GetManager(), this, "caddie_warning", NULL);
+					static_cast<FrCaddieWarningDlg*>(m_caddieWarningDlg)->SetCaddieInfo(info);
+					m_caddieWarningDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnCaddieWarningDlgResult, 0x40);
+				}
+				break;
+			}
+		}
+	} else {
+		OpenNoteForm();
+	}
+}
+
+// lobbymain.cpp:5442
+void CLobbyMain::OpenNoteForm(void) {
+	if (CSharedDoc::Instance()->m_loginDlgCreated && CSharedDoc::Instance()->m_noteList.size() > 0) {
+		if (m_mailBoxDlg == 0) {
+			m_mailBoxDlg = CreateForm<FrMailBoxDlg>(g_pFresh->GetManager(), this, "mailbox", NULL);
+			m_mailBoxDlg->EnableDrag(false);
+			m_mailBoxDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnMailBoxDlgResult, 0);
+		}
+	}
+}
+
+// lobbymain.cpp:5461
+void CLobbyMain::OpenEventPrizeForm(unsigned char event) {
+	if (m_eventDlg[event] == 0) {
+		m_eventDlg[event] = CreateForm<FrEventPrizeDlg>(g_pFresh->GetManager(), this, "notice_popup", NULL);
+		static_cast<FrEventPrizeDlg*>(m_eventDlg[event])->SetEvent(event);
+		m_eventDlg[event]->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnEventDlgResult, 3);
+	}
+}
+
+// lobbymain.cpp:5476
+void CLobbyMain::OnToppage_Init(int) {
+	CTaskMain::OnInit();
+
+	CSharedDoc::Instance()->ClearUserInfoTimeMap((unsigned long)-1);
+	memset(CSharedDoc::Instance()->m_roomPlayers, 0, sizeof(CSharedDoc::Instance()->m_roomPlayers));
+
+	SetRandomBGM();
+	TurnOn3DBackground();
+
+	if (IsLocalContent((localContentType_t)0x6A)) {
+		m_topPageBtnIndex = CLoginInfo::Instance()->IsPcBang() ? 2 : 1;
+	}
+}
+
+// lobbymain.cpp:5503
+void CLobbyMain::OnToppage_Finish(void) {
+	if (CSharedDoc::Instance()->m_paranNickChanged) {
+		if (IsLocalContent((localContentType_t)0x10)) {
+			CSharedDoc::Instance()->m_paranNickChanged = false;
+			OpenEventPrizeForm(5);
+
+			if (CSharedDoc::Instance()->m_flag50F6 == true) {
+				this << MsgObject(0, 0x3E, 0x1A000006, (intptr_t)
+			"[\xC7\xC7\xC7\xC9 \xBC\xB1\xB9\xB0 \xB8\xDE\xC0\xCF]\n"
+			"\n"
+			"\xBE\xC8\xB3\xE7~ \xC0\xFC \xB4\xE7\xBD\xC5\xC0\xBB \xBF\xA9\xB1\xE2 \xB5\xA5\xB8\xAE\xB0\xED \xBF\xC2 \xBD\xC3\xB0\xA3\xC0\xC7 \xBF\xE4\xC1\xA4 \xC7\xC7\xC7\xC9\xC0\xCC\xB6\xF3\xB0\xED \xC7\xD5\xB4\xCF\xB4\xD9. \xB9\xE6\xB1\xDD \xBF\xB9\xBB\xDB \xC4\xB3\xB8\xAF\xC5\xCD\xB8\xA6 \xBC\xB1\xC5\xC3\xC7\xDF\xB3\xD7\xBF\xE4. \xB0\xE8\xBC\xD3 \xC0\xDF \xBA\xB8\xBB\xEC\xC6\xEC\xC1\xD6\xBC\xBC\xBF\xE4.\n"
+			"\n"
+			"\xBE\xC6~ \xB1\xD7\xB8\xAE\xB0\xED \xC0\xCC\xB0\xC5 \xB9\xDE\xC0\xB8\xBC\xBC\xBF\xE4. \xB4\xE7\xBD\xC5\xC0\xCC \xC6\xCE\xBE\xDF\xBF\xA1 \xBA\xB8\xB4\xD9 \xBD\xB1\xB0\xD4 \xC0\xFB\xC0\xC0\xC7\xCF\xB1\xE2 \xC0\xA7\xC7\xD8\xBC\xAD \xB5\xE5\xB8\xAE\xB4\xC2 \xC7\xE0\xBF\xEE\xC0\xC7 \xB8\xF1\xB0\xC9\xC0\xCC\xC0\xD4\xB4\xCF\xB4\xD9.\n"
+			"\xC0\xCC \xC7\xE0\xBF\xEE\xC0\xC7 \xB8\xF1\xB0\xC9\xC0\xCC\xB4\xC2 \xB4\xE7\xBD\xC5\xC0\xCC \xB8\xB8\xB5\xE7 \xC4\xB3\xB8\xAF\xC5\xCD\xC0\xC7 \\c0xffff0000\\c\xC1\xA4\xC8\xAE\xB5\xB5\\c0xff000000\\c\xB8\xA6 \xB3\xF4\xC7\xF4\xC1\xD6\xB0\xED \\c0xffff0000\\c\xC6\xCE\xBE\xDF\xC0\xD3\xC6\xD1\xC6\xAE\xC1\xB8\\c0xff000000\\c\xC0\xBB \xB3\xD0\xC7\xF4\xC1\xD6\xB4\xC2 \xBF\xAA\xC7\xD2\xC0\xBB \xC7\xD1\xB4\xE4\xB4\xCF\xB4\xD9.\n"
+			"\xC7\xCF\xB3\xAA \xC1\xD6\xC0\xC7\xC7\xD2 \xB0\xCD\xC0\xBA\xBF\xE4~ \xB4\xE7\xBD\xC5\xC0\xC7 \xBD\xC7\xB7\xC2\xC0\xCC \xBE\xEE\xB4\xC0 \xC1\xA4\xB5\xB5 \xBE\xC8\xC1\xA4\xB5\xC7\xB4\xC2 \xB7\xB9\xBA\xA7, \xC1\xEF \\c0xffff0000\\c\xC1\xD6\xB4\xCF\xBE\xEE" "E\\c0xff000000\\c\xB0\xA1 \xB5\xC7\xB8\xE9 \xC8\xBF\xB0\xFA\xB0\xA1 \xBE\xF8\xBE\xEE\xC1\xF6\xB4\xCF\xB1\xEE\xBF\xE4~ \xBE\xCB\xBE\xC6\xB5\xCE\xBD\xC3\xB0\xED\xBF\xE4.\n"
+			"\n"
+			"\xB1\xD7\xB8\xAE\xB0\xED \xB4\xEB\xC0\xFC\xB8\xF0\xB5\xE5\xBF\xA1 \xB0\xA1\xB1\xE2 \xC0\xFC\xBF\xA1 \xC7\xD1\xB9\xF8 \xC8\xA5\xC0\xDA \xBF\xAC\xBD\xC0\xC7\xCF\xB0\xED \xBD\xCD\xB4\xD9\xB8\xE9 \xC6\xA9\xC5\xE4\xB8\xAE\xBE\xF3 \xB8\xF0\xB5\xE5\xBF\xA1 \xB5\xE9\xBE\xEE\xB0\xA1\xBA\xB8\xBC\xBC\xBF\xE4.\n"
+			"\xC2\xF7\xB1\xD9\xC2\xF7\xB1\xD9 \xB8\xF0\xB5\xCE \xB9\xE8\xBF\xEC\xBD\xC3\xB8\xE9 \xBC\xB1\xB9\xB0\xB5\xB5 \xC1\xD8\xB4\xD9\xB0\xED \xC7\xCF\xB3\xD7\xBF\xE4. ^^\n"
+			"\n"
+			"\xB1\xD7\xB7\xB3 \xB4\xE3\xBF\xA1 \xB6\xC7 \xBA\xC1\xBF\xE4. \xBE\xC8\xB3\xE7", 0, 0, 0);
+				CSharedDoc::Instance()->m_flag50F6 = false;
+			}
+		} else {
+			CSharedDoc::Instance()->m_paranNickChanged = false;
+			OpenEventPrizeForm(2);
+		}
+	}
+
+	if (CSharedDoc::Instance()->m_tutorialFinish) {
+		this << MsgObject(0, 0xAA, 1, 0, 0, 0, 0);
+	}
+}
+
+// lobbymain.cpp:5544
+void CLobbyMain::OnToppage_Destroy(void) {
+}
+
+// lobbymain.cpp:5548
+void CLobbyMain::OnToppage_GameInit(intptr_t param) {
+	m_toppageGameBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageGameBtn) {
+		m_toppageGameBtn->SetPushSound("ui_desktop_icon_click");
+		m_toppageGameBtn->EnableHover(true, 0.5f);
+	}
+}
+
+// lobbymain.cpp:5558
+void CLobbyMain::OnToppage_GameUp(void) {
+	OnUnderBar_GameUp();
+}
+
+// lobbymain.cpp:5563
+void CLobbyMain::OnToppage_FamilyInit(intptr_t param) {
+	m_toppageFamilyBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageFamilyBtn) {
+		m_toppageFamilyBtn->SetPushSound("ui_desktop_icon_click");
+		m_toppageFamilyBtn->EnableHover(true, 0.5f);
+	}
+}
+
+// lobbymain.cpp:5606
+void CLobbyMain::OnToppage_PangysStudyInit(intptr_t param) {
+	m_toppagePangysStudyBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppagePangysStudyBtn) {
+		m_toppagePangysStudyBtn->SetPushSound("ui_desktop_icon_click");
+		m_toppagePangysStudyBtn->EnableHover(true, 0.5f);
+	}
+}
+
+// lobbymain.cpp:5615
+void CLobbyMain::OnToppage_PangysStudyUp(void) {
+	CloseAllDialogs();
+
+	CTaskManager::Instance()->ChangeTask("CTutorialTask", "", false);
+	CTaskManager::Instance()->PostMsg(0, "TutorialMain", 0, (intptr_t)"TUTORIAL_MAIN", 0, 0, 0);
+}
+
+// lobbymain.cpp:5623
+void CLobbyMain::OnToppage_NoticeInit(intptr_t param) {
+	m_toppageNoticeBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageNoticeBtn) {
+		m_toppageNoticeBtn->SetPushSound("ui_desktop_icon_click");
+		m_toppageNoticeBtn->EnableHover(true, 0.5f);
+	}
+}
+
+// lobbymain.cpp:5633
+void CLobbyMain::OnToppage_NoticeUp(void) {
+	OnUnderBar_NoticeUp();
+
+	if (m_toppageNoticeBtn && m_noticeDlg) {
+		m_noticeDlg->SetIconRect(m_toppageNoticeBtn->GetRect());
+	}
+}
+
+// lobbymain.cpp:5641
+void CLobbyMain::OnToppage_PcbangInit(intptr_t param) {
+	m_toppagePcbangBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppagePcbangBtn) {
+		m_toppagePcbangBtn->SetVisible(CLoginInfo::Instance()->IsPcBang() ? true : false);
+		m_toppagePcbangBtn->Enable(CLoginInfo::Instance()->IsPcBang() ? true : false);
+
+		if (CLoginInfo::Instance()->IsPcBang()) {
+			CIconManager::Instance()->AddTopIconFromOutSide();
+		}
+
+		cTopEventIcon((eTopIconID)0).Prepare(m_toppagePcbangBtn);
+	}
+}
+
+// lobbymain.cpp:5662
+void CLobbyMain::OnToppage_PcbangUp(void) {
+	CloseAllDialogs();
+	m_pcbangNoticeDlg = CreateForm<FrNoticeDlg>(g_pFresh->GetManager(), this, "notice_popup", NULL);
+	m_pcbangNoticeDlg->LoadInitFile("pcbang.ini");
+	m_pcbangNoticeDlg->SetIconRect(m_toppagePcbangBtn->GetRect());
+	m_pcbangNoticeDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnPCBangDlgResult, 0x11);
+}
+
+// lobbymain.cpp:5681
+void CLobbyMain::OnToppage_RentalExpiredAlramInit(intptr_t param) {
+	FrButton* btn = DYNAMIC_CAST(FrButton, param);
+	if (btn) {
+		if (!S5::RENTALPARTS::IsExistExpiredRentalItem(CSharedDoc::Instance()->m_myPartsList)) {
+			btn->SetVisible(false);
+			btn->Enable(false);
+		}
+	}
+}
+
+// lobbymain.cpp:5727
+void CLobbyMain::OnToppage_Event1Init(intptr_t param) {
+	m_toppageEvent1Btn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageEvent1Btn) {
+		m_toppageEvent1Btn->SetPushSound("ui_desktop_icon_click");
+		m_toppageEvent1Btn->EnableHover(true, 0.5f);
+		m_toppageEvent1Btn->SetVisible(false);
+
+		if (IsLocalContent((localContentType_t)0x18)) {
+			m_toppageEvent1Btn->SetVisible(true);
+		}
+
+		m_event1IconRect = m_toppageEvent1Btn->GetRect();
+	}
+}
+
+// lobbymain.cpp:5745
+void CLobbyMain::OnToppage_Event1Up(void) {
+	if (IsLocalContent((localContentType_t)0x18)) {
+		CloseAllDialogs();
+
+		if (IsLocalContent((localContentType_t)0x48)) {
+			m_holesEventDlg = CreateForm<ntHolesEventDlg>(g_pFresh->GetManager(), this, "holes_EntranceExam", NULL);
+		} else {
+			m_holesEventDlg = CreateForm<ntHolesEventDlg>(g_pFresh->GetManager(), this, "holes_event", NULL);
+		}
+
+		m_holesEventDlg = CreateForm<ntHolesEventDlg>(g_pFresh->GetManager(), this, "holes_event", NULL);
+		m_holesEventDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnHolesEventDlgResult, 0x11);
+		m_holesEventDlg->SetIconRect(m_toppageEvent1Btn->GetRect());
+	}
+}
+
+// lobbymain.cpp:5762
+void CLobbyMain::OnToppage_NewInit(intptr_t param) {
+	m_newArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// lobbymain.cpp:5767
+// Draws the "new" tab image next to the Pangya's study button.
+void CLobbyMain::OnToppage_NewOwnerDraw(int) {
+	if (m_toppagePangysStudyBtn) {
+		if (m_newTabBitmap) {
+			WRect rect = m_toppagePangysStudyBtn->GetRect();
+			g_pFresh->GetManager()->GetGDI()->DrawTexture(m_newTabBitmap, WRect(rect.x + 58.0f, rect.y + 12.0f, m_newTabBitmap->Width(), m_newTabBitmap->Height()), 0xFFFFFFFF, 0);
+		}
+	}
+}
+
+// lobbymain.cpp:5849
+bool CLobbyMain::OnValEventDlgResult(int, FrForm*) {
+	m_valEventDlg = 0;
+	return true;
+}
+
+// lobbymain.cpp:5861
+// Shows the point event button where the content allows it: in the next top
+// page slot, next to the PC bang button, or at x 160 in a PC bang.
+void CLobbyMain::OnToppage_PointEventInit(intptr_t param) {
+	m_toppagePointEventBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppagePointEventBtn) {
+		if (IsLocalContent((localContentType_t)0x15)) {
+			m_toppagePointEventBtn->SetPushSound("ui_desktop_icon_click");
+			m_toppagePointEventBtn->EnableHover(true, 0.5f);
+			m_toppagePointEventBtn->SetVisible(true);
+			m_toppagePointEventBtn->SetPushDelay(0.0f);
+
+			if (IsLocalContent((localContentType_t)0x6A)) {
+				WRect rect = m_toppagePointEventBtn->GetRect();
+				rect.x = GetTopPageBtnRect();
+				m_toppagePointEventBtn->SetRect(rect);
+			} else if (!CLoginInfo::Instance()->IsPcBang()) {
+				WRect rect = m_toppagePointEventBtn->GetRect();
+				rect.x = m_toppagePcbangBtn->GetRect().x;
+				rect.y = m_toppagePcbangBtn->GetRect().y - 2.0f;
+				m_toppagePointEventBtn->SetRect(rect);
+			} else {
+				WRect rect = m_toppagePointEventBtn->GetRect();
+				rect.x = 160.0f;
+				rect.y -= 2.0f;
+				m_toppagePointEventBtn->SetRect(rect);
+			}
+		} else {
+			m_toppagePointEventBtn->SetVisible(false);
+		}
+	}
+}
+
+// lobbymain.cpp:5929
+void CLobbyMain::OnToppage_PointEventDown(void) {
+	if (IsLocalContent((localContentType_t)0x15)) {
+		CloseAllDialogs();
+		WSendPacket packet((enumClientPacket)0x95);
+		packet.Send(SEND_TO_DEFAULT);
+
+		CSharedDoc::Instance()->m_pointEventState = 2;
+		CSharedDoc::Instance()->m_pointEventFlag = false;
+	}
+}
+
+// lobbymain.cpp:5956
+void CLobbyMain::OnToppage_ValEventInit(intptr_t param) {
+	m_toppageValEventBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageValEventBtn) {
+		m_toppageValEventBtn->SetVisible(IsLocalContent((localContentType_t)0x78));
+		if (m_toppageValEventBtn->IsVisible()) {
+			m_toppageValEventBtn->SetPushDelay(0.1f);
+			cTopEventIcon((eTopIconID)8).Prepare(m_toppageValEventBtn);
+		}
+	}
+}
+
+// lobbymain.cpp:5985
+// Shows the world tour event button where the content allows it, after the
+// point event or PC bang button.
+void CLobbyMain::OnToppage_WorldTourEventInit(intptr_t param) {
+	m_toppageWorldTourBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageWorldTourBtn) {
+		if (IsLocalContent((localContentType_t)0x1E)) {
+			m_toppageWorldTourBtn->SetPushSound("ui_desktop_icon_click");
+			m_toppageWorldTourBtn->EnableHover(true, 0.5f);
+			m_toppageWorldTourBtn->SetVisible(true);
+			m_toppageWorldTourBtn->SetPushDelay(0.0f);
+
+			bool isPcBang = CLoginInfo::Instance()->IsPcBang() != 0;
+			bool hasPointEvent = IsLocalContent((localContentType_t)0x15);
+
+			WRect pcbangRect = m_toppagePcbangBtn->GetRect();
+			WRect pointRect = m_toppagePointEventBtn->GetRect();
+			WRect rect = m_toppageWorldTourBtn->GetRect();
+
+			rect.y += 2.0f;
+
+			if (IsLocalContent((localContentType_t)0x6A)) {
+				WRect slotRect = m_toppageWorldTourBtn->GetRect();
+				slotRect.x = GetTopPageBtnRect();
+				m_toppageWorldTourBtn->SetRect(slotRect);
+			} else if (isPcBang) {
+				if (hasPointEvent) {
+					rect.x = pointRect.x + pointRect.w;
+					m_toppageWorldTourBtn->SetRect(rect);
+				} else {
+					rect.x = pcbangRect.x + pcbangRect.w;
+					m_toppageWorldTourBtn->SetRect(rect);
+				}
+			} else if (hasPointEvent) {
+				rect.x = pointRect.x + pointRect.w;
+				m_toppageWorldTourBtn->SetRect(rect);
+			}
+		} else {
+			m_toppageWorldTourBtn->SetVisible(false);
+			m_toppageWorldTourBtn->Enable(false);
+		}
+	}
+}
+
+// lobbymain.cpp:6046
+// Opens the world tour event dialog on its map flags (or refreshes them).
+void CLobbyMain::OnToppage_WorldTourEventDown(void) {
+	if (IsLocalContent((localContentType_t)0x1E)) {
+		if (!m_toppageWorldTourBtn)
+			return;
+
+		CloseAllDialogs();
+
+		CWorldTourEvent* pEvent = (CWorldTourEvent*)WSingleton<CContentsDoc>::Instance()->GetContainer((localContentType_t)0x1E);
+		if (!pEvent)
+			return;
+
+		if (m_worldTourEventDlg) {
+			m_worldTourEventDlg->SetMapFlag(pEvent->GetMapFlag());
+		} else {
+			m_worldTourEventDlg = CreateForm<FrWorldTourEventDlg>(g_pFresh->GetManager(), this, "world_tour_event_dlg", NULL);
+			if (m_worldTourEventDlg) {
+				m_worldTourEventDlg->SetMapFlag(pEvent->GetMapFlag());
+				m_worldTourEventDlg->SetIconRect(m_toppageWorldTourBtn->GetRect());
+				m_worldTourEventDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnWorldTourEventDlgResult, 0x11);
+			}
+		}
+	}
+}
+
+// lobbymain.cpp:6081
+// Shows the find-Ebort event button after the PC bang, point event and world
+// tour buttons that are shown.
+void CLobbyMain::OnToppage_FindEbortEventInit(intptr_t param) {
+	m_toppageFindEbortBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageFindEbortBtn) {
+		if (IsLocalContent((localContentType_t)0x20)) {
+			m_toppageFindEbortBtn->SetVisible(true);
+			m_toppageFindEbortBtn->Enable(true);
+			m_toppageFindEbortBtn->SetPushDelay(0.0f);
+
+			bool isPcBang = CLoginInfo::Instance()->IsPcBang() != 0;
+			bool hasPointEvent = IsLocalContent((localContentType_t)0x15);
+			bool hasWorldTour = IsLocalContent((localContentType_t)0x1E);
+
+			WRect rect = m_toppageFindEbortBtn->GetRect();
+
+			if (isPcBang)
+				rect.x += m_toppagePcbangBtn->GetRect().w + m_toppagePcbangBtn->GetRect().x;
+
+			if (hasPointEvent)
+				rect.x += m_toppagePointEventBtn->GetRect().w + m_toppagePointEventBtn->GetRect().x;
+
+			if (hasWorldTour)
+				rect.x += m_toppageWorldTourBtn->GetRect().w + m_toppageWorldTourBtn->GetRect().x;
+
+			rect.y -= 5.0f;
+			m_toppageFindEbortBtn->SetRect(rect);
+		} else {
+			m_toppageFindEbortBtn->SetVisible(false);
+			m_toppageFindEbortBtn->Enable(false);
+		}
+	}
+}
+
+// lobbymain.cpp:6121
+void CLobbyMain::OnToppage_FindEbortEventDown(void) {
+	if (IsLocalContent((localContentType_t)0x20)) {
+		if (m_toppageFindEbortBtn) {
+			CloseAllDialogs();
+
+			if (!m_findEbortEventDlg) {
+				m_findEbortEventDlg = CreateForm<FrFindEbortEventDlg>(g_pFresh->GetManager(), this, "find_ebort_event_dlg", NULL);
+				if (m_findEbortEventDlg) {
+					m_findEbortEventDlg->SetIconRect(m_toppageFindEbortBtn->GetRect());
+					m_findEbortEventDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnFindEbortEventDlgResult, 0x11);
+				}
+			}
+		}
+	}
+}
+
+// lobbymain.cpp:6144
+void CLobbyMain::OnToppage_Halloween2007Init(intptr_t param) {
+	m_toppageHalloweenBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageHalloweenBtn) {
+		if (IsLocalContent((localContentType_t)0x21)) {
+			CHalloweenEvent* pEvent;
+			if (CContentsDoc::Instance()->GetContainer((localContentType_t)0x21, pEvent)) {
+				m_toppageHalloweenBtn->SetVisible(true);
+				m_toppageHalloweenBtn->Enable(true);
+			} else {
+				m_toppageHalloweenBtn->SetVisible(false);
+				m_toppageHalloweenBtn->Enable(false);
+			}
+
+			cTopEventIcon((eTopIconID)9).Prepare(m_toppageHalloweenBtn);
+		} else {
+			m_toppageHalloweenBtn->SetVisible(false);
+			m_toppageHalloweenBtn->Enable(false);
+		}
+	}
+}
+
+// lobbymain.cpp:6178
+void CLobbyMain::OnToppage_Halloween2007EvenDown(void) {
+	if (IsLocalContent((localContentType_t)0x21)) {
+		if (m_toppageHalloweenBtn) {
+			CloseAllDialogs();
+
+			if (!m_halloweenEventDlg) {
+				m_halloweenEventDlg = CreateForm<FrHalloweenEventDlg>(g_pFresh->GetManager(), this, "halloween2007_event_dlg", NULL);
+				if (m_halloweenEventDlg) {
+					m_halloweenEventDlg->SetIconRect(m_toppageHalloweenBtn->GetRect());
+					m_halloweenEventDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnHalloweenEventDlgResult, 0x11);
+				}
+			}
+		}
+	}
+}
+
+// lobbymain.cpp:6201
+void CLobbyMain::OnToppage_Christmas2007EventInit(intptr_t param) {
+	m_toppageChristmasBtn = DYNAMIC_CAST(FrButton, param);
+	if (IsLocalContent((localContentType_t)0x4C)) {
+		CChristmasEvent* pEvent;
+		if (CContentsDoc::Instance()->GetContainer((localContentType_t)0x4C, pEvent) && pEvent->GetFlag()) {
+			m_toppageChristmasBtn->SetVisible(true);
+			m_toppageChristmasBtn->Enable(true);
+
+			cTopEventIcon((eTopIconID)7).Prepare(m_toppageChristmasBtn);
+			return;
+		}
+	}
+
+	m_toppageChristmasBtn->SetVisible(false);
+	m_toppageChristmasBtn->Enable(false);
+}
+
+// lobbymain.cpp:6230
+void CLobbyMain::OnToppage_Christmas2007EventDown(void) {
+	if (IsLocalContent((localContentType_t)0x4C)) {
+		if (m_toppageChristmasBtn) {
+			CloseAllDialogs();
+
+			if (!m_christmasEventDlg) {
+				m_christmasEventDlg = CreateForm<FrChristmasEventDlg>(g_pFresh->GetManager(), this, "christmas2007_event_dlg", NULL);
+				if (m_christmasEventDlg) {
+					m_christmasEventDlg->SetIconRect(m_toppageChristmasBtn->GetRect());
+					m_christmasEventDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnChristmasEventDlgResult, 0x11);
+				}
+			}
+		}
+	}
+}
+
+// lobbymain.cpp:6306
+// Shows the ticket exchange button while the ticket exchange is open.
+void CLobbyMain::OnToppage_TicketExchangeInit(intptr_t param) {
+	m_toppageTicketExchangeBtn = DYNAMIC_CAST(FrButton, param);
+	if (IsLocalContent((localContentType_t)0x7A)) {
+		CTicketExchange* pExchange = (CTicketExchange*)WSingleton<CContentsDoc>::Instance()->GetContainer((localContentType_t)0x7A);
+		if (pExchange) {
+			if (pExchange->GetFlag()) {
+				m_toppageTicketExchangeBtn->SetVisible(true);
+				m_toppageTicketExchangeBtn->Enable(true);
+
+				cTopEventIcon((eTopIconID)10).Prepare(m_toppageTicketExchangeBtn);
+
+				m_toppageTicketExchangeBtn->SetPushSound("ui_desktop_icon_click");
+				m_toppageTicketExchangeBtn->EnableHover(true, 0.5f);
+				m_toppageTicketExchangeBtn->SetVisible(true);
+				m_toppageTicketExchangeBtn->SetPushDelay(0.0f);
+
+				if (IsLocalContent((localContentType_t)0x6A)) {
+					WRect rect = m_toppageTicketExchangeBtn->GetRect();
+					rect.x = GetTopPageBtnRect();
+					m_toppageTicketExchangeBtn->SetRect(rect);
 				}
 				return;
 			}
 		}
 	}
-	else
-	{
-		OpenNoteForm();
-	}
+
+	m_toppageTicketExchangeBtn->SetVisible(false);
+	m_toppageTicketExchangeBtn->Enable(false);
 }
 
-void CLobbyMain::OpenNoteForm()
-{
-	if (Doc()->IsOpenFirstLoginAlarm() && Doc()->m_noteList.size() > 0)
-	{
-		if (m_pMailBoxDlg == NULL)
-		{
-			m_pMailBoxDlg = CreateForm<FrMailBoxDlg>(g_pFresh->GetManager(),
-				this, "mailbox");
-			m_pMailBoxDlg->EnableDrag(false);
-			m_pMailBoxDlg->Open(
-				(FRESH_PFN_RESULT)&CLobbyMain::OnMailBoxDlgResult, 0);
-		}
-	}
-}
-
-void CLobbyMain::OpenEventPrizeForm(unsigned char id)
-{
-	if (m_pEventPrizeDlg[id] == NULL)
-	{
-		m_pEventPrizeDlg[id] = CreateForm<FrEventPrizeDlg>(
-			g_pFresh->GetManager(), this, "notice_popup");
-		m_pEventPrizeDlg[id]->SetEvent(id);
-		m_pEventPrizeDlg[id]->Open(
-			(FRESH_PFN_RESULT)&CLobbyMain::OnEventDlgResult, 3);
-	}
-}
-
-void CLobbyMain::OnToppage_Init(int param)
-{
-	CTaskMain::OnInit();
-
-	Doc()->ClearUserInfoTimeMap(0xffffffff);
-	memset(Doc()->m_userInfo, 0, sizeof(sUserInfo) * 4);
-
-	SetRandomBGM();
-	TurnOn3DBackground();
-
-	if (IsLocalContent(S4_TOPPAGE_BTN_LINEUP))
-	{
-		m_topBtnIndex = CLoginInfo::Instance()->IsPcBang() ? 2 : 1;
-	}
-}
-
-void CLobbyMain::OnToppage_Finish()
-{
-	if (Doc()->m_bAutoRefresh)
-	{
-		if (IsLocalContent(S3_PARAN_CHANNELING))
-		{
-			Doc()->m_bAutoRefresh = false;
-			OpenEventPrizeForm(5);
-
-			if (Doc()->m_bTutorialRedirect == true)
-			{
-				this << MsgObject(NULL, 0x3e, 0x1a000006,
-					(int)"[\xc7\xc7\xc7\xc9 \xbc\xb1\xb9\xb0 \xb8\xde\xc0\xcf]\n\n\xbe\xc8\xb3\xe7~ \xc0\xfc \xb4\xe7\xbd\xc5\xc0\xbb \xbf\xa9\xb1\xe2 \xb5\xa5\xb8\xae\xb0\xed \xbf\xc2 \xbd\xc3\xb0\xa3\xc0\xc7 \xbf\xe4\xc1\xa4 \xc7\xc7\xc7\xc9\xc0\xcc\xb6\xf3\xb0\xed \xc7\xd5\xb4\xcf\xb4\xd9. \xb9\xe6\xb1\xdd \xbf\xb9\xbb\xdb \xc4\xb3\xb8\xaf\xc5\xcd\xb8\xa6 \xbc\xb1\xc5\xc3\xc7\xdf\xb3\xd7\xbf\xe4. \xb0\xe8\xbc\xd3 \xc0\xdf \xba\xb8\xbb\xec\xc6\xec\xc1\xd6\xbc\xbc\xbf\xe4.\n\n\xbe\xc6~ \xb1\xd7\xb8\xae\xb0\xed \xc0\xcc\xb0\xc5 \xb9\xde\xc0\xb8\xbc\xbc\xbf\xe4. \xb4\xe7\xbd\xc5\xc0\xcc \xc6\xce\xbe\xdf\xbf\xa1 \xba\xb8\xb4\xd9 \xbd\xb1\xb0\xd4 \xc0\xfb\xc0\xc0\xc7\xcf\xb1\xe2 \xc0\xa7\xc7\xd8\xbc\xad \xb5\xe5\xb8\xae\xb4\xc2 \xc7\xe0\xbf\xee\xc0\xc7 \xb8\xf1\xb0\xc9\xc0\xcc\xc0\xd4\xb4\xcf\xb4\xd9.\n\xc0\xcc \xc7\xe0\xbf\xee\xc0\xc7 \xb8\xf1\xb0\xc9\xc0\xcc\xb4\xc2 \xb4\xe7\xbd\xc5\xc0\xcc \xb8\xb8\xb5\xe7 \xc4\xb3\xb8\xaf\xc5\xcd\xc0\xc7 \\c0xffff0000\\c\xc1\xa4\xc8\xae\xb5\xb5\\c0xff000000\\c\xb8\xa6 \xb3\xf4\xc7\xf4\xc1\xd6\xb0\xed \\c0xffff0000\\c\xc6\xce\xbe\xdf\xc0\xd3\xc6\xd1\xc6\xae\xc1\xb8\\c0xff000000\\c\xc0\xbb \xb3\xd0\xc7\xf4\xc1\xd6\xb4\xc2 \xbf\xaa\xc7\xd2\xc0\xbb \xc7\xd1\xb4\xe4\xb4\xcf\xb4\xd9.\n\xc7\xcf\xb3\xaa \xc1\xd6\xc0\xc7\xc7\xd2 \xb0\xcd\xc0\xba\xbf\xe4~ \xb4\xe7\xbd\xc5\xc0\xc7 \xbd\xc7\xb7\xc2\xc0\xcc \xbe\xee\xb4\xc0 \xc1\xa4\xb5\xb5 \xbe\xc8\xc1\xa4\xb5\xc7\xb4\xc2 \xb7\xb9\xba\xa7, \xc1\xef \\c0xffff0000\\c\xc1\xd6\xb4\xcf\xbe\xee"
-						 "E\\c0xff000000\\c\xb0\xa1 \xb5\xc7\xb8\xe9 \xc8\xbf\xb0\xfa\xb0\xa1 \xbe\xf8\xbe\xee\xc1\xf6\xb4\xcf\xb1\xee\xbf\xe4~ \xbe\xcb\xbe\xc6\xb5\xce\xbd\xc3\xb0\xed\xbf\xe4.\n\n\xb1\xd7\xb8\xae\xb0\xed \xb4\xeb\xc0\xfc\xb8\xf0\xb5\xe5\xbf\xa1 \xb0\xa1\xb1\xe2 \xc0\xfc\xbf\xa1 \xc7\xd1\xb9\xf8 \xc8\xa5\xc0\xda \xbf\xac\xbd\xc0\xc7\xcf\xb0\xed \xbd\xcd\xb4\xd9\xb8\xe9 \xc6\xa9\xc5\xe4\xb8\xae\xbe\xf3 \xb8\xf0\xb5\xe5\xbf\xa1 \xb5\xe9\xbe\xee\xb0\xa1\xba\xb8\xbc\xbc\xbf\xe4.\n\xc2\xf7\xb1\xd9\xc2\xf7\xb1\xd9 \xb8\xf0\xb5\xce \xb9\xe8\xbf\xec\xbd\xc3\xb8\xe9 \xbc\xb1\xb9\xb0\xb5\xb5 \xc1\xd8\xb4\xd9\xb0\xed \xc7\xcf\xb3\xd7\xbf\xe4. ^^\n\n\xb1\xd7\xb7\xb3 \xb4\xe3\xbf\xa1 \xb6\xc7 \xba\xc1\xbf\xe4. \xbe\xc8\xb3\xe7",
-					0, 0, 0);
-				Doc()->m_bTutorialRedirect = false;
-			}
-		}
-		else
-		{
-			Doc()->m_bAutoRefresh = false;
-			OpenEventPrizeForm(2);
-		}
-	}
-
-	if (Doc()->m_bRefreshCamera)
-		this << MsgObject(NULL, 0xaa, 1, 0, 0, 0, 0);
-}
-
-void CLobbyMain::OnToppage_Destroy()
-{
-}
-
-void CLobbyMain::OnToppage_GameInit(int param)
-{
-	m_pToppageGame = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pToppageGame)
-	{
-		m_pToppageGame->SetPushSound("ui_desktop_icon_click");
-		m_pToppageGame->EnableHover(true, 0.5f);
-	}
-}
-
-void CLobbyMain::OnToppage_GameUp()
-{
-	OnUnderBar_GameUp();
-}
-
-void CLobbyMain::OnToppage_FamilyInit(int param)
-{
-	m_pToppageFamily = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pToppageFamily)
-	{
-		m_pToppageFamily->SetPushSound("ui_desktop_icon_click");
-		m_pToppageFamily->EnableHover(true, 0.5f);
-	}
-}
-
-void CLobbyMain::OnToppage_FamilyUp()
-{
-	for (int i = 0; i < 4; ++i)
-	{
-		memset(&Doc()->m_userInfo[i], 0, sizeof(sUserInfo));
-
-		if (i < 2)
-			sprintf(Doc()->m_userInfo[i].info.sNick, "PLAYER%d", i + 1);
-		else
-		{
-			Doc()->m_userInfo[i].info.sID[0] = 0;
-			Doc()->m_userInfo[i].info.sNick[0] = 0;
-		}
-
-		Doc()->m_userInfo[i].stat.Level = Doc()->m_myInfo.stat.Level;
-		Doc()->m_userInfo[i].userEquip.guidMascot =
-			Doc()->m_myInfo.userEquip.guidMascot;
-		memset(CFamilyMain::ms_itemslotBackup[i], 0,
-			sizeof(CFamilyMain::ms_itemslotBackup[i]));
-	}
-
-	Doc()->m_golfGame.shotTimeLimit = 0;
-	SetCurMap(0);
-	SetGameType(0);
-	SetHoles(3);
-	Doc()->m_holeType = 0;
-	Doc()->m_bGameOver = false;
-	CMouseCursor::Instance()->SetActive(false);
-
-	CTaskManager::Instance()->ChangeTask("CFamilyTask", "", false);
-	PostMsg(NULL, "Family", 0, (int)"FAMILY", 1, 0, 0);
-}
-
-void CLobbyMain::OnToppage_PangysStudyInit(int param)
-{
-	m_pToppagePangyaStudy = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pToppagePangyaStudy)
-	{
-		m_pToppagePangyaStudy->SetPushSound("ui_desktop_icon_click");
-		m_pToppagePangyaStudy->EnableHover(true, 0.5f);
-	}
-}
-
-void CLobbyMain::OnToppage_PangysStudyUp()
-{
-	CloseAllDialogs();
-
-	CTaskManager::Instance()->ChangeTask("CTutorialTask", "", false);
-	AfxPostMsg(NULL, "TutorialMain", 0, (int)"TUTORIAL_MAIN", 0, 0, 0);
-}
-
-void CLobbyMain::OnToppage_NoticeInit(int param)
-{
-	m_pToppageNotice = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pToppageNotice)
-	{
-		m_pToppageNotice->SetPushSound("ui_desktop_icon_click");
-		m_pToppageNotice->EnableHover(true, 0.5f);
-	}
-}
-
-void CLobbyMain::OnToppage_NoticeUp()
-{
-	OnUnderBar_NoticeUp();
-
-	if (m_pToppageNotice && m_pNoticeDlg)
-		m_pNoticeDlg->SetIconRect(m_pToppageNotice->GetRect());
-}
-
-void CLobbyMain::OnToppage_PcbangInit(int param)
-{
-	m_pToppagePcbang = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pToppagePcbang)
-	{
-		int bPcBang = CLoginInfo::Instance()->IsPcBang();
-		m_pToppagePcbang->SetVisible(bPcBang != 0);
-		bPcBang = CLoginInfo::Instance()->IsPcBang();
-		m_pToppagePcbang->Enable(bPcBang != 0);
-
-		if (CLoginInfo::Instance()->IsPcBang())
-			CIconManager::Instance()->AddTopIconFromOutSide();
-
-		cTopEventIcon icon((eTopIconID)0);
-		icon.Prepare(m_pToppagePcbang);
-	}
-}
-
-void CLobbyMain::OnToppage_PcbangUp()
-{
-	CloseAllDialogs();
-	m_pPCBangNoticeDlg =
-		CreateForm<FrNoticeDlg>(g_pFresh->GetManager(), this, "notice_popup");
-	m_pPCBangNoticeDlg->LoadInitFile("pcbang.ini");
-	m_pPCBangNoticeDlg->SetIconRect(m_pToppagePcbang->GetRect());
-	m_pPCBangNoticeDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnPCBangDlgResult,
-		0x11);
-}
-
-void CLobbyMain::OnToppage_RentalExpiredAlramInit(int param)
-{
-	FrButton* pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
-	{
-		if (!S5::RENTALPARTS::IsExistExpiredRentalItem(Doc()->m_partsList))
-		{
-			pButton->Enable(false);
-			pButton->SetVisible(false);
-		}
-	}
-}
-
-void CLobbyMain::OnToppage_RentalExpiredAlramUp()
-{
-	std::list<sItemInfo> rentalItems;
-	S5::RENTALPARTS::CollectRentalItem(rentalItems, Doc()->m_partsList);
-
-	int count = 0;
-	for (std::list<sItemInfo>::iterator it = rentalItems.begin();
-		it != rentalItems.end(); ++it)
-	{
-		if (it->Expired)
-			count++;
-	}
-
-	FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify");
-
-	pForm->SetMessage(
-		MakeStr(
-			"\xb1\xe2\xb0\xa3\xc0\xcc \xb8\xb8\xb7\xe1\xb5\xc8 \xc0\xc7\xbb\xf3\xc0\xcc <%d>\xb0\xb3 \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9.\n\xb8\xb6\xc0\xcc\xb7\xeb\xbf\xa1\xbc\xad \xc8\xae\xc0\xce\xc7\xd2 \xbc\xf6 \xc0\xd6\xc0\xb8\xb8\xe7 \xb1\xe2\xb0\xa3\xc0\xbb \xbf\xac\xc0\xe5\xc7\xcf\xb0\xc5\xb3\xaa \xbb\xe8\xc1\xa6\xc7\xd2 \xbc\xf6 \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9.",
-			count),
-		false);
-
-	FrButton* pCancel =
-		DYNAMIC_CAST(FrButton, pForm->FindChildByName("cancel"));
-	if (pCancel)
-		pCancel->SetVisible(false);
-
-	FrButton* pOk = DYNAMIC_CAST(FrButton, pForm->FindChildByName("ok"));
-
-	pForm->Open(NULL, 0);
-}
-
-void CLobbyMain::OnToppage_Event1Init(int param)
-{
-	m_pToppageEvent1 = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pToppageEvent1)
-	{
-		m_pToppageEvent1->SetPushSound("ui_desktop_icon_click");
-		m_pToppageEvent1->EnableHover(true, 0.5f);
-		m_pToppageEvent1->SetVisible(false);
-
-		if (IsLocalContent((localContentType_t)0x18))
-		{
-			m_pToppageEvent1->SetVisible(true);
-		}
-
-		m_event1Rect = m_pToppageEvent1->GetRect();
-	}
-}
-
-void CLobbyMain::OnToppage_Event1Up()
-{
-	if (IsLocalContent((localContentType_t)0x18))
-	{
-		CloseAllDialogs();
-
-		if (IsLocalContent((localContentType_t)0x48))
-			m_pHolesEventDlg = CreateForm<ntHolesEventDlg>(
-				g_pFresh->GetManager(), this, "holes_EntranceExam");
-		else
-			m_pHolesEventDlg = CreateForm<ntHolesEventDlg>(
-				g_pFresh->GetManager(), this, "holes_event");
-
-		m_pHolesEventDlg = CreateForm<ntHolesEventDlg>(g_pFresh->GetManager(),
-			this, "holes_event");
-		m_pHolesEventDlg->Open(
-			(FRESH_PFN_RESULT)&CLobbyMain::OnHolesEventDlgResult, 0x11);
-		m_pHolesEventDlg->SetIconRect(m_pToppageEvent1->GetRect());
-	}
-}
-
-void CLobbyMain::OnToppage_NewInit(int param)
-{
-	m_pToppageNew = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-}
-
-void CLobbyMain::OnToppage_NewOwnerDraw(int param)
-{
-	if (m_pToppagePangyaStudy == NULL)
-		return;
-
-	if (m_pNewBmp == NULL)
-		return;
-
-	WRect rect;
-	rect = m_pToppagePangyaStudy->GetRect();
-
-	g_pFresh->GetManager()->GetGDI()->DrawTexture(m_pNewBmp,
-		WRect(rect.x + 58.0f, rect.y + 12.0f, (float)m_pNewBmp->Width(),
-			(float)m_pNewBmp->Height()),
-		0xffffffff, 0);
-}
-
-void CLobbyMain::OnFirstConnectOwnerDraw(int param)
-{
-	if (m_pToppagePointEvent == NULL)
-		return;
-
-	if (!Doc()->m_bToppageAd)
-		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-
-	if (pGDI == NULL)
-		return;
-
-	for (int i = 0; i < 3; i++)
-	{
-		if (m_pLoginBmp[i] == NULL)
-			return;
-	}
-
-	WRect rect = m_pToppagePointEvent->GetRect();
-	rect.y += rect.h - 10.0f;
-
-	if (m_pLoginBmp[0])
-	{
-		pGDI->DrawTexture(m_pLoginBmp[0],
-			WRect(rect.x, rect.y, rect.h - 15.0f,
-				(float)m_pLoginBmp[0]->Height()),
-			0xffffffff, 0);
-		rect.y += (float)m_pLoginBmp[0]->Height();
-	}
-
-	if (m_pLoginBmp[1])
-	{
-		pGDI->DrawTexture(m_pLoginBmp[1],
-			WRect(rect.x, rect.y, rect.h - 15.0f,
-				(float)m_pLoginBmp[1]->Height() + 18.0f),
-			0xffffffff, 0);
-		rect.y = rect.y + (float)m_pLoginBmp[1]->Height() + 18.0f;
-	}
-
-	if (m_pLoginBmp[2])
-	{
-		pGDI->DrawTexture(m_pLoginBmp[2],
-			WRect(rect.x, rect.y, rect.h - 15.0f,
-				(float)m_pLoginBmp[2]->Height()),
-			0xffffffff, 0);
-		rect.y -= (float)(m_pLoginBmp[0]->Height() + m_pLoginBmp[1]->Height()) +
-			18.0f;
-	}
-
-	float textX = rect.x + 3.0f;
-	pGDI->Print(WPoint(textX, rect.y + 8.0f), 0,
-		"\xc3\xe2\xbc\xae\xc6\xf7\xc0\xce\xc6\xae");
-	pGDI->Print(WPoint(textX, rect.y + 19.0f), 0,
-		"25 \xc6\xf7\xc0\xce\xc6\xae");
-	pGDI->Print(WPoint(textX, rect.y + 30.0f), 0, "\xc8\xb9\xb5\xe6!!");
-}
-
-bool CLobbyMain::OnValEventDlgResult(int result, FrForm* pForm)
-{
-	m_pValEventDlg = NULL;
-	return true;
-}
-
-void CLobbyMain::OnToppage_PointEventInit(int param)
-{
-	m_pToppagePointEvent = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	if (m_pToppagePointEvent == NULL)
-		return;
-
-	if (IsLocalContent((localContentType_t)0x15))
-	{
-		m_pToppagePointEvent->SetPushSound("ui_desktop_icon_click");
-		m_pToppagePointEvent->EnableHover(true, 0.5f);
-		m_pToppagePointEvent->SetVisible(true);
-		m_pToppagePointEvent->SetPushDelay(0.0f);
-
-		if (IsLocalContent(S4_TOPPAGE_BTN_LINEUP))
-		{
-			WRect rect = m_pToppagePointEvent->GetRect();
-			float x = GetTopPageBtnRect();
-			rect.x = x;
-			m_pToppagePointEvent->SetRect(rect);
-		}
-		else if (!CLoginInfo::Instance()->IsPcBang())
-		{
-			WRect pcbangRect = m_pToppagePcbang->GetRect();
-			WRect rect = m_pToppagePointEvent->GetRect();
-			rect.x = pcbangRect.x;
-			rect.y = pcbangRect.y - 2.0f;
-			m_pToppagePointEvent->SetRect(rect);
-		}
-		else
-		{
-			WRect rect = m_pToppagePointEvent->GetRect();
-			rect.x = 160.0f;
-			rect.y -= 2.0f;
-			m_pToppagePointEvent->SetRect(rect);
-		}
-	}
-	else
-	{
-		m_pToppagePointEvent->SetVisible(false);
-	}
-}
-
-void CLobbyMain::OnToppage_PointEventDown()
-{
-	if (IsLocalContent((localContentType_t)0x15))
-	{
-		CloseAllDialogs();
-		WSendPacket packet((enumClientPacket)0x95);
-		packet.Send(TO_GAME);
-
-		Doc()->m_pendingMenu = 2;
-		Doc()->m_bToppageAd = false;
-	}
-}
-
-void CLobbyMain::OnToppage_ValEventInit(int param)
-{
-	m_pToppageValEvent = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	if (m_pToppageValEvent)
-	{
-		m_pToppageValEvent->SetVisible(
-			IsLocalContent((localContentType_t)0x78));
-		if (m_pToppageValEvent->IsVisible())
-		{
-			m_pToppageValEvent->SetPushDelay(0.1f);
-
-			cTopEventIcon icon((eTopIconID)8);
-			icon.Prepare(m_pToppageValEvent);
-		}
-	}
-}
-
-void CLobbyMain::OnToppage_ValEventDown()
-{
-	if (IsLocalContent((localContentType_t)0x78) == true)
-	{
-		WSendPacket packet((enumClientPacket)0xdc);
-		packet.Send(TO_GAME);
-	}
-}
-
-void CLobbyMain::OnToppage_WorldTourEventInit(int param)
-{
-	m_pToppageWorldTourEvent = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	if (m_pToppageWorldTourEvent == NULL)
-		return;
-
-	if (IsLocalContent((localContentType_t)0x1e))
-	{
-		m_pToppageWorldTourEvent->SetPushSound("ui_desktop_icon_click");
-		m_pToppageWorldTourEvent->EnableHover(true, 0.5f);
-		m_pToppageWorldTourEvent->SetVisible(true);
-		m_pToppageWorldTourEvent->SetPushDelay(0.0f);
-
-		bool bPcBang = CLoginInfo::Instance()->IsPcBang() != 0;
-		bool bPointEvent = IsLocalContent((localContentType_t)0x15);
-
-		WRect pcbangRect = m_pToppagePcbang->GetRect();
-		WRect pointRect = m_pToppagePointEvent->GetRect();
-		WRect rect = m_pToppageWorldTourEvent->GetRect();
-
-		rect.y += 2.0f;
-
-		if (IsLocalContent(S4_TOPPAGE_BTN_LINEUP))
-		{
-			WRect btnRect = m_pToppageWorldTourEvent->GetRect();
-			float x = GetTopPageBtnRect();
-			btnRect.x = x;
-			m_pToppageWorldTourEvent->SetRect(btnRect);
-		}
-		else if (bPcBang && bPointEvent)
-		{
-			rect.x = pointRect.x + pointRect.w;
-			m_pToppageWorldTourEvent->SetRect(rect);
-		}
-		else if (bPcBang || bPointEvent)
-		{
-			if (bPcBang)
-			{
-				rect.x = pcbangRect.x + pcbangRect.w;
-				m_pToppageWorldTourEvent->SetRect(rect);
-			}
-			else
-			{
-				rect.x = pointRect.x + pointRect.w;
-				m_pToppageWorldTourEvent->SetRect(rect);
-			}
-		}
-	}
-	else
-	{
-		m_pToppageWorldTourEvent->SetVisible(false);
-		m_pToppageWorldTourEvent->Enable(false);
-	}
-}
-
-void CLobbyMain::OnToppage_WorldTourEventDown()
-{
-	if (!IsLocalContent((localContentType_t)0x1e))
-		return;
-
-	if (m_pToppageWorldTourEvent == NULL)
-		return;
-
-	CloseAllDialogs();
-
-	CWorldTourEvent* pEvent =
-		(CWorldTourEvent*)CContentsDoc::Instance()->GetContainer(
-			(localContentType_t)0x1e);
-	if (pEvent == NULL)
-		return;
-
-	if (m_pWorldTourEventDlg)
-	{
-		m_pWorldTourEventDlg->SetMapFlag(pEvent->GetMapFlag());
-		return;
-	}
-
-	m_pWorldTourEventDlg = CreateForm<FrWorldTourEventDlg>(
-		g_pFresh->GetManager(), this, "world_tour_event_dlg");
-
-	if (m_pWorldTourEventDlg == NULL)
-		return;
-
-	m_pWorldTourEventDlg->SetMapFlag(pEvent->GetMapFlag());
-	m_pWorldTourEventDlg->SetIconRect(m_pToppageWorldTourEvent->GetRect());
-	m_pWorldTourEventDlg->Open(
-		(FRESH_PFN_RESULT)&CLobbyMain::OnWorldTourEventDlgResult, 0x11);
-}
-
-void CLobbyMain::OnToppage_FindEbortEventInit(int param)
-{
-	m_pToppageFindEbortEvent = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	if (m_pToppageFindEbortEvent == NULL)
-		return;
-
-	if (IsLocalContent((localContentType_t)0x20))
-	{
-		m_pToppageFindEbortEvent->SetVisible(true);
-		m_pToppageFindEbortEvent->Enable(true);
-		m_pToppageFindEbortEvent->SetPushDelay(0.0f);
-
-		bool bPcBang = CLoginInfo::Instance()->IsPcBang() != 0;
-		bool bPointEvent = IsLocalContent((localContentType_t)0x15);
-		bool bWorldTour = IsLocalContent((localContentType_t)0x1e);
-
-		WRect rect = m_pToppageFindEbortEvent->GetRect();
-
-		if (bPcBang)
-			rect.x +=
-				m_pToppagePcbang->GetRect().x + m_pToppagePcbang->GetRect().w;
-
-		if (bPointEvent)
-			rect.x += m_pToppagePointEvent->GetRect().x +
-				m_pToppagePointEvent->GetRect().w;
-
-		if (bWorldTour)
-			rect.x += m_pToppageWorldTourEvent->GetRect().x +
-				m_pToppageWorldTourEvent->GetRect().w;
-
-		rect.y -= 5.0f;
-		m_pToppageFindEbortEvent->SetRect(rect);
-	}
-	else
-	{
-		m_pToppageFindEbortEvent->SetVisible(false);
-		m_pToppageFindEbortEvent->Enable(false);
-	}
-}
-
-void CLobbyMain::OnToppage_FindEbortEventDown()
-{
-	if (!IsLocalContent((localContentType_t)0x20))
-		return;
-
-	if (m_pToppageFindEbortEvent == NULL)
-		return;
-
-	CloseAllDialogs();
-
-	if (m_pFindEbortEventDlg)
-		return;
-
-	m_pFindEbortEventDlg = CreateForm<FrFindEbortEventDlg>(
-		g_pFresh->GetManager(), this, "find_ebort_event_dlg");
-
-	if (m_pFindEbortEventDlg == NULL)
-		return;
-
-	m_pFindEbortEventDlg->SetIconRect(m_pToppageFindEbortEvent->GetRect());
-	m_pFindEbortEventDlg->Open(
-		(FRESH_PFN_RESULT)&CLobbyMain::OnFindEbortEventDlgResult, 0x11);
-}
-
-void CLobbyMain::OnToppage_Halloween2007Init(int param)
-{
-	m_pToppageHalloween2007Event = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	if (m_pToppageHalloween2007Event)
-	{
-		if (IsLocalContent((localContentType_t)0x21))
-		{
-			if (CContentsDoc::Instance()->GetContainer(
-					(localContentType_t)0x21))
-			{
-				m_pToppageHalloween2007Event->SetVisible(true);
-				m_pToppageHalloween2007Event->Enable(true);
-			}
-			else
-			{
-				m_pToppageHalloween2007Event->SetVisible(false);
-				m_pToppageHalloween2007Event->Enable(false);
-			}
-
-			cTopEventIcon icon((eTopIconID)9);
-			icon.Prepare(m_pToppageHalloween2007Event);
-		}
-		else
-		{
-			m_pToppageHalloween2007Event->SetVisible(false);
-			m_pToppageHalloween2007Event->Enable(false);
-		}
-	}
-}
-
-void CLobbyMain::OnToppage_Halloween2007EvenDown()
-{
-	if (!IsLocalContent((localContentType_t)0x21))
-		return;
-
-	if (m_pToppageHalloween2007Event == NULL)
-		return;
-
-	CloseAllDialogs();
-
-	if (m_pHalloweenEventDlg)
-		return;
-
-	m_pHalloweenEventDlg = CreateForm<FrHalloweenEventDlg>(
-		g_pFresh->GetManager(), this, "halloween2007_event_dlg");
-
-	if (m_pHalloweenEventDlg == NULL)
-		return;
-
-	m_pHalloweenEventDlg->SetIconRect(m_pToppageHalloween2007Event->GetRect());
-	m_pHalloweenEventDlg->Open(
-		(FRESH_PFN_RESULT)&CLobbyMain::OnHalloweenEventDlgResult, 0x11);
-}
-void CLobbyMain::OnToppage_Christmas2007EventInit(int param)
-{
-	m_pToppageChristmas2007Event = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	CChristmasEvent* pEvent;
-	if (IsLocalContent((localContentType_t)0x4c) &&
-		CContentsDoc::Instance()->GetContainer((localContentType_t)0x4c,
-			pEvent) &&
-		pEvent->GetFlag())
-	{
-		m_pToppageChristmas2007Event->SetVisible(true);
-		m_pToppageChristmas2007Event->Enable(true);
-
-		cTopEventIcon((eTopIconID)7).Prepare(m_pToppageChristmas2007Event);
-	}
-	else
-	{
-		m_pToppageChristmas2007Event->SetVisible(false);
-		m_pToppageChristmas2007Event->Enable(false);
-	}
-}
-
-void CLobbyMain::OnToppage_Christmas2007EventDown()
-{
-	if (IsLocalContent((localContentType_t)0x4c))
-	{
-		if (m_pToppageChristmas2007Event)
-		{
+// lobbymain.cpp:6349
+void CLobbyMain::OnToppage_TicketExchangeDown(void) {
+	if (IsLocalContent((localContentType_t)0x7A)) {
+		if (m_toppageTicketExchangeBtn) {
 			CloseAllDialogs();
 
-			if (m_pChristmasEventDlg == NULL)
-			{
-				m_pChristmasEventDlg = CreateForm<FrChristmasEventDlg>(
-					g_pFresh->GetManager(), this, "christmas2007_event_dlg");
-
-				if (m_pChristmasEventDlg)
-				{
-					m_pChristmasEventDlg->SetIconRect(
-						m_pToppageChristmas2007Event->GetRect());
-					m_pChristmasEventDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::
-												   OnChristmasEventDlgResult,
-						0x11);
+			if (!m_ticketExchangeDlg) {
+				m_ticketExchangeDlg = CreateForm<FrTicketExchangeDlg>(g_pFresh->GetManager(), this, "ticket_exchage_dlg", NULL);
+				if (m_ticketExchangeDlg) {
+					m_ticketExchangeDlg->SetIconRect(m_ticketExchangeDlg->GetRect());
+					m_ticketExchangeDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnTicketExchangeDlgResult, 0x11);
 				}
 			}
 		}
 	}
 }
 
-void CLobbyMain::OnToppage_TicketExchangeInit(int param)
-{
-	m_pToppageTicketExchange = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// lobbymain.cpp:6374
+void CLobbyMain::OnToppage_MissionEventInit(intptr_t param) {
+	m_toppageMissionBtn = DYNAMIC_CAST(FrButton, param);
+	cTopEventIcon((eTopIconID)13).Prepare(m_toppageMissionBtn);
 
-	CTicketExchange* pEvent;
-	if (IsLocalContent((localContentType_t)0x7a) &&
-		CContentsDoc::Instance()->GetContainer((localContentType_t)0x7a,
-			pEvent) &&
-		pEvent->GetFlag())
-	{
-		m_pToppageTicketExchange->SetVisible(true);
-		m_pToppageTicketExchange->Enable(true);
-
-		cTopEventIcon((eTopIconID)10).Prepare(m_pToppageTicketExchange);
-
-		m_pToppageTicketExchange->SetPushSound("ui_desktop_icon_click");
-		m_pToppageTicketExchange->EnableHover(true, 0.5f);
-		m_pToppageTicketExchange->SetVisible(true);
-		m_pToppageTicketExchange->SetPushDelay(0.0f);
-
-		if (IsLocalContent(S4_TOPPAGE_BTN_LINEUP))
-		{
-			WRect rect = m_pToppageTicketExchange->GetRect();
-			float x = GetTopPageBtnRect();
-			rect.x = x;
-			m_pToppageTicketExchange->SetRect(rect);
-		}
-	}
-	else
-	{
-		m_pToppageTicketExchange->SetVisible(false);
-		m_pToppageTicketExchange->Enable(false);
+	if (!IsLocalContent((localContentType_t)0x83)) {
+		m_toppageMissionBtn->Enable(false);
+		m_toppageMissionBtn->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnToppage_TicketExchangeDown()
-{
-	if (IsLocalContent((localContentType_t)0x7a))
-	{
-		if (m_pToppageTicketExchange)
-		{
-			CloseAllDialogs();
-
-			if (m_pTicketExchangeDlg == NULL)
-			{
-				m_pTicketExchangeDlg = CreateForm<FrTicketExchangeDlg>(
-					g_pFresh->GetManager(), this, "ticket_exchage_dlg");
-
-				if (m_pTicketExchangeDlg)
-				{
-					m_pTicketExchangeDlg->SetIconRect(
-						m_pTicketExchangeDlg->GetRect());
-					m_pTicketExchangeDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::
-												   OnTicketExchangeDlgResult,
-						0x11);
-				}
-			}
-		}
-	}
-}
-
-void CLobbyMain::OnToppage_MissionEventInit(int param)
-{
-	m_pToppageMissionEvent = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	cTopEventIcon((eTopIconID)13).Prepare(m_pToppageMissionEvent);
-
-	if (!IsLocalContent((localContentType_t)0x83))
-	{
-		m_pToppageMissionEvent->Enable(false);
-		m_pToppageMissionEvent->SetVisible(false);
-	}
-}
-
-void CLobbyMain::OnToppage_MissionEventDown()
-{
-	if (IsLocalContent((localContentType_t)0x83))
-	{
-		WSendPacket packet((enumClientPacket)0xe3);
-		packet.Send(TO_GAME);
-
-		this << MsgObject(this, 1, 0, 0, 0, 0, 0);
-	}
-}
-
-void CLobbyMain::OnToppage_BingoEventInit(int param)
-{
-	m_pToppageBingoEvent = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	cTopEventIcon((eTopIconID)12).Prepare(m_pToppageBingoEvent);
-
-	if (!IsLocalContent((localContentType_t)0x85))
-	{
-		m_pToppageBingoEvent->Enable(false);
-		m_pToppageBingoEvent->SetVisible(false);
-	}
-}
-
-void CLobbyMain::OnToppage_BingoEventDown()
-{
-	if (IsLocalContent((localContentType_t)0x85))
-	{
-		WSendPacket packet((enumClientPacket)0xe5);
-		packet.Encode4(0);
-		packet.Send(TO_GAME);
-
-		this << MsgObject(this, 1, 0, 0, 0, 0, 0);
-	}
-}
-
-void CLobbyMain::OnToppage_KoohBirthdayEventInit(int param)
-{
-	m_pToppageKoohBirthdayEvent = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	std::string name("");
-	if (IsLocalContent((localContentType_t)0x8e))
-	{
-		name = "KoohBirthdayEvent";
+// lobbymain.cpp:6389
+void CLobbyMain::OnToppage_MissionEventDown(void) {
+	if (!IsLocalContent((localContentType_t)0x83)) {
+		return;
 	}
 
-	if (IsLocalContent((localContentType_t)0x94))
-	{
-		name = "HanaBirthdayEvent";
-	}
-	else if (IsLocalContent((localContentType_t)0x9b))
-	{
-		name = "ArinBirthdayEvent";
-	}
+	WSendPacket packet((enumClientPacket)0xE3);
+	packet.Send(SEND_TO_DEFAULT);
 
-	if (name != "")
-	{
-		CGDBitmapBox* pBox =
-			(CGDBitmapBox*)CGameDataDB::Instance()->GetGameData(
-				GAMEDATA_BITMAPBOX, name.c_str());
-		m_pToppageKoohBirthdayEvent->SetButtonImg(
-			pBox->GetFileName("LobbyIconNormal"), FrButton::NORMAL);
-		m_pToppageKoohBirthdayEvent->SetButtonImg(
-			pBox->GetFileName("LobbyIconOver"), FrButton::OVER);
-		m_pToppageKoohBirthdayEvent->SetButtonImg(
-			pBox->GetFileName("LobbyIconBlink"), FrButton::BLINK);
-
-		cTopEventIcon((eTopIconID)6).Prepare(m_pToppageKoohBirthdayEvent);
-	}
-	else
-	{
-		m_pToppageKoohBirthdayEvent->Enable(false);
-		m_pToppageKoohBirthdayEvent->SetVisible(false);
-	}
-}
-
-void CLobbyMain::OnToppage_KoohBirthdayEventDown()
-{
-	WSendPacket packet(0xef);
-	packet.Send(TO_GAME);
 	this << MsgObject(this, 1, 0, 0, 0, 0, 0);
 }
 
-void CLobbyMain::OnToppage_TreasureIslandInit(int param)
-{
-	m_pToppageTreasureIsland = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// lobbymain.cpp:6402
+void CLobbyMain::OnToppage_BingoEventInit(intptr_t param) {
+	m_toppageBingoBtn = DYNAMIC_CAST(FrButton, param);
+	cTopEventIcon((eTopIconID)12).Prepare(m_toppageBingoBtn);
 
-	cTopEventIcon((eTopIconID)11).Prepare(m_pToppageTreasureIsland);
-
-	if (!IsLocalContent((localContentType_t)0x8c))
-	{
-		m_pToppageTreasureIsland->Enable(false);
-		m_pToppageTreasureIsland->SetVisible(false);
+	if (!IsLocalContent((localContentType_t)0x85)) {
+		m_toppageBingoBtn->Enable(false);
+		m_toppageBingoBtn->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnToppage_TreasureIslandLBDown()
-{
-	if (IsLocalContent((localContentType_t)0x8c))
-	{
-		ShellExecuteA(NULL, NULL,
-			"http://qa.pangya.gametree.co.kr/events/bomul/PangyaBomul.aspx",
-			NULL, NULL, SW_SHOWMAXIMIZED);
+// lobbymain.cpp:6417
+void CLobbyMain::OnToppage_BingoEventDown(void) {
+	if (!IsLocalContent((localContentType_t)0x85)) {
+		return;
+	}
+
+	WSendPacket packet((enumClientPacket)0xE5);
+	packet.Encode4(0);
+	packet.Send(SEND_TO_DEFAULT);
+
+	this << MsgObject(this, 1, 0, 0, 0, 0, 0);
+}
+
+// lobbymain.cpp:5973
+void CLobbyMain::OnToppage_ValEventDown(void) {
+	if (IsLocalContent((localContentType_t)0x78) == true) {
+		WSendPacket packet((enumClientPacket)0xDC);
+		packet.Send(SEND_TO_DEFAULT);
 	}
 }
 
-void CLobbyMain::OnToppage_ServerInit(int param)
-{
-	m_pToppageServer = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pToppageServer)
-	{
-		m_pToppageServer->SetPushSound("ui_desktop_icon_click");
-		m_pToppageServer->EnableHover(true, 0.5f);
+// lobbymain.cpp:6431
+// Skins the birthday event button (Kooh's, Hana's or Arin's) from its bitmap
+// box, or hides it when no birthday event runs.
+void CLobbyMain::OnToppage_KoohBirthdayEventInit(intptr_t param) {
+	m_toppageKoohBirthdayBtn = DYNAMIC_CAST(FrButton, param);
+
+	std::string boxName("");
+	if (IsLocalContent((localContentType_t)0x8E)) {
+		boxName = "KoohBirthdayEvent";
+	}
+
+	if (IsLocalContent((localContentType_t)0x94)) {
+		boxName = "HanaBirthdayEvent";
+	} else if (IsLocalContent((localContentType_t)0x9B)) {
+		boxName = "ArinBirthdayEvent";
+	}
+
+	if (boxName != "") {
+		CGDBitmapBox* pBox = (CGDBitmapBox*)WSingleton<CGameDataDB>::Instance()->GetGameData(eGAMEDATADB_BITMAPBOX, boxName.c_str());
+		m_toppageKoohBirthdayBtn->SetButtonImg(pBox->GetFileName("LobbyIconNormal"), FrButton::NORMAL);
+		m_toppageKoohBirthdayBtn->SetButtonImg(pBox->GetFileName("LobbyIconOver"), FrButton::OVER);
+		m_toppageKoohBirthdayBtn->SetButtonImg(pBox->GetFileName("LobbyIconBlink"), FrButton::BLINK);
+
+		cTopEventIcon((eTopIconID)6).Prepare(m_toppageKoohBirthdayBtn);
+	} else {
+		m_toppageKoohBirthdayBtn->Enable(false);
+		m_toppageKoohBirthdayBtn->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnToppage_ServerUp()
-{
+// lobbymain.cpp:6469
+void CLobbyMain::OnToppage_KoohBirthdayEventDown(void) {
+	WSendPacket packet(0xEF);
+	packet.Send(SEND_TO_DEFAULT);
+	this << MsgObject(this, 1, 0, 0, 0, 0, 0);
+}
+
+// lobbymain.cpp:6477
+void CLobbyMain::OnToppage_TreasureIslandInit(intptr_t param) {
+	m_toppageTreasureBtn = DYNAMIC_CAST(FrButton, param);
+	cTopEventIcon((eTopIconID)11).Prepare(m_toppageTreasureBtn);
+
+	if (!IsLocalContent((localContentType_t)0x8C)) {
+		m_toppageTreasureBtn->Enable(false);
+		m_toppageTreasureBtn->SetVisible(false);
+	}
+}
+
+// lobbymain.cpp:6492
+void CLobbyMain::OnToppage_TreasureIslandLBDown(void) {
+	if (IsLocalContent((localContentType_t)0x8C)) {
+		ShellExecuteA(NULL, NULL, "http://qa.pangya.gametree.co.kr/events/bomul/PangyaBomul.aspx", NULL, NULL, SW_SHOWMAXIMIZED);
+	}
+}
+
+// lobbymain.cpp:6647
+void CLobbyMain::OnToppage_ServerInit(intptr_t param) {
+	m_toppageServerBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_toppageServerBtn) {
+		m_toppageServerBtn->SetPushSound("ui_desktop_icon_click");
+		m_toppageServerBtn->EnableHover(true, 0.5f);
+	}
+}
+
+// lobbymain.cpp:6657
+void CLobbyMain::OnToppage_ServerUp(void) {
 	CloseAllDialogs();
 	OnUnderBar_ServerUp();
 }
 
-void CLobbyMain::CloseAllDialogs()
-{
-	if (m_pOptionDlg)
-		m_pOptionDlg->Close(true);
+// lobbymain.cpp:6664
+void CLobbyMain::CloseAllDialogs(void) {
+	if (m_optionDlg)
+		m_optionDlg->Close(true);
 
-	if (m_pPCBangNoticeDlg)
-		m_pPCBangNoticeDlg->Close(true);
+	if (m_pcbangNoticeDlg)
+		m_pcbangNoticeDlg->Close(true);
 
 	if (CMessengerInfo::Instance()->IsVisible())
 		CMessengerInfo::Instance()->Toggle();
 
-	if (CUserInfo::IsInstantiated())
+	if (CUserInfo::Instance())
 		CUserInfo::Instance()->Close();
 
-	if (m_pServerDlg)
-		m_pServerDlg->Close(false);
+	if (m_serverDlg)
+		m_serverDlg->Close(false);
 
-	if (m_pPointEventDlg)
-	{
-		m_pPointEventDlg->Close(true);
-	}
+	if (m_pointEventDlg)
+		m_pointEventDlg->Close(true);
 
-	if (m_pCreateNickDlg)
-	{
-		m_pCreateNickDlg->CloseDlg(0);
-	}
+	if (m_createNickDlg)
+		m_createNickDlg->CloseDlg(0);
 
 	CIconToolTip::GetInstance()->ClearToolTip();
 
 	CTaskMain::CloseAllDialogs();
 }
 
-void CLobbyMain::OnServer_Init(int param)
-{
+// lobbymain.cpp:6705
+void CLobbyMain::OnServer_Init(int) {
 	CTaskMain::OnInit();
 	SetRandomBGM();
 	TurnOn3DBackground();
 }
 
-void CLobbyMain::OnServer_Finish()
-{
-	if (m_pServerDlg == NULL)
-	{
-		m_pServerDlg =
-			CreateForm<FrServerDlg>(g_pFresh->GetManager(), this, "server");
+// lobbymain.cpp:6713
+void CLobbyMain::OnServer_Finish(void) {
+	if (m_serverDlg == 0) {
+		m_serverDlg = CreateForm<FrServerDlg>(g_pFresh->GetManager(), this, "server", NULL);
 
-		m_pServerDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnServerDlgResult,
-			0x10);
+		m_serverDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnServerDlgResult, 0x10);
 	}
 }
 
-bool CLobbyMain::OnMatchRoomCreateDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		WSendPacket packet((enumClientPacket)8);
-
-		packet.Encode1(0);
-		packet.Encode4(60000);
-		packet.Encode4(0);
-
-		packet.Encode1(Doc()->m_gameTypeInfo[3].maxPlayer);
-
-		packet.Encode1(3);
-		packet.Encode1(9);
-		packet.Encode1(FirstMap());
-		packet.Encode1(0);
-
-		packet.EncodeStr(
-			std::string("\xb8\xda\xc1\xf8 \xb4\xeb\xc0\xfc \xc7\xd1\xc6\xc7"));
-		packet.EncodeStr(std::string(""));
-		packet.Send(TO_GAME);
-
-		this << MsgObject(NULL, 0x16, 1, 0, 0, 0, 0);
-	}
-	else
-	{
-		EnableRoomEnterControls(true);
-	}
-
-	m_pReportDlg = NULL;
+// lobbymain.cpp:6763
+bool CLobbyMain::OnNewRecordDlgResult(int, FrForm*) {
+	m_newRecordDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnNewRecordDlgResult(int result, FrForm* form)
-{
-	m_pNewRecordDlg = NULL;
-	return true;
-}
-
-void CLobbyMain::OnLogin_Init(int param)
-{
+// lobbymain.cpp:6775
+void CLobbyMain::OnLogin_Init(int) {
 	CTaskMain::OnInit();
 
-	if (NET()->IsConnected(WNetworkSystem::NET_MSN))
-	{
+	if (WNetworkSystem::Instance()->IsConnected(WNetworkSystem::NET_UNIT_MSN)) {
 		CMessengerInfo::Instance()->Close(true);
-		NET()->ForceShutDown(WNetworkSystem::NET_MSN);
+		WNetworkSystem::Instance()->ForceShutDown(WNetworkSystem::NET_UNIT_MSN);
 	}
 
-	Doc()->ClearAll();
-	Buddy()->ClearBuddy();
+	CSharedDoc::Instance()->ClearAll();
+	BuddyMGR->ClearBuddy();
 
 	SetRandomBGM();
 	TurnOn3DBackground();
 }
 
-extern WInputDev* g_mouse;
-
-void CLobbyMain::OnLogin_Finish()
-{
+// lobbymain.cpp:6792
+void CLobbyMain::OnLogin_Finish(void) {
 	g_mouse->ResetInputTime();
 	g_ime->ResetInputTime();
-	CMouseCursor::Instance()->SetActive(true);
+	WSingleton<CMouseCursor>::Instance()->SetActive(true);
 
-	if (!CProjectG::Instance()->CheckUIHack())
-	{
-		m_bLoginBlock = true;
+	if (!WSingleton<CProjectG>::Instance()->CheckUIHack()) {
+		m_scrollActive = true;
 
-		FrForm* pForm =
-			CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify");
-		pForm->SetMessage(
-			"\xba\xaf\xc1\xb6\xb5\xc8 \xc6\xc4\xc0\xcf\xc0\xcc \xb9\xdf\xb0\xdf\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9. \xc7\xd8\xb4\xe7 \xc6\xc4\xc0\xcf\xc0\xbb \xc1\xa6\xb0\xc5 \xc7\xcf\xb0\xc5\xb3\xaa \xc6\xce\xbe\xdf\xb8\xa6 \xc0\xe7\xbc\xb3\xc4\xa1 \xc8\xc4 \xb4\xd9\xbd\xc3 \xbd\xc7\xc7\xe0\xc7\xd8\xc1\xd6\xbd\xc3\xb1\xe2 \xb9\xd9\xb6\xf8\xb4\xcf\xb4\xd9.",
-			false);
-		pForm->Open((FRESH_PFN_RESULT)&CLobbyMain::OnUIHackDlgResult, 0);
+		FrForm* form = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify", NULL);
+		// "A modified file was found. Remove the file or reinstall PangYa, then run it again."
+		form->SetMessage("\xBA\xAF\xC1\xB6\xB5\xC8 \xC6\xC4\xC0\xCF\xC0\xCC \xB9\xDF\xB0\xDF\xB5\xC7\xBE\xFA\xBD\xC0\xB4\xCF\xB4\xD9. \xC7\xD8\xB4\xE7 \xC6\xC4\xC0\xCF\xC0\xBB \xC1\xA6\xB0\xC5 \xC7\xCF\xB0\xC5\xB3\xAA \xC6\xCE\xBE\xDF\xB8\xA6 \xC0\xE7\xBC\xB3\xC4\xA1 \xC8\xC4 \xB4\xD9\xBD\xC3 \xBD\xC7\xC7\xE0\xC7\xD8\xC1\xD6\xBD\xC3\xB1\xE2 \xB9\xD9\xB6\xF8\xB4\xCF\xB4\xD9.", false);
+		form->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnUIHackDlgResult, 0);
+		return;
 	}
-	else
-	{
-		m_pLoginDlg = CreateForm<FrLoginDlg>(g_pFresh->GetManager(),
-			(CTaskMain*)this, "login");
-		m_pLoginDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnLoginDlgResult, 10);
 
-		CCardManager::Instance()->InitCardBuffDlgPosition();
-		CItemBuff::ResetBuffList();
-	}
+	m_loginDlg = CreateForm<FrLoginDlg>(g_pFresh->GetManager(), this, "login", NULL);
+	m_loginDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnLoginDlgResult, 10);
+
+	WSingleton<CCardManager>::Instance()->InitCardBuffDlgPosition();
+	CItemBuff::ResetBuffList();
 }
 
-void CLobbyMain::OnBlank_Init(int param)
-{
+// lobbymain.cpp:6815
+void CLobbyMain::OnBlank_Init(int) {
 	CTaskMain::OnInit();
 }
 
-void CLobbyMain::OnBlank_Finish()
-{
-	unsigned char change = Doc()->GetForceNicknameChange();
-	if (change == 1 || change == 2)
-	{
-		GetActor("Lobby") << MsgObject(NULL, 0x249, 1, 0, 0, 0, 0);
+// lobbymain.cpp:6820
+void CLobbyMain::OnBlank_Finish(void) {
+	unsigned char forceNickname = CSharedDoc::Instance()->m_forceNicknameChange;
+	if (forceNickname == 1 || forceNickname == 2) {
+		GetActor("Lobby") << MsgObject(0, 0x249, 1, 0, 0, 0, 0);
 	}
 }
 
-void CLobbyMain::OnSecond_Pwd_Init(int param)
-{
+// lobbymain.cpp:6833
+void CLobbyMain::OnSecond_Pwd_Init(int) {
 	CTaskMain::OnInit();
 }
 
-void CLobbyMain::OnSecond_Pwd_Finish()
-{
+// lobbymain.cpp:6838
+void CLobbyMain::OnSecond_Pwd_Finish(void) {
 }
 
-bool CLobbyMain::OnMakeRoomDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		if (m_pMakeRoomDlg)
-		{
-			if (LatestVersion() && !m_pMakeRoomDlg->MakeRoom(false))
+// lobbymain.cpp:6852
+bool CLobbyMain::OnMakeRoomDlgResult(int ret, FrForm*) {
+	if (ret == FrOK) {
+		if (m_makeRoomDlg) {
+			if (LatestVersion() && !m_makeRoomDlg->MakeRoom(false)) {
 				return false;
+			}
 		}
-	}
-	else
-	{
+	} else {
 		EnableRoomEnterControls(true);
 	}
 
-	m_pMakeRoomDlg = NULL;
+	m_makeRoomDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnRemoveFriendDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		sFriend* pFriend = Buddy()->GetBuddy(m_selUID);
-
-		m_selUID = -1;
+// lobbymain.cpp:6873
+bool CLobbyMain::OnRemoveFriendDlgResult(int ret, FrForm*) {
+	if (ret == 1) {
+		BuddyMGR->GetBuddy(m_removeFriendUid);
+		m_removeFriendUid = (unsigned long)-1;
 	}
-
 	return true;
 }
 
-bool CLobbyMain::OnEventDlgResult(int result, FrForm* form)
-{
-	FrEventPrizeDlg* pDlg = (FrEventPrizeDlg*)form;
-	m_pEventPrizeDlg[pDlg->GetEvent()] = NULL;
-
+// lobbymain.cpp:6888
+bool CLobbyMain::OnEventDlgResult(int, FrForm* form) {
+	m_eventDlg[static_cast<FrEventPrizeDlg*>(form)->GetEvent()] = 0;
 	return true;
 }
 
-bool CLobbyMain::OnMailBoxDlgResult(int result, FrForm* form)
-{
-	m_pMailBoxDlg = NULL;
-
+// lobbymain.cpp:6899
+bool CLobbyMain::OnMailBoxDlgResult(int, FrForm*) {
+	m_mailBoxDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnScoreDlgResult(int result, FrForm* form)
-{
-	m_pScoreDlg = NULL;
+// lobbymain.cpp:6911
+bool CLobbyMain::OnScoreDlgResult(int, FrForm*) {
+	m_scoreDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnResultDlg_Report(int result, FrForm* form)
-{
-	if (!IsLocalContent(S3_CADDIE_REPORT))
+// lobbymain.cpp:6918
+bool CLobbyMain::OnResultDlg_Report(int, FrForm*) {
+	if (!IsLocalContent((localContentType_t)0x14)) {
 		return false;
-
-	m_pUniteResultDlg = NULL;
-	return true;
-}
-
-bool CLobbyMain::OnApproachGiftDlgResult(int result, FrForm* form)
-{
-	m_pTreasureGift = NULL;
-
-	WSendPacket packet(0xc3);
-	packet.Encode4(MyGuid(false));
-	packet.Send(TO_GAME);
-
-	return true;
-}
-
-bool CLobbyMain::OnResultDlgResult(int result, FrForm* form)
-{
-	m_pUniteResultDlg = NULL;
-	m_resultDelay = -0.1f;
-
-	if (m_pRoomUser)
-	{
-		unsigned char rank = 1;
-		for (FrListBox::ITEM_LIST::iterator it =
-				 m_pRoomUser->m_itemList.begin();
-			it != m_pRoomUser->m_itemList.end(); ++it)
-		{
-			sSlotInfo* pSlot = (sSlotInfo*)(*it)->pData;
-			if (pSlot)
-				pSlot->connectionRank = rank;
-			rank++;
-		}
 	}
-
-	Doc()->m_bGameOver = false;
+	m_resultReportDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnGuildNoticeDlgResult(int result, FrForm* form)
-{
-	m_pGuildNoticeDlg = NULL;
-	if (m_pGuildNoticeObj)
-	{
-		delete (BaseObject*)m_pGuildNoticeObj;
-		m_pGuildNoticeObj = NULL;
-	}
+// lobbymain.cpp:6927
+bool CLobbyMain::OnApproachGiftDlgResult(int, FrForm*) {
+	m_approachGiftDlg = 0;
+
+	WSendPacket packet((enumClientPacket)0xC3);
+	packet.Encode4(CSharedDoc::Instance()->GetPangyaUserInfo().guid);
+	packet.Send(SEND_TO_DEFAULT);
+
+	return true;
+}
+
+// lobbymain.cpp:6962
+bool CLobbyMain::OnGuildNoticeDlgResult(int, FrForm*) {
+	m_guildNoticeDlg = 0; if (m_guildNewsReader) { delete m_guildNewsReader; m_guildNewsReader = 0; }
 
 	OpenPCBangNoticeForm();
-	Doc()->SetNeedFirstLoginAlarm(false);
+	CSharedDoc::Instance()->m_loginDlgCreated = false;
 	return true;
 }
 
-bool CLobbyMain::OnRoomUseReportDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		for (std::list<sItemInfo>::iterator it = Doc()->m_myItemList.begin();
-			it != Doc()->m_myItemList.end(); ++it)
-		{
-			if (((sItemInfo)*it).tid == 0x1a000041)
-			{
-				it->Common[0]--;
-				if (it->Common[0] < 1)
-					Doc()->m_myItemList.erase(it);
-				break;
-			}
-		}
-
-		WSendPacket packet(0xa2);
-		packet.EncodeBuffer(&Doc()->m_holeStatistics[0],
-			sizeof(sPangYaUserStatistics));
-		packet.Send(TO_GAME);
-
-		FrWnd* pOk = form->FindChildByName("ok");
-		if (pOk)
-			pOk->Enable(false);
-
-		Doc()->m_bGameOver = false;
-		this << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-	}
-	else
-	{
-		if (m_pRoomClose)
-			m_pRoomClose->Enable(true);
-
-		OpenGameExtResQuitForm();
-	}
-
-	m_pUseReportDlg = NULL;
+// lobbymain.cpp:7124
+bool CLobbyMain::OnUserListDlgResult(int, FrForm*) {
+	m_userListDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnRoomExtResQuitDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		FrWnd* pOk = form->FindChildByName("ok");
-		if (pOk)
-			pOk->Enable(false);
-
-		WSendPacket packet((enumClientPacket)0xf);
-		packet.Encode1(0);
-		packet.Encode2(0xffff);
-
-		bool bEncoded = false;
-		if (IsLocalContent(S3_CADDIE_REPORT))
-		{
-			unsigned char gameType = Doc()->m_roomInfo.gameType;
-			if (gameType == 4 || gameType == 5)
-			{
-				for (std::vector<sRivalData>::iterator it =
-						 Doc()->m_rivalList.begin();
-					it != Doc()->m_rivalList.end(); ++it)
-				{
-					if (it->oid == MyGuid(false))
-					{
-						packet.Encode8(it->totalPang);
-						packet.Encode8(it->totalBonusPang);
-						bEncoded = true;
-						break;
-					}
-				}
-			}
-		}
-
-		if (!bEncoded)
-		{
-			packet.Encode8(0);
-			packet.Encode8(0);
-		}
-
-		packet.Send(TO_GAME);
-
-		Doc()->m_bGameOver = false;
-		this << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-	}
-	else
-	{
-		if (m_pRoomClose)
-			m_pRoomClose->Enable(true);
-	}
-
-	m_pExtResQuitDlg = NULL;
-	return true;
-}
-
-bool CLobbyMain::OnRoomExt30sResQuitDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		FrWnd* pOk = form->FindChildByName("ok");
-
-		if (pOk)
-			pOk->Enable(false);
-
-		WSendPacket packet((enumClientPacket)0xf);
-		packet.Encode1(0);
-		packet.Encode2(0xffff);
-
-		packet.Encode8(0);
-		packet.Encode8(0);
-
-		packet.Send(TO_GAME);
-
-		Doc()->m_bGameOver = false;
-		this << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-	}
-	else
-	{
-		if (m_pRoomClose)
-			m_pRoomClose->Enable(true);
-	}
-
-	return true;
-}
-
-bool CLobbyMain::OnUserListDlgResult(int result, FrForm* form)
-{
-	m_pUserListDlg = NULL;
-	return true;
-}
-
-extern bool g_bQuit;
-
-bool CLobbyMain::OnNotifyQuitDlgResult(int result, FrForm* form)
-{
+// lobbymain.cpp:7130
+bool CLobbyMain::OnNotifyQuitDlgResult(int, FrForm*) {
 	g_bQuit = true;
 	return true;
 }
 
-bool CLobbyMain::OnLoginDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		if (m_pLoginDlg)
-		{
-			m_pLoginDlg->Login();
-			m_pLoginDlg->SetCloseResult(FrNONE);
+// lobbymain.cpp:7136
+bool CLobbyMain::OnLoginDlgResult(int ret, FrForm*) {
+	if (ret == FrOK) {
+		if (m_loginDlg) {
+			m_loginDlg->Login();
+			m_loginDlg->SetCloseResult(FrNONE);
 			return false;
 		}
-	}
-	else
-	{
-		if (result == 2)
+	} else {
+		if (ret == FrCANCEL) {
 			g_bQuit = true;
-		LogOut(0, "OnLoginDlgResult\n");
-		m_pLoginDlg = NULL;
+		}
+
+		m_loginDlg = 0;
 	}
 
 	return true;
 }
 
-bool CLobbyMain::OnDtRoomDlgResult(int result, FrForm* form)
-{
-	if (result != 1)
+// lobbymain.cpp:7156
+bool CLobbyMain::OnDtRoomDlgResult(int ret, FrForm*) {
+	if (ret != 1) {
 		EnableRoomEnterControls(true);
-
-	m_pDtRoomDlg = NULL;
+	}
+	m_dtRoomDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnVoteDlgResult(int result, FrForm* form)
-{
+// lobbymain.cpp:7165
+bool CLobbyMain::OnVoteDlgResult(int ret, FrForm*) {
 	WSendPacket packet(0x27);
 
-	if (result == 1)
+	if (ret == 1)
 		packet.Encode1(0);
 	else
 		packet.Encode1(1);
 
-	packet.Send(TO_GAME);
-
+	packet.Send(SEND_TO_DEFAULT);
 	return true;
 }
 
-bool CLobbyMain::OnInviteDlgResult(int result, FrForm* form)
-{
-	if (m_pInviteDlg == NULL)
-		return false;
-
-	if (result == 1)
-	{
-		if (IsLocalContent(S4_INVITE_FRIEND))
-		{
-			if (m_pInviteDlg->GetSvrGUID() == Doc()->m_gameServerUID &&
-				m_pInviteDlg->GetChannelIdx() == Doc()->m_curChannel.Uid)
-			{
-				std::list<sRoomInfo>::iterator it =
-					std::find(Doc()->m_roomList.begin(),
-						Doc()->m_roomList.end(), m_pInviteDlg->GetRoomIdx());
-				if (it == Doc()->m_roomList.end())
-				{
-					this << MsgObject(this, 0x23,
-						(int)"\xc3\xca\xb4\xeb\xb9\xde\xc0\xba \xb9\xe6\xc0\xcc \xc1\xf6\xb1\xdd \xc1\xb8\xc0\xe7\xc7\xcf\xc1\xf6 \xbe\xca\xbd\xc0\xb4\xcf\xb4\xd9",
-						0, 0, 0, 0);
-				}
-				else
-				{
-					FrWnd* pConsent = form->FindChildByName("b_consent");
-					if (pConsent)
-						pConsent->Enable(false);
-
-					EnableRoomEnterControls(false);
-
-					WSendPacket packet((enumClientPacket)9);
-					packet.Encode2(m_pInviteDlg->GetRoomIdx());
-					packet.EncodeStr("");
-					packet.Send(TO_GAME);
-
-					this << MsgObject(NULL, 0x16, 0, 0, 0, 0, 0);
-					this << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-				}
-			}
-			else
-			{
-				sFriend* pFriend =
-					Buddy()->GetBuddy(m_pInviteDlg->GetFromUID());
-
-				if (pFriend)
-				{
-					if (g_pFresh->IsCurrentLayout("RealMyRoom"))
-					{
-						AfxGetTask()->GetActor("RealMyRoom")
-							<< MsgObject(NULL, 0xdf, 0, 0, 0, 0, 0);
-					}
-
-					Doc()->m_gameServerList.clear();
-					Doc()->m_channelList.clear();
-
-					WSendPacket packet((enumClientPacket)0x43);
-					packet.Send(TO_GAME);
-
-					Doc()->SetGoWithModeStart(pFriend->Uid);
-					Doc()->SetGoWithMode(2);
-				}
-			}
+// lobbymain.cpp:7290
+bool CLobbyMain::OnItemEquipResult(int ret, FrForm*) {
+	if (ret == 1 || ret == 2) {
+		if (m_itemEquipDlg) {
+			memcpy(m_equipItem, m_itemEquipDlg->GetMyItemSlot(), sizeof(m_equipItem));
 		}
-	}
-	else if (IsLocalContent(S4_INVITE_FRIEND))
-	{
-		if (m_pInviteDlg->GetSvrGUID() == Doc()->m_gameServerUID &&
-			m_pInviteDlg->GetChannelIdx() == Doc()->m_curChannel.Uid)
-		{
-			Doc()->SetInviteMode(0);
-		}
-	}
-
-	m_pInviteDlg = NULL;
-	return true;
-}
-
-bool CLobbyMain::OnItemEquipResult(int result, FrForm* form)
-{
-	if (result == 1 || result == 2)
-	{
-		if (m_pEquipDlg)
-			memcpy(m_myItemSlot, m_pEquipDlg->GetMyItemSlot(),
-				sizeof(m_myItemSlot));
-
-		m_pEquipDlg = NULL;
-		HandleMsg(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
+		m_itemEquipDlg = NULL;
+		HandleMsg(MsgObject(0, 1, 0, 0, 0, 0, 0));
 
 		WSendPacket packet(0x20);
 		packet.Encode1(2);
-		packet.EncodeBuffer(m_myItemSlot, sizeof(m_myItemSlot));
-		packet.Send(TO_GAME);
+		packet.EncodeBuffer(m_equipItem, sizeof(m_equipItem));
+		packet.Send(SEND_TO_DEFAULT);
 	}
-
 	return true;
 }
 
-bool CLobbyMain::OnPasswordDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		if (m_pPasswordDlg)
-		{
-			FrWnd* pWnd = m_pPasswordDlg->FindChildByName("password");
+// lobbymain.cpp:7353
+bool CLobbyMain::OnPCBangDlgResult(int, FrForm*) {
+	m_pcbangNoticeDlg = 0;
 
-			FrEdit* pEdit = DYNAMIC_CAST(FrEdit, pWnd);
-
-			std::string password;
-			if (pEdit)
-			{
-				const char* text = pEdit->GetLine(1, false);
-				password = text;
-				HandleMsg(MsgObject(NULL, 0x27, (int)text, 0, 0, 0, 0));
-			}
-
-			FrWnd* pOk = m_pPasswordDlg->FindChildByName("ok");
-			if (pOk)
-				pOk->Enable(false);
-
-			EnableRoomEnterControls(false);
-
-			WSendPacket packet((enumClientPacket)9);
-			packet.Encode2(Doc()->m_roomInfo.roomGuid);
-			packet.EncodeStr(password);
-			packet.Send(TO_GAME);
-
-			HandleMsg(MsgObject(NULL, 0x16, 0, 0, 0, 0, 0));
-			HandleMsg(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
-		}
-		else
-		{
-			EnableRoomEnterControls(true);
-		}
-	}
-	else
-	{
-		EnableRoomEnterControls(true);
-	}
-
-	m_pPasswordDlg = NULL;
-	return true;
-}
-
-bool CLobbyMain::OnPCBangDlgResult(int result, FrForm* form)
-{
-	m_pPCBangNoticeDlg = NULL;
-
-	if (Doc()->m_bShowNotice)
-	{
+	if (CSharedDoc::Instance()->m_noticeShown) {
 		OnToppage_NoticeUp();
 	}
-
-	return true;
-}
-bool CLobbyMain::OnCreateInfoResult(int result, FrForm* form)
-{
 	return true;
 }
 
-bool CLobbyMain::OnEmoticonResult(int result, FrForm* form)
-{
-	if (m_pEmoticonDlg && result == 1)
-	{
-		FrEmoticonDlg* pDlg = DYNAMIC_CAST(FrEmoticonDlg, form);
-		if (pDlg)
-		{
-			const char* icon = pDlg->GetSelectedIcon();
-			if (icon)
-			{
-				FrEdit* pEdit = m_pChatInput;
-				if (m_pReportDlg)
-					pEdit = DYNAMIC_CAST(FrEdit,
-						m_pReportDlg->FindChildByName("id"));
-
-				if (pEdit)
-				{
-					const char* front = pEdit->GetEditText_Front();
-					const char* comp = pEdit->GetEditText_Comp();
-					const char* end = pEdit->GetEditText_End();
-
-					if (CChatMsg::Instance()->GetMaskedFont()->GetTextWidth(
-							g_view,
-							MakeStr("%s%s%s%s", front, comp, icon, end)) <
-						pEdit->GetWidthLimit())
-						pEdit->SetLine(1,
-							MakeStr("%s%s%s%s", front, comp, icon, end), 0,
-							false, 0);
-					pEdit->SetKeyFocus(true);
-				}
-			}
-		}
-	}
-
-	m_pEmoticonDlg = NULL;
+// lobbymain.cpp:7364
+bool CLobbyMain::OnCreateInfoResult(int, FrForm*) {
 	return true;
 }
 
-bool CLobbyMain::OnReportDlgResult(int result, FrForm* form)
-{
-	m_pReportDlg = NULL;
+// lobbymain.cpp:7402
+bool CLobbyMain::OnReportDlgResult(int, FrForm*) {
+	m_reportDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnParanNickChangeResult(int result, FrForm* form)
-{
-	m_pParanNickDlg = NULL;
+// lobbymain.cpp:7408
+bool CLobbyMain::OnParanNickChangeResult(int, FrForm*) {
+	m_paranNickChangeDlg = 0;
 
-	if (Doc()->m_bAutoRefresh)
-	{
-		Doc()->m_bAutoRefresh = false;
+	if (WSingleton<CSharedDoc>::Instance()->m_paranNickChanged) {
+		WSingleton<CSharedDoc>::Instance()->m_paranNickChanged = false;
 		OpenEventPrizeForm(2);
 	}
 
@@ -6889,8377 +4821,3213 @@ bool CLobbyMain::OnParanNickChangeResult(int result, FrForm* form)
 	return true;
 }
 
-bool CLobbyMain::OnCaddieWarningDlgResult(int result, FrForm* form)
-{
-	m_pCaddieWarningDlg = NULL;
+// lobbymain.cpp:7424
+bool CLobbyMain::OnCaddieWarningDlgResult(int, FrForm*) {
+	m_caddieWarningDlg = 0;
 	OpenNoteForm();
 	return true;
 }
 
-extern bool g_bQuit;
-
-bool CLobbyMain::OnUIHackDlgResult(int result, FrForm* form)
-{
+// lobbymain.cpp:7431
+bool CLobbyMain::OnUIHackDlgResult(int, FrForm*) {
 	g_bQuit = true;
 	return true;
 }
 
-bool CLobbyMain::OnMapSelectDlgResult(int result, FrForm* form)
-{
-	m_pTreasureCourse = NULL;
+// lobbymain.cpp:7438
+bool CLobbyMain::OnMapSelectDlgResult(int, FrForm*) {
+	m_mapSelectDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnHolesEventDlgResult(int result, FrForm* form)
-{
-	m_pHolesEventDlg = NULL;
+// lobbymain.cpp:7445
+bool CLobbyMain::OnHolesEventDlgResult(int, FrForm*) {
+	m_holesEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnPointEventDlgResult(int result, FrForm* form)
-{
-	m_pPointEventDlg = NULL;
+// lobbymain.cpp:7451
+bool CLobbyMain::OnPointEventDlgResult(int, FrForm*) {
+	m_pointEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnWorldTourEventDlgResult(int result, FrForm* form)
-{
-	m_pWorldTourEventDlg = NULL;
+// lobbymain.cpp:7458
+bool CLobbyMain::OnWorldTourEventDlgResult(int, FrForm*) {
+	m_worldTourEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnFindEbortEventDlgResult(int result, FrForm* form)
-{
-	m_pFindEbortEventDlg = NULL;
+// lobbymain.cpp:7465
+bool CLobbyMain::OnFindEbortEventDlgResult(int, FrForm*) {
+	m_findEbortEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnHalloweenEventDlgResult(int result, FrForm* form)
-{
-	m_pHalloweenEventDlg = NULL;
+// lobbymain.cpp:7472
+bool CLobbyMain::OnHalloweenEventDlgResult(int, FrForm*) {
+	m_halloweenEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnChristmasEventDlgResult(int result, FrForm* form)
-{
-	m_pChristmasEventDlg = NULL;
+// lobbymain.cpp:7479
+bool CLobbyMain::OnChristmasEventDlgResult(int, FrForm*) {
+	m_christmasEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnChristmasSockEventDlgResult(int result, FrForm* form)
-{
-	m_pChristmasSockEventDlg = NULL;
+// lobbymain.cpp:7487
+bool CLobbyMain::OnChristmasSockEventDlgResult(int, FrForm*) {
+	m_christmasSockEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnTicketExchangeDlgResult(int result, FrForm* form)
-{
-	m_pTicketExchangeDlg = NULL;
+// lobbymain.cpp:7495
+bool CLobbyMain::OnTicketExchangeDlgResult(int, FrForm*) {
+	m_ticketExchangeDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnLevelupFormResult(int result, FrForm* form)
-{
-	if (m_levelupForms.size())
-	{
-		m_levelupForms[m_levelupForms.size() - 1] = NULL;
-		m_levelupForms.erase(m_levelupForms.end() - 1);
+// lobbymain.cpp:7528
+bool CLobbyMain::OnLevelupFormResult(int, FrForm*) {
+	if (!m_levelupDlgs.empty()) {
+
+		m_levelupDlgs[m_levelupDlgs.size() - 1] = 0;
+		m_levelupDlgs.erase(m_levelupDlgs.end() - 1);
 	}
-
-	return true;
-}
-
-bool CLobbyMain::OnFirstTutorialDlgResult(int result, FrForm* form)
-{
-	return true;
-}
-
-bool CLobbyMain::OnQuickStartDlgResult(int result, FrForm* form)
-{
-	switch (result)
-	{
-	case 1:
-		if (m_pQuickResultDlg == NULL)
-		{
-			m_pQuickResultDlg = CreateForm<FrQuickResultDlg>(
-				g_pFresh->GetManager(), this, "quick_result");
-			if (m_pQuickResultDlg)
-			{
-				m_pQuickResultDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnQuickResultDlgResult,
-					0x40);
-				m_pQuickResultDlg->SetContents(MakeStr(
-					"\xb8\xc5\xc4\xaa \xb4\xeb\xbb\xf3\xc0\xbb \xb0\xcb\xbb\xf6 \xc1\xdf\xc0\xd4\xb4\xcf\xb4\xd9."));
-			}
-		}
-		break;
-	}
-
-	m_pQuickStartDlg = NULL;
 
 	return true;
 }
 
-bool CLobbyMain::OnQuickResultDlgResult(int result, FrForm* form)
-{
-	m_pQuickResultDlg = NULL;
+// lobbymain.cpp:7539
+bool CLobbyMain::OnFirstTutorialDlgResult(int, FrForm*) {
 	return true;
 }
 
-void CLobbyMain::OpenLayout(const char* name)
-{
-	this << MsgObject(NULL, 0, (int)name, 0, 0, 0, 0);
+// lobbymain.cpp:7577
+bool CLobbyMain::OnQuickResultDlgResult(int, FrForm*) {
+	m_quickResultDlg = 0;
+	return true;
 }
 
-void CLobbyMain::ResetControl()
-{
-	m_pToppageGame = NULL;
-	m_pToppageFamily = NULL;
-	m_pToppagePangyaStudy = NULL;
-	m_pToppageReserved = NULL;
-	m_pOverBarOption = NULL;
-	m_pToppageNotice = NULL;
-	m_pToppageServer = NULL;
-	m_pInviteDlg = NULL;
-	m_pUserListDlg = NULL;
-	m_pDtRoomDlg = NULL;
-	m_pScoreDlg = NULL;
-	m_pPasswordDlg = NULL;
-	m_pOptionDlg = NULL;
-	m_pEmoticonDlg = NULL;
-	m_pReportDlg = NULL;
-	m_pServerDlg = NULL;
-	m_pGuildNoticeDlg = NULL;
-	m_pEquipDlg = NULL;
-	m_pReservedDlg428 = NULL;
-	m_pMailBoxDlg = NULL;
-	m_pPCBangNoticeDlg = NULL;
-	m_pUniteResultDlg = NULL;
-	m_pNewRecordDlg = NULL;
-	m_pParanNickDlg = NULL;
-	m_pCaddieWarningDlg = NULL;
-	m_pExtResQuitDlg = NULL;
-	m_pUseReportDlg = NULL;
-	m_pRoomClose = NULL;
-	m_pMakeRoom = NULL;
-	m_pGuildInfo = NULL;
-	m_pUserList = NULL;
-	m_pRoomList = NULL;
-	m_pSelRoom = NULL;
-	m_pLanguage = NULL;
-	m_pChatInput = NULL;
-	m_pChatView = NULL;
-	m_pChatTarget = NULL;
-	m_pEmoticon = NULL;
-	m_pTitle = NULL;
-	m_pChatBg = NULL;
-	m_pMapBg = NULL;
-	m_pRoomOption = NULL;
-	m_pRoomUser = NULL;
-	m_pRoomUserRank = NULL;
-	m_pRoomGuildRank = NULL;
-	m_pMap = NULL;
-	m_pMapPrev = NULL;
-	m_pMapNext = NULL;
-	m_pMapHoleCombo = NULL;
-	m_pMapGauge = NULL;
-	m_pMapLock = NULL;
-	m_pBackGround = NULL;
-	m_pStart = NULL;
-	m_pReady = NULL;
-	m_pUnused6dc = NULL;
-	m_pScore = NULL;
-	m_pGuildInvite = NULL;
-	m_pChangeTeam = NULL;
-	m_pTeamNum = NULL;
-	m_pTeamTab[0] = NULL;
-	m_pTeamTab[1] = NULL;
-	m_pGuildTab[0] = NULL;
-	m_pGuildTab[1] = NULL;
-	m_pRoomSortCateAll = NULL;
-	m_pRoomSortCateVS = NULL;
-	m_pRoomSortCateMass = NULL;
-	m_pRoomSortCateBattle = NULL;
-	m_pRoomSortCateChat = NULL;
-	m_pRoomSortCateVSList = NULL;
-	m_pRoomSortCateMassList = NULL;
-	m_pRoomSortCateBattleList = NULL;
-	m_pUnused65c = NULL;
-	m_pUserInfo = NULL;
-	m_pReserved6ec = NULL;
-	m_pDlg150 = NULL;
-	m_pTreasureCourse = NULL;
-	m_pOnelineReqDlg = NULL;
-	m_pReserved658 = NULL;
-	m_pReserved6f0 = NULL;
-	m_pExtFrame = NULL;
-	m_pUnused6f8 = NULL;
-	m_pInGameBmp = NULL;
-	m_pMasterSignBmp = NULL;
-	m_pReadySignBmp = NULL;
-	m_pTeamSelectBmp = NULL;
-	m_pDiveBmp = NULL;
-	m_pGuildScoreGauge = NULL;
-	m_pKickBmp = NULL;
-	m_pReservedBmp7f8 = NULL;
-	m_pReservedBmp7fc = NULL;
-	m_pRoomEventBmp = NULL;
-	m_pRoomEvent02Bmp = NULL;
-	m_bNewBlink = false;
-	m_newBlinkCount = 0;
-	m_newBlinkTime = 0.0f;
-	memset(m_pPlayerBaseBmp, 0, sizeof(m_pPlayerBaseBmp));
-	memset(m_pReservedBmp7ec, 0, sizeof(m_pReservedBmp7ec));
-	memset(m_pPet, 0, sizeof(m_pPet));
-	memset(m_pEventPrizeDlg, 0, sizeof(m_pEventPrizeDlg));
-	memset(m_pStatBar, 0, sizeof(m_pStatBar));
-	memset(m_pStatEdit, 0, sizeof(m_pStatEdit));
-	m_pGuildNoticeObj = NULL;
-	m_roomSortDelay = 0.0f;
-	m_userSortDelay = 0.0f;
-	m_pCurTip = NULL;
-	m_pStartTip = NULL;
-	m_pReadyTip = NULL;
-	m_pCountdown = NULL;
-	m_pToppageEvent1 = NULL;
+// lobbymain.cpp:7584
+void CLobbyMain::OpenLayout(const char* layoutName) {
+	this << MsgObject(0, 0, (intptr_t)layoutName, 0, 0, 0, 0);
 }
 
-void CLobbyMain::ShowPet(unsigned long uid)
-{
-	std::map<unsigned long, sRoomSlot>::iterator it =
-		Doc()->m_roomSlotMap.find(uid);
-	if (it == Doc()->m_roomSlotMap.end())
-		return;
+// lobbymain.cpp:7589
+void CLobbyMain::ResetControl(void) throw() {
+	m_toppageGameBtn = NULL;
+	m_toppageFamilyBtn = NULL;
+	m_toppagePangysStudyBtn = NULL;
+	m_toppageMsgBtn = NULL;
+	m_barButton[13] = NULL;
+	m_toppageNoticeBtn = NULL;
+	m_toppageServerBtn = NULL;
 
-	HidePet(uid);
+	m_matchingDlg = NULL;
+	m_userListDlg = NULL;
+	m_dtRoomDlg = NULL;
+	m_scoreDlg = NULL;
+	m_passwordDlg = NULL;
 
-	if (uid ==
-		((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1)
-				? Doc()->m_myInfo.info.dwGalleryGuid
-				: Doc()->m_myInfo.info.dwGuid))
-		SetLevelBar();
+	m_optionDlg = NULL;
+	m_emoticonDlg = NULL;
+	m_reportDlg = NULL;
+	m_serverDlg = NULL;
+	m_guildNoticeDlg = NULL;
+	m_itemEquipDlg = NULL;
 
-	sRoomSlot* pSlot = &it->second;
-	if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM"))
-	{
-		std::list<sSlotInfo>::iterator itSlot =
-			std::find(Doc()->m_slotList.begin(), Doc()->m_slotList.end(), uid);
+	m_unusedDlg = NULL;
+	m_mailBoxDlg = NULL;
+	m_pcbangNoticeDlg = NULL;
+	m_resultReportDlg = NULL;
+	m_newRecordDlg = NULL;
+	m_paranNickChangeDlg = NULL;
+	m_caddieWarningDlg = NULL;
+	m_roomExtResQuitDlg = NULL;
+	m_roomUseReportDlg = NULL;
+	m_channelRoomCloseBtn = NULL;
+	m_makeRoomBtn = NULL;
 
-		if (itSlot == Doc()->m_slotList.end())
-			return;
+	m_guildInfoBtn = NULL;
 
-		pSlot->pArea = m_pPet[(*itSlot).connectionRank - 1];
-	}
-	else if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXT"))
-	{
-		pSlot->pArea = m_pPet[0];
-	}
 
-	if (pSlot == NULL || pSlot->pArea == NULL)
-		return;
 
-	if (!g_pFresh->GetManager()->IsValidWindow(pSlot->pArea))
-		return;
+	m_userListBox = NULL;
+	m_roomListBox = NULL;
+	m_selectedRoomData = NULL;
+	m_languageArea = NULL;
+	m_chatEdit = NULL;
+	m_chatView = NULL;
+	m_chatTargetCombo = NULL;
+	m_emoticonBtn = NULL;
+	m_roomTitleEdit = NULL;
+	m_chatBg = NULL;
 
-	pSlot->pArea->SetMouseEvent(uid == MyGuid(false));
 
-	if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-	{
-		if (Doc()->m_myInfo.info.dwGalleryGuid == -1)
-			return;
+	m_mapBgViewer = NULL;
+	m_roomOptionBtn = NULL;
+	m_roomUserListBox = NULL;
+	m_userRankListBox = NULL;
+	m_guildRankListBox = NULL;
+	m_mapBtn = NULL;
+	m_mapPrevBtn = NULL;
+	m_mapNextBtn = NULL;
+	m_holeCombo = NULL;
+	m_mapGauge = NULL;
+	m_mapLockArea = NULL;
+	m_backGroundViewer = NULL;
+	m_startBtn = NULL;
+	m_readyBtn = NULL;
+	m_roomSettingWnd = NULL;
+	m_scoreBtn = NULL;
+	m_guildInviteBtn = NULL;
+	m_changeTeamBtn = NULL;
+	m_teamNumArea = NULL;
+	m_teamTab1Area = NULL;
+	m_teamTab2Area = NULL;
+	m_guildTab1Area = NULL;
+	m_guildTab2Area = NULL;
 
-		if (!pSlot->partTidList.SetTids(&pSlot->charInfo, 0xff) ||
-			!pSlot->partTidList.IsComboValid())
-		{
-			pSlot->partTidList.m_charTid = pSlot->charInfo.tid;
-			pSlot->partTidList.SetDefaultTids();
-		}
-	}
-	else
-	{
-		if (!pSlot->partTidList.SetTids(&pSlot->charInfo, 0xff) ||
-			!pSlot->partTidList.IsComboValid())
-		{
-			pSlot->partTidList.m_charTid = pSlot->charInfo.tid;
-			pSlot->partTidList.SetDefaultTids();
-		}
+	m_cateAllBtn = NULL;
+	m_cateVSBtn = NULL;
+	m_cateMassBtn = NULL;
+	m_cateBattleBtn = NULL;
+	m_cateChatBtn = NULL;
+	m_cateVSList = NULL;
+	m_cateMassList = NULL;
+	m_cateBattleList = NULL;
 
-		if (uid == MyGuid(false))
-			Doc()->BuildMyPartTidList();
-	}
+	m_roomControlWnd = NULL;
 
-	WRect rect = pSlot->pArea->GetRect();
+	m_userActionBtn = NULL;
+	m_extReservedWnd = NULL;
 
-	pSlot->pExhibition = new CExhibition(rect.x + rect.w * 0.5f,
-		rect.y + rect.h * 0.5f, 0.35f, uid != MyGuid(false));
-	pSlot->pExhibition->SetDistanceRange(10.0f, 14.0f);
-	pSlot->pExhibition->SetDistance(12.0f, true, false);
-	pSlot->pExhibition->SetArea(rect.w, rect.h);
-	pSlot->pExhibition->SetModel(pSlot->partTidList,
-		pSlot->charInfo.tidAuxParts, NULL, 3.0f, uid);
+	m_popupDlg = NULL;
 
-	if (pSlot->bGachaWing)
-		pSlot->pExhibition->AttachAngelWingFx();
+	m_mapSelectDlg = NULL;
 
-	if (uid == MyGuid(false))
-	{
-		if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "CREATE"))
-			pSlot->pExhibition->SetControlFlag(15);
-		else
-			pSlot->pExhibition->SetControlFlag(26);
-	}
-	else
-	{
-		pSlot->pExhibition->SetControlFlag(16);
-	}
+	m_onelineReqDlg = NULL;
+	m_mapExtraWnd = NULL;
+	m_extReservedWnd2 = NULL;
+	m_extFrame = NULL;
+	m_charControlWnd = NULL;
+	m_roomImage = NULL;
+	m_roomUserImage[0] = NULL;
+	m_roomUserImage[1] = NULL;
+	m_roomUserMarkImage[0] = NULL;
+	m_roomUserMarkImage[1] = NULL;
+	m_guildScoreGauge = NULL;
+	m_roomUserSelImage = NULL;
+	m_roomUserReserved2 = NULL;
+	m_roomUserReserved3 = NULL;
+	m_roomListImage = NULL;
+	m_eventImage = NULL;
+
+	m_tipBlinking = false;
+	m_tipBlinkCount = 0;
+	m_tipBlinkTime = 0.0f;
+
+	memset(m_extRoomUserImage, 0, sizeof(m_extRoomUserImage));
+	memset(m_roomUserReserved, 0, sizeof(m_roomUserReserved));
+	memset(m_petArea, 0, sizeof(m_petArea));
+	memset(m_eventDlg, 0, sizeof(m_eventDlg));
+	memset(&m_powerBar, 0, sizeof(FrGaugeBar*) * 5);
+	memset(&m_powerStatic, 0, sizeof(FrStatic*) * 5);
+
+	m_guildNewsReader = NULL;
+	m_roomSortResetTime = 0;
+	m_userSortResetTime = 0;
+	m_blinkTipArea = NULL;
+	m_startTipArea = NULL;
+	m_readyTipArea = NULL;
+	m_countdownArea = NULL;
+
+	m_toppageEvent1Btn = NULL;
 }
 
-void CLobbyMain::HidePet(unsigned long uid)
-{
-	std::map<unsigned long, sRoomSlot>::iterator it =
-		Doc()->m_roomSlotMap.find(uid);
+// lobbymain.cpp:7817
+void CLobbyMain::HidePet(unsigned long uid) {
+	CSharedDoc *doc = CSharedDoc::Instance();
+	std::map<unsigned long, sRoomSlot>::iterator it = doc->m_roomSlotMap.find(uid);
 
-	if (it != Doc()->m_roomSlotMap.end())
-	{
-		if (it->second.pExhibition)
-		{
-			delete it->second.pExhibition;
-			it->second.pExhibition = NULL;
+	if (it != doc->m_roomSlotMap.end()) {
+		if (it->second.m_pPet) {
+			delete it->second.m_pPet;
+			it->second.m_pPet = NULL;
 		}
 	}
 }
 
-void CLobbyMain::EnableRoomEnterControls(bool enable)
-{
-	if (m_pRoomList)
-		m_pRoomList->Enable(enable);
+// lobbymain.cpp:7825
+void CLobbyMain::EnableRoomEnterControls(bool enable) {
+	if (m_roomListBox)
+		m_roomListBox->Enable(enable);
 
-	if (m_pMakeRoom && !(Doc()->m_curChannel.Type & 0x80))
-		m_pMakeRoom->Enable(enable);
+	if (m_makeRoomBtn && !(CSharedDoc::Instance()->m_currentChannel.flags & 0x80))
+		m_makeRoomBtn->Enable(enable);
 
-	if (m_pGuildInfo)
-		m_pGuildInfo->Enable(enable);
-
-	if (enable)
-	{
-		if (m_pDtRoomDlg)
-			m_pDtRoomDlg->EnableJoinBtn(true);
+	if (m_guildInfoBtn) {
+		m_guildInfoBtn->Enable(enable);
 	}
 
-	if ((Doc()->m_myInfo.info.dwIdentity & 0xe) == 0xe)
-	{
-		if (m_pGuildInfo)
-			m_pGuildInfo->Enable(false);
+	if (enable) {
+		if (m_dtRoomDlg)
+			static_cast<FrDtRoomDlg*>(m_dtRoomDlg)->EnableJoinBtn(true);
 	}
-}
 
-void CLobbyMain::SetStartBtn(bool bMaster)
-{
-	if (bMaster)
-	{
-		std::list<sSlotInfo>& slotList = Doc()->m_slotList;
-
-		switch (Doc()->m_roomInfo.gameType)
-		{
-		case GAME_TYPE_30S:
-		case GAME_TYPE_30S_TEAM:
-		case GAME_TYPE_GUILD_MATCH:
-		case GAME_TYPE_APPROACH:
-		case GAME_TYPE_NEW_APPROACH:
-		case GAME_TYPE_USEMAX:
-			if (NET()->GetConnectionType() == 0 &&
-				slotList.size() <
-					((Doc()->m_curGameServer.property & 2)
-							? 5
-							: Doc()->m_gameTypeInfo[GAME_TYPE_30S].minPlayer) &&
-				!(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1))
-			{
-				m_bCanStart = true;
-				for (std::list<sSlotInfo>::iterator it = slotList.begin();
-					it != slotList.end(); ++it)
-				{
-					if (!(*it).bReady && !(*it).bMaster)
-					{
-						m_bCanStart = false;
-						break;
-					}
-				}
-			}
-			else
-			{
-				m_bCanStart = true;
-				for (std::list<sSlotInfo>::iterator it = slotList.begin();
-					it != slotList.end(); ++it)
-				{
-					if (!(*it).bReady && !(*it).bMaster)
-					{
-						m_bCanStart = false;
-						break;
-					}
-				}
-			}
-			break;
-
-		default:
-			if (slotList.size() == 1 &&
-				!(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1))
-			{
-				m_bCanStart = false;
-			}
-			else
-			{
-				m_bCanStart = true;
-
-				if (Doc()->m_roomInfo.gameType == GAME_TYPE_TEAM)
-				{
-					if (Doc()->m_roomInfo.nUserLimit > slotList.size())
-						m_bCanStart = false;
-
-					if (m_bCanStart)
-					{
-						int nRed = 0;
-						int nBlue = 0;
-						for (std::list<sSlotInfo>::iterator it =
-								 slotList.begin();
-							it != slotList.end(); ++it)
-						{
-							if ((*it).bTeam == 0)
-								nRed++;
-							else if ((*it).bTeam == 1)
-								nBlue++;
-						}
-
-						if (nRed != nBlue)
-							m_bCanStart = false;
-					}
-				}
-
-				if (m_bCanStart)
-				{
-					for (std::list<sSlotInfo>::iterator it = slotList.begin();
-						it != slotList.end(); ++it)
-					{
-						if (!(*it).bReady && !(*it).bMaster)
-						{
-							m_bCanStart = false;
-							break;
-						}
-					}
-				}
-			}
-			break;
-		}
-
-		if (m_bCanStart && slotList.size() > 1)
-		{
-			if (m_pCurTip)
-			{
-				m_bNewBlink = true;
-				m_newBlinkTime = 0.0f;
-			}
-
-			if (m_pTreasureCourse)
-				m_pTreasureCourse->Close(true);
-		}
-		else
-		{
-			m_bNewBlink = false;
-			if (m_pCurTip)
-				m_pCurTip->SetVisible(false);
-		}
+	if ((CSharedDoc::Instance()->GetPangyaUserInfo().identity & 0xE) == 0xE) {
+		if (m_guildInfoBtn)
+			m_guildInfoBtn->Enable(false);
 	}
 }
 
-void CLobbyMain::SetRoomControls(bool bMaster)
-{
-	unsigned char nUser = (unsigned char)Doc()->m_slotList.size();
-	bool bLock = false;
-
-	if (Doc()->m_curChannel.Type & 0x800)
-	{
-		IFF_STRUCT::sCourse* pCourse =
-			ItemManager()->FindCourse(((Doc()->m_roomInfo.mapType > 0x7f &&
-										   Doc()->m_roomInfo.mapType != 0xfd)
-											  ? Doc()->m_roomInfo.mapType - 0x80
-											  : Doc()->m_roomInfo.mapType) |
-				0x28000000);
-
-		if (pCourse && pCourse->Difficulty >= 3)
-			bLock = true;
-	}
-
-	if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1))
-		bLock = false;
-
-	if (m_pRoomOption)
-	{
-		if (bMaster)
-		{
-			m_pRoomOption->Enable(
-				(nUser == 1 || !m_bCanStart ||
-					(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1)) &&
-				Doc()->m_roomInfo.realGameType != 14);
-		}
-		else
-		{
-			m_pRoomOption->Enable(false);
-		}
-	}
-
-	if (m_pUnused65c)
-	{
-		if ((Doc()->m_curChannel.Type & 0x80) ||
-			Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH ||
-			Doc()->m_roomInfo.realGameType == 14)
-		{
-			m_pUnused65c->Enable(false);
-		}
-		else
-		{
-			if (bMaster)
-				m_pUnused65c->Enable(nUser == 1 || !m_bCanStart ||
-					(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1));
-			else
-				m_pUnused65c->Enable(false);
-		}
-	}
-
-	if (m_pMapPrev)
-	{
-		if (bMaster)
-		{
-			bool bVisible =
-				(nUser == 1 || !m_bCanStart ||
-					(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1)) &&
-				Doc()->m_roomInfo.realGameType != 14;
-			m_pMapPrev->SetVisible(bVisible);
-
-			if ((Doc()->m_curChannel.Type & 0x80) ||
-				Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH)
-				m_pMapPrev->Enable(false);
-			else
-				m_pMapPrev->Enable(Doc()->m_roomInfo.mapType != FirstMap());
-		}
-		else
-		{
-			m_pMapPrev->SetVisible(false);
-		}
-	}
-
-	if (m_pMapNext)
-	{
-		if (bMaster)
-		{
-			bool bVisible =
-				(nUser == 1 || !m_bCanStart ||
-					(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1)) &&
-				Doc()->m_roomInfo.realGameType != 14;
-			m_pMapNext->SetVisible(bVisible);
-
-			if ((Doc()->m_curChannel.Type & 0x80) ||
-				Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH)
-				m_pMapNext->Enable(false);
-			else
-				m_pMapNext->Enable(Doc()->m_roomInfo.mapType < LastMap(false));
-		}
-		else
-		{
-			m_pMapNext->SetVisible(false);
-		}
-	}
-
-	if (m_pMapHoleCombo)
-	{
-		if (bLock || (Doc()->m_curChannel.Type & 0x90) ||
-			Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH ||
-			Doc()->m_roomInfo.realGameType == 14)
-		{
-			m_pMapHoleCombo->Enable(false);
-		}
-		else
-		{
-			if (bMaster)
-				m_pMapHoleCombo->Enable(nUser == 1 || !m_bCanStart ||
-					(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1));
-			else
-				m_pMapHoleCombo->Enable(false);
-		}
-	}
-
-	if (m_pMapLock)
-		m_pMapLock->SetVisible(bLock);
-
-	if (m_pStart)
-	{
-		if (bMaster)
-		{
-			m_pStart->SetVisible(true);
-			m_pStart->Enable(true);
-
-			if (m_pReady)
-			{
-				m_pReady->SetVisible(false);
-
-				if (m_pReady)
-					m_pReady->Enable(false);
-			}
-
-			EnableSettingButton(true);
-
-			if (IsLocalContent(S3_HUNDRED_MODE) &&
-				Doc()->m_roomInfo.nUserLimit >= 100)
-			{
-				if (Doc()->m_myInfo.info.dwIdentity & 4)
-					m_pStart->Enable(true);
-				else
-					m_pStart->Enable(false);
-			}
-			else
-			{
-				m_pStart->Enable(Doc()->m_slotList.size() >= 1);
-			}
-		}
-		else if (!m_bRoomStateReq)
-		{
-			m_pReady->SetButtonImg(m_bReady ? "btn_ready_cancel_n"
-											: "btn_ready_n",
-				FrButton::NORMAL);
-			m_pReady->SetButtonImg(m_bReady ? "btn_ready_cancel_o"
-											: "btn_ready_o",
-				FrButton::OVER);
-
-			m_pReady->SetVisible(true);
-			m_pReady->Enable(true);
-			m_pStart->SetVisible(false);
-			m_pStart->Enable(false);
-
-			m_pStart->Enable(true);
-		}
-	}
-
-	if (m_pRoomClose)
-	{
-		if (bMaster)
-		{
-			m_pRoomClose->Enable(true);
-		}
-		else if (!m_bRoomStateReq)
-		{
-			if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-				m_pRoomClose->Enable(true);
-			else
-				m_pRoomClose->Enable(!m_bReady);
-		}
-	}
-
-	if (m_pUnused6dc)
-	{
-		if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-		{
-			m_pUnused6dc->Enable(
-				(Doc()->m_myInfo.info.dwIdentity & 0xe) == 0xe &&
-				Doc()->m_myInfo.info.dwGalleryGuid != -1);
-		}
-		else
-		{
-			if (bMaster)
-				m_pUnused6dc->Enable(true);
-			else
-				m_pUnused6dc->Enable(!m_bReady);
-		}
-
-		if (Doc()->m_curChannel.Type & 0x80)
-			m_pUnused6dc->Enable(false);
-
-		if (Doc()->m_curChannel.Type & 8)
-			m_pUnused6dc->Enable(false);
-	}
-
-	SetRoomCharControl((eBtnDir)2);
-	SetRoomCaddieControl((eBtnDir)2);
-
-	if (Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-	{
-		if (m_pUnused65c)
-			m_pUnused65c->Enable(false);
-		if (m_pMapPrev)
-			m_pMapPrev->Enable(false);
-		if (m_pMapNext)
-			m_pMapNext->Enable(false);
-		if (m_pMapHoleCombo)
-			m_pMapHoleCombo->Enable(false);
-
-		if (strcmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES"))
-			RemakeTeam(true);
-	}
-
-	if (IsLocalContent(S4_INVITE_FRIEND))
-		CMessengerInfo::Instance()->EnableInvite(bMaster);
-}
-
-void CLobbyMain::SetRoomCharControl(eBtnDir dir)
-{
-	if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-	{
-		if (Doc()->m_myInfo.info.dwGalleryGuid == -1)
-		{
-			if (m_pUnused6f8)
-				m_pUnused6f8->SetVisible(false);
-		}
-		else
-		{
-			if (m_pUnused6f8)
-			{
-				m_pUnused6f8->SetVisible(true);
-
-				IFF_STRUCT::sChar* pChar =
-					ItemManager()->FindChar(Doc()->m_userInfo[0].charInfo.tid);
-				if (pChar)
-					m_pUnused6f8->SetButtonImg(pChar->c.Icon, FrButton::NORMAL);
-			}
-		}
-	}
-
-	if (!m_bReady && !(bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-	{
-		std::map<unsigned int, sCharacterInfo>& charMap = Doc()->m_charMap;
-		std::map<unsigned int, sCharacterInfo>::const_iterator it =
-			charMap.find(Doc()->m_myInfo.userEquip.guidChar);
-
-		if (it == charMap.end())
-			return;
-
-		switch (dir)
-		{
-		case 0:
-			if (it == charMap.begin())
-				break;
-
-			if (--it != charMap.end())
-			{
-				WSendPacket packet((enumClientPacket)0xc);
-				packet.Encode1(4);
-				packet.Encode4((*it).second.guid);
-				packet.Send(TO_GAME);
-			}
-			break;
-
-		case 1:
-			if (++it != charMap.end())
-			{
-				WSendPacket packet((enumClientPacket)0xc);
-				packet.Encode1(4);
-				packet.Encode4((*it).second.guid);
-				packet.Send(TO_GAME);
-			}
-			break;
-		}
-	}
-}
-
-void CLobbyMain::SetRoomCaddieControl(eBtnDir dir)
-{
-	if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-	{
-		if (Doc()->m_myInfo.info.dwGalleryGuid == -1)
-			this << MsgObject(NULL, 0x13, 0, 0, 0, 0, 0);
-		else
-			this << MsgObject(NULL, 0x13, Doc()->m_userInfo[0].caddieInfo.tid,
-				0, 0, 0, 0);
-	}
-
-	std::map<unsigned int, sCaddieInfo>& caddies = Doc()->m_caddieMap;
-	if (caddies.size() == 0)
-	{
-		Doc()->m_myInfo.userEquip.guidCaddie = 0;
-		this << MsgObject(NULL, 0x13, 0, 0, 0, 0, 0);
-		return;
-	}
-
-	unsigned long guid = Doc()->m_myInfo.userEquip.guidCaddie;
-
-	std::map<unsigned int, sCaddieInfo>& caddieMap = Doc()->m_caddieMap;
-	std::map<unsigned int, sCaddieInfo>::const_iterator it =
-		caddieMap.find(guid);
-
-	switch (dir)
-	{
-	case 0:
-	{
-		if (it != caddieMap.begin())
-		{
-			if (--it != caddieMap.end())
-			{
-				Doc()->m_myInfo.userEquip.guidCaddie = (*it).second.guid;
-				this << MsgObject(NULL, 0x13, (*it).second.tid, 0, 0, 0, 0);
-				SetLevelBar();
-				WSendPacket packet((enumClientPacket)0xc);
-				packet.Encode1(1);
-				packet.Encode4((*it).second.guid);
-				packet.Send(TO_GAME);
-				break;
-			}
-		}
-		Doc()->m_myInfo.userEquip.guidCaddie = 0;
-		this << MsgObject(NULL, 0x13, 0, 0, 0, 0, 0);
-		SetLevelBar();
-		WSendPacket packet((enumClientPacket)0xc);
-		packet.Encode1(1);
-		packet.Encode4(0);
-		packet.Send(TO_GAME);
-		break;
-	}
-	case 1:
-		if (Doc()->m_myInfo.userEquip.guidCaddie == 0)
-			it = caddieMap.begin();
-		else
-			++it;
-
-		if (it == caddieMap.end())
-			break;
-
-		Doc()->m_myInfo.userEquip.guidCaddie = (*it).second.guid;
-		this << MsgObject(NULL, 0x13, (*it).second.tid, 0, 0, 0, 0);
-
-		SetLevelBar();
-
-		{
-			WSendPacket packet((enumClientPacket)0xc);
-			packet.Encode1(1);
-			packet.Encode4((*it).second.guid);
-			packet.Send(TO_GAME);
-		}
-		break;
-
-	case 2:
-		if (it == caddieMap.end())
-		{
-			Doc()->m_myInfo.userEquip.guidCaddie = 0;
-			this << MsgObject(NULL, 0x13, 0, 0, 0, 0, 0);
-		}
-		else
-		{
-			Doc()->m_myInfo.userEquip.guidCaddie = (*it).second.guid;
-			this << MsgObject(NULL, 0x13, (*it).second.tid, 0, 0, 0, 0);
-		}
-		break;
-	}
-}
-
-void CLobbyMain::MakeRoomUserList()
-{
-	if (m_pRoomUser == NULL)
-		return;
-
-	switch (Doc()->m_roomInfo.gameType)
-	{
-	case GAME_TYPE_30S:
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
-		m_pRoomUser->ClearItem();
-
-		if (Doc()->m_bGameOver)
-		{
-			int nNotFinish = 0;
-			if (Doc()->m_rivalList.size() > 0)
-			{
-				for (std::list<sSlotInfo>::iterator it =
-						 Doc()->m_slotList.begin();
-					it != Doc()->m_slotList.end(); ++it)
-				{
-					sSlotInfo* pSlot = &(*it);
-
-					unsigned char index = Doc()->GetIndex(pSlot->dwGuid);
-
-					if (Doc()->m_rivalList[index].state == 2)
-						m_pRoomUser->AddItem(pSlot);
-					else if (Doc()->m_rivalList[index].state == 0)
-						nNotFinish++;
-				}
-			}
-
-			for (int i = m_pRoomUser->GetCurrentItemSize(true); i < 24; i++)
-				m_pRoomUser->AddItem(NULL);
-
-			m_pRoomUser->SortItem(FinishUserCompare);
-
-			if (nNotFinish == 0)
-				PostMsg(this, "Lobby", 0x2d, 0, 0, 0, 0);
-		}
-		else
-		{
-			for (std::list<sSlotInfo>::iterator it = Doc()->m_slotList.begin();
-				it != Doc()->m_slotList.end(); ++it)
-				m_pRoomUser->AddItem(&(*it));
-
-			for (int i = m_pRoomUser->GetCurrentItemSize(true); i < 24; i++)
-				m_pRoomUser->AddItem(NULL);
-
-			if (Doc()->m_slotList.size() > 1)
-				m_pRoomUser->SortItem(ConnectionUserCompare);
-		}
-		break;
-
-	case GAME_TYPE_GUILD_MATCH:
-		if (Doc()->m_bGameOver)
-		{
-			m_redTeam.clear();
-			m_blueTeam.clear();
-
-			for (std::list<sSlotInfo>::iterator it = Doc()->m_slotList.begin();
-				it != Doc()->m_slotList.end(); ++it)
-			{
-				unsigned char index = Doc()->GetIndex((*it).dwGuid);
-
-				if (Doc()->m_rivalList[index].state == 2)
-				{
-					sSlotInfo* pSlot = &(*it);
-					if (pSlot->GuildId ==
-						Doc()->m_roomInfo.GuildInfo.nGuildID[0])
-						m_redTeam.push_back(&(*it));
-					else if (pSlot->GuildId ==
-						Doc()->m_roomInfo.GuildInfo.nGuildID[1])
-						m_blueTeam.push_back(&(*it));
-				}
-			}
-
-			m_redTeam.sort(FinishUserCompare);
-			m_blueTeam.sort(FinishUserCompare);
-
-			RemakeTeam(false);
-		}
-		else
-		{
-			RemakeTeam(true);
-		}
-		break;
-
-	case GAME_TYPE_30S_TEAM:
-		if (Doc()->m_bGameOver)
-		{
-			m_redTeam.clear();
-			m_blueTeam.clear();
-
-			int nNotFinish = 0;
-			for (std::list<sSlotInfo>::iterator it = Doc()->m_slotList.begin();
-				it != Doc()->m_slotList.end(); ++it)
-			{
-				unsigned char index = Doc()->GetIndex((*it).dwGuid);
-
-				if (Doc()->m_rivalList[index].state == 2)
-				{
-					sSlotInfo* pSlot = &(*it);
-					if (pSlot->bTeam == 0)
-						m_redTeam.push_back(pSlot);
-					else
-						m_blueTeam.push_back(pSlot);
-				}
-				else if (Doc()->m_rivalList[index].state == 0)
-				{
-					nNotFinish++;
-				}
-			}
-
-			m_redTeam.sort(FinishUserCompare);
-			m_blueTeam.sort(FinishUserCompare);
-
-			RemakeTeam(false);
-
-			if (nNotFinish == 0)
-				PostMsg(this, "Lobby", 0x2d, 0, 0, 0, 0);
-		}
-		else
-		{
-			RemakeTeam(true);
-		}
-		break;
-
-	default:
-		m_pRoomUser->ClearItem();
-
-		for (std::list<sSlotInfo>::iterator it = Doc()->m_slotList.begin();
-			it != Doc()->m_slotList.end(); ++it)
-			m_pRoomUser->AddItem(&(*it));
-
-		for (unsigned char n = m_pRoomUser->GetCurrentItemSize(true); n < 4;
-			n++)
-			m_pRoomUser->AddItem(NULL);
-
-		if (Doc()->m_slotList.size() > 1)
-			m_pRoomUser->SortItem(ConnectionUserCompare);
-		break;
-	}
-
-	switch (Doc()->m_roomInfo.gameType)
-	{
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
-	case GAME_TYPE_USEMAX:
-		if (!m_bInitSlot)
-		{
-			sRoomSlot slot;
-			slot.pArea = m_pPet[0];
-			slot.pExhibition = NULL;
-			slot.partTidList = Doc()->GetMyPartTidList();
-			slot.charInfo =
-				Doc()->m_charMap[Doc()->m_myInfo.userEquip.guidChar];
-			slot.bAngelWing = Doc()->m_myInfo.info.angelicWings;
-			slot.bGachaWing = Doc()->m_myInfo.info.angelicWingsEffect;
-			Doc()->m_roomSlotMap[MyGuid(false)] = slot;
-
-			ShowPet(MyGuid(false));
-		}
-		break;
-	}
-}
-void CLobbyMain::RemakeTeam(bool bRemake)
-{
-	if (m_pRoomUser == NULL)
-		return;
-
-	if (bRemake)
-	{
-		m_redTeam.clear();
-		m_blueTeam.clear();
-
-		for (std::list<sSlotInfo>::iterator it = Doc()->m_slotList.begin();
-			it != Doc()->m_slotList.end(); it++)
-		{
-			if (Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-			{
-				if (it->GuildId == Doc()->m_roomInfo.GuildInfo.nGuildID[0])
-					m_redTeam.push_back(&(*it));
-				else if (it->GuildId == Doc()->m_roomInfo.GuildInfo.nGuildID[1])
-					m_blueTeam.push_back(&(*it));
-			}
-			else
-			{
-				if (it->bTeam == 0)
-					m_redTeam.push_back(&(*it));
-				else
-					m_blueTeam.push_back(&(*it));
-			}
-		}
-
-		if (m_redTeam.size() == 0)
-		{
-			Doc()->m_roomInfo.GuildInfo.Reset(0);
-		}
-
-		if (m_blueTeam.size() == 0)
-		{
-			Doc()->m_roomInfo.GuildInfo.Reset(1);
-		}
-	}
-
-	m_pRoomUser->ClearItem();
-
-	int count = Max(m_redTeam.size(), m_blueTeam.size());
-	if (count < 12)
-		count = 12;
-
-	std::list<sSlotInfo*>::iterator itRed = m_redTeam.begin();
-	int redCount = 0;
-	int blueCount = 0;
-	std::list<sSlotInfo*>::iterator itBlue = m_blueTeam.begin();
-	for (int i = 0; i < count; i++)
-	{
-		if (itRed == m_redTeam.end())
-			m_pRoomUser->AddItem(NULL);
-		else
-		{
-			m_pRoomUser->AddItem(*itRed);
-			itRed++;
-			redCount++;
-		}
-
-		if (itBlue == m_blueTeam.end())
-			m_pRoomUser->AddItem(NULL);
-		else
-		{
-			m_pRoomUser->AddItem(*itBlue);
-			itBlue++;
-			blueCount++;
-		}
-	}
-
-	unsigned long guid = Doc()->m_myInfo.info.dwGuid;
-	std::list<sSlotInfo>::iterator it =
-		std::find(Doc()->m_slotList.begin(), Doc()->m_slotList.end(), guid);
-
-	if (it != Doc()->m_slotList.end())
-	{
-		if (m_pGuildInvite)
-		{
-			if (bRemake == true &&
-				strcmp(g_pFresh->GetManager()->GetLayoutID(),
-					"GAMEROOM_EXTRES") != 0)
-			{
-				if ((it->bMaster) &&
-					((blueCount < 1 && redCount > 2) ||
-						(blueCount > 2 && redCount < 1)))
-				{
-					m_pGuildInvite->Enable(true);
-				}
-				else
-				{
-					m_pGuildInvite->Enable(false);
-				}
-			}
-		}
-	}
-}
-
-void CLobbyMain::SortRank()
-{
-	if (Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH)
-	{
-		for (std::vector<sRivalData>::iterator it = Doc()->m_rivalList.begin();
-			it != Doc()->m_rivalList.end(); it++)
-		{
-			if (it->state == 3)
-			{
-				it->rank = Doc()->m_rivalList.size() - it->quitOrder;
-			}
-			else
-			{
-				it->rank = 1;
-				for (std::vector<sRivalData>::iterator it2 =
-						 Doc()->m_rivalList.begin();
-					it2 != Doc()->m_rivalList.end(); it2++)
-				{
-					if (it == it2 || it2->state == 3)
-						continue;
-
-					if (it->approachResultDistance >
-							it2->approachResultDistance ||
-						(it->approachResultDistance ==
-								it2->approachResultDistance &&
-							it->approachTime < it2->approachTime))
-						it->rank++;
-				}
-			}
-		}
-
-		if (m_pRoomUserRank)
-			m_pRoomUserRank->SortItem(ApproachRankUserCompare);
-	}
-	else
-	{
-		for (std::vector<sRivalData>::iterator it = Doc()->m_rivalList.begin();
-			it != Doc()->m_rivalList.end(); it++)
-		{
-			if (it->state == 3)
-				continue;
-
-			it->rank = 1;
-			for (std::vector<sRivalData>::iterator it2 =
-					 Doc()->m_rivalList.begin();
-				it2 != Doc()->m_rivalList.end(); it2++)
-			{
-				if (it == it2 || it2->state == 3)
-					continue;
-
-				if (it->totalScore > it2->totalScore ||
-					(it->totalScore == it2->totalScore &&
-						it->totalPang < it2->totalPang))
-					it->rank++;
-			}
-		}
-
-		if (m_pRoomUserRank)
-			m_pRoomUserRank->SortItem(RankUserCompare);
-	}
-
-	if (m_pExtFrame)
-	{
-		if (Doc()->m_roomInfo.gameType == GAME_TYPE_30S_TEAM)
-		{
-			m_pExtFrame->SetDesc(MakeStr(
-				"RED %d\xc1\xa1/%I64d\xc6\xce  vs  BLUE %d\xc1\xa1/%I64d\xc6\xce",
-				Doc()->m_teamResult[0].score, Doc()->m_teamResult[0].pang,
-				Doc()->m_teamResult[1].score, Doc()->m_teamResult[1].pang));
-		}
-	}
-}
-
-void CLobbyMain::SetLevelBar()
-{
-	unsigned long tidChar;
-	const char* pStat;
-	const unsigned long* pParts;
-	const unsigned long* pAuxParts;
-	unsigned long tidClub;
-	const short* pClubStat = NULL;
-	unsigned long tidCaddie;
-	unsigned char level = 0;
-
-	if (g_pFresh->IsCurrentLayout("CREATE"))
-	{
-		tidChar = m_createCharType | 0x4000000;
-		IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(tidChar);
-		pStat = pChar->PCL;
-		pParts = NULL;
-		pAuxParts = NULL;
-		tidClub = 0;
-		tidCaddie = 0;
-	}
-	else
-	{
-		if (!g_pFresh->IsCurrentLayout("GAMEROOM") &&
-			!g_pFresh->IsCurrentLayout("GAMEROOM_EXT"))
-			return;
-
-		bool bGM = (Doc()->m_myInfo.info.dwIdentity >> 1) & 1;
-		if (bGM)
-		{
-			tidChar = Doc()->m_userInfo[0].charInfo.tid;
-			pStat = Doc()->m_userInfo[0].charInfo.PCL;
-			pParts = Doc()->m_userInfo[0].charInfo.tidParts;
-			pAuxParts = Doc()->m_userInfo[0].charInfo.tidAuxParts;
-			tidClub = Doc()->m_userInfo[0].clubInfo.tid;
-			pClubStat = Doc()->m_userInfo[0].clubInfo.PCL;
-			tidCaddie = Doc()->m_userInfo[0].caddieInfo.tid;
-			level = Doc()->m_userInfo[0].stat.Level;
-		}
-		else
-		{
-			unsigned long guidCaddie = Doc()->m_myInfo.userEquip.guidCaddie;
-
-			std::map<unsigned int, sCharacterInfo>::iterator itChar;
-			std::map<unsigned int, sCaddieInfo>::iterator itCaddie;
-
-			itChar = Doc()->m_charMap.find(Doc()->m_myInfo.userEquip.guidChar);
-			tidChar = itChar->second.tid;
-			pStat = itChar->second.PCL;
-			pParts = itChar->second.tidParts;
-			pAuxParts = itChar->second.tidAuxParts;
-
-			std::map<unsigned int, sItemInfo>::iterator itClub =
-				Doc()->m_clubSetMap.find(Doc()->m_myInfo.userEquip.guidClubSet);
-			tidClub = itClub->second.tid;
-			pClubStat = itClub->second.Common;
-
-			if (guidCaddie == 0)
-				tidCaddie = 0;
-			else
-			{
-				itCaddie = Doc()->m_caddieMap.find(guidCaddie);
-				tidCaddie = itCaddie->second.tid;
-			}
-
-			level = Doc()->m_myInfo.stat.Level;
-		}
-	}
-
-	if (IsLocalContent(S4_CARD_SYSTEM))
-	{
-		CCardManager::Instance()->SetPlayerIndex(255);
-		CCardManager::Instance()->CalcCardPeriodAndStatus();
-	}
-
-	for (unsigned char i = 0; i < 5; i++)
-	{
-		status_t status =
-			ItemManager()->GetLevelWithPenalty((eLvlType)i, tidChar, pStat,
-				pParts, pAuxParts, tidClub, pClubStat, tidCaddie, level);
-		int nLevel = status.level;
-		int nPenalty = status.penalty;
-		unsigned char nCapacity = ItemManager()->GetCapacity((eLvlType)i,
-			tidChar, pStat, pParts, tidClub, pClubStat, tidCaddie, level);
-
-		m_pStatBar[i]->SetDestPos(nLevel, false);
-		m_pStatBar[i]->SetExpand(nCapacity - nLevel);
-		if (m_pStatEdit[i])
-			m_pStatEdit[i]->SetCaption11(
-				MakeStatusString3(nLevel, nCapacity, nPenalty));
-	}
-}
-
-void CLobbyMain::OpenInformation(unsigned long typeId)
-{
-	FrWnd* pWnd =
-		g_pFresh->GetManager()->GetDesktop()->FindChildByName("information");
-	if (pWnd)
-		return;
-
-	__rtti_obj = NULL;
-	FrForm* pForm =
-		CreateForm<FrForm>(g_pFresh->GetManager(), this, "information");
-
-	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(typeId);
-
-	FrArea* pPortrait =
-		DYNAMIC_CAST(FrArea, pForm->FindChildByName("portrait"));
-	if (pPortrait)
-	{
-		if (pItem)
-			pPortrait->SetBgImg(pItem->Icon);
-		else
-			pPortrait->SetBgImg("hide");
-	}
-
-	if (pItem)
-	{
-		FrEdit* pName = DYNAMIC_CAST(FrEdit, pForm->FindChildByName("name"));
-		FrArea* pLevel = DYNAMIC_CAST(FrArea, pForm->FindChildByName("level"));
-		if (pName && pLevel)
-		{
-			if (pItem->IsUnderLvl)
-			{
-				pLevel->SetBgImg(MakeStr("level_%03d", pItem->Level + 1));
-
-				pName->AddText(
-					MakeStr(
-						"\xc0\xcc\xb8\xa7: %s\n\n\xb7\xb9\xba\xa7:              \xc0\xcc\xc7\xcf",
-						pItem->Name),
-					false, true);
-			}
-			else
-			{
-				pLevel->SetBgImg(MakeStr("level_%03d", pItem->Level + 1));
-
-				pName->AddText(
-					MakeStr(
-						"\xc0\xcc\xb8\xa7: %s\n\n\xb7\xb9\xba\xa7:              \xc0\xcc\xbb\xf3",
-						pItem->Name),
-					false, true);
-			}
-		}
-
-		IFF_STRUCT::sDesc* pDesc = ItemManager()->FindDesc(pItem->TypeId);
-		if (pDesc)
-			pForm->SetMessage(pDesc->Desc, false);
-	}
-	else
-	{
-		FrEdit* pName = DYNAMIC_CAST(FrEdit, pForm->FindChildByName("name"));
-		if (pName)
-			pName->AddText(
-				"\xc0\xcc\xb8\xa7: \xba\xd2\xb8\xed\n\n\xb7\xb9\xba\xa7: \xba\xd2\xb8\xed",
-				false, true);
-
-		pForm->SetMessage(
-			"\xba\xa3\xc0\xcf\xbf\xa1 \xbd\xce\xc0\xce \xc1\xa4\xc3\xbc\xba\xd2\xb8\xed\xc0\xc7 \xc1\xb8\xc0\xe7",
-			false);
-	}
-
-	pForm->Open(NULL, FrESCAPE | FrENTER);
-}
-
-void CLobbyMain::OpenCreateInfo(unsigned long typeId, const char* text)
-{
+// lobbymain.cpp:9059
+void CLobbyMain::OpenCreateInfo(unsigned long id, const char* text) {
 	std::string message;
-	if (text)
+	if (text) {
 		message = text;
+	}
 
-	FrWnd* pWnd = g_pFresh->GetDesktop()->FindChildByName("information_large");
-	if (pWnd == NULL)
-		;
-	else
+	if (g_pFresh->GetManager()->GetDesktop()->FindChildByName("information_large")) {
 		return;
+	}
 
-	__rtti_obj = NULL;
-	FrForm* pForm =
-		CreateForm<FrForm>(g_pFresh->GetManager(), this, "information_large");
+	FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(), this, "information_large", 0);
 
-	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(typeId);
+	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(id);
 
-	FrArea* pPortrait =
-		DYNAMIC_CAST(FrArea, pForm->FindChildByName("portrait"));
-	if (pItem && pPortrait)
-		pPortrait->SetBgImg(pItem->Icon);
+	FrArea* pPortrait = DYNAMIC_CAST(FrArea, pForm->FindChildByName("portrait"));
+	if (pItem && pPortrait) {
+		pPortrait->SetBgImg(pItem->m_icon);
+	}
 
 	FrEdit* pName = DYNAMIC_CAST(FrEdit, pForm->FindChildByName("name"));
 	FrArea* pLevel = DYNAMIC_CAST(FrArea, pForm->FindChildByName("level"));
-	if (pItem)
-	{
-		if (pName && pLevel)
-		{
-			if (pItem->IsUnderLvl)
-			{
-				pLevel->SetBgImg(MakeStr("level_%03d", pItem->Level + 1));
-				pName->AddText(
-					MakeStr(
-						"\xc0\xcc\xb8\xa7: %s\n\n\xb7\xb9\xba\xa7:              \xc0\xcc\xc7\xcf",
-						pItem->Name),
-					false, true);
-			}
-			else
-			{
-				pLevel->SetBgImg(MakeStr("level_%03d", pItem->Level + 1));
-				pName->AddText(
-					MakeStr(
-						"\xc0\xcc\xb8\xa7: %s\n\n\xb7\xb9\xba\xa7:              \xc0\xcc\xbb\xf3",
-						pItem->Name),
-					false, true);
+	if (pItem) {
+		if (pName && pLevel) {
+			if (pItem->m_level & 0x80) {
+				pLevel->SetBgImg(MakeStr("level_%03d", (pItem->m_level & 0x7F) + 1));
+				pName->AddText(MakeStr("\xC0\xCC\xB8\xA7: %s\n\n\xB7\xB9\xBA\xA7:              \xC0\xCC\xC7\xCF", pItem->m_name), false, true); // CP949: "name: %s, level: ... and below"
+			} else {
+				pLevel->SetBgImg(MakeStr("level_%03d", (pItem->m_level & 0x7F) + 1));
+				pName->AddText(MakeStr("\xC0\xCC\xB8\xA7: %s\n\n\xB7\xB9\xBA\xA7:              \xC0\xCC\xBB\xF3", pItem->m_name), false, true); // CP949: "name: %s, level: ... and above"
 			}
 		}
 
-		if (text == NULL)
-		{
-			IFF_STRUCT::sDesc* pDesc = ItemManager()->FindDesc(pItem->TypeId);
-			if (pDesc)
-			{
-				if (message[0])
+		if (text == NULL) {
+			IFF_STRUCT::sDesc* pDesc = ItemManager()->FindDesc(pItem->m_typeId);
+			if (pDesc) {
+				if (message[0] != 0) {
 					message += "\n\n";
+				}
 
 				message += "\\c0xffff0000\\c";
-				message += pDesc->Desc;
+				message += pDesc->m_text;
 			}
 		}
 	}
 
 	pForm->SetMessage(message.c_str(), false);
-	pForm->Open(text ? (FRESH_PFN_RESULT)&CLobbyMain::OnCreateInfoResult : NULL,
-		FrESCAPE | FrENTER);
+	pForm->Open(text ? (FRESH_RESULT_CALLBACK)&CLobbyMain::OnCreateInfoResult : 0, 3);
 }
 
-void CLobbyMain::OpenCaddieInfo(const sCaddieInfo& info)
-{
-	FrWnd* pWnd =
-		g_pFresh->GetManager()->GetDesktop()->FindChildByName("caddie_info");
-	if (pWnd)
-		return;
-
-	__rtti_obj = NULL;
-	FrCaddieInfoDlg* pDlg = CreateForm<FrCaddieInfoDlg>(g_pFresh->GetManager(),
-		this, "caddie_info");
-	if (pDlg)
-	{
-		pDlg->SetCaddieInfo(info);
-		pDlg->Open(NULL, FrESCAPE | FrENTER);
-	}
-}
-
-int CLobbyMain::GetMedalIndex(unsigned long uid)
-{
-	if (Doc()->m_rivalList.size() < 10)
-		return 3;
-
-	unsigned char index = Doc()->GetIndex(uid);
-	if (index == 0xff || Doc()->m_rivalList[index].flag > 3)
-		return 3;
-
-	unsigned char rank = Doc()->m_rivalList[index].rank;
-	unsigned char memberCount = 0;
-	unsigned char upperCount = 0;
-	unsigned char intrusionCount = 0;
-
-	if (IsLocalContent(S3_INTRUSION))
-		intrusionCount = CIntrusion::Instance()->GetCalcExpMemberSize();
-
-	if (intrusionCount == 0)
-	{
-		for (std::vector<sRivalData>::iterator it = Doc()->m_rivalList.begin();
-			it != Doc()->m_rivalList.end(); it++)
-		{
-			if ((it->state == 3 && GetHoleIndex(it->hole) >= 4) ||
-				it->state != 3)
-				memberCount++;
-
-			if (it->state != 3 && it->rank < rank && it->flag > 3)
-				upperCount++;
-		}
-	}
-	else
-	{
-		memberCount = intrusionCount;
-		for (std::vector<sRivalData>::iterator it = Doc()->m_rivalList.begin();
-			it != Doc()->m_rivalList.end(); it++)
-		{
-			if (it->state != 3 && it->rank < rank && it->flag > 3)
-				upperCount++;
-		}
-	}
-
-	rank -= upperCount;
-
-	if (Doc()->m_golfGame.holes == 9)
-	{
-		if (memberCount <= 14)
-			return 3;
-		else if (memberCount <= 18)
-		{
-			if (rank == 1)
-				return 2;
-		}
-		else if (memberCount <= 22)
-		{
-			if (rank == 1)
-				return 1;
-		}
-		else if (memberCount <= 26)
-		{
-			if (rank == 1)
-				return 1;
-			if (rank == 2)
-				return 2;
-		}
-		else
-		{
-			if (rank == 1)
-				return 0;
-			if (rank == 2)
-				return 1;
-		}
-	}
-	else if (Doc()->m_golfGame.holes == 18)
-	{
-		if (memberCount <= 14)
-		{
-			if (rank == 1)
-				return 2;
-		}
-		else if (memberCount <= 18)
-		{
-			if (rank == 1)
-				return 1;
-			if (rank == 2)
-				return 2;
-		}
-		else if (memberCount <= 22)
-		{
-			if (rank == 1)
-				return 0;
-			if (rank == 2)
-				return 1;
-			if (rank == 3)
-				return 2;
-		}
-		else if (memberCount <= 26)
-		{
-			if (rank == 1)
-				return 0;
-			if (rank == 2)
-				return 1;
-			if (rank <= 4)
-				return 2;
-		}
-		else
-		{
-			if (rank == 1)
-				return 0;
-			if (rank <= 3)
-				return 1;
-			if (rank <= 6)
-				return 2;
-		}
-	}
-
-	return 3;
-}
-
-bool CLobbyMain::LatestVersion()
-{
-	if (Doc()->m_packetNickname > "645.00")
-	{
-		this << MsgObject(this, 35,
-			(int)"\xc3\xd6\xbd\xc5 \xb9\xf6\xc1\xaf\xc0\xb8\xb7\xce \xbe\xf7\xb5\xa5\xc0\xcc\xc6\xae\xb0\xa1 \xc7\xca\xbf\xe4\xc7\xd5\xb4\xcf\xb4\xd9.",
-			0, 0, 0, 0);
+// lobbymain.cpp:9273
+bool CLobbyMain::LatestVersion(void) {
+	if (CSharedDoc::Instance()->m_latestVersion == "645.00") {
+		this << MsgObject(this, 0x23, (intptr_t)"\xC3\xD6\xBD\xC5 \xB9\xF6\xC1\xAF\xC0\xB8\xB7\xCE \xBE\xF7\xB5\xA5\xC0\xCC\xC6\xAE\xB0\xA1 \xC7\xCA\xBF\xE4\xC7\xD5\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
 		return false;
 	}
 
 	return true;
 }
 
-bool RoomStateCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9308
+bool RoomStateCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	if (pRoom1->bPublic == false && pRoom2->bPublic == true)
+	if (pLhs->m_isPublic == 0 && pRhs->m_isPublic == 1) {
 		return false;
-
-	if (pRoom1->bPublic == true && pRoom2->bPublic == false)
+	}
+	if (pLhs->m_isPublic == 1 && pRhs->m_isPublic == 0) {
 		return true;
-
-	if (pRoom1->bAvailable == false && pRoom2->bAvailable == true)
+	}
+	if (pLhs->m_intrusionAccess == 0 && pRhs->m_intrusionAccess == 1) {
 		return false;
-
-	if (pRoom1->bAvailable == true && pRoom2->bAvailable == false)
+	}
+	if (pLhs->m_intrusionAccess == 1 && pRhs->m_intrusionAccess == 0) {
 		return true;
-
-	if (pRoom1->bAvailable == true && pRoom2->bAvailable == true)
-	{
-		if (pRoom1->nUserNum == pRoom1->nUserLimit &&
-			pRoom2->nUserNum < pRoom2->nUserLimit)
+	}
+	if (pLhs->m_intrusionAccess == 1 && pRhs->m_intrusionAccess == 1) {
+		if (pLhs->m_userCount == pLhs->m_userLimit && pRhs->m_userCount < pRhs->m_userLimit) {
 			return false;
-
-		if (pRoom1->nUserNum < pRoom1->nUserLimit &&
-			pRoom2->nUserNum == pRoom2->nUserLimit)
+		}
+		if (pLhs->m_userCount < pLhs->m_userLimit && pRhs->m_userCount == pRhs->m_userLimit) {
 			return true;
-
-		if (pRoom1->bSleep == true && pRoom2->bSleep == false)
+		}
+		if (pLhs->m_option[0] == 1 && pRhs->m_option[0] == 0) {
 			return false;
-
-		if (pRoom1->bSleep == false && pRoom2->bSleep == true)
+		}
+		if (pLhs->m_option[0] == 0 && pRhs->m_option[0] == 1) {
 			return true;
-
-		if (pRoom1->bIntrusion == false && pRoom2->bIntrusion == true)
+		}
+		if (pLhs->m_state == 0 && pRhs->m_state == 1) {
 			return false;
-
-		if (pRoom1->bIntrusion == true && pRoom2->bIntrusion == false)
+		}
+		if (pLhs->m_state == 1 && pRhs->m_state == 0) {
 			return true;
+		}
 	}
 
 	return false;
 }
 
-bool RoomStateRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9374
+bool RoomStateRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
-		return true;
-
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
-
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
-		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
-	{
-		if (pRoom2->bPublic == false && pRoom1->bPublic == true)
-			return true;
-
+	}
+	if (!rhs) {
 		return true;
 	}
 
-	if (pRoom2->bPublic == false && pRoom1->bPublic == true)
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
+
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom2->bPublic == true && pRoom1->bPublic == false)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	if (pRoom2->bAvailable == false && pRoom1->bAvailable == true)
+	if (pRhs->m_isPublic == 0 && pLhs->m_isPublic == 1) {
 		return false;
-
-	if (pRoom2->bAvailable == true && pRoom1->bAvailable == false)
+	}
+	if (pRhs->m_isPublic == 1 && pLhs->m_isPublic == 0) {
 		return true;
-
-	if (pRoom2->bAvailable == true && pRoom1->bAvailable == true)
-	{
-		if (pRoom2->nUserNum == pRoom2->nUserLimit &&
-			pRoom1->nUserNum < pRoom1->nUserLimit)
+	}
+	if (pRhs->m_intrusionAccess == 0 && pLhs->m_intrusionAccess == 1) {
+		return false;
+	}
+	if (pRhs->m_intrusionAccess == 1 && pLhs->m_intrusionAccess == 0) {
+		return true;
+	}
+	if (pRhs->m_intrusionAccess == 1 && pLhs->m_intrusionAccess == 1) {
+		if (pRhs->m_userCount == pRhs->m_userLimit && pLhs->m_userCount < pLhs->m_userLimit) {
 			return false;
-
-		if (pRoom2->nUserNum < pRoom2->nUserLimit &&
-			pRoom1->nUserNum == pRoom1->nUserLimit)
+		}
+		if (pRhs->m_userCount < pRhs->m_userLimit && pLhs->m_userCount == pLhs->m_userLimit) {
 			return true;
-
-		if (pRoom2->bSleep == true && pRoom1->bSleep == false)
+		}
+		if (pRhs->m_option[0] == 1 && pLhs->m_option[0] == 0) {
 			return false;
-
-		if (pRoom2->bSleep == false && pRoom1->bSleep == true)
+		}
+		if (pRhs->m_option[0] == 0 && pLhs->m_option[0] == 1) {
 			return true;
-
-		if (pRoom2->bIntrusion == false && pRoom1->bIntrusion == true)
+		}
+		if (pRhs->m_state == 0 && pLhs->m_state == 1) {
 			return false;
-
-		if (pRoom2->bIntrusion == true && pRoom1->bIntrusion == false)
+		}
+		if (pRhs->m_state == 1 && pLhs->m_state == 0) {
 			return true;
+		}
 	}
 
 	return false;
 }
 
-bool RoomNoCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9440
+bool RoomNoCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	return pRoom1->roomGuid < pRoom2->roomGuid;
+	return pLhs->m_roomNumber < pRhs->m_roomNumber;
 }
 
-bool RoomNoRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9472
+bool RoomNoRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	return pRoom1->roomGuid > pRoom2->roomGuid;
+	return pLhs->m_roomNumber > pRhs->m_roomNumber;
 }
 
-bool RoomHoleCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9504
+bool RoomHoleCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	return pRoom1->nHole < pRoom2->nHole;
+	return pLhs->m_holeCount < pRhs->m_holeCount;
 }
 
-bool RoomHoleRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9537
+bool RoomHoleRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	return pRoom1->nHole > pRoom2->nHole;
+	return pLhs->m_holeCount > pRhs->m_holeCount;
 }
 
-bool RoomCourseCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9570
+bool RoomCourseCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	return pRoom1->mapType < pRoom2->mapType;
+	return pLhs->m_course < pRhs->m_course;
 }
 
-bool RoomCourseRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9602
+bool RoomCourseRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit != 100 && pRoom2->nUserLimit == 100)
+	// Lounge-sized rooms first.
+	if (pLhs->m_userLimit != 100 && pRhs->m_userLimit == 100) {
 		return false;
-
-	if (pRoom1->nUserLimit == 100 && pRoom2->nUserLimit != 100)
+	}
+	if (pLhs->m_userLimit == 100 && pRhs->m_userLimit != 100) {
 		return true;
+	}
 
-	return pRoom1->mapType > pRoom2->mapType;
+	return pLhs->m_course > pRhs->m_course;
 }
 
-bool RoomTitleCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9634
+bool RoomTitleCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	return lstrcmpi(pRoom1->title, pRoom2->title) < 0;
+	return lstrcmpiA(pLhs->m_title, pRhs->m_title) < 0;
 }
 
-bool RoomTitleRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9651
+bool RoomTitleRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	return lstrcmpi(pRoom1->title, pRoom2->title) > 0;
+	return lstrcmpiA(pLhs->m_title, pRhs->m_title) > 0;
 }
 
-bool RoomGameTypeCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9668
+bool RoomGameTypeCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->gameType == pRoom2->gameType)
-		return pRoom1->tidMatch > pRoom2->tidMatch;
+	if (pLhs->m_gameType == pRhs->m_gameType) {
+		return pLhs->m_trophy > pRhs->m_trophy;
+	}
 
-	return pRoom1->gameType < pRoom2->gameType;
+	return pLhs->m_gameType < pRhs->m_gameType;
 }
 
-bool RoomGameTypeRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9688
+bool RoomGameTypeRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->gameType == pRoom2->gameType)
-		return pRoom1->tidMatch > pRoom2->tidMatch;
+	if (pLhs->m_gameType == pRhs->m_gameType) {
+		return pLhs->m_trophy > pRhs->m_trophy;
+	}
 
-	return pRoom1->gameType > pRoom2->gameType;
+	return pLhs->m_gameType > pRhs->m_gameType;
 }
 
-bool RoomUserCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9708
+bool RoomUserCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit > pRoom2->nUserLimit)
+	if (pLhs->m_userLimit > pRhs->m_userLimit) {
 		return false;
-
-	if (pRoom1->nUserLimit < pRoom2->nUserLimit)
+	}
+	if (pLhs->m_userLimit < pRhs->m_userLimit) {
 		return true;
+	}
 
-	return pRoom1->nUserNum <= pRoom2->nUserNum ? true : false;
+	return pLhs->m_userCount <= pRhs->m_userCount ? true : false;
 }
 
-bool RoomUserRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9734
+bool RoomUserRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)b;
+	const sRoomInfo* pLhs = (const sRoomInfo*)lhs;
+	const sRoomInfo* pRhs = (const sRoomInfo*)rhs;
 
-	if (pRoom1->nUserLimit > pRoom2->nUserLimit)
+	if (pLhs->m_userLimit > pRhs->m_userLimit) {
 		return true;
-
-	if (pRoom1->nUserLimit < pRoom2->nUserLimit)
+	}
+	if (pLhs->m_userLimit < pRhs->m_userLimit) {
 		return false;
+	}
 
-	return pRoom1->nUserNum <= pRoom2->nUserNum ? true : false;
+	return pLhs->m_userCount <= pRhs->m_userCount ? true : false;
 }
 
-bool RoomGuildCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9782
+bool UserGenderCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sRoomInfo* pRoom1 = (const sRoomInfo*)a;
-	const sRoomInfo* pRoom2 = (const sRoomInfo*)a;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	int g0 = pRoom1->GuildInfo.nGuildID[0];
-	int g1 = pRoom1->GuildInfo.nGuildID[1];
-	int myGuild = Doc()->m_myInfo.info.dwGuildId;
-
-	return min(Abs(g0 - myGuild), Abs(g1 - myGuild)) >
-		min(Abs(g0 - myGuild), Abs(g1 - myGuild));
+	return pLhs->charType < pRhs->charType;
 }
 
-bool UserGenderCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9799
+bool UserGenderRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	return pUser1->gender < pUser2->gender;
+	return pLhs->charType > pRhs->charType;
 }
 
-bool UserGenderRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9816
+bool UserLevelCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	return pUser1->gender > pUser2->gender;
+	return pLhs->level < pRhs->level;
 }
 
-bool UserLevelCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9833
+bool UserLevelRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	return pUser1->level < pUser2->level;
+	return pLhs->level > pRhs->level;
 }
 
-bool UserLevelRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9886
+bool UserGuildCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	return pUser1->level > pUser2->level;
+	return pLhs->guildUID < pRhs->guildUID;
 }
 
-bool UserGuildCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9903
+bool UserGuildRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	return pUser1->m_GuildId < pUser2->m_GuildId;
+	return pLhs->guildUID > pRhs->guildUID;
 }
 
-bool UserGuildRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9920
+bool UserNicknameCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	return pUser1->m_GuildId > pUser2->m_GuildId;
+	return lstrcmpiA(pLhs->nick, pRhs->nick) < 0;
 }
 
-bool UserNicknameCompare(const void* a, const void* b)
-{
-	if (a == NULL)
+// lobbymain.cpp:9937
+bool UserNicknameRevCompare(const void* lhs, const void* rhs) {
+	if (!lhs) {
 		return false;
-
-	if (b == NULL)
+	}
+	if (!rhs) {
 		return true;
+	}
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	const sBriefUserInfo* pLhs = (const sBriefUserInfo*)lhs;
+	const sBriefUserInfo* pRhs = (const sBriefUserInfo*)rhs;
 
-	return lstrcmpi(pUser1->sNick, pUser2->sNick) < 0;
+	return lstrcmpiA(pLhs->nick, pRhs->nick) > 0;
 }
 
-bool UserNicknameRevCompare(const void* a, const void* b)
-{
-	if (a == NULL)
-		return false;
+// lobbymain.cpp:9954
+void CLobbyMain::RoomList_LoadRoomImages(void) {
+	m_roomListBoxBmp[0][0] = g_pFresh->RegisterBitmap("roomlistbox_n_01");
+	m_roomListBoxBmp[1][0] = g_pFresh->RegisterBitmap("roomlistbox_n_02");
+	m_roomListBoxBmp[2][0] = g_pFresh->RegisterBitmap("roomlistbox_n_03");
+	m_roomListBoxBmp[0][1] = g_pFresh->RegisterBitmap("roomlistbox_o_01");
+	m_roomListBoxBmp[1][1] = g_pFresh->RegisterBitmap("roomlistbox_o_02");
+	m_roomListBoxBmp[2][1] = g_pFresh->RegisterBitmap("roomlistbox_o_03");
+	m_roomListBoxBmp[0][2] = g_pFresh->RegisterBitmap("roomlistbox_d_01");
+	m_roomListBoxBmp[1][2] = g_pFresh->RegisterBitmap("roomlistbox_d_02");
+	m_roomListBoxBmp[2][2] = g_pFresh->RegisterBitmap("roomlistbox_d_03");
+	m_roomListBoxBmp[0][3] = g_pFresh->RegisterBitmap("roomlistbox_e_01");
+	m_roomListBoxBmp[1][3] = g_pFresh->RegisterBitmap("roomlistbox_e_02");
+	m_roomListBoxBmp[2][3] = g_pFresh->RegisterBitmap("roomlistbox_e_03");
 
-	if (b == NULL)
-		return true;
+	m_roomSortNoBmp[0] = g_pFresh->RegisterBitmap("room_sort_no_n");
+	m_roomSortNoBmp[1] = g_pFresh->RegisterBitmap("room_sort_no_o");
+	m_roomSortNoBmp[2] = g_pFresh->RegisterBitmap("room_sort_no_d");
+	m_roomSortCateBmp[0] = g_pFresh->RegisterBitmap("room_sort_cate_n_down");
+	m_roomSortCateBmp[1] = g_pFresh->RegisterBitmap("room_sort_cate_o");
+	m_roomSortCateBmp[2] = g_pFresh->RegisterBitmap("room_sort_cate_d");
+	m_roomSortHoleBmp[0] = g_pFresh->RegisterBitmap("room_sort_hole_n");
+	m_roomSortHoleBmp[1] = g_pFresh->RegisterBitmap("room_sort_hole_o");
+	m_roomSortHoleBmp[2] = g_pFresh->RegisterBitmap("room_sort_hole_d");
+	m_roomSortCourseBmp[0] = g_pFresh->RegisterBitmap("room_sort_course_n");
+	m_roomSortCourseBmp[1] = g_pFresh->RegisterBitmap("room_sort_course_o");
+	m_roomSortCourseBmp[2] = g_pFresh->RegisterBitmap("room_sort_course_d");
+	m_roomSortStateBmp[0] = g_pFresh->RegisterBitmap("room_sort_state_up_n");
+	m_roomSortStateBmp[1] = g_pFresh->RegisterBitmap("room_sort_state_up_o");
+	m_roomSortStateBmp[2] = g_pFresh->RegisterBitmap("room_sort_state_up_d");
+	m_roomSortStateBmp[3] = g_pFresh->RegisterBitmap("room_sort_state_dn_n");
+	m_roomSortStateBmp[4] = g_pFresh->RegisterBitmap("room_sort_state_dn_o");
+	m_roomSortStateBmp[5] = g_pFresh->RegisterBitmap("room_sort_state_dn_d");
 
-	const sBriefUserInfo* pUser1 = (const sBriefUserInfo*)a;
-	const sBriefUserInfo* pUser2 = (const sBriefUserInfo*)b;
+	m_genderBmp[0][0] = g_pFresh->RegisterBitmap("i_male");
+	m_genderBmp[0][1] = g_pFresh->RegisterBitmap("i_female");
+	m_genderBmp[1][0] = g_pFresh->RegisterBitmap("i_male_02");
+	m_genderBmp[1][1] = g_pFresh->RegisterBitmap("i_female_02");
+	m_genderBmp[2][0] = g_pFresh->RegisterBitmap("i_male_03");
+	m_genderBmp[2][1] = g_pFresh->RegisterBitmap("i_female_03");
 
-	return lstrcmpi(pUser1->sNick, pUser2->sNick) > 0;
+	m_genderMannerBmp[0] = g_pFresh->RegisterBitmap("i_male_manner");
+	m_genderMannerBmp[1] = g_pFresh->RegisterBitmap("i_female_manner");
+
+	m_genderAngelBmp[0] = g_pFresh->RegisterBitmap("i_male_angel");
+	m_genderAngelBmp[1] = g_pFresh->RegisterBitmap("i_female_angel");
+
+	m_userSortGenderBmp[0] = g_pFresh->RegisterBitmap("user_sort_gender_normal");
+	m_userSortGenderBmp[1] = g_pFresh->RegisterBitmap("user_sort_gender_over");
+	m_userSortGenderBmp[2] = g_pFresh->RegisterBitmap("user_sort_gender_click");
+	m_userSortLevelBmp[0] = g_pFresh->RegisterBitmap("user_sort_level_normal");
+	m_userSortLevelBmp[1] = g_pFresh->RegisterBitmap("user_sort_level_over");
+	m_userSortLevelBmp[2] = g_pFresh->RegisterBitmap("user_sort_level_click");
+
+	m_userSortGuildBmp[0] = g_pFresh->RegisterBitmap("user_sort_guild_normal");
+	m_userSortGuildBmp[1] = g_pFresh->RegisterBitmap("user_sort_guild_over");
+	m_userSortGuildBmp[2] = g_pFresh->RegisterBitmap("user_sort_guild_click");
+	m_userSortNickBmp[0] = g_pFresh->RegisterBitmap("user_sort_nick_normal");
+	m_userSortNickBmp[1] = g_pFresh->RegisterBitmap("user_sort_nick_over");
+	m_userSortNickBmp[2] = g_pFresh->RegisterBitmap("user_sort_nick_click");
+
+	m_userSortArrowBmp[0] = g_pFresh->RegisterBitmap("user_sort_up");
+	m_userSortArrowBmp[1] = g_pFresh->RegisterBitmap("user_sort_down");
+
+	m_roomImage = g_pFresh->RegisterBitmap("ingame");
 }
 
-void CLobbyMain::RoomList_LoadRoomImages()
-{
-	m_pRoomListBoxBmp[0][0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_n_01");
-	m_pRoomListBoxBmp[1][0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_n_02");
-	m_pRoomListBoxBmp[2][0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_n_03");
-	m_pRoomListBoxBmp[0][1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_o_01");
-	m_pRoomListBoxBmp[1][1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_o_02");
-	m_pRoomListBoxBmp[2][1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_o_03");
-	m_pRoomListBoxBmp[0][2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_d_01");
-	m_pRoomListBoxBmp[1][2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_d_02");
-	m_pRoomListBoxBmp[2][2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_d_03");
-	m_pRoomListBoxBmp[0][3] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_e_01");
-	m_pRoomListBoxBmp[1][3] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_e_02");
-	m_pRoomListBoxBmp[2][3] =
-		(Bitmap*)g_pFresh->RegisterBitmap("roomlistbox_e_03");
-
-	m_pRoomSortNoBmp[0] = (Bitmap*)g_pFresh->RegisterBitmap("room_sort_no_n");
-	m_pRoomSortNoBmp[1] = (Bitmap*)g_pFresh->RegisterBitmap("room_sort_no_o");
-	m_pRoomSortNoBmp[2] = (Bitmap*)g_pFresh->RegisterBitmap("room_sort_no_d");
-	m_pRoomSortCateBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_cate_n_down");
-	m_pRoomSortCateBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_cate_o");
-	m_pRoomSortCateBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_cate_d");
-	m_pRoomSortHoleBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_hole_n");
-	m_pRoomSortHoleBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_hole_o");
-	m_pRoomSortHoleBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_hole_d");
-	m_pRoomSortCourseBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_course_n");
-	m_pRoomSortCourseBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_course_o");
-	m_pRoomSortCourseBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_course_d");
-	m_pRoomSortStateUpBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_state_up_n");
-	m_pRoomSortStateUpBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_state_up_o");
-	m_pRoomSortStateUpBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_state_up_d");
-	m_pRoomSortStateDnBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_state_dn_n");
-	m_pRoomSortStateDnBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_state_dn_o");
-	m_pRoomSortStateDnBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("room_sort_state_dn_d");
-
-	m_pGenderBmp[0] = (Bitmap*)g_pFresh->RegisterBitmap("i_male");
-	m_pGenderBmp[1] = (Bitmap*)g_pFresh->RegisterBitmap("i_female");
-	m_pGenderBmp[2] = (Bitmap*)g_pFresh->RegisterBitmap("i_male_02");
-	m_pGenderBmp[3] = (Bitmap*)g_pFresh->RegisterBitmap("i_female_02");
-	m_pGenderBmp[4] = (Bitmap*)g_pFresh->RegisterBitmap("i_male_03");
-	m_pGenderBmp[5] = (Bitmap*)g_pFresh->RegisterBitmap("i_female_03");
-
-	m_pGenderBmp[6] = (Bitmap*)g_pFresh->RegisterBitmap("i_male_manner");
-	m_pGenderBmp[7] = (Bitmap*)g_pFresh->RegisterBitmap("i_female_manner");
-
-	m_pGenderBmp[8] = (Bitmap*)g_pFresh->RegisterBitmap("i_male_angel");
-	m_pGenderBmp[9] = (Bitmap*)g_pFresh->RegisterBitmap("i_female_angel");
-
-	m_pUserSortGenderBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_gender_normal");
-	m_pUserSortGenderBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_gender_over");
-	m_pUserSortGenderBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_gender_click");
-	m_pUserSortLevelBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_level_normal");
-	m_pUserSortLevelBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_level_over");
-	m_pUserSortLevelBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_level_click");
-
-	m_pUserSortGuildBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_guild_normal");
-	m_pUserSortGuildBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_guild_over");
-	m_pUserSortGuildBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_guild_click");
-	m_pUserSortNickBmp[0] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_nick_normal");
-	m_pUserSortNickBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_nick_over");
-	m_pUserSortNickBmp[2] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_nick_click");
-
-	m_pUserSortArrowBmp[0] = (Bitmap*)g_pFresh->RegisterBitmap("user_sort_up");
-	m_pUserSortArrowBmp[1] =
-		(Bitmap*)g_pFresh->RegisterBitmap("user_sort_down");
-
-	m_pInGameBmp = (Bitmap*)g_pFresh->RegisterBitmap("ingame");
-}
-
-void CLobbyMain::OnRoomList_Init(int param)
-{
+// lobbymain.cpp:10044
+void CLobbyMain::OnRoomList_Init(int param) {
 	CTaskMain::OnInit();
 
-	Doc()->m_roomInfo.gameType = 16;
+	WSingleton<CSharedDoc>::Instance()->m_roomInfo.m_gameType = 0x10;
 
-	Doc()->m_roomInfo.realGameType = 16;
+	WSingleton<CSharedDoc>::Instance()->m_roomInfo.m_roomMode = 0x10;
 
 	RoomList_LoadRoomImages();
 
-	_ISkinnedTheme* pTheme = S5::THEME::GetCurrentSkinnedTheme();
-	g_pFresh->GetManager()->GetDesktop()->SetWallPaper(
-		pTheme->GetRoomListBackGroundImgName(), true);
+	_ISkinnedTheme* theme = S5::THEME::GetCurrentSkinnedTheme();
+	g_pFresh->GetDesktop()->SetWallPaper(theme->GetRoomListBackGroundImgName(), true);
 
 	SetTimeVariableBGM();
 	TurnOff3DBackground();
 
-	for (std::map<unsigned long, sRoomSlot>::iterator it =
-			 Doc()->m_roomSlotMap.begin();
-		it != Doc()->m_roomSlotMap.end(); ++it)
-	{
-		if (it->second.pExhibition)
-		{
-			delete it->second.pExhibition;
-			it->second.pExhibition = NULL;
-		}
+	std::map<unsigned long, sRoomSlot>::iterator it;
+	for (it = CSharedDoc::Instance()->m_roomSlotMap.begin(); it != CSharedDoc::Instance()->m_roomSlotMap.end(); ++it) {
+		if (it->second.m_pPet) { delete it->second.m_pPet; it->second.m_pPet = NULL; }
 	}
-	Doc()->m_roomSlotMap.clear();
+	CSharedDoc::Instance()->m_roomSlotMap.clear();
 
-	if (IsLocalContent(S4_UCC))
-	{
-		NetResourceManager::Instance()->SetClearGarbage();
+	if (IsLocalContent((localContentType_t)0x57)) {
+		WSingleton<NetResourceManager>::Instance()->SetClearGarbage();
 	}
 
-	if (!((float)Doc()->m_myInfo.stat.dwNoMannerGameCount /
-				(float)(Doc()->m_myInfo.stat.dwGameCount < 1
-						? 1
-						: Doc()->m_myInfo.stat.dwGameCount) *
-				100.0f <
-			3.0f))
-	{
-		CPartTidList& partTidList = Doc()->GetMyPartTidList();
-		sCharacterInfo& charInfo =
-			Doc()->m_charMap[Doc()->m_myInfo.userEquip.guidChar];
+	CSharedDoc* doc = WSingleton<CSharedDoc>::Instance();
+	unsigned long games = doc->m_myStatGamesPlayed;
+	if (games < 1) games = 1;
+	if ((float)doc->m_myStatNoMannerGames / (float)games * 100.0f >= 3.0f) {
+		CPartTidList& partTidList = doc->GetMyPartTidList();
+		sCharacterInfo& info = WSingleton<CSharedDoc>::Instance()->m_characterMap[WSingleton<CSharedDoc>::Instance()->m_myCharacterId];
 
-		for (int i = 0; i < partTidList.m_partNum; i++)
-		{
-			switch (charInfo.tidParts[i])
-			{
+		for (int i = 0; i < partTidList.m_numTotalParts; i++) {
+			switch (info.partTypeIds[i]) {
 			case 0x8016800:
 			case 0x8058800:
 			case 0x8098800:
-			case 0x80dc800:
+			case 0x80DC800:
 			case 0x8118800:
 			case 0x8160800:
 			case 0x8190800:
-			case 0x81e2800:
+			case 0x81E2800:
 			case 0x8214800:
 			case 0x8254800:
-				charInfo.tidParts[i] = 0;
-				charInfo.ItemIdList[i] = 0;
+				info.partTypeIds[i] = 0;
+				info.partIds[i] = 0;
 			}
 
-			switch (partTidList.m_tid[i])
-			{
+			switch (partTidList.m_partTids[i]) {
 			case 0x8016800:
 			case 0x8058800:
 			case 0x8098800:
-			case 0x80dc800:
+			case 0x80DC800:
 			case 0x8118800:
 			case 0x8160800:
 			case 0x8190800:
-			case 0x81e2800:
+			case 0x81E2800:
 			case 0x8214800:
 			case 0x8254800:
-				partTidList.m_tid[i] = 0;
+				partTidList.m_partTids[i] = 0;
 			}
 		}
 	}
 
 	m_roomSort = (roomSort_t)6;
-	m_bRoomSortRev = false;
-}
-void CLobbyMain::OnRoomList_Finish()
-{
-	m_pOverBarTitle->SetBgImg("title_roomlist");
-
-	if (Doc()->m_bRefreshCamera)
-		HandleMsg(MsgObject(NULL, 0xaa, 1, 0, 0, 0, 0));
+	m_roomSortPending = false;
 }
 
-void CLobbyMain::OnRoomList_Destroy()
-{
+// lobbymain.cpp:10101
+void CLobbyMain::OnRoomList_Finish(void) {
+	m_titleArea->SetBgImg("title_roomlist");
+
+	if (WSingleton<CSharedDoc>::Instance()->m_tutorialFinish) {
+		this << MsgObject(0, 0xAA, 1, 0, 0, 0, 0);
+	}
 }
 
-void CLobbyMain::OnRoomList_RoomListInit(int param)
-{
-	m_pRoomList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pRoomList)
-	{
-		m_pRoomList->UseDummy(true);
-		m_pRoomList->UseRightButton(true);
+// lobbymain.cpp:10110
+void CLobbyMain::OnRoomList_Destroy(void) {
+}
 
-		if (s_roomGameType != -1)
-		{
+// lobbymain.cpp:10114
+void CLobbyMain::OnRoomList_RoomListInit(intptr_t param) {
+	m_roomListBox = DYNAMIC_CAST(FrListBox, param);
+	if (m_roomListBox) {
+		m_roomListBox->UseDummy(true);
+		m_roomListBox->UseRightButton(true);
+
+		if (data_aa9eac[3] != -1) {
 			std::list<sRoomInfo>::iterator it;
-			for (it = Doc()->m_roomList.begin(); it != Doc()->m_roomList.end();
-				it++)
-			{
-				if ((*it).gameType == s_roomGameType)
-					m_pRoomList->AddItem(&(*it));
+			for (it = WSingleton<CSharedDoc>::Instance()->m_roomList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_roomList.end(); ++it) {
+				if (it->m_gameType == data_aa9eac[3]) {
+					m_roomListBox->AddItem(&*it);
+				}
 			}
-		}
-		else
-		{
+		} else {
 			std::list<sRoomInfo>::iterator it;
-			for (it = Doc()->m_roomList.begin(); it != Doc()->m_roomList.end();
-				it++)
-			{
-				if (GetCateByGameType((*it).gameType) == s_roomCate ||
-					s_roomCate == 4)
-					m_pRoomList->AddItem(&(*it));
-			}
-		}
-
-		HandleMsg(MsgObject(NULL, 13, 0, 0, 0, 0, 0));
-	}
-}
-
-const char* RoomListGetGameCategory(unsigned char gameType)
-{
-	switch (gameType)
-	{
-	case GAME_TYPE_STROKE:
-	case GAME_TYPE_TEAM:
-		return K2L_Compatibility("\xb4\xeb\xc0\xfc");
-
-	case GAME_TYPE_30S:
-	case GAME_TYPE_30S_TEAM:
-	case GAME_TYPE_GUILD_MATCH:
-		return K2L_Compatibility("\xb4\xeb\xc8\xb8");
-
-	case GAME_TYPE_SKINS:
-	case GAME_TYPE_APPROACH:
-	case GAME_TYPE_NEW_APPROACH:
-		return K2L_Compatibility("\xb9\xe8\xc6\xb2");
-
-	case GAME_TYPE_AVATARCHAT:
-		return K2L_Compatibility("\xb4\xeb\xc8\xad");
-	default:
-		return NULL;
-	}
-}
-
-unsigned long DecideRoomColor(sRoomInfo* pRoom)
-{
-	if (pRoom->bAvailable && pRoom->bPublic)
-	{
-		if (pRoom->realGameType != 14)
-		{
-			if (!pRoom->bIntrusion)
-				return 0xffffffff;
-			else
-				return WSingleton<CIntrusion>::Instance()->GetActiveColor();
-		}
-		else
-			return 0;
-	}
-	else
-		return pRoom->realGameType == 14 ? 0 : 0xb2ffffff;
-}
-
-void CLobbyMain::OnRoomList_RoomListOwnerDraw(int param)
-{
-	FrListItem* pItem = (FrListItem*)param;
-	if (!pItem)
-		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (!pGDI)
-		return;
-
-	sRoomInfo* pRoom = (sRoomInfo*)pItem->pData;
-
-	int state = 0;
-	unsigned long color = 0x37ffffff;
-
-	if (pRoom)
-	{
-		if (pItem->selected)
-		{
-			state = 2;
-		}
-		else if (pItem->underCursor)
-		{
-			state = 1;
-		}
-
-		if (pRoom->bAvailable && pRoom->bPublic)
-		{
-			if (pRoom->bIntrusion)
-				color = WSingleton<CIntrusion>::Instance()->GetActiveColor();
-			else
-				color = 0xffffffff;
-		}
-		else
-			color = 0xb2ffffff;
-
-		if (pRoom->realGameType == 14)
-		{
-			if (pRoom->bAvailable && pRoom->bPublic)
-				color &= 0xffdd77ff;
-			else
-				color &= 0xffcc66dd;
-		}
-	}
-
-	pGDI->DrawTexture(m_pRoomListBoxBmp[0][state],
-		WRect(pItem->pos.x, pItem->pos.y, 40.0f, 48.0f), color, 0);
-	pGDI->DrawTexture(m_pRoomListBoxBmp[1][state],
-		WRect(pItem->pos.x + 40.0f, pItem->pos.y, 438.0f, 48.0f), color, 0);
-	pGDI->DrawTexture(m_pRoomListBoxBmp[2][state],
-		WRect(pItem->pos.x + 478.0f, pItem->pos.y, 40.0f, 48.0f), color, 0);
-
-	if (!pRoom)
-		return;
-
-	if (pItem->selected)
-	{
-		pGDI->DrawTexture(m_pRoomListBoxBmp[0][3],
-			WRect(pItem->pos.x, pItem->pos.y, 40.0f, 48.0f), 0xffffffff, 0);
-		pGDI->DrawTexture(m_pRoomListBoxBmp[1][3],
-			WRect(pItem->pos.x + 40.0f, pItem->pos.y, 438.0f, 48.0f),
-			0xffffffff, 0);
-		pGDI->DrawTexture(m_pRoomListBoxBmp[2][3],
-			WRect(pItem->pos.x + 478.0f, pItem->pos.y, 40.0f, 48.0f),
-			0xffffffff, 0);
-	}
-
-	if (pRoom->nUserLimit >= 100)
-	{
-		if (!m_pRoomEventBmp)
-			m_pRoomEventBmp = (Bitmap*)g_pFresh->GetBitmap("room_event");
-		if (m_pRoomEventBmp)
-			pGDI->DrawTexture(m_pRoomEventBmp,
-				WRect(pItem->pos.x + 7.0f, pItem->pos.y + 3.0f, 43.0f, 38.0f),
-				0xffffffff, 0);
-
-		pGDI->SetTextStyle(1);
-		pGDI->SetTextColor(0xff47a5dd, 0xffffffff);
-	}
-	else
-	{
-		Print(pItem->pos.x + 17.0f, pItem->pos.y + 18.0f,
-			MakeStr("%03d", pRoom->roomGuid), 0.0f, 0, 1.0f, 0xffffb258);
-		pGDI->SetTextColor(0xff000000, 0xffffffff);
-	}
-
-	pGDI->PrintText(WPoint(pItem->pos.x + 59.0f, pItem->pos.y + 18.0f), 0,
-		RoomListGetGameCategory(pRoom->gameType), NULL);
-
-	switch (pRoom->gameType)
-	{
-	case GAME_TYPE_GUILD_MATCH:
-		if (pRoom->GuildInfo.nGuildID[0])
-		{
-			const Bitmap* pEmblem =
-				NetResourceManager::Instance()->GetEmblemByName(
-					pRoom->GuildInfo.szEmblemName[0]);
-			if (pEmblem)
-				pGDI->DrawTexture(pEmblem,
-					WRect(pItem->pos.x + 237.0f, pItem->pos.y + 12.0f,
-						(float)pEmblem->Width(), (float)pEmblem->Height()),
-					0xffffffff, 0);
-		}
-
-		if (pRoom->GuildInfo.nGuildID[1])
-		{
-			const Bitmap* pEmblem =
-				NetResourceManager::Instance()->GetEmblemByName(
-					pRoom->GuildInfo.szEmblemName[1]);
-			if (pEmblem)
-				pGDI->DrawTexture(pEmblem,
-					WRect(pItem->pos.x + 294.0f, pItem->pos.y + 12.0f,
-						(float)pEmblem->Width(), (float)pEmblem->Height()),
-					0xffffffff, 0);
-		}
-
-		if (!pGDI)
-			break;
-
-		pGDI->Print(WPoint(pItem->pos.x + 120.0f, pItem->pos.y + 18.0f), 0,
-			"%s", GetGameTypeName(pRoom->gameType));
-		break;
-
-	case GAME_TYPE_APPROACH:
-		pGDI->Print(WPoint(pItem->pos.x + 120.0f, pItem->pos.y + 18.0f), 0,
-			"%s", GetGameTypeName(pRoom->gameType));
-		break;
-
-	default:
-	{
-		IFF_STRUCT::sMatch* pMatch = ItemManager()->FindMatch(pRoom->tidMatch);
-		if (pMatch)
-		{
-			char name[80] = { 0 };
-
-			if (pRoom->realGameType != 14)
-				strcpy(name, pMatch->Name);
-			else
-				strcpy(name,
-					K2L_Compatibility("\xbc\xc5\xc7\xc3\xc4\xda\xbd\xba"));
-
-			pGDI->Print(WPoint(pItem->pos.x + 120.0f, pItem->pos.y + 18.0f), 0,
-				"%s %s", name,
-				pRoom->gameType == GAME_TYPE_30S_TEAM ? "\xc6\xc0\xc0\xfc"
-													  : "");
-		}
-		else
-		{
-			pGDI->Print(WPoint(pItem->pos.x + 120.0f, pItem->pos.y + 18.0f), 0,
-				"%s %s", GetGameTypeName(pRoom->gameType),
-				pRoom->gameType == GAME_TYPE_30S_TEAM ? "\xc6\xc0\xc0\xfc"
-													  : "");
-		}
-	}
-	break;
-	}
-
-	pGDI->SetTextStyle(0);
-
-	g_pFresh->GetManager()->PrintText(
-		WPoint(pItem->pos.x + 221.0f, pItem->pos.y + 18.0f), 0,
-		pRoom->gameType == GAME_TYPE_GUILD_MATCH ? "            VS             "
-												 : pRoom->title,
-		-1.0f, 0xffffffff);
-
-	if (pRoom->realGameType != 14)
-	{
-		IFF_STRUCT::sCourse* pCourse = ItemManager()->FindCourse(
-			0x28000000 | (pRoom->mapType >= 0x7f ? 0x7f : pRoom->mapType));
-		if (pCourse)
-		{
-			const Bitmap* pMap =
-				g_pFresh->GetBitmap(MakeStr("room_%s", pCourse->c.Icon));
-			if (pMap)
-			{
-				float x = pItem->pos.x + 442.0f;
-				pGDI->DrawTexture(pMap,
-					WRect(x, pItem->pos.y, (float)pMap->Width(),
-						(float)pMap->Height()),
-					0xffffffff, 0);
-
-				if (Doc()->GetMapEventPangRate(pCourse->c.TypeId & 0x3ffffff) >
-					100)
-				{
-					const Bitmap* pMark =
-						g_pFresh->GetBitmap("lobby_mapevent_mark");
-					if (pMark)
-					{
-						float mx = x + (float)(pMap->Width() - pMark->Width());
-						pGDI->DrawTexture(pMark,
-							WRect(mx, pItem->pos.y, (float)pMark->Width(),
-								(float)pMark->Height()),
-							0xffffffff, 0);
-					}
+			for (it = WSingleton<CSharedDoc>::Instance()->m_roomList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_roomList.end(); ++it) {
+				if (GetCateByGameType(it->m_gameType) == data_aa9eac[2] || data_aa9eac[2] == ROOMCATE_ALL) {
+					m_roomListBox->AddItem(&*it);
 				}
 			}
 		}
-	}
-	else
-	{
-		float x = pItem->pos.x + 442.0f;
-		IFF_STRUCT::sCourse* pCourse = ItemManager()->FindCourse(0x2800007f);
-		if (pCourse)
-		{
-			const Bitmap* pMap = g_pFresh->GetBitmap("room_map_17_01");
-			if (pMap)
-				pGDI->DrawTexture(pMap,
-					WRect(x, pItem->pos.y, (float)pMap->Width(),
-						(float)pMap->Height()),
-					0xffffffff, 0);
-		}
-	}
 
-	pGDI->Print(WPoint(pItem->pos.x + 387.0f, pItem->pos.y + 18.0f), 2,
-		"%d\xc8\xa6", pRoom->nHole);
-
-	if (Doc()->m_curChannel.Type & 0x80)
-		pGDI->Print(WPoint(pItem->pos.x + 434.0f, pItem->pos.y + 18.0f), 2,
-			"  -  ");
-	else
-		pGDI->Print(WPoint(pItem->pos.x + 434.0f, pItem->pos.y + 18.0f), 2,
-			"%d/%d", pRoom->nUserNum, pRoom->nUserLimit);
-
-	if (pRoom->gameType == 13)
-		return;
-
-	if (Doc()->m_curGameServer.eventFlags & 0x20)
-	{
-		if (Doc()->m_curGameServer.eventValue &
-			(1 << ((pRoom->mapType > 0x7f && pRoom->mapType != 0xfd)
-					 ? pRoom->mapType - 0x80
-					 : pRoom->mapType)))
-		{
-			const Bitmap* pIcon = g_pFresh->GetBitmap("icon_pangevent");
-			pGDI->DrawTexture(pIcon,
-				WRect(pItem->pos.x + 492.0f, pItem->pos.y + 4.0f,
-					(float)pIcon->Width(), (float)pIcon->Height()),
-				0xffffffff, 0);
-		}
-	}
-
-	if (IsLocalContent(S3_HUNDRED_MODE) && pRoom->nUserLimit >= 100)
-	{
-		pGDI->SetTextStyle(0);
-		pGDI->SetTextColor(0xff000000, 0xffffffff);
+		this << MsgObject(0, 0x0D, 0, 0, 0, 0, 0);
 	}
 }
 
-void CLobbyMain::OnRoomList_RoomListLDown()
-{
-	FrListItem* pItem = m_pRoomList->GetItemUnderCursor();
-
-	if (pItem)
-	{
-		if (m_pRoomList)
-			m_pRoomList->SelectItem(pItem, true);
-
-		m_pSelRoom = (sRoomInfo*)pItem->pData;
-	}
-	else
-	{
-		if (m_pRoomList)
-			m_pRoomList->SelectItem(NULL, true);
-
-		m_pSelRoom = NULL;
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomListRUp()
-{
-	if (m_pRoomList)
-	{
-		FrListItem* pItem = m_pRoomList->GetItemUnderCursor();
-		if (pItem)
-		{
-			sRoomInfo* pRoom = (sRoomInfo*)pItem->pData;
-			m_pRoomList->SelectItem(pItem, true);
-
-			if (pRoom)
-			{
-				if (!pRoom->bPublic &&
-					!(bool)(Doc()->m_myInfo.info.dwIdentity & 4))
-				{
-					this << MsgObject(this, 35,
-						(int)"\xba\xf1\xb0\xf8\xb0\xb3 \xb9\xe6\xc0\xba \xb7\xeb\xc1\xa4\xba\xb8\xb8\xa6 \xba\xbc\xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9",
-						0, 0, 0, 0);
-				}
-				else if (!(Doc()->m_curChannel.Type & 0x80) ||
-					!pRoom->bAvailable)
-				{
-					WSendPacket packet((enumClientPacket)0x2d);
-					packet.Encode2(pRoom->roomGuid);
-					packet.Send(TO_GAME);
-				}
-
-				m_pSelRoom = pRoom;
-			}
-		}
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomListDClick()
-{
-	if (Doc()->m_curChannel.Type & 0x80)
-		return;
-	if (!m_pSelRoom)
-		return;
-	if (m_pRoomList && !m_pRoomList->IsEnabled())
-		return;
-
-	CIntrusion::Instance()->FinishGame();
-
-	if (m_pSelRoom->bAvailable)
-	{
-		if (!(bool)(Doc()->m_myInfo.info.dwIdentity & 4))
-		{
-			if (m_pSelRoom->nUserNum == m_pSelRoom->nUserLimit)
-			{
-				this << MsgObject(this, 35,
-					(int)"\xc1\xa4\xbf\xf8\xc0\xcc \xc3\xca\xb0\xfa \xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9",
-					0, 0, 0, 0);
-				return;
-			}
-
-			switch (m_pSelRoom->gameType)
-			{
-			case GAME_TYPE_NEW_APPROACH:
-				if (Doc()->m_myInfo.stat.Level == 0)
-				{
-					this << MsgObject(this, 35,
-						(int)"\xb7\xe7\xc5\xb0"
-							 "F \xb7\xb9\xba\xa7\xc0\xba \xbe\xee\xc7\xc1\xb7\xce\xc4\xa1 \xb0\xd4\xc0\xd3\xc0\xbb \xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.",
-						0, 0, 0, 0);
-					return;
-				}
-				break;
-
-			case GAME_TYPE_30S_TEAM:
-			{
-				std::map<unsigned long, sBriefUserInfo>::iterator it =
-					Doc()->m_briefUserInfoMap.find(MyGuid(false));
-				if (it != Doc()->m_briefUserInfoMap.end() &&
-					(*it).second.gender > 1)
-				{
-					this << MsgObject(this, 35,
-						(int)"\xb0\xad\xc1\xa6 \xc1\xbe\xb7\xe1\xc0\xb2\xc0\xcc \xb3\xf4\xc0\xba \xc0\xaf\xc0\xfa\xb4\xc2 30\xc0\xce \xc6\xc0\xc0\xfc \xb0\xd4\xc0\xd3\xc0\xbb \xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.",
-						0, 0, 0, 0);
-					return;
-				}
-			}
-			break;
-
-			case GAME_TYPE_GUILD_MATCH:
-			{
-				std::string msg;
-				bool bShow = false;
-				unsigned long guildId = Doc()->m_myInfo.info.dwGuildId;
-
-				if (guildId == 0)
-				{
-					msg =
-						"\xb1\xe6\xb5\xe5\xbf\xa1 \xb0\xa1\xc0\xd4\xc7\xcf\xbc\xc5\xbe\xdf \xb1\xe6\xb5\xe5\xb4\xeb\xc0\xfc\xc0\xcc \xb0\xa1\xb4\xc9\xc7\xd5\xb4\xcf\xb4\xd9.";
-					bShow = true;
-				}
-
-				if (m_pSelRoom->GuildInfo.nGuildID[0] != guildId &&
-					m_pSelRoom->GuildInfo.nGuildID[0] != 0 &&
-					m_pSelRoom->GuildInfo.nGuildID[1] != guildId &&
-					m_pSelRoom->GuildInfo.nGuildID[1] != 0)
-				{
-					msg =
-						"\xc5\xb8\xb1\xe6\xb5\xe5\xc0\xc7 \xb4\xeb\xc0\xfc\xc0\xd4\xb4\xcf\xb4\xd9.";
-					bShow = true;
-				}
-
-				if (bShow)
-				{
-					this << MsgObject(this, 35, (int)msg.c_str(), 0, 0, 0, 0);
-					return;
-				}
-			}
-			break;
-			}
-		}
-
-		EnableRoomEnterControls(false);
-
-		BOOL bAdmin = (Doc()->m_myInfo.info.dwIdentity & 0xe) == 0xe;
-		if (bAdmin)
-		{
-			EnableRoomEnterControls(false);
-
-			WSendPacket packet((enumClientPacket)0x3e);
-			packet.Encode2(m_pSelRoom->roomGuid);
-			packet.EncodeStr(std::string(""));
-			packet.Send(TO_GAME);
-
-			this << MsgObject(NULL, 22, 0, 0, 0, 0, 0);
-			this << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-			return;
-		}
-
-		bool bGM = (Doc()->m_myInfo.info.dwIdentity & 0x14) ? true : false;
-
-		bool bInvite = false;
-		if (IsLocalContent(S4_INVITE_FRIEND))
-		{
-			if (Doc()->m_inviteMode)
-				bInvite = true;
-		}
-
-		if (m_pSelRoom->bPublic || bGM || bInvite)
-		{
-			if (IsLocalContent(S3_INTRUSION) &&
-				m_pSelRoom->bIntrusion == true && !bGM)
-			{
-				CIntrusion::Instance()->DoJoinRoom(m_pSelRoom->roomGuid);
-			}
-			else
-			{
-				WSendPacket packet((enumClientPacket)9);
-				packet.Encode2(m_pSelRoom->roomGuid);
-				packet.EncodeStr(std::string(""));
-				packet.Send(TO_GAME);
-
-				this << MsgObject(NULL, 22, 0, 0, 0, 0, 0);
-				this << MsgObject(NULL, 1, 0, 0, 0, 0, 0);
-			}
-		}
-		else
-		{
-			Doc()->m_roomInfo = *m_pSelRoom;
-
-			if (!m_pPasswordDlg)
-			{
-				m_pPasswordDlg = CreateForm<FrPasswordDlg>(
-					g_pFresh->GetManager(), this, "password");
-				m_pPasswordDlg->Open(
-					(FRESH_PFN_RESULT)&CLobbyMain::OnPasswordDlgResult, 3);
-			}
-		}
-	}
-	else
-	{
-		if (m_pSelRoom->bIntrusion)
-		{
-			Doc()->m_roomInfo = *m_pSelRoom;
-			CIntrusion::Instance()->DoJoinRoom(Doc()->m_roomInfo.roomGuid);
-		}
-		else
-		{
-			HandleMsg(MsgObject(this, 35,
-				(int)"\xb0\xd4\xc0\xd3 \xc1\xf8\xc7\xe0\xc1\xdf\xc0\xce \xb9\xe6\xc0\xd4\xb4\xcf\xb4\xd9",
-				0, 0, 0, 0));
-		}
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortNoInit(int param)
-{
-	m_pRoomSortNo = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bRoomSortDown[0] = false;
-}
-
-void CLobbyMain::OnRoomList_RoomSortNoDown()
-{
-	if (!(m_roomSortDelay > 0.0f))
-	{
-		if (m_roomSort == ROOM_SORT_NO)
-			m_bRoomSortRev ^= 1;
-
-		SetControlsRoomListSort(0);
-		m_bRoomSortDown[0] = true;
-		m_roomSortDelay = 0.3f;
-		RoomList_SortRoomList(ROOM_SORT_NO, 0);
-		g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortNoOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-
-	if (pGDI)
-	{
-		if (m_pRoomSortNo)
-		{
-			int state = 0;
-
-			if (m_bRoomSortDown[0])
-			{
-				state = 2;
-			}
-			else
-			{
-				WRect rect = m_pRoomSortNo->GetRect();
-
-				if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-					state = 1;
-			}
-
-			pGDI->DrawTexture(m_pRoomSortNoBmp[state], m_pRoomSortNo->GetRect(),
-				0xffffffff, 0);
-		}
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateAll_BtnInit(int param)
-{
-	m_pRoomSortCateAll = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	m_pRoomSortCateAll->SetStatus(
-		s_roomCate == 4 ? FrButton::PRESSED : FrButton::NORMAL);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateAll_BtnDown()
-{
-	RoomList_FilterRoomList(ROOM_SORT_CATE, 4);
-	RoomList_SetCateTabBtn();
-
-	s_roomGameType = -1;
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateVS_BtnInit(int param)
-{
-	m_pRoomSortCateVS = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	m_pRoomSortCateVS->SetStatus(
-		s_roomCate == 0 ? FrButton::PRESSED : FrButton::NORMAL);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateVS_BtnDown()
-{
-	RoomList_FilterRoomList(ROOM_SORT_CATE, 0);
-	RoomList_SetCateTabBtn();
-
-	m_cateListTime[0] = 0.0f;
-	s_roomGameType = -1;
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateMass_BtnInit(int param)
-{
-	m_pRoomSortCateMass = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	m_pRoomSortCateMass->SetStatus(
-		s_roomCate == 1 ? FrButton::PRESSED : FrButton::NORMAL);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateMass_BtnDown()
-{
-	RoomList_FilterRoomList(ROOM_SORT_CATE, 1);
-	RoomList_SetCateTabBtn();
-
-	m_cateListTime[1] = 0.0f;
-	s_roomGameType = -1;
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateBattle_BtnInit(int param)
-{
-	m_pRoomSortCateBattle = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	m_pRoomSortCateBattle->SetStatus(
-		s_roomCate == 2 ? FrButton::PRESSED : FrButton::NORMAL);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateBattle_BtnDown()
-{
-	RoomList_FilterRoomList(ROOM_SORT_CATE, 2);
-	RoomList_SetCateTabBtn();
-
-	m_cateListTime[2] = 0.0f;
-	s_roomGameType = -1;
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateChat_BtnInit(int param)
-{
-	m_pRoomSortCateChat = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	m_pRoomSortCateChat->SetStatus(
-		s_roomCate == 3 ? FrButton::PRESSED : FrButton::NORMAL);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateChat_BtnDown()
-{
-	RoomList_FilterRoomList(ROOM_SORT_CATE, 3);
-	RoomList_SetCateTabBtn();
-
-	s_roomGameType = -1;
-}
-
-void CLobbyMain::OnRoomList_RoomSortHoleInit(int param)
-{
-	m_pRoomSortHole = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bRoomSortDown[1] = false;
-}
-
-void CLobbyMain::OnRoomList_RoomSortHoleDown()
-{
-	if (!(m_roomSortDelay > 0.0f))
-	{
-		if (m_roomSort == ROOM_SORT_HOLE)
-			m_bRoomSortRev ^= 1;
-
-		SetControlsRoomListSort(0);
-		m_bRoomSortDown[1] = true;
-		m_roomSortDelay = 0.3f;
-		RoomList_SortRoomList(ROOM_SORT_HOLE, 0);
-		g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortHoleOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-
-	if (pGDI)
-	{
-		if (m_pRoomSortHole)
-		{
-			int state = 0;
-
-			if (m_bRoomSortDown[1])
-			{
-				state = 2;
-			}
-			else
-			{
-				WRect rect = m_pRoomSortHole->GetRect();
-
-				if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-					state = 1;
-			}
-
-			pGDI->DrawTexture(m_pRoomSortHoleBmp[state],
-				m_pRoomSortHole->GetRect(), 0xffffffff, 0);
-		}
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortCourseInit(int param)
-{
-	m_pRoomSortCourse = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bRoomSortDown[2] = false;
-}
-
-void CLobbyMain::OnRoomList_RoomSortCourseDown()
-{
-	if (!(m_roomSortDelay > 0.0f))
-	{
-		if (m_roomSort == ROOM_SORT_COURSE)
-			m_bRoomSortRev ^= 1;
-
-		SetControlsRoomListSort(0);
-		m_bRoomSortDown[2] = true;
-		m_roomSortDelay = 0.3f;
-		RoomList_SortRoomList(ROOM_SORT_COURSE, 0);
-		g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortCourseOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-
-	if (pGDI)
-	{
-		if (m_pRoomSortCourse)
-		{
-			int state = 0;
-
-			if (m_bRoomSortDown[2])
-			{
-				state = 2;
-			}
-			else
-			{
-				WRect rect = m_pRoomSortCourse->GetRect();
-
-				if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-					state = 1;
-			}
-
-			pGDI->DrawTexture(m_pRoomSortCourseBmp[state],
-				m_pRoomSortCourse->GetRect(), 0xffffffff, 0);
-		}
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortStateInit(int param)
-{
-	m_pRoomSortState = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bRoomSortDown[3] = false;
-}
-
-void CLobbyMain::OnRoomList_RoomSortStateDown()
-{
-	if (m_roomSortDelay > 0.0f)
-		return;
-
-	if (m_roomSort == 6)
-	{
-		m_bRoomSortRev ^= 1;
-	}
-
-	SetControlsRoomListSort(0);
-	m_bRoomSortDown[3] = true;
-	m_roomSortDelay = 0.3f;
-	RoomList_SortRoomList((roomSort_t)6, 0);
-	g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-}
-
-void CLobbyMain::OnRoomList_RoomSortStateOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-
-	if (!pDevice)
-		return;
-
-	if (!m_pRoomSortState)
-		return;
-
-	int state = 0;
-
-	if (m_bRoomSortDown[3])
-		state = 2;
-	else
-	{
-		WRect rect = m_pRoomSortState->GetRect();
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-			state = 1;
-	}
-
-	pDevice->DrawTexture(m_pRoomSortStateUpBmp[m_bRoomSortRev * 3 + state],
-		m_pRoomSortState->GetRect(), 0xffffffff, 0);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateVS_ListInit(int param)
-{
-	m_pRoomSortCateVSList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-
-	if (m_pRoomSortCateVSList)
-	{
-		for (int i = 0; i < 2; i++)
-		{
-			m_pRoomSortCateVSList->AddItem(&g_strGameType[i]);
-		}
-
-		m_pRoomSortCateVSList->SetVisible(false);
-		m_pRoomSortCateVSList->EnableScrollBar(false);
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateVS_ListLUp()
-{
-	int count = m_pRoomSortCateVSList->GetCurrentItemSize(true);
-
-	for (int i = 0; i < count; i++)
-	{
-		FrListItem* pItem = m_pRoomSortCateVSList->GetItem(i);
-		if (!pItem)
-			continue;
-
-		WRect rect(pItem->pos.x + 1.0f, pItem->pos.y + 1.0f, 54.0f, 21.0f);
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-		{
-			m_bCateSelected = true;
-
-			RoomList_FilterRoomList((roomSort_t)3, pItem->idx);
-			break;
-		}
-	}
-
-	if (m_pRoomSortCateVSList)
-		m_pRoomSortCateVSList->SetVisible(false);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateVS_ListOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	FrListItem* pItem = (FrListItem*)param;
-
-	if (!pDevice)
-		return;
-	if (!pItem)
-		return;
-
-	std::string* pStr = (std::string*)pItem->pData;
-	WRect rect;
-	rect.x = pItem->pos.x;
-	rect.y = pItem->pos.y;
-	rect.w = 56.0f;
-	rect.h = 22.0f;
-
-	pDevice->Box(rect, 0x880e4f75);
-
-	rect.x = pItem->pos.x + 1.0f;
-	rect.y = pItem->pos.y + 1.0f;
-	rect.w = 54.0f;
-	rect.h = 20.0f;
-
-	if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-	{
-		pDevice->Box(rect, 0x88082b46);
-		pDevice->SetTextStyle(1);
-	}
-	else
-		pDevice->SetTextStyle(0);
-
-	pDevice->SetTextColor(0xffffffff, 0xffffffff);
-	pDevice->Print(WPoint(pItem->pos.x + 2.0f, pItem->pos.y + 6.0f), 0,
-		pStr->c_str());
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateMass_ListInit(int param)
-{
-	m_pRoomSortCateMassList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-
-	if (m_pRoomSortCateMassList)
-	{
-		for (int i = 2; i < 5; i++)
-		{
-			m_pRoomSortCateMassList->AddItem(&g_strGameType[i]);
-		}
-
-		m_pRoomSortCateMassList->SetVisible(false);
-		m_pRoomSortCateMassList->EnableScrollBar(false);
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateMass_ListLUp()
-{
-	int count = m_pRoomSortCateMassList->GetCurrentItemSize(true);
-
-	for (int i = 0; i < count; i++)
-	{
-		FrListItem* pItem = m_pRoomSortCateMassList->GetItem(i);
-		if (!pItem)
-			continue;
-
-		WRect rect(pItem->pos.x + 1.0f, pItem->pos.y + 1.0f, 54.0f, 21.0f);
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-		{
-			m_bCateSelected = true;
-
-			RoomList_FilterRoomList((roomSort_t)3, pItem->idx + 4);
-			break;
-		}
-	}
-
-	if (m_pRoomSortCateMassList)
-		m_pRoomSortCateMassList->SetVisible(false);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateMass_ListOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	FrListItem* pItem = (FrListItem*)param;
-
-	if (!pDevice)
-		return;
-	if (!pItem)
-		return;
-
-	std::string* pStr = (std::string*)pItem->pData;
-	WRect rect;
-	rect.x = pItem->pos.x;
-	rect.y = pItem->pos.y;
-	rect.w = 56.0f;
-	rect.h = 22.0f;
-
-	pDevice->Box(rect, 0x880e4f75);
-
-	rect.x = pItem->pos.x + 1.0f;
-	rect.y = pItem->pos.y + 1.0f;
-	rect.w = 54.0f;
-	rect.h = 20.0f;
-
-	if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-	{
-		pDevice->Box(rect, 0x88082b46);
-		pDevice->SetTextStyle(1);
-	}
-	else
-		pDevice->SetTextStyle(0);
-
-	pDevice->SetTextColor(0xffffffff, 0xffffffff);
-	pDevice->Print(WPoint(pItem->pos.x + 2.0f, pItem->pos.y + 6.0f), 0,
-		pStr->c_str());
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateBattle_ListInit(int param)
-{
-	m_pRoomSortCateBattleList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-
-	if (m_pRoomSortCateBattleList)
-	{
-		for (int i = 5; i < 7; i++)
-		{
-			m_pRoomSortCateBattleList->AddItem(&g_strGameType[i]);
-		}
-
-		m_pRoomSortCateBattleList->SetVisible(false);
-		m_pRoomSortCateBattleList->EnableScrollBar(false);
-	}
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateBattle_ListLUp()
-{
-	int count = m_pRoomSortCateBattleList->GetCurrentItemSize(true);
-
-	for (int i = 0; i < count; i++)
-	{
-		FrListItem* pItem = m_pRoomSortCateBattleList->GetItem(i);
-		if (!pItem)
-			continue;
-
-		WRect rect(pItem->pos.x + 1.0f, pItem->pos.y + 1.0f, 54.0f, 21.0f);
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-		{
-			m_bCateSelected = true;
-			RoomList_FilterRoomList((roomSort_t)3, pItem->idx ? 10 : 7);
-			break;
-		}
-	}
-
-	if (m_pRoomSortCateBattleList)
-		m_pRoomSortCateBattleList->SetVisible(false);
-}
-
-void CLobbyMain::OnRoomList_RoomSortCateBattle_ListOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	FrListItem* pItem = (FrListItem*)param;
-
-	if (!pDevice)
-		return;
-	if (!pItem)
-		return;
-
-	std::string* pStr = (std::string*)pItem->pData;
-	WRect rect;
-	rect.x = pItem->pos.x;
-	rect.y = pItem->pos.y;
-	rect.w = 56.0f;
-	rect.h = 22.0f;
-
-	pDevice->Box(rect, 0x880e4f75);
-
-	rect.x = pItem->pos.x + 1.0f;
-	rect.y = pItem->pos.y + 1.0f;
-	rect.w = 54.0f;
-	rect.h = 20.0f;
-
-	if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-	{
-		pDevice->Box(rect, 0x88082b46);
-		pDevice->SetTextStyle(1);
-	}
-	else
-		pDevice->SetTextStyle(0);
-
-	pDevice->SetTextColor(0xffffffff, 0xffffffff);
-	pDevice->Print(WPoint(pItem->pos.x + 2.0f, pItem->pos.y + 6.0f), 0,
-		pStr->c_str());
-}
-
-void CLobbyMain::OnRoomList_MakeRoomInit(int param)
-{
-	m_pMakeRoom = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pMakeRoom)
-	{
-		THEME_BUTTONS buttons;
-
-		_ISkinnedTheme* pTheme = S5::THEME::GetCurrentSkinnedTheme();
-		pTheme->GetMakeRoomButtonImgName(buttons);
-
-		m_pMakeRoom->SetButtonImg(buttons.press, FrButton::PRESSED);
-		m_pMakeRoom->SetButtonImg(buttons.normal, FrButton::NORMAL);
-		m_pMakeRoom->SetButtonImg(buttons.over, FrButton::OVER);
-	}
-}
-
-void CLobbyMain::OnRoomList_MakeRoomUp()
-{
-	CloseAllDialogs();
-
-	if (!LatestVersion())
-		return;
-
-	if (Doc()->IsControlServerService(2))
-	{
-		HandleMsg(MsgObject(this, 0x272, 2, 0, 0, 0, 0));
-		return;
-	}
-
-	if (!m_pServerDlg && Doc()->m_curChannel.Uid == 0xff)
-	{
-		WSendPacket packet((enumClientPacket)0x43);
-		packet.Send(TO_GAME);
-
-		m_pServerDlg = CreateForm<FrServerDlg>(g_pFresh->GetManager(), this,
-			"server", NULL);
-		m_pServerDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnServerDlgResult,
-			WPoint(m_pServerDlg->GetRect().x, 50.0f), FrICON);
-		m_pServerDlg->SetIconRect(m_pUnderBarServer->GetRect());
-	}
-	else
-	{
-		EnableRoomEnterControls(false);
-
-		m_pMakeRoomDlg = CreateForm<FrMakeRoomDlg>(g_pFresh->GetManager(), this,
-			"makeroom", NULL);
-		m_pMakeRoomDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnMakeRoomDlgResult,
-			FrESCAPE | FrENTER);
-	}
-}
-
-void CLobbyMain::OnRoomList_GuildInfoInit(int param)
-{
-	m_pGuildInfo = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pGuildInfo)
-	{
-		THEME_BUTTONS buttons;
-
-		_ISkinnedTheme* pTheme = S5::THEME::GetCurrentSkinnedTheme();
-		if (pTheme)
-		{
-			pTheme->GetQuickStartButtonImgName(buttons);
-
-			m_pGuildInfo->SetButtonImg(buttons.press, FrButton::PRESSED);
-			m_pGuildInfo->SetButtonImg(buttons.normal, FrButton::NORMAL);
-			m_pGuildInfo->SetButtonImg(buttons.over, FrButton::OVER);
-
-			m_pGuildInfo->SetPushDelay(0.1f);
-		}
-	}
-}
-
-void CLobbyMain::OnRoomList_GuildInfoLButtonUp()
-{
-	if (Doc()->IsControlServerService(0x1000000))
-	{
-		this << MsgObject(this, 35,
-			(int)"\xb1\xe6\xb5\xe5 \xb0\xfc\xb7\xc3 \xba\xce\xba\xd0 "
-				 "\xc1\xa1\xb0\xcb\xc1\xdf\xc0\xd4\xb4\xcf\xb4\xd9.",
-			0, 0, 0, 0);
-	}
-	else
-	{
-		IActor* pActor = AfxGetTask()->GetActor(s_guildActor[1]);
-		if (pActor)
-			pActor << MsgObject(this, 0x263, 1, 0, 0, 0, 0);
-	}
-}
-
-void CLobbyMain::OnRoomList_UserListInit(int param)
-{
-	m_pUserList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (!m_pUserList)
-		return;
-
-	m_pUserList->UseRightButton(true);
-
-	for (std::map<unsigned long, sBriefUserInfo>::iterator it =
-			 Doc()->m_briefUserInfoMap.begin();
-		it != Doc()->m_briefUserInfoMap.end(); ++it)
-	{
-		if (Doc()->m_myInfo.info.dwIdentity & 4)
-			m_pUserList->AddItem((void*)&(*it).second);
-		else if (!(sBriefUserInfo((*it).second).dwIdentity & 4))
-			m_pUserList->AddItem((void*)&(*it).second);
-		else if (sBriefUserInfo((*it).second).state & 1)
-			m_pUserList->AddItem((void*)&(*it).second);
-	}
-}
-
-void CLobbyMain::OnRoomList_UserListLBtnUp()
-{
-	FrListItem* pItem = m_pUserList->GetItemUnderCursor();
-	if (pItem)
-	{
-		sBriefUserInfo* pInfo = (sBriefUserInfo*)pItem->pData;
-
-		if (pInfo)
-		{
-			m_selOID = pInfo->dwGuid;
-			m_selUID = pInfo->dwUid;
-
-			if (m_pUserInfo)
-				m_pUserInfo->Enable(true);
-		}
-
-		pItem->selected = true;
-	}
-}
-
-void CLobbyMain::OnRoomList_UserListRBtnUp()
-{
-	FrListItem* pItem = m_pUserList->GetItemUnderCursor();
-	if (pItem)
-	{
-		sBriefUserInfo* pInfo = (sBriefUserInfo*)pItem->pData;
-
-		if (pInfo)
-		{
-			m_selOID = pInfo->dwGuid;
-			m_selUID = pInfo->dwUid;
-
-			if (m_pUserInfo)
-				m_pUserInfo->Enable(true);
-
-			if (CUserInfo::IsInstantiated())
-			{
-				CUserInfo::Instance()->SetInfo(pInfo->dwUid, pInfo->dwGuid,
-					true, true, false, false, pInfo->sNick);
-			}
-		}
-		else
-		{
-			CChatMsg::Instance()->AddChatMsg(
-				"\xc0\xdf\xb8\xf8\xb5\xc8 \xb4\xeb\xbb\xf3\xc0\xd4\xb4\xcf\xb4\xd9.",
-				7, true, false);
-		}
-
-		pItem->selected = true;
-	}
-}
-
-void CLobbyMain::OnRoomList_UserListOwnerDraw(int param)
-{
-	FrListItem* pItem = (FrListItem*)param;
-	if (!pItem)
-		return;
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (!pDevice)
-		return;
-
-	sBriefUserInfo* pInfo = (sBriefUserInfo*)pItem->pData;
-	if (!pInfo)
-		return;
-
-	unsigned long color;
-
-	if (pInfo->dwIdentity & 0x14)
-	{
-		if (Doc()->m_myInfo.info.dwIdentity & 0x14)
-		{
-			color = 0x50ffffff;
-		}
-		else
-		{
-			if (!(pInfo->state & 1))
-				return;
-
-			color = 0xffffffff;
-		}
-	}
-	else
-	{
-		if (IsLocalContent((localContentType_t)0x10))
-			color = pInfo->nChannelingFlag == 1 ? 0xff33dbff : 0xffffffff;
-		else
-			color = 0xffffffff;
-	}
-
-	if (pItem->selected)
-	{
-		if (m_selOID == ((sBriefUserInfo*)pItem->pData)->dwGuid)
-			pDevice->Box(WRect(pItem->pos.x, pItem->pos.y,
-							 (float)m_pUserList->GetItemWidth(),
-							 (float)m_pUserList->GetItemHeight()),
-				0xff265785);
-		else
-			pItem->selected = false;
-	}
-
-	const Bitmap* pIcon;
-
-	if (pInfo->angelicWings)
-		pIcon = m_pGenderBmp[pInfo->gender % 2 + 8];
-	else if (pInfo->manner)
-		pIcon = m_pGenderBmp[pInfo->gender % 2 + 6];
-	else
-		pIcon = m_pGenderBmp[pInfo->gender];
-
-	WRect rect(pItem->pos.x + 8.0f, pItem->pos.y, (float)pIcon->Width(),
-		(float)pIcon->Height());
-	pDevice->DrawTexture(pIcon, rect, 0xffffffff, 0);
-
-	if (pInfo->roomIndex != 0xffff)
-	{
-		pDevice->DrawTexture(m_pInGameBmp,
-			WRect(rect.x, rect.y + 3.0f, (float)m_pInGameBmp->Width(),
-				(float)m_pInGameBmp->Height()),
-			0xffffffff, 0);
-	}
-
-	if (Doc()->m_curChannel.Type & 0x80)
-	{
-		pIcon = g_pFresh->GetBitmap(
-			MakeStr("ladder_%03d", pInfo->dwLadderPoint / 100));
-	}
-	else
-	{
-		if (pInfo->dwTitle)
-		{
-			IFF_STRUCT::sSkin* pSkin = ItemManager()->FindSkin(pInfo->dwTitle);
-			if (pSkin)
-				pIcon = g_pFresh->GetBitmap(pSkin->c.Icon);
-			else
-				pIcon = g_pFresh->GetBitmap(
-					MakeStr("level_%03d", pInfo->level + 1));
-		}
-		else
-			pIcon =
-				g_pFresh->GetBitmap(MakeStr("level_%03d", pInfo->level + 1));
-	}
-
-	if (pIcon)
-	{
-		pDevice->DrawTexture(pIcon,
-			WRect(pItem->pos.x + 66.0f - float2int(pIcon->Width() * 0.5f),
-				pItem->pos.y + 11.0f - float2int(pIcon->Height() * 0.5f),
-				(float)pIcon->Width(), (float)pIcon->Height()),
-			0xffffffff, 0);
-	}
-
-	if (pInfo->m_GuildId && !(pInfo->dwIdentity & 0x14))
-	{
-		const Bitmap* pEmblem = NetResourceManager::Instance()->GetEmblemByName(
-			pInfo->szEmblemName);
-
-		if (pEmblem)
-		{
-			pDevice->DrawTexture(pEmblem,
-				WRect(pItem->pos.x + 106.0f, pItem->pos.y + 7.0f - 6.0f,
-					(float)pEmblem->Width(), (float)pEmblem->Height()),
-				0xffffffff, 0);
-		}
-	}
-
-	if (CProjectG::Instance()->HidePrivacy())
-		return;
-
-	if (pItem->underCursor)
-	{
-		pDevice->SetTextColor(0xffffffff, 0xff124371);
-		pDevice->SetTextStyle(2);
-	}
-	else
-	{
-		pDevice->SetTextColor(color, 0xffffffff);
-		pDevice->SetTextStyle(0);
-	}
-
-	g_pFresh->GetManager()->PrintText(
-		WPoint(pItem->pos.x + 143.0f, pItem->pos.y + 7.0f), 0, pInfo->sNick,
-		(float)m_pUserList->GetItemWidth() - 143.0f, color);
-}
-
-void CLobbyMain::OnRoomList_UserSortGenderInit(int param)
-{
-	m_pUserSortGender = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bUserSortDown[0] = false;
-}
-
-void CLobbyMain::OnRoomList_UserSortGenderUp()
-{
-	if (m_userSortDelay > 0.0f)
-		return;
-
-	if (m_userSort == 0)
-		m_bUserSortRev ^= 1;
-	else
-		m_bUserSortRev = false;
-
-	m_bUserSortDown[0] = true;
-	m_bUserSortDown[1] = false;
-	m_bUserSortDown[2] = false;
-	m_bUserSortDown[3] = false;
-	m_userSortDelay = 0.3f;
-	RoomList_SortUserList((userSort_t)0);
-	g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-}
-
-void CLobbyMain::OnRoomList_UserSortGenderOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-
-	if (!pDevice)
-		return;
-
-	if (!m_pUserSortGender)
-		return;
-
-	int state = 0;
-
-	if (m_bUserSortDown[0])
-		state = 2;
-	else
-	{
-		WRect rect = m_pUserSortGender->GetRect();
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-			state = 1;
-	}
-
-	WRect dest = m_pUserSortGender->GetRect();
-
-	pDevice->DrawTexture(m_pUserSortGenderBmp[state], dest, 0xffffffff, 0);
-
-	if (m_userSort == 0)
-		pDevice->DrawTexture(m_pUserSortArrowBmp[!m_bUserSortRev],
-			WRect(dest.Right(), dest.y + 5.0f, 12.0f, 12.0f), 0xffffffff, 0);
-}
-
-void CLobbyMain::OnRoomList_UserSortLevelInit(int param)
-{
-	m_pUserSortLevel = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bUserSortDown[1] = false;
-}
-
-void CLobbyMain::OnRoomList_UserSortLevelUp()
-{
-	if (m_userSortDelay > 0.0f)
-		return;
-
-	if (m_userSort == 1)
-		m_bUserSortRev ^= 1;
-	else
-		m_bUserSortRev = false;
-
-	m_bUserSortDown[0] = false;
-	m_bUserSortDown[1] = true;
-	m_bUserSortDown[2] = false;
-	m_bUserSortDown[3] = false;
-	m_userSortDelay = 0.3f;
-	RoomList_SortUserList((userSort_t)1);
-	g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-}
-
-void CLobbyMain::OnRoomList_UserSortLevelOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-
-	if (!pDevice)
-		return;
-
-	if (!m_pUserSortLevel)
-		return;
-
-	int state = 0;
-
-	if (m_bUserSortDown[1])
-		state = 2;
-	else
-	{
-		WRect rect = m_pUserSortLevel->GetRect();
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-			state = 1;
-	}
-
-	WRect dest = m_pUserSortLevel->GetRect();
-
-	pDevice->DrawTexture(m_pUserSortLevelBmp[state], dest, 0xffffffff, 0);
-
-	if (m_userSort == 1)
-		pDevice->DrawTexture(m_pUserSortArrowBmp[!m_bUserSortRev],
-			WRect(dest.Right(), dest.y + 5.0f, 12.0f, 12.0f), 0xffffffff, 0);
-}
-
-void CLobbyMain::OnRoomList_UserSortGuildInit(int param)
-{
-	m_pUserSortGuild = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bUserSortDown[2] = false;
-}
-
-void CLobbyMain::OnRoomList_UserSortGuildUp()
-{
-	if (m_userSortDelay > 0.0f)
-		return;
-
-	if (m_userSort == 2)
-		m_bUserSortRev ^= 1;
-	else
-		m_bUserSortRev = false;
-
-	m_bUserSortDown[0] = false;
-	m_bUserSortDown[1] = false;
-	m_bUserSortDown[2] = true;
-	m_bUserSortDown[3] = false;
-	m_userSortDelay = 0.3f;
-	RoomList_SortUserList((userSort_t)2);
-	g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-}
-
-void CLobbyMain::OnRoomList_UserSortGuildOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-
-	if (!pDevice)
-		return;
-
-	if (!m_pUserSortGuild)
-		return;
-
-	int state = 0;
-
-	if (m_bUserSortDown[2])
-		state = 2;
-	else
-	{
-		WRect rect = m_pUserSortGuild->GetRect();
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-			state = 1;
-	}
-
-	WRect dest = m_pUserSortGuild->GetRect();
-
-	pDevice->DrawTexture(m_pUserSortGuildBmp[state], dest, 0xffffffff, 0);
-
-	if (m_userSort == 2)
-		pDevice->DrawTexture(m_pUserSortArrowBmp[!m_bUserSortRev],
-			WRect(dest.Right(), dest.y + 5.0f, 12.0f, 12.0f), 0xffffffff, 0);
-}
-
-void CLobbyMain::OnRoomList_UserSortNickInit(int param)
-{
-	m_pUserSortNick = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	m_bUserSortDown[3] = false;
-}
-
-void CLobbyMain::OnRoomList_UserSortNickUp()
-{
-	if (m_userSortDelay > 0.0f)
-		return;
-
-	if (m_userSort == 3)
-		m_bUserSortRev ^= 1;
-	else
-		m_bUserSortRev = false;
-
-	m_bUserSortDown[0] = false;
-	m_bUserSortDown[1] = false;
-	m_bUserSortDown[2] = false;
-	m_bUserSortDown[3] = true;
-	m_userSortDelay = 0.3f;
-	RoomList_SortUserList((userSort_t)3);
-	g_audio->PlaySfx("ui_icon_click", NULL, 0, NULL, NULL, 0.5f, 200.0f);
-}
-
-void CLobbyMain::OnRoomList_UserSortNickOwnerDraw(int param)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-
-	if (!pDevice)
-		return;
-
-	if (!m_pUserSortNick)
-		return;
-
-	int state = 0;
-
-	if (m_bUserSortDown[3])
-		state = 2;
-	else
-	{
-		WRect rect = m_pUserSortNick->GetRect();
-		if (rect.IsInRect(g_pFresh->GetManager()->GetMousePos()))
-			state = 1;
-	}
-
-	WRect dest = m_pUserSortNick->GetRect();
-
-	pDevice->DrawTexture(m_pUserSortNickBmp[state], dest, 0xffffffff, 0);
-
-	if (m_userSort == 3)
-		pDevice->DrawTexture(m_pUserSortArrowBmp[!m_bUserSortRev],
-			WRect(dest.Right(), dest.y + 5.0f, 12.0f, 12.0f), 0xffffffff, 0);
-}
-
-void CLobbyMain::RoomList_FilterRoomList(roomSort_t sort, int value)
-{
-	if (m_pRoomList)
-	{
-		m_pRoomList->ClearItem();
-
-		if (sort == ROOM_SORT_CATE)
-		{
-			std::list<sRoomInfo>::iterator it = Doc()->m_roomList.begin();
-			s_roomCate = value;
-			for (; it != Doc()->m_roomList.end(); ++it)
-			{
-				if (GetCateByGameType((*it).gameType) == s_roomCate ||
-					s_roomCate == 4)
-					m_pRoomList->AddItem(&(*it));
-			}
-		}
-		else if (sort == ROOM_SORT_GAMETYPE)
-		{
-			std::list<sRoomInfo>::iterator it = Doc()->m_roomList.begin();
-			s_roomGameType = value;
-			for (; it != Doc()->m_roomList.end(); ++it)
-			{
-				if ((*it).gameType == value)
-					m_pRoomList->AddItem(&(*it));
-			}
-		}
-
-		for (int i = m_pRoomList->GetCurrentItemSize(true); i < 6; i++)
-			m_pRoomList->AddItem(NULL);
-	}
-}
-
-void CLobbyMain::RoomList_SortRoomList(roomSort_t sort, int unused)
-{
-	if (m_pRoomList)
-	{
-		m_roomSort = sort;
-
-		switch (sort)
-		{
-		case ROOM_SORT_NO:
-			if (m_bRoomSortRev)
-				m_pRoomList->SortItem(RoomNoRevCompare);
-			else
-				m_pRoomList->SortItem(RoomNoCompare);
-			break;
-		case ROOM_SORT_TITLE:
-			if (m_bRoomSortRev)
-				m_pRoomList->SortItem(RoomTitleRevCompare);
-			else
-				m_pRoomList->SortItem(RoomTitleCompare);
-			break;
-		case ROOM_SORT_HOLE:
-			if (m_bRoomSortRev)
-				m_pRoomList->SortItem(RoomHoleRevCompare);
-			else
-				m_pRoomList->SortItem(RoomHoleCompare);
-			break;
-		case ROOM_SORT_GAMETYPE:
-			if (m_bRoomSortRev)
-				m_pRoomList->SortItem(RoomGameTypeRevCompare);
-			else
-				m_pRoomList->SortItem(RoomGameTypeCompare);
-		case ROOM_SORT_COURSE:
-			if (m_bRoomSortRev)
-				m_pRoomList->SortItem(RoomCourseRevCompare);
-			else
-				m_pRoomList->SortItem(RoomCourseCompare);
-			break;
-		case ROOM_SORT_STATE:
-			if (m_bRoomSortRev)
-				m_pRoomList->SortItem(RoomStateRevCompare);
-			else
-				m_pRoomList->SortItem(RoomStateCompare);
-			break;
-		}
-	}
-}
-
-void CLobbyMain::RoomList_SetCateTabBtn()
-{
-	m_pRoomSortCateVS->SetStatus(
-		s_roomCate == 0 ? FrButton::PRESSED : FrButton::NORMAL);
-	m_pRoomSortCateMass->SetStatus(
-		s_roomCate == 1 ? FrButton::PRESSED : FrButton::NORMAL);
-	m_pRoomSortCateBattle->SetStatus(
-		s_roomCate == 2 ? FrButton::PRESSED : FrButton::NORMAL);
-	m_pRoomSortCateChat->SetStatus(
-		s_roomCate == 3 ? FrButton::PRESSED : FrButton::NORMAL);
-	m_pRoomSortCateAll->SetStatus(
-		s_roomCate == 4 ? FrButton::PRESSED : FrButton::NORMAL);
-}
-
-void CLobbyMain::RoomList_SortUserList(userSort_t sort)
-{
-	if (m_pUserList)
-	{
-		m_userSort = sort;
-
-		switch (sort)
-		{
-		case USER_SORT_GENDER:
-			if (m_bUserSortRev)
-				m_pUserList->SortItem(UserGenderRevCompare);
-			else
-				m_pUserList->SortItem(UserGenderCompare);
-			break;
-		case USER_SORT_LEVEL:
-			if (m_bUserSortRev)
-				m_pUserList->SortItem(UserLevelRevCompare);
-			else
-				m_pUserList->SortItem(UserLevelCompare);
-			break;
-		case USER_SORT_GUILD:
-			if (m_bUserSortRev)
-				m_pUserList->SortItem(UserGuildRevCompare);
-			else
-				m_pUserList->SortItem(UserGuildCompare);
-			break;
-		case USER_SORT_NICK:
-			if (m_bUserSortRev)
-				m_pUserList->SortItem(UserNicknameRevCompare);
-			else
-				m_pUserList->SortItem(UserNicknameCompare);
-			break;
-		}
-	}
-}
-
-void CLobbyMain::SetControlsRoomListSort(int type)
-{
-	m_bRoomSortDown[0] = false;
-	m_bRoomSortDown[1] = false;
-	m_bRoomSortDown[2] = false;
-	m_bRoomSortDown[3] = false;
-
-	switch (type)
-	{
+// lobbymain.cpp:10210
+const char* RoomListGetGameCategory(unsigned char gameType) {
+	switch (gameType) {
+	case 0:
 	case 1:
-		if (m_pRoomSortCateVSList)
-			m_pRoomSortCateVSList->SetVisible(false);
-		if (m_pRoomSortCateMassList)
-			m_pRoomSortCateMassList->SetVisible(false);
-		if (m_pRoomSortCateBattleList)
-			m_pRoomSortCateBattleList->SetVisible(false);
+		return "\xB4\xEB\xC0\xFC";
+	case 4:
+	case 5:
+	case 6:
+		return "\xB4\xEB\xC8\xB8";
+	case 7:
+	case 9:
+	case 10:
+		return "\xB9\xE8\xC6\xB2";
+	case 2:
+		return "\xB4\xEB\xC8\xAD";
+	}
+	return 0;
+}
+
+// lobbymain.cpp:10235
+unsigned long DecideRoomColor(sRoomInfo* info) {
+	if (info->m_intrusionAccess && info->m_isPublic) {
+		if (info->m_roomMode != 14) {
+			if (!info->m_state) {
+				return 0xFFFFFFFF;
+			}
+			return WSingleton<CIntrusion>::Instance()->GetActiveColor();
+		}
+		return 0;
+	}
+	return info->m_roomMode != 14 ? 0xB2FFFFFF : 0;
+}
+
+// lobbymain.cpp:10627
+void CLobbyMain::OnRoomList_RoomListLDown(void) {
+	FrListItem* pItem = m_roomListBox->GetItemUnderCursor();
+
+	if (pItem) {
+		if (m_roomListBox) {
+			m_roomListBox->SelectItem(pItem, true);
+		}
+		m_selectedRoomData = pItem->pData;
+	} else {
+		if (m_roomListBox) {
+			m_roomListBox->SelectItem(0, true);
+		}
+		m_selectedRoomData = 0;
+	}
+}
+
+// lobbymain.cpp:10933
+void CLobbyMain::OnRoomList_RoomSortNoInit(intptr_t param) {
+	m_roomSortNoViewer = DYNAMIC_CAST(FrViewer, param);
+	m_roomSortDescending[0] = false;
+}
+
+// lobbymain.cpp:10939
+void CLobbyMain::OnRoomList_RoomSortNoDown(void) {
+	if (m_roomSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_roomSort == 0) {
+			m_roomSortPending ^= 1;
+		}
+
+		m_roomSortDescending[0] = false;
+		m_roomSortDescending[1] = false;
+		m_roomSortDescending[2] = false;
+		m_roomSortDescending[3] = false;
+		if (m_cateVSList) {
+			m_cateVSList->SetVisible(false);
+		}
+		if (m_cateMassList) {
+			m_cateMassList->SetVisible(false);
+		}
+		if (m_cateBattleList) {
+			m_cateBattleList->SetVisible(false);
+		}
+
+		m_roomSortDescending[0] = true;
+		m_roomSortResetTime = 0.3f;
+		if (m_roomListBox) {
+			m_roomSort = (roomSort_t)0;
+			if (m_roomSortPending) {
+				m_roomListBox->SortItem(RoomNoRevCompare);
+			} else {
+				m_roomListBox->SortItem(RoomNoCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:10955
+void CLobbyMain::OnRoomList_RoomSortNoOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_roomSortNoViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_roomSortDescending[0]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			pGDI->DrawTexture(m_roomSortNoBmp[state], pViewer->GetRect(), 0xFFFFFFFF, 0);
+		}
+	}
+}
+
+// lobbymain.cpp:10982
+void CLobbyMain::OnRoomList_RoomSortCateAll_BtnInit(intptr_t param) {
+	m_cateAllBtn = DYNAMIC_CAST(FrButton, param);
+	m_cateAllBtn->SetStatus(data_aa9eac[2] == ROOMCATE_ALL ? FrButton::PRESSED : FrButton::NORMAL);
+}
+
+// lobbymain.cpp:10988
+void CLobbyMain::OnRoomList_RoomSortCateAll_BtnDown(void) {
+	RoomList_FilterRoomList(ROOMSORT_CATEGORY, ROOMCATE_ALL);
+	RoomList_SetCateTabBtn();
+	data_aa9eac[3] = -1;
+}
+
+// lobbymain.cpp:10996
+void CLobbyMain::OnRoomList_RoomSortCateVS_BtnInit(intptr_t param) {
+	m_cateVSBtn = DYNAMIC_CAST(FrButton, param);
+	m_cateVSBtn->SetStatus(data_aa9eac[2] == ROOMCATE_VS ? FrButton::PRESSED : FrButton::NORMAL);
+}
+
+// lobbymain.cpp:11002
+void CLobbyMain::OnRoomList_RoomSortCateVS_BtnDown(void) {
+	RoomList_FilterRoomList(ROOMSORT_CATEGORY, ROOMCATE_VS);
+	RoomList_SetCateTabBtn();
+	m_cateNewRoom[0] = 0;
+	data_aa9eac[3] = -1;
+}
+
+// lobbymain.cpp:11011
+void CLobbyMain::OnRoomList_RoomSortCateMass_BtnInit(intptr_t param) {
+	m_cateMassBtn = DYNAMIC_CAST(FrButton, param);
+	m_cateMassBtn->SetStatus(data_aa9eac[2] == ROOMCATE_MASS ? FrButton::PRESSED : FrButton::NORMAL);
+}
+
+// lobbymain.cpp:11017
+void CLobbyMain::OnRoomList_RoomSortCateMass_BtnDown(void) {
+	RoomList_FilterRoomList(ROOMSORT_CATEGORY, ROOMCATE_MASS);
+	RoomList_SetCateTabBtn();
+	m_cateNewRoom[1] = 0;
+	data_aa9eac[3] = -1;
+}
+
+// lobbymain.cpp:11026
+void CLobbyMain::OnRoomList_RoomSortCateBattle_BtnInit(intptr_t param) {
+	m_cateBattleBtn = DYNAMIC_CAST(FrButton, param);
+	m_cateBattleBtn->SetStatus(data_aa9eac[2] == ROOMCATE_BATTLE ? FrButton::PRESSED : FrButton::NORMAL);
+}
+
+// lobbymain.cpp:11032
+void CLobbyMain::OnRoomList_RoomSortCateBattle_BtnDown(void) {
+	RoomList_FilterRoomList(ROOMSORT_CATEGORY, ROOMCATE_BATTLE);
+	RoomList_SetCateTabBtn();
+	m_cateNewRoom[2] = 0;
+	data_aa9eac[3] = -1;
+}
+
+// lobbymain.cpp:11041
+void CLobbyMain::OnRoomList_RoomSortCateChat_BtnInit(intptr_t param) {
+	m_cateChatBtn = DYNAMIC_CAST(FrButton, param);
+	m_cateChatBtn->SetStatus(data_aa9eac[2] == ROOMCATE_CHAT ? FrButton::PRESSED : FrButton::NORMAL);
+}
+
+// lobbymain.cpp:11047
+void CLobbyMain::OnRoomList_RoomSortCateChat_BtnDown(void) {
+	RoomList_FilterRoomList(ROOMSORT_CATEGORY, ROOMCATE_CHAT);
+	RoomList_SetCateTabBtn();
+	data_aa9eac[3] = -1;
+}
+
+// lobbymain.cpp:11155
+void CLobbyMain::OnRoomList_RoomSortHoleInit(intptr_t param) {
+	m_roomSortHoleViewer = DYNAMIC_CAST(FrViewer, param);
+	m_roomSortDescending[1] = false;
+}
+
+// lobbymain.cpp:11161
+void CLobbyMain::OnRoomList_RoomSortHoleDown(void) {
+	if (m_roomSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_roomSort == 4) {
+			m_roomSortPending ^= 1;
+		}
+
+		m_roomSortDescending[0] = false;
+		m_roomSortDescending[1] = false;
+		m_roomSortDescending[2] = false;
+		m_roomSortDescending[3] = false;
+		if (m_cateVSList) {
+			m_cateVSList->SetVisible(false);
+		}
+		if (m_cateMassList) {
+			m_cateMassList->SetVisible(false);
+		}
+		if (m_cateBattleList) {
+			m_cateBattleList->SetVisible(false);
+		}
+
+		m_roomSortDescending[1] = true;
+		m_roomSortResetTime = 0.3f;
+		if (m_roomListBox) {
+			m_roomSort = (roomSort_t)4;
+			if (m_roomSortPending) {
+				m_roomListBox->SortItem(RoomHoleRevCompare);
+			} else {
+				m_roomListBox->SortItem(RoomHoleCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:11177
+void CLobbyMain::OnRoomList_RoomSortHoleOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_roomSortHoleViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_roomSortDescending[1]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			pGDI->DrawTexture(m_roomSortHoleBmp[state], pViewer->GetRect(), 0xFFFFFFFF, 0);
+		}
+	}
+}
+
+// lobbymain.cpp:11204
+void CLobbyMain::OnRoomList_RoomSortCourseInit(intptr_t param) {
+	m_roomSortCourseViewer = DYNAMIC_CAST(FrViewer, param);
+	m_roomSortDescending[2] = false;
+}
+
+// lobbymain.cpp:11210
+void CLobbyMain::OnRoomList_RoomSortCourseDown(void) {
+	if (m_roomSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_roomSort == 5) {
+			m_roomSortPending ^= 1;
+		}
+
+		m_roomSortDescending[0] = false;
+		m_roomSortDescending[1] = false;
+		m_roomSortDescending[2] = false;
+		m_roomSortDescending[3] = false;
+		if (m_cateVSList) {
+			m_cateVSList->SetVisible(false);
+		}
+		if (m_cateMassList) {
+			m_cateMassList->SetVisible(false);
+		}
+		if (m_cateBattleList) {
+			m_cateBattleList->SetVisible(false);
+		}
+
+		m_roomSortDescending[2] = true;
+		m_roomSortResetTime = 0.3f;
+		if (m_roomListBox) {
+			m_roomSort = (roomSort_t)5;
+			if (m_roomSortPending) {
+				m_roomListBox->SortItem(RoomCourseRevCompare);
+			} else {
+				m_roomListBox->SortItem(RoomCourseCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:11226
+void CLobbyMain::OnRoomList_RoomSortCourseOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_roomSortCourseViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_roomSortDescending[2]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			pGDI->DrawTexture(m_roomSortCourseBmp[state], pViewer->GetRect(), 0xFFFFFFFF, 0);
+		}
+	}
+}
+
+// lobbymain.cpp:11253
+void CLobbyMain::OnRoomList_RoomSortStateInit(intptr_t param) {
+	m_roomSortStateViewer = DYNAMIC_CAST(FrViewer, param);
+	m_roomSortDescending[3] = false;
+}
+
+// lobbymain.cpp:11259
+void CLobbyMain::OnRoomList_RoomSortStateDown(void) {
+	if (m_roomSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_roomSort == 6) {
+			m_roomSortPending ^= 1;
+		}
+
+		m_roomSortDescending[0] = false;
+		m_roomSortDescending[1] = false;
+		m_roomSortDescending[2] = false;
+		m_roomSortDescending[3] = false;
+		if (m_cateVSList) {
+			m_cateVSList->SetVisible(false);
+		}
+		if (m_cateMassList) {
+			m_cateMassList->SetVisible(false);
+		}
+		if (m_cateBattleList) {
+			m_cateBattleList->SetVisible(false);
+		}
+
+		m_roomSortDescending[3] = true;
+		m_roomSortResetTime = 0.3f;
+		if (m_roomListBox) {
+			m_roomSort = (roomSort_t)6;
+			if (m_roomSortPending) {
+				m_roomListBox->SortItem(RoomStateRevCompare);
+			} else {
+				m_roomListBox->SortItem(RoomStateCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:11275
+void CLobbyMain::OnRoomList_RoomSortStateOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_roomSortStateViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_roomSortDescending[3]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			pGDI->DrawTexture(m_roomSortStateBmp[state + m_roomSortPending * 3], pViewer->GetRect(), 0xFFFFFFFF, 0);
+		}
+	}
+}
+
+// lobbymain.cpp:11300
+void CLobbyMain::OnRoomList_RoomSortCateVS_ListInit(intptr_t param) {
+	m_cateVSList = DYNAMIC_CAST(FrListBox, param);
+	if (m_cateVSList) {
+		for (int i = 0; i < 2; i++) {
+			m_cateVSList->AddItem(&g_strGameType[i]);
+		}
+
+		m_cateVSList->SetVisible(false);
+		m_cateVSList->EnableScrollBar(false);
+	}
+}
+
+// lobbymain.cpp:11370
+void CLobbyMain::OnRoomList_RoomSortCateMass_ListInit(intptr_t param) {
+	m_cateMassList = DYNAMIC_CAST(FrListBox, param);
+	if (m_cateMassList) {
+		for (int i = 2; i < 5; i++) {
+			m_cateMassList->AddItem(&g_strGameType[i]);
+		}
+
+		m_cateMassList->SetVisible(false);
+		m_cateMassList->EnableScrollBar(false);
+	}
+}
+
+// lobbymain.cpp:11441
+void CLobbyMain::OnRoomList_RoomSortCateBattle_ListInit(intptr_t param) {
+	m_cateBattleList = DYNAMIC_CAST(FrListBox, param);
+	if (m_cateBattleList) {
+		for (int i = 5; i < 7; i++) {
+			m_cateBattleList->AddItem(&g_strGameType[i]);
+		}
+
+		m_cateBattleList->SetVisible(false);
+		m_cateBattleList->EnableScrollBar(false);
+	}
+}
+
+// lobbymain.cpp:11523
+void CLobbyMain::OnRoomList_MakeRoomInit(intptr_t param) {
+	m_makeRoomBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_makeRoomBtn) {
+		_ISkinnedTheme* theme = S5::THEME::GetCurrentSkinnedTheme();
+		THEME_BUTTONS buttons;
+		theme->GetMakeRoomButtonImgName(buttons);
+
+		m_makeRoomBtn->SetButtonImg(buttons.szPush, FrButton::PRESSED);
+		m_makeRoomBtn->SetButtonImg(buttons.szNormal, FrButton::NORMAL);
+		m_makeRoomBtn->SetButtonImg(buttons.szOver, FrButton::OVER);
+	}
+}
+
+// lobbymain.cpp:11601
+void CLobbyMain::OnRoomList_GuildInfoInit(intptr_t param) {
+	m_guildInfoBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_guildInfoBtn) {
+		_ISkinnedTheme* theme = S5::THEME::GetCurrentSkinnedTheme();
+
+		if (theme) {
+			THEME_BUTTONS buttons;
+			theme->GetQuickStartButtonImgName(buttons);
+
+			m_guildInfoBtn->SetButtonImg(buttons.szPush, FrButton::PRESSED);
+			m_guildInfoBtn->SetButtonImg(buttons.szNormal, FrButton::NORMAL);
+			m_guildInfoBtn->SetButtonImg(buttons.szOver, FrButton::OVER);
+			m_guildInfoBtn->SetPushDelay(0.1f);
+		}
+	}
+}
+
+// lobbymain.cpp:11820
+void CLobbyMain::OnRoomList_UserListInit(intptr_t param) {
+	m_userListBox = DYNAMIC_CAST(FrListBox, param);
+	if (!m_userListBox) {
+		return;
+	}
+
+	m_userListBox->UseRightButton(true);
+
+	for (std::map<unsigned long, sBriefUserInfo>::iterator it = CSharedDoc::Instance()->m_userMap.begin();
+		it != CSharedDoc::Instance()->m_userMap.end(); ++it) {
+		CSharedDoc* doc = CSharedDoc::Instance();
+
+		// An administrator sees everyone; others do not see hidden administrators.
+		if (!doc->m_userInfo.identityBits.administrator) {
+			sBriefUserInfo user = it->second;
+			if (user.identityBits.administrator) {
+				sBriefUserInfo admin = it->second;
+				if (admin.invisible) {
+					continue;
+				}
+			}
+		}
+
+		m_userListBox->AddItem(&it->second);
+	}
+}
+
+// lobbymain.cpp:11854
+void CLobbyMain::OnRoomList_UserListLBtnUp(void) {
+	FrListItem* item = m_userListBox->GetItemUnderCursor();
+	if (item) {
+		sBriefUserInfo* info = (sBriefUserInfo*)item->pData;
+
+		if (info) {
+			m_selectedUserId = info->uid;
+			m_removeFriendUid = info->id;
+
+			if (m_userActionBtn) {
+				m_userActionBtn->Enable(true);
+			}
+		}
+
+		item->selected = true;
+	}
+}
+
+// lobbymain.cpp:12203
+void CLobbyMain::OnRoomList_UserSortGenderInit(intptr_t param) {
+	m_userSortGenderViewer = DYNAMIC_CAST(FrViewer, param);
+	m_userSortDescending[0] = false;
+}
+
+// lobbymain.cpp:12209
+void CLobbyMain::OnRoomList_UserSortGenderUp(void) {
+	if (m_userSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_userSort == 0) {
+			m_userSortPending ^= 1;
+		} else {
+			m_userSortPending = false;
+		}
+
+		m_userSortDescending[0] = true;
+		m_userSortDescending[1] = false;
+		m_userSortDescending[2] = false;
+		m_userSortDescending[3] = false;
+		m_userSortResetTime = 0.3f;
+		if (m_userListBox) {
+			m_userSort = (userSort_t)0;
+			if (m_userSortPending) {
+				m_userListBox->SortItem(UserGenderRevCompare);
+			} else {
+				m_userListBox->SortItem(UserGenderCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:12231
+void CLobbyMain::OnRoomList_UserSortGenderOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_userSortGenderViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_userSortDescending[0]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			WRect rect = pViewer->GetRect();
+			pGDI->DrawTexture(m_userSortGenderBmp[state], rect, 0xFFFFFFFF, 0);
+
+			if (m_userSort == 0) {
+				WRect arrow(rect.x + rect.w, rect.y + 5.0f, 12.0f, 12.0f);
+				pGDI->DrawTexture(m_userSortArrowBmp[m_userSortPending == 0], arrow, 0xFFFFFFFF, 0);
+			}
+		}
+	}
+}
+
+// lobbymain.cpp:12263
+void CLobbyMain::OnRoomList_UserSortLevelInit(intptr_t param) {
+	m_userSortLevelViewer = DYNAMIC_CAST(FrViewer, param);
+	m_userSortDescending[1] = false;
+}
+
+// lobbymain.cpp:12269
+void CLobbyMain::OnRoomList_UserSortLevelUp(void) {
+	if (m_userSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_userSort == 1) {
+			m_userSortPending ^= 1;
+		} else {
+			m_userSortPending = false;
+		}
+
+		m_userSortDescending[0] = false;
+		m_userSortDescending[1] = true;
+		m_userSortDescending[2] = false;
+		m_userSortDescending[3] = false;
+		m_userSortResetTime = 0.3f;
+		if (m_userListBox) {
+			m_userSort = (userSort_t)1;
+			if (m_userSortPending) {
+				m_userListBox->SortItem(UserLevelRevCompare);
+			} else {
+				m_userListBox->SortItem(UserLevelCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:12290
+void CLobbyMain::OnRoomList_UserSortLevelOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_userSortLevelViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_userSortDescending[1]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			WRect rect = pViewer->GetRect();
+			pGDI->DrawTexture(m_userSortLevelBmp[state], rect, 0xFFFFFFFF, 0);
+
+			if (m_userSort == 1) {
+				WRect arrow(rect.x + rect.w, rect.y + 5.0f, 12.0f, 12.0f);
+				pGDI->DrawTexture(m_userSortArrowBmp[m_userSortPending == 0], arrow, 0xFFFFFFFF, 0);
+			}
+		}
+	}
+}
+
+// lobbymain.cpp:12369
+void CLobbyMain::OnRoomList_UserSortGuildInit(intptr_t param) {
+	m_userSortGuildViewer = DYNAMIC_CAST(FrViewer, param);
+	m_userSortDescending[2] = false;
+}
+
+// lobbymain.cpp:12375
+void CLobbyMain::OnRoomList_UserSortGuildUp(void) {
+	if (m_userSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_userSort == 2) {
+			m_userSortPending ^= 1;
+		} else {
+			m_userSortPending = false;
+		}
+
+		m_userSortDescending[0] = false;
+		m_userSortDescending[1] = false;
+		m_userSortDescending[2] = true;
+		m_userSortDescending[3] = false;
+		m_userSortResetTime = 0.3f;
+		if (m_userListBox) {
+			m_userSort = (userSort_t)2;
+			if (m_userSortPending) {
+				m_userListBox->SortItem(UserGuildRevCompare);
+			} else {
+				m_userListBox->SortItem(UserGuildCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:12396
+void CLobbyMain::OnRoomList_UserSortGuildOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_userSortGuildViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_userSortDescending[2]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			WRect rect = pViewer->GetRect();
+			pGDI->DrawTexture(m_userSortGuildBmp[state], rect, 0xFFFFFFFF, 0);
+
+			if (m_userSort == 2) {
+				WRect arrow(rect.x + rect.w, rect.y + 5.0f, 12.0f, 12.0f);
+				pGDI->DrawTexture(m_userSortArrowBmp[m_userSortPending == 0], arrow, 0xFFFFFFFF, 0);
+			}
+		}
+	}
+}
+
+// lobbymain.cpp:12428
+void CLobbyMain::OnRoomList_UserSortNickInit(intptr_t param) {
+	m_userSortNickViewer = DYNAMIC_CAST(FrViewer, param);
+	m_userSortDescending[3] = false;
+}
+
+// lobbymain.cpp:12434
+void CLobbyMain::OnRoomList_UserSortNickUp(void) {
+	if (m_userSortResetTime > 0.0f) {
+		return;
+	}
+
+	{
+		if (m_userSort == 3) {
+			m_userSortPending ^= 1;
+		} else {
+			m_userSortPending = false;
+		}
+
+		m_userSortDescending[0] = false;
+		m_userSortDescending[1] = false;
+		m_userSortDescending[2] = false;
+		m_userSortDescending[3] = true;
+		m_userSortResetTime = 0.3f;
+		if (m_userListBox) {
+			m_userSort = (userSort_t)3;
+			if (m_userSortPending) {
+				m_userListBox->SortItem(UserNicknameRevCompare);
+			} else {
+				m_userListBox->SortItem(UserNicknameCompare);
+			}
+		}
+		g_audio->PlaySfx("ui_icon_click", 0, 0, 0, 0, 0.5f, 200.0f);
+	}
+}
+
+// lobbymain.cpp:12455
+void CLobbyMain::OnRoomList_UserSortNickOwnerDraw(int) {
+	FrWndManager* pManager = g_pFresh->GetManager();
+	FrGraphicInterface* pGDI = pManager->GetGDI();
+
+	if (pGDI) {
+		FrViewer* pViewer = m_userSortNickViewer;
+
+		if (pViewer) {
+			int state = 0;
+
+			if (m_userSortDescending[3]) {
+				state = 2;
+			} else {
+				WRect rect = pViewer->GetRect();
+
+				if (rect.IsInRect(pManager->GetMousePos())) {
+					state = 1;
+				}
+			}
+
+			WRect rect = pViewer->GetRect();
+			pGDI->DrawTexture(m_userSortNickBmp[state], rect, 0xFFFFFFFF, 0);
+
+			if (m_userSort == 3) {
+				WRect arrow(rect.x + rect.w, rect.y + 5.0f, 12.0f, 12.0f);
+				pGDI->DrawTexture(m_userSortArrowBmp[m_userSortPending == 0], arrow, 0xFFFFFFFF, 0);
+			}
+		}
+	}
+}
+
+// Reconstrução estática: popula a lista de jogadores da sala usando os
+// registros mantidos por CSharedDoc. Mantém as linhas vazias que a interface
+// espera (4 para salas normais, 24 para salas de grande capacidade).
+void CLobbyMain::MakeRoomUserList(void) {
+    if (m_roomUserListBox == NULL) {
+        return;
+    }
+
+    CSharedDoc* doc = CSharedDoc::Instance();
+    if (doc == NULL) {
+        return;
+    }
+
+    m_roomUserListBox->ClearItem();
+
+    std::list<sRoomPlayer>::iterator it;
+    for (it = doc->m_roomPlayerList.begin(); it != doc->m_roomPlayerList.end(); ++it) {
+        m_roomUserListBox->AddItem(&*it);
+    }
+
+    m_roomUserListBox->SortItem(ConnectionUserCompare);
+
+    int targetCount = (doc->m_roomInfo.m_gameType == 4 ||
+        doc->m_roomInfo.m_gameType == 10) ? 24 : 4;
+
+    while (m_roomUserListBox->GetCurrentItemSize(true) < targetCount) {
+        m_roomUserListBox->AddItem(NULL);
+    }
+}
+
+// lobbymain.cpp:12522
+void CLobbyMain::RoomList_SortRoomList(roomSort_t sort, int) {
+	if (m_roomListBox == NULL) {
+		return;
+	}
+
+	m_roomSort = sort;
+
+	switch (sort) {
+	case ROOMSORT_NO:
+		if (m_roomSortPending) {
+			m_roomListBox->SortItem(RoomNoRevCompare);
+		} else {
+			m_roomListBox->SortItem(RoomNoCompare);
+		}
 		break;
-	default:
-		if (m_pRoomSortCateVSList)
-			m_pRoomSortCateVSList->SetVisible(false);
-		if (m_pRoomSortCateMassList)
-			m_pRoomSortCateMassList->SetVisible(false);
-		if (m_pRoomSortCateBattleList)
-			m_pRoomSortCateBattleList->SetVisible(false);
+	case ROOMSORT_TITLE:
+		if (m_roomSortPending) {
+			m_roomListBox->SortItem(RoomTitleRevCompare);
+		} else {
+			m_roomListBox->SortItem(RoomTitleCompare);
+		}
+		break;
+	case ROOMSORT_HOLE:
+		if (m_roomSortPending) {
+			m_roomListBox->SortItem(RoomHoleRevCompare);
+		} else {
+			m_roomListBox->SortItem(RoomHoleCompare);
+		}
+		break;
+	case ROOMSORT_GAMETYPE:
+		if (m_roomSortPending) {
+			m_roomListBox->SortItem(RoomGameTypeRevCompare);
+		} else {
+			m_roomListBox->SortItem(RoomGameTypeCompare);
+		}
+		// no break in the original: falls into the course sort
+	case ROOMSORT_COURSE:
+		if (m_roomSortPending) {
+			m_roomListBox->SortItem(RoomCourseRevCompare);
+		} else {
+			m_roomListBox->SortItem(RoomCourseCompare);
+		}
+		break;
+	case ROOMSORT_STATE:
+		if (m_roomSortPending) {
+			m_roomListBox->SortItem(RoomStateRevCompare);
+		} else {
+			m_roomListBox->SortItem(RoomStateCompare);
+		}
 		break;
 	}
 }
 
-void CLobbyMain::ResetControlsRoomListSort(float elapsed)
-{
-	if (m_roomSortDelay > 0.0f)
-	{
-		m_roomSortDelay -= elapsed;
+// Reconstrução estática: aplica a ordenação ativa da lista de usuários do lobby.
+// Os comparadores e a sequência (gênero, nível, guilda, apelido) já existem no arquivo.
+void CLobbyMain::RoomList_SortUserList(userSort_t sort) {
+    if (m_userListBox == NULL) {
+        return;
+    }
 
-		if (m_roomSortDelay <= 0.0f)
-		{
-			m_bRoomSortDown[0] = false;
-			m_bRoomSortDown[1] = false;
-			m_bRoomSortDown[2] = false;
-			m_bRoomSortDown[3] = false;
+    m_userSort = sort;
+    bool reverse = (m_userSortPending != false);
+
+    switch ((int)sort) {
+    case 0:
+        m_userListBox->SortItem(reverse ? UserGenderRevCompare : UserGenderCompare);
+        break;
+    case 1:
+        m_userListBox->SortItem(reverse ? UserLevelRevCompare : UserLevelCompare);
+        break;
+    case 2:
+        m_userListBox->SortItem(reverse ? UserGuildRevCompare : UserGuildCompare);
+        break;
+    case 3:
+    default:
+        m_userListBox->SortItem(reverse ? UserNicknameRevCompare : UserNicknameCompare);
+        break;
+    }
+}
+
+// Reconstrução estática: filtra a lista de salas pelo tipo/categoria.
+// A lista de origem é CSharedDoc::m_roomList; os eventos 0x04/0x05 mantêm
+// a mesma regra de filtragem para salas que chegam/saem enquanto a tela está aberta.
+void CLobbyMain::RoomList_FilterRoomList(roomSort_t sort, int cate) {
+    if (sort == ROOMSORT_CATEGORY) {
+        data_aa9eac[2] = cate;
+        data_aa9eac[3] = -1;
+    }
+
+    if (m_roomListBox == NULL) {
+        return;
+    }
+
+    m_roomListBox->ClearItem();
+
+    CSharedDoc* doc = CSharedDoc::Instance();
+    if (doc != NULL) {
+        std::list<sRoomInfo>::iterator it;
+        for (it = doc->m_roomList.begin(); it != doc->m_roomList.end(); ++it) {
+            bool includeRoom = false;
+
+            if (data_aa9eac[3] != -1) {
+                includeRoom = (it->m_gameType == data_aa9eac[3]);
+            } else {
+                includeRoom = (data_aa9eac[2] == ROOMCATE_ALL ||
+                    GetCateByGameType(it->m_gameType) == data_aa9eac[2]);
+            }
+
+            if (includeRoom) {
+                m_roomListBox->AddItem(&*it);
+            }
+        }
+    }
+
+    if (sort != ROOMSORT_CATEGORY) {
+        RoomList_SortRoomList(sort, 0);
+    } else {
+        RoomList_SortRoomList(m_roomSort, 0);
+    }
+
+    // HandleMsg(0x0D) aplica o preenchimento mínimo de seis linhas e
+    // ordena a lista de forma idêntica ao fluxo normal de atualização.
+    this << MsgObject(0, 0x0D, 0, 0, 0, 0, 0);
+}
+
+// lobbymain.cpp:12572
+void CLobbyMain::RoomList_SetCateTabBtn(void) {
+	// data_aa9eac[2]: the room list's current category (ROOMCATE_*)
+	m_cateVSBtn->SetStatus(data_aa9eac[2] == ROOMCATE_VS ? FrButton::PRESSED : FrButton::NORMAL);
+	m_cateMassBtn->SetStatus(data_aa9eac[2] == ROOMCATE_MASS ? FrButton::PRESSED : FrButton::NORMAL);
+	m_cateBattleBtn->SetStatus(data_aa9eac[2] == ROOMCATE_BATTLE ? FrButton::PRESSED : FrButton::NORMAL);
+	m_cateChatBtn->SetStatus(data_aa9eac[2] == ROOMCATE_CHAT ? FrButton::PRESSED : FrButton::NORMAL);
+	m_cateAllBtn->SetStatus(data_aa9eac[2] == ROOMCATE_ALL ? FrButton::PRESSED : FrButton::NORMAL);
+}
+
+// lobbymain.cpp:12682
+// Clears the sort orders once their reset timers run out and, in the room
+// list, opens a category tab's list after the tab is held for 0.8 seconds;
+// releasing the button picks from the open list.
+void CLobbyMain::ResetControlsRoomListSort(float dt) {
+	if (m_roomSortResetTime > 0.0f) {
+		m_roomSortResetTime -= dt;
+		if (m_roomSortResetTime <= 0.0f) {
+			m_roomSortDescending[0] = false;
+			m_roomSortDescending[1] = false;
+			m_roomSortDescending[2] = false;
+			m_roomSortDescending[3] = false;
 		}
 	}
 
-	if (m_userSortDelay > 0.0f)
-	{
-		m_userSortDelay -= elapsed;
-
-		if (m_userSortDelay <= 0.0f)
-		{
-			m_bUserSortDown[0] = false;
-			m_bUserSortDown[1] = false;
-			m_bUserSortDown[2] = false;
-			m_bUserSortDown[3] = false;
+	if (m_userSortResetTime > 0.0f) {
+		m_userSortResetTime -= dt;
+		if (m_userSortResetTime <= 0.0f) {
+			m_userSortDescending[0] = false;
+			m_userSortDescending[1] = false;
+			m_userSortDescending[2] = false;
+			m_userSortDescending[3] = false;
 		}
 	}
 
-	if (!strcmpi(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST"))
-	{
-		if (g_input->GetButton(LEFT_BUTTON) == 3)
-		{
-			WVector mousePos = g_input->GetMousePoint();
-			WVector downPos = g_input->GetButtonDownPos(LEFT_BUTTON);
+	if (stricmp(g_pFresh->GetManager()->GetLayoutID(), "ROOMLIST") != 0)
+		return;
 
-			WRect vsRect = m_pRoomSortCateVS->GetRect(),
-				  vsListRect = m_pRoomSortCateVSList->GetRect();
-			WRect massRect = m_pRoomSortCateMass->GetRect(),
-				  massListRect = m_pRoomSortCateMassList->GetRect();
-			WRect battleRect = m_pRoomSortCateBattle->GetRect(),
-				  battleListRect = m_pRoomSortCateBattleList->GetRect();
+	if (g_input->GetButton(LEFT_BUTTON) == 3) {
+		WVector mouse = g_input->GetMousePoint();
+		WVector down = g_input->GetButtonDownPos(LEFT_BUTTON);
+		FrButton* tabs[3] = { m_cateVSBtn, m_cateMassBtn, m_cateBattleBtn };
+		FrListBox* lists[3] = { m_cateVSList, m_cateMassList, m_cateBattleList };
 
-			if (m_pRoomSortCateVS->GetStatus() == FrButton::PRESSED &&
-				vsRect.IsInRect(WPoint(downPos.x, downPos.y)) &&
-				(vsRect.IsInRect(WPoint(mousePos.x, mousePos.y)) ||
-					vsListRect.IsInRect(WPoint(mousePos.x, mousePos.y))))
-			{
-				m_cateListTime[0] += elapsed;
+		for (int i = 0; i < 3; i++) {
+			WRect tabRect = tabs[i]->GetRect();
+			WRect listRect = lists[i]->GetRect();
+			WPoint downPt(down.x, down.y);
+			WPoint mousePt(mouse.x, mouse.y);
 
-				if (m_cateListTime[0] > 0.8f)
-					m_pRoomSortCateVSList->SetVisible(true);
-			}
-			else
-			{
-				m_cateListTime[0] = 0.0f;
-				m_pRoomSortCateVSList->SetVisible(false);
-			}
-
-			if (m_pRoomSortCateMass->GetStatus() == FrButton::PRESSED &&
-				massRect.IsInRect(WPoint(downPos.x, downPos.y)) &&
-				(massRect.IsInRect(WPoint(mousePos.x, mousePos.y)) ||
-					massListRect.IsInRect(WPoint(mousePos.x, mousePos.y))))
-			{
-				m_cateListTime[1] += elapsed;
-
-				if (m_cateListTime[1] > 0.8f)
-					m_pRoomSortCateMassList->SetVisible(true);
-			}
-			else
-			{
-				m_cateListTime[1] = 0.0f;
-				m_pRoomSortCateMassList->SetVisible(false);
-			}
-
-			if (m_pRoomSortCateBattle->GetStatus() == FrButton::PRESSED &&
-				battleRect.IsInRect(WPoint(downPos.x, downPos.y)) &&
-				(battleRect.IsInRect(WPoint(mousePos.x, mousePos.y)) ||
-					battleListRect.IsInRect(WPoint(mousePos.x, mousePos.y))))
-			{
-				m_cateListTime[2] += elapsed;
-
-				if (m_cateListTime[2] > 0.8f)
-					m_pRoomSortCateBattleList->SetVisible(true);
-			}
-			else
-			{
-				m_cateListTime[2] = 0.0f;
-				m_pRoomSortCateBattleList->SetVisible(false);
+			if (tabs[i]->GetStatus() == 2 && tabRect.IsInRect(downPt)
+				&& (tabRect.IsInRect(mousePt) || listRect.IsInRect(mousePt))) {
+				m_cateNewRoom[i] += dt;
+				if (m_cateNewRoom[i] > 0.8f)
+					lists[i]->SetVisible(true);
+			} else {
+				m_cateNewRoom[i] = 0.0f;
+				lists[i]->SetVisible(false);
 			}
 		}
-		else
-		{
-			if (m_pRoomSortCateVSList->IsVisible())
-				OnRoomList_RoomSortCateVS_ListLUp();
+	} else {
+		if (m_cateVSList->IsVisible())
+			OnRoomList_RoomSortCateVS_ListLUp();
+		if (m_cateMassList->IsVisible())
+			OnRoomList_RoomSortCateMass_ListLUp();
+		if (m_cateBattleList->IsVisible())
+			OnRoomList_RoomSortCateBattle_ListLUp();
 
-			if (m_pRoomSortCateMassList->IsVisible())
-				OnRoomList_RoomSortCateMass_ListLUp();
-
-			if (m_pRoomSortCateBattleList->IsVisible())
-				OnRoomList_RoomSortCateBattle_ListLUp();
-
-			m_cateListTime[0] = 0.0f;
-			m_cateListTime[1] = 0.0f;
-			m_cateListTime[2] = 0.0f;
-		}
+		m_cateNewRoom[0] = 0.0f;
+		m_cateNewRoom[1] = 0.0f;
+		m_cateNewRoom[2] = 0.0f;
 	}
 }
 
-void CLobbyMain::OnChatBgInit(int param)
-{
-	m_pChatBg = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// lobbymain.cpp:12791
+void CLobbyMain::OnChatBgInit(intptr_t param) {
+	m_chatBg = DYNAMIC_CAST(FrArea, param);
 }
 
-void CLobbyMain::OnChatBgOwnerDraw(int param)
-{
-	if (g_pFresh->GetManager()->GetGDI())
-	{
-		const WRect& rect = m_pChatBg->GetRect();
-		WOverlay::DrawBox(g_view, WRect(rect.x, rect.y, rect.w, rect.h), 0,
-			0x58000000, 0);
+// lobbymain.cpp:12796
+void CLobbyMain::OnChatBgOwnerDraw(int) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+
+	if (pGDI) {
+		pGDI->Box(m_chatBg->GetRect(), 0x58000000, 0, 0.0f);
 	}
 }
 
-void CLobbyMain::OnChatWndBtnInit(int param)
-{
-	m_pChatWndBtn = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	m_pChatWndBtn->SetPushDelay(0.0f);
+// lobbymain.cpp:12805
+void CLobbyMain::OnChatWndBtnInit(intptr_t param) {
+	m_chatWndBtn = DYNAMIC_CAST(FrButton, param);
+	m_chatWndBtn->SetPushDelay(0.0f);
 
-	bool bUp = COption::Instance()->gGetChatWndUp() != 0;
+	bool up = COption::Instance()->gGetChatWndUp() != 0;
 
-	ToggleChatBtn(bUp);
+	ToggleChatBtn(up);
 }
 
-void CLobbyMain::OnChatWndBtnUp()
-{
-	COption::Instance()->gSetChatWndUp(!COption::Instance()->gGetChatWndUp());
-
+// lobbymain.cpp:12815
+void CLobbyMain::OnChatWndBtnUp(void) {
+	COption::Instance()->gSetChatWndUp(COption::Instance()->gGetChatWndUp() == 0);
 	ToggleChatBtn(true);
 }
 
-void CLobbyMain::ToggleChatBtn(bool bMove)
-{
-	if (COption::Instance()->gGetChatWndUp())
-	{
-		m_pChatWndBtn->SetButtonImg("chatwnd_down", FrButton::NORMAL);
-		if (!bMove)
-			return;
+// lobbymain.cpp:12823
+void CLobbyMain::ToggleChatBtn(bool resize) {
+	if (COption::Instance()->gGetChatWndUp()) {
+		m_chatWndBtn->SetButtonImg("chatwnd_down", FrButton::NORMAL);
+		if (resize) {
+			WRect rect = m_chatBg->GetRect();
+			rect.y -= 200.0f;
+			rect.h += 200.0f;
+			m_chatBg->SetRect(rect);
 
-		const WRect& bgRect = m_pChatBg->GetRect();
+			rect = m_chatView->GetRect();
+			rect.y -= 200.0f;
+			rect.h += 200.0f;
+			m_chatView->SetRect(rect);
 
-		m_pChatBg->SetRect(
-			WRect(bgRect.x, bgRect.y - 200.0f, bgRect.w, bgRect.h + 200.0f));
-
-		const WRect& viewRect = m_pChatView->GetRect();
-		m_pChatView->SetRect(WRect(viewRect.x, viewRect.y - 200.0f, viewRect.w,
-			viewRect.h + 200.0f));
-	}
-	else
-	{
-		m_pChatWndBtn->SetButtonImg("chatwnd_up", FrButton::NORMAL);
-		if (!bMove)
-			return;
-
-		const WRect& bgRect = m_pChatBg->GetRect();
-		m_pChatBg->SetRect(
-			WRect(bgRect.x, bgRect.y + 200.0f, bgRect.w, bgRect.h - 200.0f));
-
-		const WRect& viewRect = m_pChatView->GetRect();
-		m_pChatView->SetRect(WRect(viewRect.x, viewRect.y + 200.0f, viewRect.w,
-			viewRect.h - 200.0f));
-	}
-
-	FrScrollBar* bar = m_pChatView->GetScrollBar();
-	if (bar)
-		bar->ScrollToBottom();
-}
-
-void CLobbyMain::ReLoadHoleItem()
-{
-	if (m_pMapHoleCombo)
-	{
-		m_pMapHoleCombo->ClearAllListItem();
-		m_pMapHoleCombo->AddTexItem("hole_front");
-		if (Doc()->m_roomInfo.nHole < 18)
-		{
-			m_pMapHoleCombo->AddTexItem("hole_back");
-			m_pMapHoleCombo->AddTexItem("hole_random");
+			if (m_chatView->GetScrollBar()) {
+				m_chatView->GetScrollBar()->ScrollToBottom();
+			}
 		}
-		m_pMapHoleCombo->AddTexItem("hole_shuffle");
-	}
-}
+	} else {
+		m_chatWndBtn->SetButtonImg("chatwnd_up", FrButton::NORMAL);
+		if (resize) {
+			WRect rect = m_chatBg->GetRect();
+			rect.y += 200.0f;
+			rect.h -= 200.0f;
+			m_chatBg->SetRect(rect);
 
-void CLobbyMain::OnRoomList_ChatViewInit(int param)
-{
-	m_pChatView = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	m_pChatView->HidePrivacy(true);
+			rect = m_chatView->GetRect();
+			rect.y += 200.0f;
+			rect.h -= 200.0f;
+			m_chatView->SetRect(rect);
 
-	Doc()->m_chatLineList.clear();
-}
-
-void CLobbyMain::OnLanguageInit(int param)
-{
-	m_pLanguage = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pLanguage)
-	{
-		if (g_ime->IsAlphaNumericMode())
-			m_pLanguage->SetBgImg("chat_eng");
-		else
-			m_pLanguage->SetBgImg("chat_kor");
-	}
-}
-
-void CLobbyMain::OnChatInputInit(int param)
-{
-	m_pChatInput = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pChatInput)
-	{
-		m_pChatInput->SetKeyFocus(true);
-	}
-}
-
-bool CLobbyMain::OnChatInputEnterKey(int param)
-{
-	if (strlen((const char*)param))
-	{
-		if (!Doc()->UTIL_SendChatMessage(m_pChatTarget, (const char*)param,
-				true))
-		{
-			m_pChatTarget->SetLine(1, "\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4", 0,
-				false, 0);
-			HandleMsg(MsgObject(NULL, 3,
-				(int)"\xb1\xd3\xb8\xbb \xbb\xf3\xb4\xeb\xb0\xa1 \xc0\xdf\xb8\xf8\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9. \"\xb8\xf0\xb5\xce\xbf\xa1\xb0\xd4\"\xb7\xce \xba\xaf\xb0\xe6\xc7\xd5\xb4\xcf\xb4\xd9.",
-				0xffaf00a1, 0, 0, 0));
+			if (m_chatView->GetScrollBar()) {
+				m_chatView->GetScrollBar()->ScrollToBottom();
+			}
 		}
 	}
-
-	return true;
 }
 
-void CLobbyMain::OnReportBtnUp()
-{
-	m_pReportDlg =
-		CreateForm<FrReportDlg>(g_pFresh->GetManager(), this, "report");
-
-	std::string msg;
-	msg =
-		"1. \xb4\xeb\xc8\xad\xc3\xa2\xc0\xc7 \xc1\xf6\xb3\xad \xb3\xbb\xbf\xeb\xb5\xb5 \xb8\xf0\xb5\xce \xbc\xad\xb9\xf6\xbf\xa1 \xb1\xe2\xb7\xcf\xb5\xcb\xb4\xcf\xb4\xd9.\n";
-	msg +=
-		"2. \xc1\xb6\xc0\xdb, \xc7\xe3\xc0\xa7, \xb9\xdd\xba\xb9\xbd\xc5\xb0\xed\xb4\xc2 \xc3\xb3\xb9\xfa\xc0\xbb \xb9\xde\xbd\xc0\xb4\xcf\xb4\xd9.\n";
-	msg +=
-		"3. \xbd\xc5\xb0\xed\xc7\xcf\xbd\xc5 \xb3\xbb\xbf\xeb\xc0\xba 48\xbd\xc3\xb0\xa3 \xc0\xcc\xb3\xbb\xbf\xa1 \xc3\xb3\xb8\xae\xb5\xcb\xb4\xcf\xb4\xd9.";
-
-	m_pReportDlg->SetMessage(msg.c_str(), false);
-	m_pReportDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnReportDlgResult, 3);
+// lobbymain.cpp:12864
+void CLobbyMain::ReLoadHoleItem(void) {
+	if (m_holeCombo) {
+		m_holeCombo->ClearAllListItem();
+		m_holeCombo->AddTexItem("hole_front");
+		if (CSharedDoc::Instance()->m_roomInfo.m_holeCount < 18) {
+			m_holeCombo->AddTexItem("hole_back");
+			m_holeCombo->AddTexItem("hole_random");
+		}
+		m_holeCombo->AddTexItem("hole_shuffle");
+	}
 }
 
-void CLobbyMain::OnChatTargetInit(int param)
-{
-	m_pChatTarget = DYNAMIC_CAST(FrComboBox, (FrWnd*)param);
-	m_pChatTarget->HidePrivacy(true);
-	Doc()->InitReservedChatList(m_pChatTarget,
-		(Doc()->m_roomInfo.gameType == GAME_TYPE_30S_TEAM ||
-			Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-			? (eReservedChatPartner)3
-			: (eReservedChatPartner)2);
+// lobbymain.cpp:12881
+void CLobbyMain::OnRoomList_ChatViewInit(intptr_t param) {
+	m_chatView = DYNAMIC_CAST(FrEdit, param);
+	m_chatView->HidePrivacy(true);
+	CSharedDoc::Instance()->m_chatLineList.clear();
 }
 
-void CLobbyMain::OnChatTargetBtnDown(int param)
-{
-	m_pChatInput->SetKeyFocus(false);
+// lobbymain.cpp:12889
+void CLobbyMain::OnLanguageInit(intptr_t param) {
+	m_languageArea = DYNAMIC_CAST(FrArea, param);
+	if (m_languageArea) {
+		if (g_ime->IsAlphaNumericMode()) {
+			m_languageArea->SetBgImg("chat_eng");
+		} else {
+			m_languageArea->SetBgImg("chat_kor");
+		}
+	}
 }
 
-bool CLobbyMain::OnChatTargetEnterKey(int param)
-{
-	m_pChatInput->SetKeyFocus(true);
+// lobbymain.cpp:12908
+void CLobbyMain::OnChatInputInit(intptr_t param) {
+	m_chatEdit = DYNAMIC_CAST(FrEdit, param);
+	if (m_chatEdit) {
+		m_chatEdit->SetKeyFocus(true);
+	}
+}
+
+// lobbymain.cpp:12953
+void CLobbyMain::OnChatTargetInit(intptr_t param) {
+	m_chatTargetCombo = DYNAMIC_CAST(FrComboBox, param);
+	m_chatTargetCombo->HidePrivacy(true);
+	CSharedDoc::Instance()->InitReservedChatList(m_chatTargetCombo,
+		(eReservedChatPartner)(CSharedDoc::Instance()->m_roomInfo.m_gameType == 5 || CSharedDoc::Instance()->m_roomInfo.m_gameType == 6 ? 3 : 2));
+}
+
+// lobbymain.cpp:12960
+void CLobbyMain::OnChatTargetBtnDown(int) {
+	m_chatEdit->SetKeyFocus(false);
+}
+
+// lobbymain.cpp:12965
+bool CLobbyMain::OnChatTargetEnterKey(int) {
+	m_chatEdit->SetKeyFocus(true);
 	return false;
 }
 
-void CLobbyMain::OnEmoticonInit(int param)
-{
-	m_pEmoticon = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// lobbymain.cpp:12971
+void CLobbyMain::OnEmoticonInit(intptr_t param) {
+	m_emoticonBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void CLobbyMain::OnEmoticonBtnUp()
-{
-	if (m_pEmoticon && !m_pEmoticonDlg)
-	{
-		m_pEmoticonDlg =
-			CreateForm<FrEmoticonDlg>(g_pFresh->GetManager(), this, "emoticon");
-		if (m_pEmoticonDlg)
-		{
-			WPoint pos(0.0f, 0.0f);
-
-			if (m_pEmoticon)
-			{
-				pos.x = m_pEmoticon->GetRect().x - 200.0f;
-				pos.y = m_pEmoticon->GetRect().y - 260.0f;
-			}
-
-			m_pEmoticonDlg->Open(
-				(FRESH_PFN_RESULT)&CLobbyMain::OnEmoticonResult, pos, 3);
-		}
-	}
+// lobbymain.cpp:12997
+void CLobbyMain::OnChannelRoomCloseBtnInit(intptr_t param) {
+	m_channelRoomCloseBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void CLobbyMain::OnChannelRoomCloseBtnInit(int param)
-{
-	m_pRoomClose = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_Init(int param)
-{
+// lobbymain.cpp:13007
+void CLobbyMain::OnGameRoom_Init(int) {
 	CTaskMain::OnInit();
 
-	m_bIdle = false;
-	m_bReady = false;
-	m_bLockControls = false;
-	m_bCanStart = false;
-	m_bAutoStart = false;
+	m_away = false;
+	m_roomOptionA = false;
+	m_roomOptionC = false;
+	m_roomOptionD = false;
+	m_autoStartArmed = false;
 
-	if (Doc()->m_myInfo.info.dwIdentity == 2)
-	{
-		m_bReady = true;
-		m_bLockControls = true;
+	if (CSharedDoc::Instance()->GetPangyaUserInfo().identity == 2) {
+		m_roomOptionA = true;
+		m_roomOptionC = true;
 	}
 
-	m_bRoomStateReq = false;
-	m_selOID = 0xffffffff;
-	m_selUID = 0xffffffff;
-	m_pCurTip = NULL;
-	m_pStartTip = NULL;
-	m_pReadyTip = NULL;
+	m_roomOptionB = false;
+	m_selectedUserId = 0xFFFFFFFF;
+	m_removeFriendUid = 0xFFFFFFFF;
+	m_blinkTipArea = NULL;
+	m_startTipArea = NULL;
+	m_readyTipArea = NULL;
 
 	g_mouse->ResetInputTime();
 	g_ime->ResetInputTime();
 
-	if (Doc()->m_roomInfo.realGameType == 14)
-	{
-		g_pFresh->GetManager()->GetDesktop()->SetWallPaper(
-			"chaos_background.jpg", true);
-
-		AfxGetTask()->SendMsgToMainActor(MsgObject(NULL, 0x23,
-			(int)"\xbd\xba\xc6\xf3\xbc\xc8 \xbc\xc5\xc7\xc3 \xb8\xf0\xb5\xe5\xbf\xa1\xbc\xad\xb4\xc2, \n\\c0xffff0000\\c\xb0\xd4\xc0\xd3 \xc1\xdf \xc0\xd4\xc0\xe5\\c0xff000000\\c \xb9\xd7 \\c0xffff0000\\c\xc6\xbc\xc5\xb0\xb8\xae\xc6\xf7\xc6\xae\\c0xff000000\\c \xbb\xe7\xbf\xeb\xc0\xcc \xba\xd2\xb0\xa1\xb4\xc9 \xc7\xd5\xb4\xcf\xb4\xd9.",
+	if (CSharedDoc::Instance()->m_roomInfo.m_roomMode == 14) {
+		g_pFresh->GetDesktop()->SetWallPaper("chaos_background.jpg", true);
+		(!CTaskManager::Instance() ? 0 : CTaskManager::Instance()->GetCurrentTask())->SendMsgToMainActor(MsgObject(0, 0x23,
+			(intptr_t)"\xBD\xBA\xC6\xF3\xBC\xC8 \xBC\xC5\xC7\xC3 \xB8\xF0\xB5\xE5\xBF\xA1\xBC\xAD\xB4\xC2, \n\\c0xffff0000\\c\xB0\xD4\xC0\xD3 \xC1\xDF \xC0\xD4\xC0\xE5\\c0xff000000\\c \xB9\xD7 \\c0xffff0000\\c\xC6\xBC\xC5\xB0\xB8\xAE\xC6\xF7\xC6\xAE\\c0xff000000\\c \xBB\xE7\xBF\xEB\xC0\xCC \xBA\xD2\xB0\xA1\xB4\xC9 \xC7\xD5\xB4\xCF\xB4\xD9.",
 			0, 0, 0, 0));
-	}
-	else
-	{
-		g_pFresh->GetManager()->GetDesktop()->SetWallPaper(
-			"gameroom_background.jpg", true);
+	} else {
+		g_pFresh->GetDesktop()->SetWallPaper("gameroom_background.jpg", true);
 	}
 
 	SetTimeVariableBGM();
 }
 
-void CLobbyMain::OnGameRoom_Finish()
-{
-	m_pOverBarTitle->SetBgImg("title_vs");
-
-	for (std::list<sSlotInfo>::iterator it = Doc()->m_slotList.begin();
-		it != Doc()->m_slotList.end(); ++it)
-	{
-		if (m_pRoomUser)
-			m_pRoomUser->AddItem(&(*it));
-
-		ShowPet((*it).dwGuid);
-	}
-
-	HandleMsg(MsgObject(this, 0x11, Doc()->m_roomInfo.mapType, 0, 0, 0, 0));
-
-	if (Doc()->m_bRefreshCamera)
-		HandleMsg(MsgObject(NULL, 0xaa, 1, 0, 0, 0, 0));
-
-	EnableUnderBar(false);
-
-	OpenNewRecordForm();
-}
-
-void CLobbyMain::OnGameRoom_Destroy()
-{
+// lobbymain.cpp:13082
+void CLobbyMain::OnGameRoom_Destroy(void) {
 	EnableUnderBar(true);
 }
 
-void CLobbyMain::OnGameRoom_BackGroundInit(int param)
-{
-	m_pBackGround = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	if (m_pBackGround)
-		m_pBackGround->SetMouseEvent(false);
+// lobbymain.cpp:13087
+void CLobbyMain::OnGameRoom_BackGroundInit(intptr_t param) {
+	m_backGroundViewer = DYNAMIC_CAST(FrViewer, param);
+	if (m_backGroundViewer) {
+		m_backGroundViewer->SetMouseEvent(false);
+	}
 }
 
-void CLobbyMain::OnGameRoom_Pet0Init(int param)
-{
-	m_pPet[0] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// lobbymain.cpp:13094
+void CLobbyMain::OnGameRoom_Pet0Init(intptr_t param) {
+	m_petArea[0] = DYNAMIC_CAST(FrArea, param);
 }
 
-void CLobbyMain::OnGameRoom_Pet1Init(int param)
-{
-	m_pPet[1] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// lobbymain.cpp:13101
+void CLobbyMain::OnGameRoom_Pet1Init(intptr_t param) {
+	m_petArea[1] = DYNAMIC_CAST(FrArea, param);
 }
 
-void CLobbyMain::OnGameRoom_Pet2Init(int param)
-{
-	m_pPet[2] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// lobbymain.cpp:13108
+void CLobbyMain::OnGameRoom_Pet2Init(intptr_t param) {
+	m_petArea[2] = DYNAMIC_CAST(FrArea, param);
 }
 
-void CLobbyMain::OnGameRoom_Pet3Init(int param)
-{
-	m_pPet[3] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// lobbymain.cpp:13115
+void CLobbyMain::OnGameRoom_Pet3Init(intptr_t param) {
+	m_petArea[3] = DYNAMIC_CAST(FrArea, param);
 }
 
-void CLobbyMain::Banish()
-{
-	if (m_selOID != 0xffffffff)
-	{
+// lobbymain.cpp:13122
+void CLobbyMain::Banish(void) {
+	if (m_selectedUserId != (unsigned long)-1) {
 		WSendPacket packet((enumClientPacket)0x26);
-		packet.Encode4(m_selUID);
-		packet.Send(TO_GAME);
+		packet.Encode4(m_removeFriendUid);
+		packet.Send(SEND_TO_DEFAULT);
 	}
 }
 
-void CLobbyMain::OnGameRoom_RoomUserInit(int param)
-{
-	m_pRoomUser = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pRoomUser)
-	{
-		m_pRoomUser->UseRightButton(true);
-		m_pRoomUser->UseDummy(true);
+// Reconstrução estática: vincula o controle da lista de jogadores da sala.
+void CLobbyMain::OnGameRoom_RoomUserInit(int param) {
+    m_roomUserListBox = DYNAMIC_CAST(FrListBox, param);
+    if (m_roomUserListBox == NULL) {
+        return;
+    }
 
-		m_pTeamBmp[0] = (Bitmap*)m_pRoomUser->GetBitmap("team_red");
-		m_pTeamBmp[1] = (Bitmap*)m_pRoomUser->GetBitmap("team_blue");
-		m_pTeamBaseBmp = (Bitmap*)m_pRoomUser->GetBitmap("team_base");
-		m_pTeamBase02Bmp = (Bitmap*)m_pRoomUser->GetBitmap("team_base02");
-		m_pInviteBmp = (Bitmap*)m_pRoomUser->GetBitmap("invite");
-
-		m_pMasterSignBmp = (Bitmap*)m_pRoomUser->GetBitmap("master_sign");
-		m_pReadySignBmp = (Bitmap*)m_pRoomUser->GetBitmap("ready_sign");
-		m_pTeamSelectBmp = (Bitmap*)m_pRoomUser->GetBitmap("team_select");
-
-		m_pGenderBmp[0] = (Bitmap*)m_pRoomUser->GetBitmap("i_male");
-		m_pGenderBmp[1] = (Bitmap*)m_pRoomUser->GetBitmap("i_female");
-		m_pGenderBmp[2] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_02");
-		m_pGenderBmp[3] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_02");
-		m_pGenderBmp[4] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_03");
-		m_pGenderBmp[5] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_03");
-		m_pGenderBmp[6] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_manner");
-		m_pGenderBmp[7] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_manner");
-		m_pGenderBmp[8] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_angel");
-		m_pGenderBmp[9] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_angel");
-
-		m_pDiveBmp = (Bitmap*)m_pRoomUser->GetBitmap("dive");
-
-		m_pKickBmp = (Bitmap*)g_pFresh->RegisterBitmap("kick");
-	}
+    m_roomUserListBox->UseDummy(true);
+    m_roomUserListBox->UseRightButton(true);
+    MakeRoomUserList();
 }
 
-int float2int(float f);
-
-void CLobbyMain::OnGameRoom_RoomUserOwnerDraw(int param)
-{
-	FrListItem* pItem = (FrListItem*)param;
-	if (!pItem)
-		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (!pGDI)
-		return;
-
-	if (!pItem->pData)
-	{
-		pGDI->DrawTexture(m_pTeamBase02Bmp,
-			WRect(pItem->pos.x, pItem->pos.y, (float)m_pTeamBase02Bmp->Width(),
-				(float)m_pTeamBase02Bmp->Height()),
-			0xffffffff, 0);
-		return;
-	}
-
-	if (IsLocalContent((localContentType_t)0x54))
-	{
-		if (((sSlotInfo*)pItem->pData)->IsInvite)
-		{
-			pGDI->DrawTexture(m_pInviteBmp,
-				WRect(pItem->pos.x, pItem->pos.y, (float)m_pInviteBmp->Width(),
-					(float)m_pInviteBmp->Height()),
-				0xffffffff, 0);
-		}
-	}
-
-	sSlotInfo* pSlot = (sSlotInfo*)pItem->pData;
-	if (!pSlot)
-		return;
-
-	if (!Doc()->m_roomSlotMap[pSlot->dwGuid].pExhibition)
-	{
-		Doc()->m_roomSlotMap[pSlot->dwGuid].pArea =
-			m_pPet[pSlot->connectionRank - 1];
-		Doc()->m_roomSlotMap[pSlot->dwGuid].pExhibition = NULL;
-		Doc()->m_roomSlotMap[pSlot->dwGuid].bAngelWing = pSlot->angelicWings;
-		Doc()->m_roomSlotMap[pSlot->dwGuid].bGachaWing =
-			pSlot->angelicWingsEffect;
-
-		if (IsLocalContent((localContentType_t)0x54))
-		{
-			if (!pSlot->IsInvite)
-				ShowPet(pSlot->dwGuid);
-		}
-		else
-		{
-			ShowPet(pSlot->dwGuid);
-		}
-	}
-
-	if (IsLocalContent((localContentType_t)0x54))
-	{
-		WRect rect(pItem->pos.x, pItem->pos.y, (float)m_pTeamBaseBmp->Width(),
-			(float)m_pTeamBaseBmp->Height());
-
-		if (!pSlot->IsInvite)
-		{
-			if (!m_bBongdariShop2)
-			{
-				std::map<unsigned long, sRoomSlot>::iterator it =
-					Doc()->m_roomSlotMap.find(pSlot->dwGuid);
-				if (it != Doc()->m_roomSlotMap.end())
-				{
-					if ((*it).second.pExhibition)
-						(*it).second.pExhibition->Display(0.0f, 0.0f);
-				}
-			}
-
-			if (Doc()->m_roomInfo.gameType == GAME_TYPE_TEAM)
-				pGDI->DrawTexture(m_pTeamBmp[pSlot->bTeam], rect, 0xffffffff,
-					0);
-			else
-				pGDI->DrawTexture(m_pTeamBaseBmp, rect, 0xffffffff, 0);
-		}
-		else
-		{
-			pGDI->DrawTexture(m_pInviteBmp, rect, 0xffffffff, 0);
-		}
-
-		if (pSlot->tidSkin[3])
-		{
-			IFF_STRUCT::sSkin* pSkin =
-				ItemManager()->FindSkin(pSlot->tidSkin[3]);
-			if (pSkin)
-			{
-				const Bitmap* pBmp = g_pFresh->GetBitmap(pSkin->Tex);
-				pGDI->DrawTexture(pBmp, rect, 0xffffffff, 0);
-			}
-		}
-
-		if (Doc()->m_myInfo.info.dwGuid == m_masterOID && !pSlot->bMaster &&
-			!(Doc()->m_curGameServer.property & 4))
-		{
-			pGDI->DrawTexture(m_pKickBmp,
-				WRect(rect.x + rect.w - 8.0f - m_pKickBmp->Width(),
-					rect.y + 8.0f, (float)m_pKickBmp->Width(),
-					(float)m_pKickBmp->Height()),
-				0xffffffff, 0);
-		}
-
-		if (pSlot->dwGuid == m_selOID)
-			pGDI->DrawTexture(m_pTeamSelectBmp, rect, 0xffffffff, 0);
-
-		int x =
-			(m_pTeamBmp[pSlot->bTeam]->Width() - m_pReadySignBmp->Width()) / 2 +
-			(int)pItem->pos.x;
-
-		if (pSlot->bMaster)
-		{
-			rect = WRect((float)x, pItem->pos.y + 6.0f,
-				(float)m_pMasterSignBmp->Width(),
-				(float)m_pMasterSignBmp->Height());
-			pGDI->DrawTexture(m_pMasterSignBmp, rect, 0xffffffff, 0);
-		}
-		else if (pSlot->bReady)
-		{
-			rect = WRect((float)x, pItem->pos.y + 6.0f,
-				(float)m_pReadySignBmp->Width(),
-				(float)m_pReadySignBmp->Height());
-			pGDI->DrawTexture(m_pReadySignBmp, rect, 0xffffffff, 0);
-		}
-
-		const Bitmap* pCharBmp = NULL;
-		if (!pSlot->tidSkin[4])
-		{
-			IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(pSlot->tidChar);
-			if (pChar)
-				pCharBmp = g_pFresh->GetBitmap(pChar->c.Icon);
-		}
-		else
-		{
-			IFF_STRUCT::sSkin* pSkin =
-				ItemManager()->FindSkin(pSlot->tidSkin[4]);
-			if (pSkin)
-				pCharBmp = g_pFresh->GetBitmap(pSkin->Tex);
-		}
-
-		if (pCharBmp)
-		{
-			rect.x = pItem->pos.x + 8.0f;
-			rect.y = pItem->pos.y + 36.0f;
-			rect.w = (float)pCharBmp->Width();
-			rect.h = (float)pCharBmp->Height();
-
-			pGDI->DrawTexture(pCharBmp, rect, 0xffffffff, 0);
-		}
-
-		if (pSlot->bSleep)
-		{
-			pGDI->DrawTexture(m_pDiveBmp,
-				WRect(pItem->pos.x + 6.0f, pItem->pos.y + 100.0f,
-					(float)m_pDiveBmp->Width(), (float)m_pDiveBmp->Height()),
-				0xffffffff, 0);
-		}
-
-		const Bitmap* pGenderBmp;
-		if (pSlot->angelicWings)
-			pGenderBmp = m_pGenderBmp[8 + pSlot->gender % 2];
-		else if (pSlot->manner)
-			pGenderBmp = m_pGenderBmp[6 + pSlot->gender % 2];
-		else
-			pGenderBmp = m_pGenderBmp[pSlot->gender];
-
-		if (pGenderBmp)
-		{
-			pGDI->DrawTexture(pGenderBmp,
-				WRect(pItem->pos.x + 2.0f, pItem->pos.y + 98.0f,
-					(float)pGenderBmp->Width(), (float)pGenderBmp->Height()),
-				0xffffffff, 0);
-		}
-
-		const Bitmap* pBmp = NULL;
-		if (Doc()->m_curChannel.Type & 0x80)
-		{
-			pBmp =
-				g_pFresh->GetBitmap(MakeStr("ladder_%03d", pSlot->ladderGrade));
-		}
-		else if (pSlot->dwTitle)
-		{
-			IFF_STRUCT::sSkin* pSkin = ItemManager()->FindSkin(pSlot->dwTitle);
-			if (pSkin)
-				pBmp = g_pFresh->GetBitmap(pSkin->c.Icon);
-		}
-		else if (!((sSlotInfo*)pItem->pData)->IsInvite)
-		{
-			pBmp = g_pFresh->GetBitmap(MakeStr("level_%03d", pSlot->level + 1));
-		}
-
-		if (pBmp)
-		{
-			unsigned h = pBmp->Height(), w = pBmp->Width();
-			float x = pItem->pos.x + 90.0f;
-			x -= float2int(pBmp->Width() * 0.5f);
-			pGDI->DrawTexture(pBmp,
-				WRect(x, pItem->pos.y + 68.0f, (float)w, (float)h), 0xffffffff,
-				0);
-		}
-
-		if (pSlot->GuildId && pSlot->IsInvite)
-		{
-			const Bitmap* pEmblem =
-				NetResourceManager::Instance()->GetEmblemByName(
-					pSlot->szEmblemName);
-			if (pEmblem)
-			{
-				pGDI->DrawTexture(pEmblem,
-					WRect(pItem->pos.x + 60.0f, pItem->pos.y + 44.0f,
-						(float)pEmblem->Width(), (float)pEmblem->Height()),
-					0xffffffff, 0);
-			}
-		}
-
-		if (CProjectG::Instance()->HidePrivacy())
-			return;
-
-		if (pItem->underCursor)
-		{
-			pGDI->SetTextColor(0xffffffff, 0xff808080);
-			pGDI->SetTextStyle(2);
-		}
-		else
-		{
-			if (pSlot->dwGuid == MyGuid(true))
-				pGDI->SetTextColor(0xffff0000, 0xffffffff);
-			else
-				pGDI->SetTextColor(0xff000000, 0xffffffff);
-			pGDI->SetTextStyle(0);
-		}
-
-		g_pFresh->GetManager()->PrintText(
-			WPoint(pItem->pos.x + 20.0f, pItem->pos.y + 107.0f), 0,
-			pSlot->sNick, -1.0f, 0xffffffff);
-	}
-	else
-	{
-		if (!m_bBongdariShop2)
-		{
-			std::map<unsigned long, sRoomSlot>::iterator it =
-				Doc()->m_roomSlotMap.find(pSlot->dwGuid);
-			if (it != Doc()->m_roomSlotMap.end())
-			{
-				if ((*it).second.pExhibition)
-					(*it).second.pExhibition->Display(0.0f, 0.0f);
-			}
-		}
-
-		WRect rect(pItem->pos.x, pItem->pos.y, (float)m_pTeamBaseBmp->Width(),
-			(float)m_pTeamBaseBmp->Height());
-
-		if (Doc()->m_roomInfo.gameType == GAME_TYPE_TEAM)
-			pGDI->DrawTexture(m_pTeamBmp[pSlot->bTeam], rect, 0xffffffff, 0);
-		else
-			pGDI->DrawTexture(m_pTeamBaseBmp, rect, 0xffffffff, 0);
-
-		if (pSlot->tidSkin[3])
-		{
-			IFF_STRUCT::sSkin* pSkin =
-				ItemManager()->FindSkin(pSlot->tidSkin[3]);
-			if (pSkin)
-			{
-				const Bitmap* pBmp = g_pFresh->GetBitmap(pSkin->Tex);
-				pGDI->DrawTexture(pBmp, rect, 0xffffffff, 0);
-			}
-		}
-
-		if (Doc()->m_myInfo.info.dwGuid == m_masterOID && !pSlot->bMaster &&
-			!(Doc()->m_curGameServer.property & 4))
-		{
-			pGDI->DrawTexture(m_pKickBmp,
-				WRect(rect.x + rect.w - 8.0f - m_pKickBmp->Width(),
-					rect.y + 8.0f, (float)m_pKickBmp->Width(),
-					(float)m_pKickBmp->Height()),
-				0xffffffff, 0);
-		}
-
-		if (pSlot->dwGuid == m_selOID)
-			pGDI->DrawTexture(m_pTeamSelectBmp, rect, 0xffffffff, 0);
-
-		int x =
-			(m_pTeamBmp[pSlot->bTeam]->Width() - m_pReadySignBmp->Width()) / 2 +
-			(int)pItem->pos.x;
-
-		if (pSlot->bMaster)
-		{
-			rect = WRect((float)x, pItem->pos.y + 6.0f,
-				(float)m_pMasterSignBmp->Width(),
-				(float)m_pMasterSignBmp->Height());
-			pGDI->DrawTexture(m_pMasterSignBmp, rect, 0xffffffff, 0);
-		}
-		else if (pSlot->bReady)
-		{
-			rect = WRect((float)x, pItem->pos.y + 6.0f,
-				(float)m_pReadySignBmp->Width(),
-				(float)m_pReadySignBmp->Height());
-			pGDI->DrawTexture(m_pReadySignBmp, rect, 0xffffffff, 0);
-		}
-
-		const Bitmap* pCharBmp = NULL;
-		if (!pSlot->tidSkin[4])
-		{
-			IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(pSlot->tidChar);
-			if (pChar)
-				pCharBmp = g_pFresh->GetBitmap(pChar->c.Icon);
-		}
-		else
-		{
-			IFF_STRUCT::sSkin* pSkin =
-				ItemManager()->FindSkin(pSlot->tidSkin[4]);
-			if (pSkin)
-				pCharBmp = g_pFresh->GetBitmap(pSkin->Tex);
-		}
-
-		if (pCharBmp)
-		{
-			rect.x = pItem->pos.x + 8.0f;
-			rect.y = pItem->pos.y + 36.0f;
-			rect.w = (float)pCharBmp->Width();
-			rect.h = (float)pCharBmp->Height();
-
-			pGDI->DrawTexture(pCharBmp, rect, 0xffffffff, 0);
-		}
-
-		if (pSlot->bSleep)
-		{
-			pGDI->DrawTexture(m_pDiveBmp,
-				WRect(pItem->pos.x + 6.0f, pItem->pos.y + 100.0f,
-					(float)m_pDiveBmp->Width(), (float)m_pDiveBmp->Height()),
-				0xffffffff, 0);
-		}
-
-		const Bitmap* pGenderBmp;
-		if (pSlot->angelicWings)
-			pGenderBmp = m_pGenderBmp[8 + pSlot->gender % 2];
-		else if (pSlot->manner)
-			pGenderBmp = m_pGenderBmp[6 + pSlot->gender % 2];
-		else
-			pGenderBmp = m_pGenderBmp[pSlot->gender];
-
-		if (pGenderBmp)
-		{
-			pGDI->DrawTexture(pGenderBmp,
-				WRect(pItem->pos.x + 2.0f, pItem->pos.y + 98.0f,
-					(float)pGenderBmp->Width(), (float)pGenderBmp->Height()),
-				0xffffffff, 0);
-		}
-
-		const Bitmap* pBmp;
-		if (Doc()->m_curChannel.Type & 0x80)
-		{
-			pBmp =
-				g_pFresh->GetBitmap(MakeStr("ladder_%03d", pSlot->ladderGrade));
-		}
-		else if (pSlot->dwTitle)
-		{
-			IFF_STRUCT::sSkin* pSkin = ItemManager()->FindSkin(pSlot->dwTitle);
-			if (pSkin)
-				pBmp = g_pFresh->GetBitmap(pSkin->c.Icon);
-			else
-				pBmp = g_pFresh->GetBitmap(
-					MakeStr("level_%03d", pSlot->level + 1));
-		}
-		else
-		{
-			pBmp = g_pFresh->GetBitmap(MakeStr("level_%03d", pSlot->level + 1));
-		}
-
-		if (pBmp)
-		{
-			pGDI->DrawTexture(pBmp,
-				WRect(pItem->pos.x + 60.0f, pItem->pos.y + 68.0f,
-					(float)pBmp->Width(), (float)pBmp->Height()),
-				0xffffffff, 0);
-		}
-
-		if (pSlot->GuildId)
-		{
-			const Bitmap* pEmblem =
-				NetResourceManager::Instance()->GetEmblemByName(
-					pSlot->szEmblemName);
-			if (pEmblem)
-			{
-				pGDI->DrawTexture(pEmblem,
-					WRect(pItem->pos.x + 60.0f, pItem->pos.y + 44.0f,
-						(float)pEmblem->Width(), (float)pEmblem->Height()),
-					0xffffffff, 0);
-			}
-		}
-
-		if (CProjectG::Instance()->HidePrivacy())
-			return;
-
-		if (pItem->underCursor)
-		{
-			pGDI->SetTextColor(0xffffffff, 0xff808080);
-			pGDI->SetTextStyle(2);
-		}
-		else
-		{
-			if (pSlot->dwGuid == MyGuid(true))
-				pGDI->SetTextColor(0xffff0000, 0xffffffff);
-			else
-				pGDI->SetTextColor(0xff000000, 0xffffffff);
-			pGDI->SetTextStyle(0);
-		}
-
-		g_pFresh->GetManager()->PrintText(
-			WPoint(pItem->pos.x + 20.0f, pItem->pos.y + 107.0f), 0,
-			pSlot->sNick, -1.0f, 0xffffffff);
-	}
-}
-void CLobbyMain::OnGameRoom_RoomUserLBtnUp()
-{
-	if (m_pRoomUser == NULL)
-		return;
-
-	FrListItem* pItem = m_pRoomUser->GetItemUnderCursor();
-	if (pItem == NULL)
-		return;
-
-	sSlotInfo* pSlot = (sSlotInfo*)pItem->pData;
-	if (pSlot == NULL)
-		return;
-
-	if (pSlot->dwGuid != m_selOID)
-	{
-		m_selOID = pSlot->dwGuid;
-		m_selUID = pSlot->dwUserUID;
-	}
-
-	WRect kickRect;
-	if (!(Doc()->m_curGameServer.property & 4))
-	{
-		if (strcmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM") == 0)
-			kickRect = WRect((float)m_pTeamBmp[pSlot->bTeam]->Width() - 8.0f -
-					(float)m_pKickBmp->Width(),
-				8.0f, (float)m_pKickBmp->Width(), (float)m_pKickBmp->Height());
-		else
-			kickRect = WRect(227.0f, 5.0f, (float)m_pKickBmp->Width(),
-				(float)m_pKickBmp->Height());
-	}
-
-	if (strcmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES") != 0 &&
-		m_masterOID == MyGuid(false) && m_selOID != MyGuid(false) &&
-		(kickRect + pItem->pos)
-			.IsInRect(g_pFresh->GetManager()->GetMousePos()) &&
-		Doc()->m_roomInfo.gameType != GAME_TYPE_GUILD_MATCH)
-	{
-		if (IsLocalContent((localContentType_t)84))
-		{
-			if (pSlot->IsInvite)
-				return;
-		}
-		Banish();
-	}
-}
-
-void CLobbyMain::OnGameRoom_RoomUserRBtnUp()
-{
+// lobbymain.cpp:13737
+void CLobbyMain::OnGameRoom_RoomUserRBtnUp(void) {
 	OnGameRoom_RoomUserLBtnUp();
 
-	if (CUserInfo::IsInstantiated())
-	{
-		std::map<unsigned long, sBriefUserInfo>::iterator it =
-			Doc()->m_briefUserInfoMap.find(m_selOID);
-		if (it != Doc()->m_briefUserInfoMap.end())
-			(*it).second.roomIndex = Doc()->m_roomInfo.roomGuid;
-
-		CUserInfo::Instance()->SetInfo((*it).second.dwUid, m_selOID, true, true,
-			false, false, (*it).second.sNick);
+	if (WSingleton<CUserInfo>::Instance()) {
+		CSharedDoc* doc = CSharedDoc::Instance();
+		std::map<unsigned long, sBriefUserInfo>::iterator it = doc->m_userMap.find(m_selectedUserId);
+		if (it != doc->m_userMap.end()) {
+			it->second.roomNumber = doc->m_roomInfo.m_roomNumber;
+		}
+		WSingleton<CUserInfo>::Instance()->SetInfo(it->second.id, m_selectedUserId, true, true, false, false, it->second.nick);
 	}
 }
 
-void CLobbyMain::OnGameRoom_RoomUserDClick()
-{
-	if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-	{
-		if (Doc()->m_myInfo.info.dwGalleryGuid != m_selOID)
-		{
-			WSendPacket send((enumClientPacket)0x3f);
-			send.Encode4(m_selUID);
-			send.Send(TO_GAME);
+// lobbymain.cpp:13762
+void CLobbyMain::OnGameRoom_RoomUserDClick(void) {
+	if (GalleryMode()) {
+		if (MyGuid(true) != m_selectedUserId) {
+			WSendPacket packet((enumClientPacket)0x3F);
+			packet.Encode4(m_removeFriendUid);
+			packet.Send(SEND_TO_DEFAULT);
 		}
 	}
 }
 
-void CLobbyMain::OnGameRoom_TitleInit(int param)
-{
-	m_pTitle = FR_DYNAMIC_CAST(FrEdit, param);
-	HandleMsg(MsgObject(this, 16, 0, 0, 0, 0, 0));
+// lobbymain.cpp:13775
+void CLobbyMain::OnGameRoom_TitleInit(intptr_t param) {
+	m_roomTitleEdit = DYNAMIC_CAST(FrEdit, param);
+	HandleMsg(MsgObject(this, 0x10, 0, 0, 0, 0, 0));
 
-	Doc()->SortAllMyItemList();
+	WSingleton<CSharedDoc>::Instance()->SortAllMyItemList();
 
-	if (Doc()->m_roomInfo.nUserLimit >= 100)
-		m_pTitle->SetFontColor(0xff47a5dd);
-	else
-		m_pTitle->SetFontColor(0xffffffff);
-}
-
-void CLobbyMain::OnGameRoom_EventOwnerDraw(int param)
-{
-	if (Doc()->m_roomInfo.nUserLimit >= 100)
-	{
-		FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-		if (pDevice)
-		{
-			if (m_pRoomEvent02Bmp == NULL)
-				m_pRoomEvent02Bmp =
-					(Bitmap*)g_pFresh->GetBitmap("room_event02");
-			if (m_pRoomEvent02Bmp)
-				pDevice->DrawTexture(m_pRoomEvent02Bmp,
-					WRect(8.0f, 45.0f, 43.0f, 32.0f), 0xffffffff, false);
-		}
+	if (WSingleton<CSharedDoc>::Instance()->m_roomInfo.m_userLimit >= 100) {
+		m_roomTitleEdit->SetFontColor(0xFF47A5DD);
+	} else {
+		m_roomTitleEdit->SetFontColor(0xFFFFFFFF);
 	}
 }
 
-void CLobbyMain::OnGameRoom_MapBgInit(int param)
-{
-	m_pMapBg = FR_DYNAMIC_CAST(FrViewer, param);
-	if (m_pMapBg)
-		m_pMapBg->SetMouseEvent(false);
-}
-
-void CLobbyMain::OnGameRoom_MapGaugeInit(int param)
-{
-	m_pMapGauge = FR_DYNAMIC_CAST(FrGaugeBarImage, param);
-	if (m_pMapGauge)
-	{
-		m_pMapGauge->SetRange(0, 300, 0);
-		if (GetCurRoomMapType() < 127)
-		{
-			unsigned long gauge = CTHunter::Instance()->GetTHunterGauge(
-				(eMapType)Doc()->m_roomInfo.mapType);
-			m_pMapGauge->SetDestPos(gauge < 701 ? 0 : gauge - 700, false);
-		}
-		else
-		{
-			m_pMapGauge->SetPos(0);
-		}
-	}
-}
-
-void CLobbyMain::SendChangedUserInfo()
-{
-	if (m_subSelTypeId == 0)
-		return;
-
-	switch (m_subSelTypeId >> 26)
-	{
-	case 1:
-	{
-		WSendPacket send((enumClientPacket)0x0c);
-		send.Encode1(4);
-		send.Encode4(m_subSelItemId);
-		send.Send(TO_GAME);
-		break;
-	}
-	case 7:
-	{
-		WSendPacket send((enumClientPacket)0x0c);
-		send.Encode1(1);
-		send.Encode4(m_subSelItemId);
-		send.Send(TO_GAME);
-		break;
-	}
-	case 4:
-	{
-		WSendPacket send((enumClientPacket)0x0c);
-		send.Encode1(3);
-		send.Encode4(m_subSelItemId);
-		send.Send(TO_GAME);
-		break;
-	}
-	case 5:
-	{
-		WSendPacket send((enumClientPacket)0x0c);
-		send.Encode1(2);
-		send.Encode4(m_subSelTypeId);
-		send.Send(TO_GAME);
-		break;
-	}
-	case 16:
-	{
-		WSendPacket send((enumClientPacket)0x0c);
-		send.Encode1(5);
-		send.Encode4(m_subSelItemId);
-		send.Send(TO_GAME);
-		break;
-	}
-	}
-}
-
-void CLobbyMain::InitControlsSelectedUserInfo()
-{
-	m_subSelTypeId = 0;
-	m_subSelItemId = 0;
-
-	if (m_pCharSel)
-		m_pCharSel->SetVisible(false);
-	if (m_pCaddieSel)
-		m_pCaddieSel->SetVisible(false);
-	if (m_pAztecSel)
-		m_pAztecSel->SetVisible(false);
-	if (m_pClubSel)
-		m_pClubSel->SetVisible(false);
-	if (m_pMascotSel)
-		m_pMascotSel->SetVisible(false);
-}
-
-void CLobbyMain::DrawFrameSelectedUserInfo(WRect rect)
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
-		return;
-
-	if (rect.IsInRect(
-			WPoint(g_input->GetMousePoint().x, g_input->GetMousePoint().y)))
-	{
-		const Bitmap* pFrame = g_pFresh->GetBitmap("gameroom_select_frame");
-		if (pFrame)
-			pDevice->DrawTexture(pFrame,
-				WRect(rect.x - 2.0f, rect.y - 2.0f, pFrame->Width(),
-					pFrame->Height()),
-				0xffffffff, false);
-	}
-}
-
-void CLobbyMain::OpenNewRecordForm()
-{
-	if (Doc()->m_newRecordState != 0xff && m_pNewRecordDlg == NULL)
-	{
-		m_pNewRecordDlg = CreateForm<FrNewRecordDlg>(g_pFresh->GetManager(),
-			this, "new_record", NULL);
-		m_pNewRecordDlg->Open(
-			(FRESH_PFN_RESULT)&CLobbyMain::OnNewRecordDlgResult, 0);
-		Doc()->m_newRecordState = 0xff;
-	}
-
-	if (IsLocalContent((localContentType_t)0x18))
-	{
-		if (Doc()->m_newRecordCourse == -1)
-			Doc()->m_newRecordCourse = Doc()->m_myInfo.stat.eventFlag;
-
-		if (Doc()->m_newRecordCourse != Doc()->m_myInfo.stat.eventFlag)
-		{
-			if (IsLocalContent((localContentType_t)0x48))
-				m_pHolesEventDlg = CreateForm<ntHolesEventDlg>(
-					g_pFresh->GetManager(), this, "holes_EntranceExam", NULL);
-			else
-				m_pHolesEventDlg = CreateForm<ntHolesEventDlg>(
-					g_pFresh->GetManager(), this, "holes_event", NULL);
-
-			m_pHolesEventDlg->Open(
-				(FRESH_PFN_RESULT)&CLobbyMain::OnHolesEventDlgResult, 0x11);
-			Doc()->m_newRecordCourse = Doc()->m_myInfo.stat.eventFlag;
-		}
-	}
-
-	if (IsLocalContent((localContentType_t)0x21))
-	{
-		CHalloweenEvent* pEvent =
-			(CHalloweenEvent*)CContentsDoc::Instance()->GetContainer(
-				(localContentType_t)0x21);
-		if (pEvent)
-		{
-			if (pEvent->GetShowGiftDlg())
-			{
-				if (m_pHalloweenEventGiftDlg == NULL)
-				{
-					m_pHalloweenEventGiftDlg =
-						CreateForm<FrHalloweenEventGiftDlg>(
-							g_pFresh->GetManager(), this,
-							"halloween2007_event_gift_dlg", NULL);
-					if (m_pHalloweenEventGiftDlg)
-					{
-						m_pHalloweenEventGiftDlg->Open(NULL, 0x11);
-						m_pHalloweenEventGiftDlg = NULL;
-					}
-				}
-				pEvent->SetShowGiftDlg(false);
-			}
-		}
-	}
-}
-
-void CLobbyMain::GameExtResQuit()
-{
-	if (!IsLocalContent((localContentType_t)20))
-		m_bUseReport = false;
-
-	if (m_pUniteResultDlg)
-		return;
-
-	if (m_bUseReport && Doc()->m_roomInfo.realGameType != 14)
-		OpenUseReportForm();
-	else
-		OpenGameExtResQuitForm();
-}
-
-void CLobbyMain::OpenUseReportForm()
-{
-	if (m_pUseReportDlg)
-		return;
-
-	m_pUseReportDlg =
-		CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_yesno", NULL);
-	m_pUseReportDlg->SetMessage(
-		"\xc6\xbc\xc5\xb0 \xb8\xae\xc6\xf7\xc6\xae "
-		"\xbf\xeb\xc1\xf6\xb8\xa6 \xbb\xe7\xbf\xeb\xc7\xcf"
-		"\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-		false);
-	m_pUseReportDlg->Open(
-		(FRESH_PFN_RESULT)&CLobbyMain::OnRoomUseReportDlgResult, 1);
-}
-
-void CLobbyMain::OpenGameExtResQuitForm()
-{
-	if (m_pExtResQuitDlg)
-		return;
-
-	m_pExtResQuitDlg =
-		CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_yesno", NULL);
-	m_pExtResQuitDlg->SetMessage(
-		"\xb0\xd4\xc0\xd3\xc0\xcc \\c0xffff0000\\c\xbf\xcf\xc0\xfc\xc8\xf7 "
-		"\xc1\xbe\xb7\xe1\\c0xff000000\\c\xb5\xc7\xb1\xe2 \xc0\xfc\xbf\xa1 "
-		"\xb0\xd4\xc0\xd3\xc0\xbb \xc6\xf7\xb1\xe2\xc7\xcf\xb8\xe9, "
-		"\\c0xffff0000\\c\xb0\xe6\xc7\xe8\xc4\xa1 \xc8\xb9\xb5\xe6\xb0\xfa "
-		"\xb0\xa2\xc1\xbe \xb1\xe2\xb7\xcf\xc0\xcc "
-		"\xb9\xab\xc8\xbf\xc3\xb3\xb8\xae\\c0xff000000\\c\xb5\xc7\xc1\xf6\xb8\xb8 "
-		"\\c0xffff0000\\c\xb0\xad\xc1\xa6\xc1\xbe\xb7\xe1\xc0\xb2\xc0\xba "
-		"\xbf\xc3\xb6\xf3\xb0\xa1\xc1\xf6 "
-		"\xbe\xca\xbd\xc0\xb4\xcf\xb4\xd9.\\c0xff000000\\c\n\n\xb0\xd4\xc0\xd3"
-		"\xc0\xbb \xc6\xf7\xb1\xe2\xc7\xcf\xb0\xed \xb7\xce\xba\xf1\xb7\xce "
-		"\xb3\xaa\xb0\xa1\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-		false);
-	m_pExtResQuitDlg->Open(
-		(FRESH_PFN_RESULT)&CLobbyMain::OnRoomExtResQuitDlgResult, 1);
-}
-
-void CLobbyMain::OnGameRoom_CharInit(int param)
-{
-	m_pChar = FR_DYNAMIC_CAST(FrViewer, param);
-}
-
-void CLobbyMain::OnGameRoom_CharDown()
-{
-	WRect rect = m_pCharSel->GetRect();
-	WPoint pos(rect.x, rect.y - 5.0f);
-	OpenSubEquipBar(pos, (PANGYA_ITEM_GROUP)1, 1);
-
-	if (m_pSubEquipBar)
-	{
-		WRect barRect = m_pSubEquipBar->GetRect();
-		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
-		if (barRect.x + barRect.w > g_view->GetWidth())
-			barRect.x = g_view->GetWidth() - barRect.w;
-		m_pSubEquipBar->SetRect(barRect);
-	}
-}
-
-void CLobbyMain::OnGameRoom_CharOwnerDraw(int param)
-{
-	if (m_pChar == NULL)
-		return;
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
-		return;
-
-	unsigned long color = m_pChar->IsEnabled() ? 0xffffffff : 0x50b0b0b0;
-
-	if (Doc()->m_myInfo.userEquip.guidChar == 0)
-	{
-		const Bitmap* pBitmap =
-			g_pFresh->GetManager()->GetBitmap("ITEMS", "w_caddie_no");
-		if (pBitmap)
-			pDevice->DrawTexture(pBitmap, m_pChar->GetRect(), color, false);
-	}
-	else
-	{
-		std::map<unsigned int, sCharacterInfo>::iterator it =
-			Doc()->m_charMap.find(Doc()->m_myInfo.userEquip.guidChar);
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem((*it).second.tid);
-		if (pItem)
-		{
-			const Bitmap* pBitmap =
-				g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pDevice->DrawTexture(pBitmap,
-					WRect(m_pChar->GetRect().x, m_pChar->GetRect().y,
-						(float)pBitmap->Width(), (float)pBitmap->Height()),
-					color, false);
-		}
-	}
-
-	if (m_pChar->IsEnabled())
-		DrawFrameSelectedUserInfo(m_pChar->GetRect());
-}
-
-void CLobbyMain::OnGameRoom_CaddieInit(int param)
-{
-	m_pCaddie = FR_DYNAMIC_CAST(FrViewer, param);
-}
-
-void CLobbyMain::OnGameRoom_CaddieDown()
-{
-	WRect rect = m_pCaddieSel->GetRect();
-	WPoint pos(rect.x, rect.y - 5.0f);
-	OpenSubEquipBar(pos, (PANGYA_ITEM_GROUP)7, 1);
-
-	if (m_pSubEquipBar)
-	{
-		WRect barRect = m_pSubEquipBar->GetRect();
-		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
-		if (barRect.x + barRect.w > g_view->GetWidth())
-			barRect.x = g_view->GetWidth() - barRect.w;
-		m_pSubEquipBar->SetRect(barRect);
-	}
-}
-
-void CLobbyMain::OnGameRoom_CaddieOwnerDraw(int param)
-{
-	if (m_pCaddie == NULL)
-		return;
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
-		return;
-
-	unsigned long color = m_pCaddie->IsEnabled() ? 0xffffffff : 0x50b0b0b0;
-
-	WRect rect = m_pCaddie->GetRect();
-	if (Doc()->m_myInfo.userEquip.guidCaddie == 0)
-	{
-		const Bitmap* pBitmap =
-			g_pFresh->GetManager()->GetBitmap("ITEMS", "w_caddie_no");
-		if (pBitmap)
-			pDevice->DrawTexture(pBitmap,
-				WRect(m_pCaddie->GetRect().x, m_pCaddie->GetRect().y,
-					(float)pBitmap->Width(), (float)pBitmap->Height()),
-				color, false);
-	}
-	else
-	{
-		std::map<unsigned int, sCaddieInfo>::iterator it =
-			Doc()->m_caddieMap.find(Doc()->m_myInfo.userEquip.guidCaddie);
-
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem((*it).second.tid);
-		if (pItem)
-		{
-			const Bitmap* pBitmap =
-				g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pDevice->DrawTexture(pBitmap,
-					WRect(m_pCaddie->GetRect().x, m_pCaddie->GetRect().y,
-						(float)pBitmap->Width(), (float)pBitmap->Height()),
-					color, false);
-		}
-
-		IFF_STRUCT::sCaddie* pCaddie =
-			ItemManager()->FindCaddie((*it).second.tid);
-		if (pCaddie && (*it).second.Rent_flag &&
-			(*it).second.Remain_Date <= 0 && (*it).second.tidPart == 0 &&
-			pCaddie->MonthlyFee)
-		{
-			g_view->DrawLine2D(WPoint(rect.x, rect.h * 0.5f + rect.y - 1.0f),
-				WPoint(rect.x + rect.w - 1.0f, rect.h * 0.5f + rect.y - 1.0f),
-				0xffff0000, 0xffff0000, 0);
-			g_view->DrawLine2D(WPoint(rect.x, rect.h * 0.5f + rect.y),
-				WPoint(rect.x + rect.w - 1.0f, rect.h * 0.5f + rect.y),
-				0xffff0000, 0xffff0000, 0);
-			g_view->DrawLine2D(WPoint(rect.x, rect.h * 0.5f + rect.y + 1.0f),
-				WPoint(rect.x + rect.w - 1.0f, rect.h * 0.5f + rect.y + 1.0f),
-				0xffff0000, 0xffff0000, 0);
-		}
-	}
-
-	if (m_pCaddie->IsEnabled())
-		DrawFrameSelectedUserInfo(m_pCaddie->GetRect());
-}
-
-void CLobbyMain::OnGameRoom_ClubInit(int param)
-{
-	m_pClub = FR_DYNAMIC_CAST(FrViewer, param);
-}
-
-void CLobbyMain::OnGameRoom_ClubDown()
-{
-	WRect rect = m_pClubSel->GetRect();
-	WPoint pos(rect.x, rect.y - 5.0f);
-	OpenSubEquipBar(pos, (PANGYA_ITEM_GROUP)4, 1);
-
-	if (m_pSubEquipBar)
-	{
-		WRect barRect = m_pSubEquipBar->GetRect();
-		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
-		if (barRect.x + barRect.w > g_view->GetWidth())
-			barRect.x = g_view->GetWidth() - barRect.w;
-		m_pSubEquipBar->SetRect(barRect);
-	}
-}
-
-void CLobbyMain::OnGameRoom_ClubOwnerDraw(int param)
-{
-	if (m_pClub == NULL)
-		return;
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
-		return;
-
-	unsigned long color = m_pClub->IsEnabled() ? 0xffffffff : 0x50b0b0b0;
-
-	if (Doc()->m_myInfo.userEquip.guidClubSet == 0)
-	{
-		const Bitmap* pBitmap =
-			g_pFresh->GetManager()->GetBitmap("ITEMS", "w_caddie_no");
-		if (pBitmap)
-			pDevice->DrawTexture(pBitmap, m_pClub->GetRect(), color, false);
-	}
-	else
-	{
-		std::map<unsigned int, sItemInfo>::iterator it =
-			Doc()->m_clubSetMap.find(Doc()->m_myInfo.userEquip.guidClubSet);
-		if (it != Doc()->m_clubSetMap.end())
-		{
-			IFF_ITEM_COMMON* pItem =
-				ItemManager()->FindCommonItem((*it).second.tid);
-			if (pItem)
-			{
-				const Bitmap* pBitmap =
-					g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-				if (pBitmap)
-					pDevice->DrawTexture(pBitmap,
-						WRect(m_pClub->GetRect().x, m_pClub->GetRect().y,
-							(float)pBitmap->Width(), (float)pBitmap->Height()),
-						color, false);
-			}
-		}
-	}
-
-	if (m_pClub->IsEnabled())
-		DrawFrameSelectedUserInfo(m_pClub->GetRect());
-}
-
-void CLobbyMain::OnGameRoom_AztecInit(int param)
-{
-	m_pAztec = FR_DYNAMIC_CAST(FrViewer, param);
-}
-
-void CLobbyMain::OnGameRoom_AztecDown()
-{
-	WRect rect = m_pAztecSel->GetRect();
-	WPoint pos(rect.x, rect.y - 5.0f);
-	OpenSubEquipBar(pos, (PANGYA_ITEM_GROUP)5, 1);
-
-	if (m_pSubEquipBar)
-	{
-		WRect barRect = m_pSubEquipBar->GetRect();
-		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
-		if (barRect.x + barRect.w > g_view->GetWidth())
-			barRect.x = g_view->GetWidth() - barRect.w;
-		m_pSubEquipBar->SetRect(barRect);
-	}
-}
-
-void CLobbyMain::OnGameRoom_AztecOwnerDraw(int param)
-{
-	if (m_pAztec == NULL)
-		return;
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
-		return;
-
-	unsigned long color = m_pAztec->IsEnabled() ? 0xffffffff : 0x50b0b0b0;
-
-	if (Doc()->m_myInfo.userEquip.tidBall == 0)
-	{
-		const Bitmap* pBitmap =
-			g_pFresh->GetManager()->GetBitmap("ITEMS", "w_caddie_no");
-		if (pBitmap)
-			pDevice->DrawTexture(pBitmap, m_pAztec->GetRect(), color, false);
-	}
-	else
-	{
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem(Doc()->m_myInfo.userEquip.tidBall);
-
-		if (pItem)
-		{
-			int count = 0;
-			if (IsLocalContent((localContentType_t)0x87))
-			{
-				sItemInfo* pInfo = NULL;
-				std::list<sItemInfo>::iterator it;
-				for (it = Doc()->m_ballList.begin();
-					it != Doc()->m_ballList.end(); ++it)
-				{
-					if ((*it).tid == Doc()->m_myInfo.userEquip.tidBall)
-					{
-						pInfo = &(*it);
-						count = (*it).Common[0];
-						break;
-					}
-				}
-
-				if (pInfo == NULL)
-				{
-					Doc()->m_myInfo.userEquip.tidBall = 0x14000000;
-					pItem = ItemManager()->FindCommonItem(
-						Doc()->m_myInfo.userEquip.tidBall);
-				}
-
-				const Bitmap* pBitmap =
-					g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-				if (pBitmap)
-					pDevice->DrawTexture(pBitmap,
-						WRect(m_pAztec->GetRect().x, m_pAztec->GetRect().y,
-							(float)pBitmap->Width(), (float)pBitmap->Height()),
-						color, false);
-			}
-			else
-			{
-				const Bitmap* pBitmap =
-					g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-				if (pBitmap)
-					pDevice->DrawTexture(pBitmap,
-						WRect(m_pAztec->GetRect().x, m_pAztec->GetRect().y,
-							(float)pBitmap->Width(), (float)pBitmap->Height()),
-						color, false);
-
-				std::list<sItemInfo>::iterator it;
-				for (it = Doc()->m_ballList.begin();
-					it != Doc()->m_ballList.end(); ++it)
-				{
-					if ((*it).tid == Doc()->m_myInfo.userEquip.tidBall)
-					{
-						count = (*it).Common[0];
-						break;
-					}
-				}
-			}
-
-			if (count > 0)
-			{
-				unsigned long textColor =
-					m_pAztec->IsEnabled() ? 0xffffffff : 0x7fffffff;
-				Print(m_pAztec->GetRect().x + 35.0f,
-					m_pAztec->GetRect().y + 22.0f, MakeStr("%d", count), 2.0f,
-					2, 1.0f, textColor);
-			}
-		}
-	}
-
-	if (m_pAztec->IsEnabled())
-		DrawFrameSelectedUserInfo(m_pAztec->GetRect());
-}
-
-void CLobbyMain::OnGameRoom_MascotInit(int param)
-{
-	m_pMascot = FR_DYNAMIC_CAST(FrViewer, param);
-}
-
-void CLobbyMain::OnGameRoom_MascotDown()
-{
-	WRect rect = m_pMascotSel->GetRect();
-	WPoint pos(rect.x, rect.y - 5.0f);
-	OpenSubEquipBar(pos, (PANGYA_ITEM_GROUP)16, 1);
-
-	if (m_pSubEquipBar)
-	{
-		WRect barRect = m_pSubEquipBar->GetRect();
-		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
-		if (barRect.x + barRect.w > g_view->GetWidth())
-			barRect.x = g_view->GetWidth() - barRect.w;
-		m_pSubEquipBar->SetRect(barRect);
-	}
-}
-
-void CLobbyMain::OnGameRoom_MascotOwnerDraw(int param)
-{
-	if (m_pMascot == NULL)
-		return;
-
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
-		return;
-
-	unsigned long color = m_pMascot->IsEnabled() ? 0xffffffff : 0x50b0b0b0;
-
-	if (Doc()->m_myInfo.userEquip.guidMascot == 0)
-	{
-		const Bitmap* pBitmap =
-			g_pFresh->GetManager()->GetBitmap("ITEMS", "w_caddie_no");
-		if (pBitmap)
-			pDevice->DrawTexture(pBitmap,
-				WRect(m_pMascot->GetRect().x, m_pMascot->GetRect().y,
-					(float)pBitmap->Width(), (float)pBitmap->Height()),
-				color, false);
-	}
-	else
-	{
-		std::map<unsigned int, sMascotInfo>::iterator it =
-			Doc()->m_mascotMap.find(Doc()->m_myInfo.userEquip.guidMascot);
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem((*it).second.tid);
-		if (pItem)
-		{
-			const Bitmap* pBitmap =
-				g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pDevice->DrawTexture(pBitmap,
-					WRect(m_pMascot->GetRect().x, m_pMascot->GetRect().y,
-						(float)pBitmap->Width(), (float)pBitmap->Height()),
-					color, false);
-		}
-	}
-
-	if (m_pMascot->IsEnabled())
-		DrawFrameSelectedUserInfo(m_pMascot->GetRect());
-}
-
-void CLobbyMain::OnGameRoom_EquipItemInit(int param)
-{
-	m_pEquipItem = FR_DYNAMIC_CAST(FrViewer, param);
-}
-void CLobbyMain::OnGameRoom_EquipItemDown()
-{
-	InitControlsSelectedUserInfo();
-
-	if (m_pEquipDlg == NULL)
-	{
-		m_pEquipDlg =
-			CreateForm<FrEquipDlg>(g_pFresh->GetManager(), this, "equip", NULL);
-		if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-			m_pEquipDlg->Init(Doc()->m_userInfo[0].userEquip.tidItemSlot, true);
-		else
-			m_pEquipDlg->Init(Doc()->m_myInfo.userEquip.tidItemSlot, true);
-
-		m_pEquipDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnItemEquipResult, 3);
-	}
-}
-
-void CLobbyMain::OnGameRoom_EquipItemOwnerDraw(int param)
-{
-	if (m_pEquipItem)
-	{
+// lobbymain.cpp:13788
+void CLobbyMain::OnGameRoom_EventOwnerDraw(int) {
+	if (WSingleton<CSharedDoc>::Instance()->m_roomInfo.m_userLimit >= 100) {
 		FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
 
-		if (pGDI)
-		{
-			unsigned long color =
-				m_pEquipItem->IsEnabled() ? 0xffffffff : 0x50b0b0b0;
-
-			const Bitmap* pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS",
-				"gameroom_equip_item_bn");
-
-			if (pBitmap)
-			{
-				pGDI->DrawTexture(pBitmap,
-					WRect(m_pEquipItem->GetRect().x, m_pEquipItem->GetRect().y,
-						(float)pBitmap->Width(), (float)pBitmap->Height()),
-					color, 0);
+		if (pGDI) {
+			if (m_eventImage == 0) {
+				m_eventImage = g_pFresh->GetBitmap("room_event02");
 			}
 
-			if (m_pEquipItem->IsEnabled())
-				DrawFrameSelectedUserInfo(m_pEquipItem->GetRect());
+			if (m_eventImage) {
+				pGDI->DrawTexture(m_eventImage, WRect(8.0f, 45.0f, 43.0f, 32.0f), 0xFFFFFFFF, 0);
+			}
 		}
 	}
 }
 
-void CLobbyMain::OnGameRoom_CharSelInit(int param)
-{
-	m_pCharSel = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-
-	if (m_pCharSel)
-	{
-		m_pCharSel->SetVisible(false);
+// lobbymain.cpp:13804
+void CLobbyMain::OnGameRoom_MapBgInit(intptr_t param) {
+	m_mapBgViewer = DYNAMIC_CAST(FrViewer, param);
+	if (m_mapBgViewer) {
+		m_mapBgViewer->SetMouseEvent(false);
 	}
 }
 
-void CLobbyMain::OnGameRoom_CharSelDown()
-{
-	InitControlsSelectedUserInfo();
+// lobbymain.cpp:13880
+void CLobbyMain::InitControlsSelectedUserInfo(void) {
+	m_subSelection = 0;
+	m_subSelectionTab = 0;
+
+	if (m_charSelViewer) m_charSelViewer->SetVisible(false);
+	if (m_caddieSelViewer) m_caddieSelViewer->SetVisible(false);
+	if (m_aztecSelViewer) m_aztecSelViewer->SetVisible(false);
+	if (m_clubSelViewer) m_clubSelViewer->SetVisible(false);
+	if (m_mascotSelViewer) m_mascotSelViewer->SetVisible(false);
 }
 
-void CLobbyMain::OnGameRoom_CharSelOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
-
-	int count = Doc()->m_charMap.size();
-	if (count <= 1)
-		return;
-
-	float x = m_pCharSel->GetRect().x;
-	float y = m_pCharSel->GetRect().y;
-	float w = 0.0f;
-	float total = (float)count * 41.0f + 8.0f;
-
-	if (x + total > 800.0f)
-		x = 800.0f - total;
-
-	const Bitmap* pBitmap =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_01");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
+// lobbymain.cpp:13957
+void CLobbyMain::GameExtResQuit(void) {
+	if (!IsLocalContent((localContentType_t)0x14)) {
+		m_useReportEnabled = false;
 	}
 
-	x += w;
-	float startX = x;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_02");
-	if (pBitmap)
-	{
-		w = (float)count * 38.0f + (float)(count - 1) * 3.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_03");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	m_subSelTypeId = 0;
-	m_subSelItemId = 0;
-	y += 4.0f;
-
-	std::map<unsigned int, sCharacterInfo>::iterator it;
-	for (it = Doc()->m_charMap.begin(); it != Doc()->m_charMap.end(); it++)
-	{
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem((*it).second.tid);
-		if (pItem)
-		{
-			WRect dest(startX, y, 38.0f, 38.0f);
-
-			pBitmap = g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pGDI->DrawTexture(pBitmap, dest, 0xffffffff, 0);
-
-			if (dest.IsInRect(WPoint(g_input->GetMousePoint().x,
-					g_input->GetMousePoint().y)))
-			{
-				pBitmap =
-					g_pFresh->GetManager()->GetBitmap("ITEMS", "select_frame");
-				if (pBitmap)
-					pGDI->DrawTexture(pBitmap,
-						WRect(dest.x - 3.0f, dest.y - 3.0f, dest.w + 6.0f,
-							dest.h + 6.0f),
-						0xffffffff, 0);
-
-				m_subSelTypeId = (*it).second.tid;
-				m_subSelItemId = (*it).second.guid;
-			}
-
-			startX += 41.0f;
+	if (m_resultReportDlg == 0) {
+		if (m_useReportEnabled && CSharedDoc::Instance()->m_roomInfo.m_roomMode != 14) {
+			OpenUseReportForm();
+		} else {
+			OpenGameExtResQuitForm();
 		}
 	}
 }
 
-void CLobbyMain::OnGameRoom_CaddieSelInit(int param)
-{
-	m_pCaddieSel = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-
-	if (m_pCaddieSel)
-	{
-		m_pCaddieSel->SetVisible(false);
+// lobbymain.cpp:14014
+void CLobbyMain::OpenUseReportForm(void) {
+	if (m_roomUseReportDlg == 0) {
+		m_roomUseReportDlg = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_yesno", NULL);
+		m_roomUseReportDlg->SetMessage("\xC6\xBC\xC5\xB0 \xB8\xAE\xC6\xF7\xC6\xAE \xBF\xEB\xC1\xF6\xB8\xA6 \xBB\xE7\xBF\xEB\xC7\xCF\xBD\xC3\xB0\xDA\xBD\xC0\xB4\xCF\xB1\xEE?", false);
+		m_roomUseReportDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnRoomUseReportDlgResult, 1);
 	}
 }
 
-void CLobbyMain::OnGameRoom_CaddieSelDown()
-{
-	InitControlsSelectedUserInfo();
+// lobbymain.cpp:14027
+void CLobbyMain::OpenGameExtResQuitForm(void) {
+	if (m_roomExtResQuitDlg == 0) {
+		m_roomExtResQuitDlg = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_yesno", NULL);
+
+		m_roomExtResQuitDlg->SetMessage("\xB0\xD4\xC0\xD3\xC0\xCC \\c0xffff0000\\c\xBF\xCF\xC0\xFC\xC8\xF7 \xC1\xBE\xB7\xE1\\c0xff000000\\c\xB5\xC7\xB1\xE2 \xC0\xFC\xBF\xA1 \xB0\xD4\xC0\xD3\xC0\xBB \xC6\xF7\xB1\xE2\xC7\xCF\xB8\xE9, \\c0xffff0000\\c\xB0\xE6\xC7\xE8\xC4\xA1 \xC8\xB9\xB5\xE6\xB0\xFA \xB0\xA2\xC1\xBE \xB1\xE2\xB7\xCF\xC0\xCC \xB9\xAB\xC8\xBF\xC3\xB3\xB8\xAE\\c0xff000000\\c\xB5\xC7\xC1\xF6\xB8\xB8 \\c0xffff0000\\c\xB0\xAD\xC1\xA6\xC1\xBE\xB7\xE1\xC0\xB2\xC0\xBA \xBF\xC3\xB6\xF3\xB0\xA1\xC1\xF6 \xBE\xCA\xBD\xC0\xB4\xCF\xB4\xD9.\\c0xff000000\\c\n\n\xB0\xD4\xC0\xD3\xC0\xBB \xC6\xF7\xB1\xE2\xC7\xCF\xB0\xED \xB7\xCE\xBA\xF1\xB7\xCE \xB3\xAA\xB0\xA1\xBD\xC3\xB0\xDA\xBD\xC0\xB4\xCF\xB1\xEE?", false);
+
+		m_roomExtResQuitDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnRoomExtResQuitDlgResult, 1);
+	}
 }
 
-void CLobbyMain::OnGameRoom_CaddieSelOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
+// lobbymain.cpp:14041
+void CLobbyMain::OnGameRoom_CharInit(intptr_t param) {
+	m_charViewer = DYNAMIC_CAST(FrViewer, param);
+}
 
-	int count = Doc()->m_caddieMap.size();
-	if (count <= 1)
-		return;
+// lobbymain.cpp:14046
+void CLobbyMain::OnGameRoom_CharDown(void) {
+	WRect rect = m_charSelViewer->GetRect();
+	WPoint pt(rect.x, rect.y - 5.0f);
+	OpenSubEquipBar(pt, (PANGYA_ITEM_GROUP)1, 1);
 
-	if (Doc()->m_myInfo.userEquip.guidCaddie)
-		count++;
+	if (m_subEquipBar) {
+		WRect barRect = m_subEquipBar->GetRect();
 
-	float x = m_pCaddieSel->GetRect().x;
-	float y = m_pCaddieSel->GetRect().y;
-	float w = 0.0f;
-	float total = (float)count * 41.0f + 8.0f;
-
-	if (x + total > 800.0f)
-		x = 800.0f - total;
-
-	const Bitmap* pBitmap =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_01");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	float startX = x;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_02");
-	if (pBitmap)
-	{
-		w = (float)count * 38.0f + (float)(count - 1) * 3.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_03");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	m_subSelTypeId = 0;
-	m_subSelItemId = 0;
-	y += 4.0f;
-
-	std::map<unsigned int, sCaddieInfo>::iterator it;
-	for (it = Doc()->m_caddieMap.begin(); it != Doc()->m_caddieMap.end(); it++)
-	{
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem((*it).second.tid);
-		if (pItem)
-		{
-			WRect dest(startX, y, 38.0f, 38.0f);
-
-			pBitmap = g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pGDI->DrawTexture(pBitmap, dest, 0xffffffff, 0);
-
-			IFF_STRUCT::sCaddie* pCaddie =
-				ItemManager()->FindCaddie((*it).second.tid);
-			if (pCaddie)
-			{
-				if ((*it).second.Rent_flag && (*it).second.Remain_Date <= 0 &&
-					(*it).second.tidPart == 0 && pCaddie->MonthlyFee)
-				{
-					g_view->DrawLine2D(
-						WPoint(dest.x, dest.y + dest.h * 0.5f - 1.0f),
-						WPoint(dest.x + dest.w - 1.0f,
-							dest.y + dest.h * 0.5f - 1.0f),
-						0xffff0000, 0xffff0000, 0);
-					g_view->DrawLine2D(WPoint(dest.x, dest.y + dest.h * 0.5f),
-						WPoint(dest.x + dest.w - 1.0f, dest.y + dest.h * 0.5f),
-						0xffff0000, 0xffff0000, 0);
-					g_view->DrawLine2D(
-						WPoint(dest.x, dest.y + dest.h * 0.5f + 1.0f),
-						WPoint(dest.x + dest.w - 1.0f,
-							dest.y + dest.h * 0.5f + 1.0f),
-						0xffff0000, 0xffff0000, 0);
-				}
-			}
-
-			if (dest.IsInRect(WPoint(g_input->GetMousePoint().x,
-					g_input->GetMousePoint().y)))
-			{
-				pBitmap =
-					g_pFresh->GetManager()->GetBitmap("ITEMS", "select_frame");
-				if (pBitmap)
-					pGDI->DrawTexture(pBitmap,
-						WRect(dest.x - 3.0f, dest.y - 3.0f, dest.w + 6.0f,
-							dest.h + 6.0f),
-						0xffffffff, 0);
-
-				m_subSelTypeId = (*it).second.tid;
-				m_subSelItemId = (*it).second.guid;
-			}
-
-			startX += 41.0f;
+		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
+		if (barRect.x + barRect.w > g_view->GetWidth()) {
+			barRect.x = g_view->GetWidth() - barRect.w;
 		}
+		m_subEquipBar->SetRect(barRect);
 	}
+}
 
-	if (Doc()->m_myInfo.userEquip.guidCaddie)
-	{
-		WRect dest(startX, y, 38.0f, 38.0f);
+// lobbymain.cpp:14108
+void CLobbyMain::OnGameRoom_CaddieInit(intptr_t param) {
+	m_caddieViewer = DYNAMIC_CAST(FrViewer, param);
+}
 
-		pBitmap = g_pFresh->GetBitmap("w_caddie_no");
-		if (pBitmap)
-			pGDI->DrawTexture(pBitmap, dest, 0xffffffff, 0);
+// lobbymain.cpp:14113
+void CLobbyMain::OnGameRoom_CaddieDown(void) {
+	WRect rect = m_caddieSelViewer->GetRect();
+	WPoint pt(rect.x, rect.y - 5.0f);
+	OpenSubEquipBar(pt, (PANGYA_ITEM_GROUP)7, 1);
 
-		if (dest.IsInRect(
-				WPoint(g_input->GetMousePoint().x, g_input->GetMousePoint().y)))
-		{
-			pBitmap = g_pFresh->GetBitmap("select_frame");
-			if (pBitmap)
-				pGDI->DrawTexture(pBitmap,
-					WRect(dest.x - 3.0f, dest.y - 3.0f, dest.w + 6.0f,
-						dest.h + 6.0f),
-					0xffffffff, 0);
+	if (m_subEquipBar) {
+		WRect barRect = m_subEquipBar->GetRect();
 
-			m_subSelTypeId = 0x1c000000;
-			m_subSelItemId = 0;
+		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
+		if (barRect.x + barRect.w > g_view->GetWidth()) {
+			barRect.x = g_view->GetWidth() - barRect.w;
 		}
+		m_subEquipBar->SetRect(barRect);
 	}
 }
 
-void CLobbyMain::OnGameRoom_ClubSelInit(int param)
-{
-	m_pClubSel = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-
-	if (m_pClubSel)
-	{
-		m_pClubSel->SetVisible(false);
-	}
+// lobbymain.cpp:14178
+void CLobbyMain::OnGameRoom_ClubInit(intptr_t param) {
+	m_clubViewer = DYNAMIC_CAST(FrViewer, param);
 }
 
-void CLobbyMain::OnGameRoom_ClubSelDown()
-{
-	InitControlsSelectedUserInfo();
-}
+// lobbymain.cpp:14183
+void CLobbyMain::OnGameRoom_ClubDown(void) {
+	WRect rect = m_clubSelViewer->GetRect();
+	WPoint pt(rect.x, rect.y - 5.0f);
+	OpenSubEquipBar(pt, (PANGYA_ITEM_GROUP)4, 1);
 
-void CLobbyMain::OnGameRoom_ClubSelOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
+	if (m_subEquipBar) {
+		WRect barRect = m_subEquipBar->GetRect();
 
-	int count = Doc()->m_clubSetMap.size();
-	if (count <= 1)
-		return;
-
-	float x = m_pClubSel->GetRect().x;
-	float y = m_pClubSel->GetRect().y;
-	float w = 0.0f;
-	float total = (float)count * 41.0f + 8.0f;
-
-	if (x + total > 800.0f)
-		x = 800.0f - total;
-
-	const Bitmap* pBitmap =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_01");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	float startX = x;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_02");
-	if (pBitmap)
-	{
-		w = (float)count * 38.0f + (float)(count - 1) * 3.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_03");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	m_subSelTypeId = 0;
-	m_subSelItemId = 0;
-	y += 4.0f;
-
-	std::map<unsigned int, sItemInfo>::iterator it;
-	for (it = Doc()->m_clubSetMap.begin(); it != Doc()->m_clubSetMap.end();
-		++it)
-	{
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem((*it).second.tid);
-		if (pItem)
-		{
-			pBitmap = g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pGDI->DrawTexture(pBitmap, WRect(startX, y, 38.0f, 38.0f),
-					0xffffffff, 0);
-
-			bool bUsable = Doc()->CheckUnderLevelClubSet((*it).second.tid);
-			if (!bUsable)
-			{
-				WRect rc(startX, y, 38.0f, 38.0f);
-				g_view->DrawLine2D(WPoint(rc.x, rc.y + rc.h * 0.5f - 1.0f),
-					WPoint(rc.x + rc.w - 1.0f, rc.y + rc.h * 0.5f - 1.0f),
-					0xffff0000, 0xffff0000, 0);
-				g_view->DrawLine2D(WPoint(rc.x, rc.y + rc.h * 0.5f),
-					WPoint(rc.x + rc.w - 1.0f, rc.y + rc.h * 0.5f), 0xffff0000,
-					0xffff0000, 0);
-				g_view->DrawLine2D(WPoint(rc.x, rc.y + rc.h * 0.5f + 1.0f),
-					WPoint(rc.x + rc.w - 1.0f, rc.y + rc.h * 0.5f + 1.0f),
-					0xffff0000, 0xffff0000, 0);
-			}
-
-			if (WRect(startX, y, 38.0f, 38.0f)
-					.IsInRect(WPoint(g_input->GetMousePoint().x,
-						g_input->GetMousePoint().y)))
-			{
-				pBitmap =
-					g_pFresh->GetManager()->GetBitmap("ITEMS", "select_frame");
-				if (pBitmap)
-					pGDI->DrawTexture(pBitmap,
-						WRect(startX - 3.0f, y - 3.0f, 44.0f, 44.0f),
-						0xffffffff, 0);
-
-				if (bUsable == true)
-				{
-					m_subSelTypeId = (*it).second.tid;
-					m_subSelItemId = (*it).second.guid;
-				}
-			}
-
-			startX += 41.0f;
+		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
+		if (barRect.x + barRect.w > g_view->GetWidth()) {
+			barRect.x = g_view->GetWidth() - barRect.w;
 		}
+		m_subEquipBar->SetRect(barRect);
 	}
 }
 
-void CLobbyMain::OnGameRoom_AztecSelInit(int param)
-{
-	m_pAztecSel = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-
-	if (m_pAztecSel)
-	{
-		m_pAztecSel->SetVisible(false);
-	}
+// lobbymain.cpp:14242
+void CLobbyMain::OnGameRoom_AztecInit(intptr_t param) {
+	m_aztecViewer = DYNAMIC_CAST(FrViewer, param);
 }
 
-void CLobbyMain::OnGameRoom_AztecSelDown()
-{
-	InitControlsSelectedUserInfo();
-}
+// lobbymain.cpp:14247
+void CLobbyMain::OnGameRoom_AztecDown(void) {
+	WRect rect = m_aztecSelViewer->GetRect();
+	WPoint pt(rect.x, rect.y - 5.0f);
+	OpenSubEquipBar(pt, (PANGYA_ITEM_GROUP)5, 1);
 
-void CLobbyMain::OnGameRoom_AztecSelOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
+	if (m_subEquipBar) {
+		WRect barRect = m_subEquipBar->GetRect();
 
-	if (ItemManager()->FindCommonItem(Doc()->m_myInfo.userEquip.tidBall) ==
-		NULL)
-		return;
-
-	int count = Doc()->m_ballList.size();
-	if (count <= 1)
-		return;
-
-	float x = m_pAztecSel->GetRect().x;
-	float y = m_pAztecSel->GetRect().y;
-	float w = 0.0f;
-	float total = (float)count * 41.0f + 8.0f;
-
-	if (x + total > 800.0f)
-		x = 800.0f - total;
-
-	const Bitmap* pBitmap =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_01");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	float startX = x;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_02");
-	if (pBitmap)
-	{
-		w = (float)count * 38.0f + (float)(count - 1) * 3.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_03");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	m_subSelTypeId = 0;
-	m_subSelItemId = 0;
-	y += 4.0f;
-
-	std::list<sItemInfo>::const_iterator it;
-	for (it = Doc()->m_ballList.begin(); it != Doc()->m_ballList.end(); ++it)
-	{
-		IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem((*it).tid);
-		if (pItem)
-		{
-			WRect rc(startX, y, 38.0f, 38.0f);
-
-			pBitmap = g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pGDI->DrawTexture(pBitmap, WRect(startX, y, 38.0f, 38.0f),
-					0xffffffff, 0);
-
-			int num = (*it).Common[0];
-			if (num > 0)
-			{
-				unsigned long color =
-					m_pAztecSel->IsEnabled() ? 0xffffffff : 0x7fffffff;
-				Print(startX + 35.0f, y + 22.0f, MakeStr("%d", num), 2.0f, 2,
-					1.0f, color);
-			}
-
-			if (rc.IsInRect(WPoint(g_input->GetMousePoint().x,
-					g_input->GetMousePoint().y)))
-			{
-				pBitmap =
-					g_pFresh->GetManager()->GetBitmap("ITEMS", "select_frame");
-				if (pBitmap)
-					pGDI->DrawTexture(pBitmap,
-						WRect(startX - 3.0f, y - 3.0f, 44.0f, 44.0f),
-						0xffffffff, 0);
-
-				m_subSelTypeId = (*it).tid;
-				m_subSelItemId = (*it).guid;
-			}
-
-			startX += 41.0f;
+		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
+		if (barRect.x + barRect.w > g_view->GetWidth()) {
+			barRect.x = g_view->GetWidth() - barRect.w;
 		}
+		m_subEquipBar->SetRect(barRect);
 	}
 }
 
-void CLobbyMain::OnGameRoom_MascotSelInit(int param)
-{
-	m_pMascotSel = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-
-	if (m_pMascotSel)
-	{
-		m_pMascotSel->SetVisible(false);
-	}
+// lobbymain.cpp:14347
+void CLobbyMain::OnGameRoom_MascotInit(intptr_t param) {
+	m_mascotViewer = DYNAMIC_CAST(FrViewer, param);
 }
 
-void CLobbyMain::OnGameRoom_MascotSelDown()
-{
-	InitControlsSelectedUserInfo();
-}
+// lobbymain.cpp:14352
+void CLobbyMain::OnGameRoom_MascotDown(void) {
+	WRect rect = m_mascotSelViewer->GetRect();
+	WPoint pt(rect.x, rect.y - 5.0f);
+	OpenSubEquipBar(pt, (PANGYA_ITEM_GROUP)16, 1);
 
-void CLobbyMain::OnGameRoom_MascotSelOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
+	if (m_subEquipBar) {
+		WRect barRect = m_subEquipBar->GetRect();
 
-	int count = Doc()->m_mascotMap.size();
-	if (count == 0)
-		return;
-
-	if (Doc()->m_myInfo.userEquip.guidMascot)
-		count++;
-
-	float x = m_pMascotSel->GetRect().x;
-	float y = m_pMascotSel->GetRect().y;
-	float w = 0.0f;
-	float total = (float)count * 41.0f + 8.0f;
-
-	if (x + total > 800.0f)
-		x = 800.0f - total;
-
-	const Bitmap* pBitmap =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_01");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	float startX = x;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_02");
-	if (pBitmap)
-	{
-		w = (float)count * 38.0f + (float)(count - 1) * 3.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	x += w;
-	pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", "select_bar_03");
-	if (pBitmap)
-	{
-		w = 4.0f;
-		pGDI->DrawTexture(pBitmap, WRect(x, y, w, 54.0f), 0xffffffff, 0);
-	}
-
-	m_subSelTypeId = 0;
-	m_subSelItemId = 0;
-	y += 4.0f;
-
-	std::map<unsigned int, sMascotInfo>::iterator it;
-	for (it = Doc()->m_mascotMap.begin(); it != Doc()->m_mascotMap.end(); ++it)
-	{
-		IFF_ITEM_COMMON* pItem =
-			ItemManager()->FindCommonItem((*it).second.tid);
-		if (pItem)
-		{
-			pBitmap = g_pFresh->GetBitmap(MakeStr("w_%s", pItem->Icon));
-			if (pBitmap)
-				pGDI->DrawTexture(pBitmap, WRect(startX, y, 38.0f, 38.0f),
-					0xffffffff, 0);
-
-			if (WRect(startX, y, 38.0f, 38.0f)
-					.IsInRect(WPoint(g_input->GetMousePoint().x,
-						g_input->GetMousePoint().y)))
-			{
-				pBitmap =
-					g_pFresh->GetManager()->GetBitmap("ITEMS", "select_frame");
-				if (pBitmap)
-					pGDI->DrawTexture(pBitmap,
-						WRect(startX - 3.0f, y - 3.0f, 44.0f, 44.0f),
-						0xffffffff, 0);
-
-				m_subSelTypeId = (*it).second.tid;
-				m_subSelItemId = (*it).second.guid;
-			}
-
-			startX += 41.0f;
+		barRect.x = rect.x - barRect.w * 0.5f + 0.5f;
+		if (barRect.x + barRect.w > g_view->GetWidth()) {
+			barRect.x = g_view->GetWidth() - barRect.w;
 		}
-	}
-
-	if (Doc()->m_myInfo.userEquip.guidMascot)
-	{
-		WRect dest(startX, y, 38.0f, 38.0f);
-
-		pBitmap = g_pFresh->GetBitmap("w_caddie_no");
-		if (pBitmap)
-			pGDI->DrawTexture(pBitmap, dest, 0xffffffff, 0);
-
-		if (dest.IsInRect(
-				WPoint(g_input->GetMousePoint().x, g_input->GetMousePoint().y)))
-		{
-			pBitmap = g_pFresh->GetBitmap("select_frame");
-			if (pBitmap)
-				pGDI->DrawTexture(pBitmap,
-					WRect(dest.x - 3.0f, dest.y - 3.0f, dest.w + 6.0f,
-						dest.h + 6.0f),
-					0xffffffff, 0);
-
-			m_subSelTypeId = 0x40000000;
-			m_subSelItemId = 0;
-		}
+		m_subEquipBar->SetRect(barRect);
 	}
 }
 
-void CLobbyMain::OnGameRoom_StartTipInit(int param)
-{
-	m_pStartTip = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pStartTip)
-		m_pStartTip->SetVisible(false);
+// lobbymain.cpp:14405
+void CLobbyMain::OnGameRoom_EquipItemInit(intptr_t param) {
+	m_equipItemViewer = DYNAMIC_CAST(FrViewer, param);
 }
 
-void CLobbyMain::OnGameRoom_ReadyTipInit(int param)
-{
-	m_pReadyTip = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pReadyTip)
-		m_pReadyTip->SetVisible(false);
-}
+// lobbymain.cpp:11540
+void CLobbyMain::OnRoomList_MakeRoomUp(void) {
+	CloseAllDialogs();
 
-void CLobbyMain::OnGameRoom_StartInit(int param)
-{
-	m_pStart = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_StartBtnUp()
-{
-	if (m_pStart == NULL || !m_pStart->IsEnabled())
-		return;
-
-	if (Doc()->IsControlServerService(2))
-	{
-		HandleMsg(MsgObject(this, 0x272, 2, 0, 0, 0, 0));
-		return;
-	}
-
-	if (MyGuid(false) == m_masterOID)
-	{
-		if (!LatestVersion())
+	if (LatestVersion()) {
+		if (CSharedDoc::Instance()->IsControlServerService(2)) {
+			HandleMsg(MsgObject(this, 0x272, 2, 0, 0, 0, 0));
 			return;
-
-		if ((Doc()->m_curChannel.Type & 0x800) &&
-			!(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1))
-		{
-			IFF_STRUCT::sCourse* pCourse = ItemManager()->FindCourse(
-				((Doc()->m_roomInfo.mapType > 0x7f &&
-					 Doc()->m_roomInfo.mapType != 0xfd)
-						? Doc()->m_roomInfo.mapType - 0x80
-						: Doc()->m_roomInfo.mapType) |
-				0x28000000);
-			if (pCourse == NULL)
-				return;
-
-			if (pCourse->Difficulty >= 3 ||
-				((Doc()->m_curChannel.Type & 0x800) &&
-					((((Doc()->m_roomInfo.mapType > 0x7f &&
-						   Doc()->m_roomInfo.mapType != 0xfd)
-							  ? Doc()->m_roomInfo.mapType - 0x80
-							  : Doc()->m_roomInfo.mapType) |
-						 0x28000000) == 1 ||
-						(((Doc()->m_roomInfo.mapType > 0x7f &&
-							  Doc()->m_roomInfo.mapType != 0xfd)
-								 ? Doc()->m_roomInfo.mapType - 0x80
-								 : Doc()->m_roomInfo.mapType) |
-							0x28000000) == 11 ||
-						(((Doc()->m_roomInfo.mapType > 0x7f &&
-							  Doc()->m_roomInfo.mapType != 0xfd)
-								 ? Doc()->m_roomInfo.mapType - 0x80
-								 : Doc()->m_roomInfo.mapType) |
-							0x28000000) == 14)))
-			{
-				this << MsgObject(this, 35,
-					(int)"\xb7\xe7\xc5\xb0\xc3\xa4\xb3\xce\xbf\xa1\xbc\xad\xb4\xc2 \xc0\xcc \xb8\xca\xc0\xbb \xc7\xc3\xb7\xb9\xc0\xcc \xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.",
-					0, 0, 0, 0);
-				return;
-			}
 		}
 
-		if (m_pStart)
-			m_pStart->Enable(false);
+		if (m_serverDlg == 0 && CSharedDoc::Instance()->m_currentChannel.id == 0xFF) {
+			WSendPacket packet((enumClientPacket)0x43);
+			packet.Send(SEND_TO_DEFAULT);
 
-		WSendPacket packet((enumClientPacket)14);
-		packet.Encode4(MyGuid(false));
-		packet.Send(TO_GAME);
+			m_serverDlg = CreateForm<FrServerDlg>(g_pFresh->GetManager(), this, "server", 0);
+			m_serverDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnServerDlgResult, WPoint(m_serverDlg->GetRect().x, 50.0f), 0x10);
+			m_serverDlg->SetIconRect(m_barButton[8]->GetRect());
+		} else {
+			EnableRoomEnterControls(true);
 
-		if (IsLocalContent(S4_INVITE_FRIEND))
-			CMessengerInfo::Instance()->EnableInvite(false);
+			m_makeRoomDlg = CreateForm<FrMakeRoomDlg>(g_pFresh->GetManager(), this, "makeroom", 0);
+			m_makeRoomDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnMakeRoomDlgResult, 3);
+		}
 	}
-	else
-	{
-		if (m_bLockControls || m_bRoomStateReq)
-			return;
+}
 
-		m_bRoomStateReq = true;
+// lobbymain.cpp:14410
+void CLobbyMain::OnGameRoom_EquipItemDown(void) {
+	InitControlsSelectedUserInfo();
 
-		if (m_bReady)
-		{
-			WSendPacket packet((enumClientPacket)13);
-			packet.Encode1(1);
-			packet.Send(TO_GAME);
-		}
+	if (!m_itemEquipDlg) {
+		m_itemEquipDlg = CreateForm<FrEquipDlg>(g_pFresh->GetManager(), this, "equip", NULL);
+
+		CSharedDoc* doc = CSharedDoc::Instance();
+		if ((doc->m_userInfo.identity >> 1) & 1)
+			m_itemEquipDlg->Init(doc->m_roomPlayers[0].m_equipItem, true);
 		else
-		{
-			m_bNewBlink = false;
-			if (m_pCurTip)
-				m_pCurTip->SetVisible(false);
+			m_itemEquipDlg->Init(doc->m_equipItem, true);
 
-			WSendPacket packet((enumClientPacket)13);
-			packet.Encode1(0);
-			packet.Send(TO_GAME);
-		}
-
-		EnableSettingButton(m_bReady);
-	}
-}
-void CLobbyMain::OnGameRoom_ReadyInit(int param)
-{
-	m_pReady = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pReady)
-	{
-		m_pReady->SetVisible(false);
-		m_pReady->Enable(false);
+		m_itemEquipDlg->Open((FRESH_RESULT_CALLBACK)&CLobbyMain::OnItemEquipResult, 3);
 	}
 }
 
-void CLobbyMain::OnGameRoom_ReadyBtnUp()
-{
-	if (Doc()->IsControlServerService(2))
-	{
-		this << MsgObject(this, 0x272, 2, 0, 0, 0, 0);
-		return;
+// lobbymain.cpp:14450
+void CLobbyMain::OnGameRoom_CharSelInit(intptr_t param) {
+	m_charSelViewer = DYNAMIC_CAST(FrViewer, param);
+	if (m_charSelViewer) {
+		m_charSelViewer->SetVisible(false);
 	}
-
-	if (MyGuid(false) == m_masterOID)
-		return;
-
-	if (m_bLockControls || m_bRoomStateReq)
-		return;
-
-	m_bRoomStateReq = true;
-
-	if (m_bReady)
-	{
-		WSendPacket send((enumClientPacket)13);
-		send.Encode1(1);
-		send.Send(TO_GAME);
-	}
-	else
-	{
-		m_bNewBlink = false;
-		if (m_pCurTip)
-			m_pCurTip->SetVisible(false);
-
-		WSendPacket send((enumClientPacket)13);
-		send.Encode1(0);
-		send.Send(TO_GAME);
-	}
-
-	EnableSettingButton(m_bReady);
 }
 
-void CLobbyMain::EnableSettingButton(bool enable)
-{
-	if (m_pOverBarChar)
-		m_pOverBarChar->Enable(enable);
-
-	if (m_pOverBarCaddie)
-		m_pOverBarCaddie->Enable(enable);
-
-	if (m_pOverBarClub)
-		m_pOverBarClub->Enable(enable);
-
-	if (m_pOverBarAztec)
-		m_pOverBarAztec->Enable(enable);
-
-	if (m_pOverBarMascot)
-		m_pOverBarMascot->Enable(enable);
-
-	CloseAllSubSelection();
-
-	if (m_pChar)
-		m_pChar->Enable(enable);
-
-	if (m_pCaddie)
-		m_pCaddie->Enable(enable);
-
-	if (m_pClub)
-		m_pClub->Enable(enable);
-
-	if (m_pAztec)
-		m_pAztec->Enable(enable);
-
-	if (m_pMascot)
-		m_pMascot->Enable(enable);
-
-	if (m_pEquipItem)
-		m_pEquipItem->Enable(enable);
-
+// lobbymain.cpp:14460
+void CLobbyMain::OnGameRoom_CharSelDown(void) {
 	InitControlsSelectedUserInfo();
-
-	if (!enable && m_pEquipDlg)
-		m_pEquipDlg->Close(FrOK, true);
 }
 
-void CLobbyMain::OnGameRoom_RoomOptionInit(int param)
-{
-	m_pRoomOption = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_RoomOptionBtnUp()
-{
-	if (m_pCurTip && m_pCurTip->IsVisible() &&
-		!(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1))
-	{
-		HandleMsg(MsgObject(this, 35,
-			(int)"\xb8\xf0\xb5\xce \xc1\xd8\xba\xf1\xb0\xa1 \xb5\xc8 \xbb\xf3\xc8\xb2\xbf\xa1\xbc\xad\xb4\xc2 \xb9\xe6\xc1\xa4\xba\xb8\xb8\xa6 \xba\xaf\xb0\xe6\xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9",
-			0, 0, 0, 0));
-		return;
-	}
-
-	FrChangeRoomInfoDlg* pDlg = CreateForm<FrChangeRoomInfoDlg>(
-		g_pFresh->GetManager(), this, "changeroominfo", NULL);
-	pDlg->SetDesc(
-		"\xb9\xe6\xc0\xc7 \xbf\xc9\xbc\xc7\xc0\xbb \xba\xaf\xb0\xe6\xc7\xcf\xbc\xbc\xbf\xe4.");
-	pDlg->Open(NULL, 1);
-	pDlg->MoveCursor("ok");
-}
-
-void CLobbyMain::OnGameRoom_MapInit(int param)
-{
-	m_pMap = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pMap)
-	{
-		m_pMap->SetStyle(FrButton::BT_NORMAL);
-
-		if ((Doc()->m_curChannel.Type & 0x80) ||
-			Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH ||
-			Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH)
-		{
-			m_pMap->SetStyle(FrButton::BT_ALWAYSON);
-			m_pMap->SetPushDelay(0.0f);
-		}
+// lobbymain.cpp:14544
+void CLobbyMain::OnGameRoom_CaddieSelInit(intptr_t param) {
+	m_caddieSelViewer = DYNAMIC_CAST(FrViewer, param);
+	if (m_caddieSelViewer) {
+		m_caddieSelViewer->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoom_MapBtnUp()
-{
-	if (m_masterOID != MyGuid(false) ||
-		(m_bCanStart && Doc()->m_slotList.size() > 1 &&
-			!(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1)))
-		return;
+// lobbymain.cpp:14554
+void CLobbyMain::OnGameRoom_CaddieSelDown(void) {
+	InitControlsSelectedUserInfo();
+}
 
-	if (Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH ||
-		Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-		return;
-
-	if (m_pTreasureCourse)
-		return;
-
-	m_pTreasureCourse = CreateForm<FrTreasureCourse>(g_pFresh->GetManager(),
-		this, "treasuremap", NULL);
-	if (m_pTreasureCourse)
-	{
-		m_pTreasureCourse->SetSelectMap(Doc()->m_roomInfo.mapType);
-		m_pTreasureCourse->SetMapIndexChanged(false);
-		m_pTreasureCourse->LockRandom(
-			Doc()->m_golfGame.gameType == GAME_TYPE_AVATARCHAT);
-		m_pTreasureCourse->EnableDrag(false);
-		m_pTreasureCourse->Open(
-			(FRESH_PFN_RESULT)&CLobbyMain::OnMapSelectDlgResult, 3);
+// lobbymain.cpp:14674
+void CLobbyMain::OnGameRoom_ClubSelInit(intptr_t param) {
+	m_clubSelViewer = DYNAMIC_CAST(FrViewer, param);
+	if (m_clubSelViewer) {
+		m_clubSelViewer->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoom_MapPrevInit(int param)
-{
-	m_pMapPrev = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pMapPrev)
-	{
-		m_pMapPrev->Enable(false);
-		m_pMapPrev->SetVisible(false);
-		m_pMapPrev->SetPushDelay(0.0f);
+// lobbymain.cpp:14684
+void CLobbyMain::OnGameRoom_ClubSelDown(void) {
+	InitControlsSelectedUserInfo();
+}
+
+// lobbymain.cpp:14784
+void CLobbyMain::OnGameRoom_AztecSelInit(intptr_t param) {
+	m_aztecSelViewer = DYNAMIC_CAST(FrViewer, param);
+	if (m_aztecSelViewer) {
+		m_aztecSelViewer->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoom_MapNextInit(int param)
-{
-	m_pMapNext = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pMapNext)
-	{
-		m_pMapNext->Enable(false);
-		m_pMapNext->SetVisible(false);
-		m_pMapNext->SetPushDelay(0.0f);
+// lobbymain.cpp:14794
+void CLobbyMain::OnGameRoom_AztecSelDown(void) {
+	InitControlsSelectedUserInfo();
+}
+
+// lobbymain.cpp:14894
+void CLobbyMain::OnGameRoom_MascotSelInit(intptr_t param) {
+	m_mascotSelViewer = DYNAMIC_CAST(FrViewer, param);
+	if (m_mascotSelViewer) {
+		m_mascotSelViewer->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoom_MapPrevBtnUp()
-{
-	if (m_bLockControls)
-		return;
-
-	unsigned char map = PrevMap(Doc()->m_roomInfo.mapType);
-
-	WSendPacket send((enumClientPacket)10);
-	send.Encode2(0xffff);
-	send.Encode1(1);
-	send.Encode1(3);
-	send.Encode1(map);
-	send.Send(TO_GAME);
-
-	HandleMsg(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
+// lobbymain.cpp:14904
+void CLobbyMain::OnGameRoom_MascotSelDown(void) {
+	InitControlsSelectedUserInfo();
 }
 
-void CLobbyMain::OnGameRoom_MapNextBtnUp()
-{
-	if (m_bLockControls)
-		return;
-
-	unsigned char map = NextMap(Doc()->m_roomInfo.mapType, false);
-
-	WSendPacket send((enumClientPacket)10);
-	send.Encode2(0xffff);
-	send.Encode1(1);
-	send.Encode1(3);
-	send.Encode1(map);
-	send.Send(TO_GAME);
-
-	HandleMsg(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
-}
-
-void CLobbyMain::OnGameRoom_MapHoleComboInit(int param)
-{
-	m_pMapHoleCombo = DYNAMIC_CAST(FrComboCtlEx, (FrWnd*)param);
-	ReLoadHoleItem();
-
-	unsigned char holeType = Doc()->m_roomInfo.holeType;
-	if (m_pMapHoleCombo)
-	{
-		if (Doc()->m_roomInfo.nHole == 18)
-		{
-			if (holeType > 0)
-				holeType = 1;
-		}
-		m_pMapHoleCombo->SelectItem(holeType);
+// lobbymain.cpp:15013
+void CLobbyMain::OnGameRoom_StartTipInit(intptr_t param) {
+	m_startTipArea = DYNAMIC_CAST(FrArea, param);
+	if (m_startTipArea) {
+		m_startTipArea->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoom_MapHoleComboDown()
-{
-	if (!m_pMapHoleCombo)
-		return;
-
-	if (m_bLockControls)
-		return;
-
-	unsigned char holeType = m_pMapHoleCombo->GetCurrentIdx();
-	if (Doc()->m_roomInfo.nHole != 18)
-	{
-		if (Doc()->m_roomInfo.holeType == holeType)
-			return;
-	}
-	else
-	{
-		if (holeType == 0)
-		{
-			if (Doc()->m_roomInfo.holeType == 0)
-				return;
-		}
-		else
-		{
-			if (Doc()->m_roomInfo.holeType == 3)
-				return;
-			holeType = 3;
-		}
-	}
-
-	WSendPacket send((enumClientPacket)10);
-	send.Encode2(0xffff);
-	send.Encode1(1);
-	send.Encode1(5);
-	send.Encode1(holeType);
-	send.Send(TO_GAME);
-
-	HandleMsg(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
-}
-
-void CLobbyMain::OnGameRoom_MapLockInit(int param)
-{
-	m_pMapLock = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pMapLock)
-		m_pMapLock->SetVisible(false);
-}
-
-void CLobbyMain::OnGameRoom_UserListInit(int param)
-{
-}
-
-void CLobbyMain::OnGameRoom_UserListBtnUp()
-{
-	if (m_pUserListDlg)
-		return;
-
-	m_pUserListDlg = CreateForm<FrUserListDlg>(g_pFresh->GetManager(), this,
-		"userlist", NULL);
-	if (!m_pUserListDlg)
-		return;
-
-	m_pUserListDlg->MakeUserList(Doc()->m_briefUserInfoMap);
-	m_pUserListDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnUserListDlgResult, 3);
-
-	WPoint pos;
-	pos.x = g_view->GetWidth() - m_pUserListDlg->GetRect().w - 5.0f;
-	pos.y = m_pUserListDlg->GetRect().y;
-	m_pUserListDlg->MoveWindow(pos);
-
-	if (m_pUserListDlg)
-		m_pUserListDlg->EnableRightButton(!m_bReady);
-}
-
-void CLobbyMain::OnGameRoom_ChangeTeamBtnInit(int param)
-{
-	m_pChangeTeam = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pChangeTeam)
-		m_pChangeTeam->SetPushDelay(0.5f);
-}
-
-void CLobbyMain::OnGameRoom_ChangeTeamBtnUp()
-{
-	if (m_bReady || m_bLockControls)
-		return;
-
-	CSharedDoc* pDoc = Doc();
-
-	std::list<sSlotInfo>::iterator it = std::find(pDoc->m_slotList.begin(),
-		pDoc->m_slotList.end(), MyGuid(false));
-
-	if (it == pDoc->m_slotList.end())
-		return;
-
-	(*it).bTeam = 1 - (*it).bTeam;
-
-	WSendPacket send((enumClientPacket)16);
-	send.Encode1((*it).bTeam);
-	send.Send(TO_GAME);
-}
-
-void CLobbyMain::OnGameRoom_PowerBarInit(int param)
-{
-	m_pStatBar[0] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[0]->SetRange(0, 50, 0);
-}
-
-void CLobbyMain::OnGameRoom_ControlBarInit(int param)
-{
-	m_pStatBar[1] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[1]->SetRange(0, 30, 0);
-}
-
-void CLobbyMain::OnGameRoom_AccuracyBarInit(int param)
-{
-	m_pStatBar[2] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[2]->SetRange(0, 30, 0);
-}
-
-void CLobbyMain::OnGameRoom_SpinBarInit(int param)
-{
-	m_pStatBar[3] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[3]->SetRange(0, 30, 0);
-}
-
-void CLobbyMain::OnGameRoom_CurveBarInit(int param)
-{
-	m_pStatBar[4] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[4]->SetRange(0, 30, 0);
-}
-
-void CLobbyMain::OnGameRoom_PowerEditInit(int param)
-{
-	m_pStatEdit[0] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_ControlEditInit(int param)
-{
-	m_pStatEdit[1] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_AccuracyEditInit(int param)
-{
-	m_pStatEdit[2] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_SpinEditInit(int param)
-{
-	m_pStatEdit[3] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_CurveEditInit(int param)
-{
-	m_pStatEdit[4] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoom_ScoreInit(int param)
-{
-	m_pScore = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pScore)
-		m_pScore->Enable(false);
-}
-
-void CLobbyMain::OnGameRoom_ScoreBtnUp()
-{
-	if (m_pScoreDlg)
-		return;
-
-	if (Doc()->m_golfGame.gameType == GAME_TYPE_GUILD_MATCH)
-	{
-		m_pScoreDlg = CreateForm<FrScoreDlg>(g_pFresh->GetManager(), this,
-			"score_guild", NULL);
-		m_pScoreDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnScoreDlgResult, 1);
-		m_pScoreDlg->SetGuildPlayer(m_selOID);
-		m_pScoreDlg->SetVisibleCloseBtn(false);
-	}
-	else
-	{
-		m_pScoreDlg =
-			CreateForm<FrScoreDlg>(g_pFresh->GetManager(), this, "score", NULL);
-		m_pScoreDlg->Open((FRESH_PFN_RESULT)&CLobbyMain::OnScoreDlgResult, 1);
-
-		if (m_selOID == (unsigned long)-1)
-		{
-			m_selOID = MyGuid(false);
-			m_selUID = MyUID();
-		}
-
-		m_pScoreDlg->SetPlayer(m_selOID);
-		m_pScoreDlg->SetVisibleCloseBtn(true);
+// lobbymain.cpp:15022
+void CLobbyMain::OnGameRoom_ReadyTipInit(intptr_t param) {
+	m_readyTipArea = DYNAMIC_CAST(FrArea, param);
+	if (m_readyTipArea) {
+		m_readyTipArea->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoomExt_Init(int param)
-{
+// lobbymain.cpp:15031
+void CLobbyMain::OnGameRoom_StartInit(intptr_t param) {
+	m_startBtn = DYNAMIC_CAST(FrButton, param);
+}
+
+// lobbymain.cpp:15167
+void CLobbyMain::OnGameRoom_ReadyInit(intptr_t param) {
+	m_readyBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_readyBtn) {
+		m_readyBtn->SetVisible(false);
+		m_readyBtn->Enable(false);
+	}
+}
+
+// lobbymain.cpp:15262
+void CLobbyMain::OnGameRoom_RoomOptionInit(intptr_t param) {
+	m_roomOptionBtn = DYNAMIC_CAST(FrButton, param);
+}
+
+// lobbymain.cpp:15340
+void CLobbyMain::OnGameRoom_MapPrevInit(intptr_t param) {
+	m_mapPrevBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_mapPrevBtn) {
+		m_mapPrevBtn->Enable(false);
+		m_mapPrevBtn->SetVisible(false);
+		m_mapPrevBtn->SetPushDelay(0.0f);
+	}
+}
+
+// lobbymain.cpp:15351
+void CLobbyMain::OnGameRoom_MapNextInit(intptr_t param) {
+	m_mapNextBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_mapNextBtn) {
+		m_mapNextBtn->Enable(false);
+		m_mapNextBtn->SetVisible(false);
+		m_mapNextBtn->SetPushDelay(0.0f);
+	}
+}
+
+// lobbymain.cpp:15484
+void CLobbyMain::OnGameRoom_MapLockInit(intptr_t param) {
+	m_mapLockArea = DYNAMIC_CAST(FrArea, param);
+	if (m_mapLockArea) {
+		m_mapLockArea->SetVisible(false);
+	}
+}
+
+// lobbymain.cpp:15494
+void CLobbyMain::OnGameRoom_UserListInit(int) {
+}
+
+// lobbymain.cpp:15519
+void CLobbyMain::OnGameRoom_ChangeTeamBtnInit(intptr_t param) {
+	m_changeTeamBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_changeTeamBtn) {
+		m_changeTeamBtn->SetPushDelay(0.5f);
+	}
+}
+
+// lobbymain.cpp:15547
+void CLobbyMain::OnGameRoom_PowerBarInit(intptr_t param) {
+	m_powerBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_powerBar->SetRange(0, 50, 0);
+}
+
+// lobbymain.cpp:15553
+void CLobbyMain::OnGameRoom_ControlBarInit(intptr_t param) {
+	m_controlBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_controlBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:15559
+void CLobbyMain::OnGameRoom_AccuracyBarInit(intptr_t param) {
+	m_accuracyBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_accuracyBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:15565
+void CLobbyMain::OnGameRoom_SpinBarInit(intptr_t param) {
+	m_spinBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_spinBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:15571
+void CLobbyMain::OnGameRoom_CurveBarInit(intptr_t param) {
+	m_curveBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_curveBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:15577
+void CLobbyMain::OnGameRoom_PowerEditInit(intptr_t param) {
+	m_powerStatic = DYNAMIC_CAST(FrStatic, param);
+}
+
+// lobbymain.cpp:15582
+void CLobbyMain::OnGameRoom_ControlEditInit(intptr_t param) {
+	m_controlStatic = DYNAMIC_CAST(FrStatic, param);
+}
+
+// lobbymain.cpp:15587
+void CLobbyMain::OnGameRoom_AccuracyEditInit(intptr_t param) {
+	m_accuracyStatic = DYNAMIC_CAST(FrStatic, param);
+}
+
+// lobbymain.cpp:15592
+void CLobbyMain::OnGameRoom_SpinEditInit(intptr_t param) {
+	m_spinStatic = DYNAMIC_CAST(FrStatic, param);
+}
+
+// lobbymain.cpp:15597
+void CLobbyMain::OnGameRoom_CurveEditInit(intptr_t param) {
+	m_curveStatic = DYNAMIC_CAST(FrStatic, param);
+}
+
+// lobbymain.cpp:15602
+void CLobbyMain::OnGameRoom_ScoreInit(intptr_t param) {
+	m_scoreBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_scoreBtn) {
+		m_scoreBtn->Enable(false);
+	}
+}
+
+// lobbymain.cpp:15645
+void CLobbyMain::OnGameRoomExt_Init(int param) {
 	OnGameRoom_Init(param);
 }
 
-void CLobbyMain::OnGameRoomExt_Finish()
-{
-	m_pOverBarTitle->SetBgImg("title_mass");
-
-	if (m_bInitSlot)
-	{
-		sRoomSlot slot;
-		slot.pArea = m_pPet[0];
-		slot.pExhibition = NULL;
-		slot.partTidList = Doc()->GetMyPartTidList();
-		slot.charInfo = Doc()->m_charMap[Doc()->m_myInfo.userEquip.guidChar];
-		slot.bAngelWing = Doc()->m_myInfo.info.angelicWings;
-		slot.bGachaWing = Doc()->m_myInfo.info.angelicWingsEffect;
-		Doc()->m_roomSlotMap[MyGuid(false)] = slot;
-
-		ShowPet(MyGuid(false));
-	}
-
-	HandleMsg(MsgObject(this, 17, Doc()->m_roomInfo.mapType, 0, 0, 0, 0));
-
-	if (Doc()->m_bRefreshCamera)
-		HandleMsg(MsgObject(NULL, 170, 1, 0, 0, 0, 0));
-
-	EnableUnderBar(false);
-}
-
-void CLobbyMain::OnGameRoomExt_Destroy()
-{
+// lobbymain.cpp:15704
+void CLobbyMain::OnGameRoomExt_Destroy(void) {
 	EnableUnderBar(true);
 }
 
-void CLobbyMain::OnGameRoomExt_RoomUserInit(int param)
-{
-	m_pRoomUser = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pRoomUser)
-	{
-		m_pRoomUser->UseRightButton(true);
-		m_pRoomUser->UseDummy(true);
-
-		m_pInviteBmp = (Bitmap*)m_pRoomUser->GetBitmap("30_player_wait");
-
-		m_pGenderBmp[0] = (Bitmap*)m_pRoomUser->GetBitmap("i_male");
-		m_pGenderBmp[1] = (Bitmap*)m_pRoomUser->GetBitmap("i_female");
-		m_pGenderBmp[2] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_02");
-		m_pGenderBmp[3] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_02");
-		m_pGenderBmp[4] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_03");
-		m_pGenderBmp[5] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_03");
-		m_pGenderBmp[6] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_manner");
-		m_pGenderBmp[7] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_manner");
-		m_pGenderBmp[8] = (Bitmap*)m_pRoomUser->GetBitmap("i_male_angel");
-		m_pGenderBmp[9] = (Bitmap*)m_pRoomUser->GetBitmap("i_female_angel");
-
-		m_pSituBmp[0] = (Bitmap*)m_pRoomUser->GetBitmap("30in_situ03");
-		m_pSituBmp[1] = (Bitmap*)m_pRoomUser->GetBitmap("30in_situ01");
-		m_pSituBmp[2] = (Bitmap*)m_pRoomUser->GetBitmap("30in_situ02");
-		m_pSituBmp[3] = (Bitmap*)m_pRoomUser->GetBitmap("30in_situ_red_cp");
-		m_pSituBmp[4] = (Bitmap*)m_pRoomUser->GetBitmap("30in_situ_red");
-		m_pSituBmp[5] = (Bitmap*)m_pRoomUser->GetBitmap("30in_situ_blue_cp");
-		m_pSituBmp[6] = (Bitmap*)m_pRoomUser->GetBitmap("30in_situ_blue");
-		m_pDiveBmp = (Bitmap*)m_pRoomUser->GetBitmap("dive");
-
-		m_pPlayerBaseBmp[0] =
-			(Bitmap*)g_pFresh->RegisterBitmap("30_noplayer_base");
-		m_pPlayerBaseBmp[1] =
-			(Bitmap*)g_pFresh->RegisterBitmap("30_player_base");
-
-		m_pKickBmp = (Bitmap*)g_pFresh->RegisterBitmap("kick");
-
-		m_selUID = m_selOID = (unsigned long)-1;
-
-		if (m_bInitSlot)
-			MakeRoomUserList();
+// lobbymain.cpp:15995
+void CLobbyMain::OnGameRoomExt_CountdownInit(intptr_t param) {
+	m_countdownArea = DYNAMIC_CAST(FrArea, param);
+	if (m_countdownArea) {
+		m_countdownArea->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoomExt_RoomUserOwnerDraw(int param)
-{
-	FrListItem* pItem = (FrListItem*)param;
-	if (!pItem)
-		return;
-
-	sSlotInfo* pSlot = NULL;
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (!pDevice)
-		return;
-
-	pSlot = (sSlotInfo*)pItem->pData;
-
-	if (IsLocalContent(S4_INVITE_FRIEND))
-	{
-		if (pSlot)
-		{
-			if (pSlot->IsInvite)
-			{
-				pDevice->DrawTexture(m_pInviteBmp,
-					WRect(pItem->pos.x, pItem->pos.y,
-						(float)m_pInviteBmp->Width(),
-						(float)m_pInviteBmp->Height()),
-					0xffffffff, 0);
-				return;
-			}
-		}
-	}
-
-	pDevice->DrawTexture(m_pPlayerBaseBmp[0],
-		WRect(pItem->pos.x, pItem->pos.y, (float)m_pPlayerBaseBmp[1]->Width(),
-			(float)m_pPlayerBaseBmp[1]->Height()),
-		0xffffffff, 0);
-
-	if (pItem->selected)
-		pDevice->Box(WRect(pItem->pos.x, pItem->pos.y,
-						 (float)m_pRoomUser->GetItemWidth() + 15.0f,
-						 (float)m_pRoomUser->GetItemHeight()),
-			0x7f265785, 0, 0.0f);
-
-	if (!pSlot)
-		return;
-
-	WRect rect(0.0f, 0.0f, 0.0f, 0.0f);
-
-	int index;
-	if (!pSlot->bReady && !pSlot->bMaster)
-	{
-		index = 0;
-	}
-	else
-	{
-		int n = (pSlot->bMaster) ? 1 : 2;
-		index = n;
-
-		if (Doc()->m_roomInfo.gameType == GAME_TYPE_30S_TEAM ||
-			Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-		{
-			if (!pSlot->bTeam)
-				index += 2;
-			else
-				index += 4;
-		}
-	}
-
-	const Bitmap* pIcon = m_pSituBmp[index];
-	rect = WRect(pItem->pos.x + 10.0f, pItem->pos.y + 5.0f,
-		(float)pIcon->Width(), (float)pIcon->Height());
-	pDevice->DrawTexture(pIcon, rect, 0xffffffff, 0);
-
-	if (pSlot->angelicWings)
-		pIcon = m_pGenderBmp[8 + pSlot->gender % 2];
-	else if (pSlot->manner)
-		pIcon = m_pGenderBmp[6 + pSlot->gender % 2];
-	else
-		pIcon = m_pGenderBmp[pSlot->gender];
-
-	rect = WRect(pItem->pos.x + 30.0f, pItem->pos.y, (float)pIcon->Width(),
-		(float)pIcon->Height());
-	pDevice->DrawTexture(pIcon, rect, 0xffffffff, 0);
-
-	if (m_pDiveBmp && pSlot->bSleep)
-		pDevice->DrawTexture(m_pDiveBmp,
-			WRect(pItem->pos.x + 34.0f, pItem->pos.y + 2.0f,
-				(float)m_pDiveBmp->Width(), (float)m_pDiveBmp->Height()),
-			0xffffffff, 0);
-
-	const Bitmap* pLevel;
-	if (Doc()->m_curChannel.Type & 0x80)
-	{
-		pLevel =
-			g_pFresh->GetBitmap(MakeStr("ladder_%03d", pSlot->ladderGrade));
-	}
-	else if (pSlot->dwTitle)
-	{
-		IFF_STRUCT::sSkin* pSkin = ItemManager()->FindSkin(pSlot->dwTitle);
-		if (pSkin)
-			pLevel = g_pFresh->GetBitmap(pSkin->c.Icon);
-		else
-			pLevel =
-				g_pFresh->GetBitmap(MakeStr("level_%03d", pSlot->level + 1));
-	}
-	else
-	{
-		pLevel = g_pFresh->GetBitmap(MakeStr("level_%03d", pSlot->level + 1));
-	}
-	if (pLevel)
-	{
-		pDevice->DrawTexture(pLevel,
-			WRect(pItem->pos.x + 80.0f - float2int(pLevel->Width() * 0.5f),
-				pItem->pos.y + 13.0f - float2int(pLevel->Height() * 0.5f),
-				(float)pLevel->Width(), (float)pLevel->Height()),
-			0xffffffff, 0);
-	}
-
-	if (pSlot->GuildId && !pSlot->IsIdentity(0x14))
-	{
-		const Bitmap* pEmblem = NetResourceManager::Instance()->GetEmblemByName(
-			pSlot->szEmblemName);
-
-		if (pEmblem)
-			pDevice->DrawTexture(pEmblem,
-				WRect(pItem->pos.x + 115.0f, pItem->pos.y + 7.0f - 6.0f,
-					(float)pEmblem->Width(), (float)pEmblem->Height()),
-				0xffffffff, 0);
-	}
-
-	unsigned long color =
-		(unsigned char)(pSlot->dwIdentity & 0x14) ? 0x50ffffff : 0xffffffff;
-
-	if (pItem->underCursor)
-	{
-		pDevice->SetTextColor(0xffffffff, 0xff124371);
-		pDevice->SetTextStyle(2);
-	}
-	else
-	{
-		pDevice->SetTextColor(0xffffffff, 0xffffffff);
-		pDevice->SetTextStyle(0);
-	}
-
-	if (!CProjectG::Instance()->HidePrivacy())
-		g_pFresh->GetManager()->PrintText(
-			WPoint(pItem->pos.x + 140.0f, pItem->pos.y + 7.0f), 0, pSlot->sNick,
-			-1.0f, color);
-
-	if ((!Doc()->m_bGameOver ||
-			(bool)((Doc()->m_myInfo.info.dwIdentity >> 2) & 1)) &&
-		MyGuid(false) == m_masterOID && !pSlot->bMaster &&
-		Doc()->m_roomInfo.gameType != GAME_TYPE_GUILD_MATCH)
-		pDevice->DrawTexture(m_pKickBmp,
-			WRect(pItem->pos.x + 226.0f, pItem->pos.y + 7.0f - 2.0f,
-				(float)m_pKickBmp->Width(), (float)m_pKickBmp->Height()),
-			pItem->underCursor ? 0xffffffff : 0x80ffffff, 0);
+// lobbymain.cpp:16064
+void CLobbyMain::OnGameRoomExt_FrameInit(intptr_t param) {
+	m_extFrame = DYNAMIC_CAST(FrFrame, param);
 }
-void CLobbyMain::OnGameRoomExt_CountdownInit(int param)
-{
-	m_pCountdown = DYNAMIC_CAST(FrArea, (FrWnd*)param);
 
-	if (m_pCountdown)
-	{
-		m_pCountdown->SetVisible(false);
+// lobbymain.cpp:16069
+void CLobbyMain::OnGameRoomExt_GuildTab1Init(intptr_t param) {
+	m_guildTab1Area = DYNAMIC_CAST(FrArea, param);
+}
+
+// lobbymain.cpp:16074
+void CLobbyMain::OnGameRoomExt_GuildTab2Init(intptr_t param) {
+	m_guildTab2Area = DYNAMIC_CAST(FrArea, param);
+}
+
+// lobbymain.cpp:16079
+void CLobbyMain::OnGameRoomExt_TeamTab1Init(intptr_t param) {
+	m_teamTab1Area = DYNAMIC_CAST(FrArea, param);
+}
+
+// lobbymain.cpp:16084
+void CLobbyMain::OnGameRoomExt_TeamTab2Init(intptr_t param) {
+	m_teamTab2Area = DYNAMIC_CAST(FrArea, param);
+}
+
+// lobbymain.cpp:16089
+void CLobbyMain::OnGameRoomExt_TeamNumInit(intptr_t param) {
+	m_teamNumArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// lobbymain.cpp:16127
+void CLobbyMain::OnGameRoomExtRes_GuildScoreGaugeInit(intptr_t param) {
+	m_guildScoreGauge = DYNAMIC_CAST(FrGaugeBar, param);
+	m_guildScoreGauge->SetVisible(false);
+}
+
+// lobbymain.cpp:16155
+void CLobbyMain::OnGameRoomExt_GuildNumInit(intptr_t param) {
+	m_guildNumArea = DYNAMIC_CAST(FrArea, param);
+	if (CSharedDoc::Instance()->m_roomInfo.m_gameType != 6) {
+		m_guildNumArea->SetVisible(false);
 	}
 }
 
-void CLobbyMain::OnGameRoomExt_ResCloseBtnUp()
-{
-	if (m_pRoomClose)
-		m_pRoomClose->Enable(false);
-
-	if ((bool)((Doc()->m_myInfo.info.dwIdentity >> 1) & 1))
-	{
-		WSendPacket packet((enumClientPacket)0x0f);
-		packet.Encode1(0);
-		packet.Encode2(0xffff);
-		packet.Encode8(0);
-		packet.Encode8(0);
-		packet.Send(TO_GAME);
-
-		HandleMsg(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
-	}
-	else
-	{
-		FrForm* pForm =
-			CreateForm<FrForm>(g_pFresh->GetManager(), this, "tolobby", NULL);
-		pForm->SetMessage(
-			"\xb0\xd4\xc0\xd3\xc0\xcc \\c0xffff0000\\c\xbf\xcf\xc0\xfc\xc8\xf7 \xc1\xbe\xb7\xe1\\c0xff000000\\c\xb5\xc7\xb1\xe2 \xc0\xfc\xbf\xa1 \xb0\xd4\xc0\xd3\xc0\xbb \xc6\xf7\xb1\xe2\xc7\xcf\xb8\xe9, \\c0xffff0000\\c\xb0\xe6\xc7\xe8\xc4\xa1 \xc8\xb9\xb5\xe6\xb0\xfa \xb0\xa2\xc1\xbe \xb1\xe2\xb7\xcf\xc0\xcc \xb9\xab\xc8\xbf\xc3\xb3\xb8\xae\\c0xff000000\\c\xb5\xcb\xb4\xcf\xb4\xd9.\n\n \x09\x09\x09\x09\x09\x09\x09\x09\x09\xb6\xc7\xc7\xd1 \xb8\xb9\xc0\xba \xb0\xad\xc1\xa6\xc1\xbe\xb7\xe1\xb7\xce \xc0\xce\xc7\xd8 \xb0\xad\xc1\xa6\xc1\xbe\xb7\xe1\xc0\xb2\xc0\xcc \xb4\xd9\xc0\xbd\xb0\xfa \xb0\xb0\xc0\xba \xbc\xf6\xc4\xa1\xb0\xa1 \xb5\xc7\xb8\xe9 \\c0xffff0000\\c\xbc\xba\xba\xb0 \xc7\xa5\xbd\xc3 \xbe\xc6\xc0\xcc\xc4\xdc\\c0xff000000\\c\xc0\xcc \xc5\xb9\xc7\xd8\xc1\xfc\xb0\xfa \xb5\xbf\xbd\xc3\xbf\xa1 \x09\x09\x09\x09\x09\x09\x09\x09\x09\\c0xffff0000\\c\xbb\xe7\xbf\xeb \xb1\xe2\xb4\xc9\xbf\xa1 \xb4\xeb\xc7\xd1 \xc1\xa6\xbe\xe0\\c0xff000000\\c\xc0\xcc \xbb\xfd\xb1\xe9\xb4\xcf\xb4\xd9.\n\n\n\n\n\n\n\n\xb0\xd4\xc0\xd3\xc0\xbb \xc6\xf7\xb1\xe2\xc7\xcf\xb0\xed \xb7\xce\xba\xf1\xb7\xce \xb3\xaa\xb0\xa1\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-			false);
-		pForm->Open((FRESH_PFN_RESULT)&CLobbyMain::OnRoomExtResQuitDlgResult,
-			1);
-	}
+// lobbymain.cpp:16231
+void CLobbyMain::OnGameRoomExt_GuildInviteInit(intptr_t param) {
+	m_guildInviteBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void CLobbyMain::OnGameRoomExt_FrameInit(int param)
-{
-	m_pExtFrame = DYNAMIC_CAST(FrFrame, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoomExt_GuildTab1Init(int param)
-{
-	m_pGuildTab[0] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoomExt_GuildTab2Init(int param)
-{
-	m_pGuildTab[1] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoomExt_TeamTab1Init(int param)
-{
-	m_pTeamTab[0] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoomExt_TeamTab2Init(int param)
-{
-	m_pTeamTab[1] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoomExt_TeamNumInit(int param)
-{
-	m_pTeamNum = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoomExt_TeamNumOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (!pGDI)
-		return;
-
-	WRect rect = m_pTeamNum->GetRect();
-
-	pGDI->SetTextStyle(0);
-
-	if (Doc()->m_roomInfo.gameType == GAME_TYPE_TEAM ||
-		Doc()->m_roomInfo.gameType == GAME_TYPE_30S_TEAM)
-	{
-		pGDI->SetTextColor(0xffff0000, 0xffffffff);
-		g_pFresh->GetManager()->PrintText(
-			WPoint(rect.x + 209.0f, rect.y + 12.0f), 0,
-			MakeStr("(%d)", m_redTeam.size()), -1.0f, 0xffffffff);
-
-		pGDI->SetTextColor(0xff0060ff, 0xffffffff);
-		g_pFresh->GetManager()->PrintText(
-			WPoint(rect.x + 458.0f, rect.y + 12.0f), 0,
-			MakeStr("(%d)", m_blueTeam.size()), -1.0f, 0xffffffff);
-	}
-	else
-	{
-		pGDI->SetTextColor(0xffffffff, 0xffffffff);
-		g_pFresh->GetManager()->PrintText(
-			WPoint(rect.x + 109.0f, rect.y + 12.0f), 0, "\xb4\xeb\xc8\xb8",
-			-1.0f, 0xffffffff);
-
-		float offset = 209.0f;
-		if (Doc()->m_slotList.size() >= 100)
-			offset = 200.0f;
-
-		g_pFresh->GetManager()->PrintText(
-			WPoint(offset + rect.x, rect.y + 12.0f), 0,
-			MakeStr("(%d)", Doc()->m_slotList.size()), -1.0f, 0xffffffff);
-	}
-}
-
-void CLobbyMain::OnGameRoomExtRes_GuildScoreGaugeInit(int param)
-{
-	m_pGuildScoreGauge = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-
-	m_pGuildScoreGauge->SetVisible(false);
-	return;
-
-	m_pGuildScoreGauge->SetRange(0, Doc()->m_guildPoint, 0);
-}
-
-void CLobbyMain::OnGameRoomExt_GuildNumInit(int param)
-{
-	m_pGuildNum = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (Doc()->m_roomInfo.gameType != GAME_TYPE_GUILD_MATCH)
-		m_pGuildNum->SetVisible(false);
-}
-
-void CLobbyMain::OnGameRoomExt_GuildNumOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (!pGDI)
-		return;
-
-	WRect rect = m_pTeamNum->GetRect();
-	pGDI->SetTextStyle(1);
-
-	if (Doc()->m_roomInfo.GuildInfo.nGuildID[0])
-	{
-		const Bitmap* pEmblem = NetResourceManager::Instance()->GetEmblemByName(
-			Doc()->m_roomInfo.GuildInfo.szEmblemName[0]);
-
-		if (pEmblem)
-			pGDI->DrawTexture(pEmblem,
-				WRect(rect.x + 24.0f, rect.y + 8.0f, (float)pEmblem->Width(),
-					(float)pEmblem->Height()),
-				0xffffffff, 0);
-	}
-
-	pGDI->SetTextColor(0xffff0000, 0xffffffff);
-	g_pFresh->GetManager()->PrintText(WPoint(rect.x + 60.0f, rect.y + 12.0f), 0,
-		Doc()->m_roomInfo.GuildInfo.szName[0], -1.0f, 0xffffffff);
-	g_pFresh->GetManager()->PrintText(WPoint(rect.x + 209.0f, rect.y + 12.0f),
-		0, MakeStr("(%d)", m_redTeam.size()), -1.0f, 0xffffffff);
-
-	if (!strcmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES"))
-		g_pFresh->GetManager()->PrintText(
-			WPoint(rect.x + 180.0f, rect.y + 12.0f), 0,
-			MakeStr("%d", Doc()->m_guildScore[0]), -1.0f, 0xffffffff);
-
-	if (Doc()->m_roomInfo.GuildInfo.nGuildID[1])
-	{
-		const Bitmap* pEmblem = NetResourceManager::Instance()->GetEmblemByName(
-			Doc()->m_roomInfo.GuildInfo.szEmblemName[1]);
-
-		if (pEmblem)
-			pGDI->DrawTexture(pEmblem,
-				WRect(rect.x + 273.0f, rect.y + 8.0f, (float)pEmblem->Width(),
-					(float)pEmblem->Height()),
-				0xffffffff, 0);
-	}
-
-	pGDI->SetTextColor(0xff0060ff, 0xffffffff);
-	g_pFresh->GetManager()->PrintText(WPoint(rect.x + 309.0f, rect.y + 12.0f),
-		0, Doc()->m_roomInfo.GuildInfo.szName[1], -1.0f, 0xffffffff);
-	g_pFresh->GetManager()->PrintText(WPoint(rect.x + 458.0f, rect.y + 12.0f),
-		0, MakeStr("(%d)", m_blueTeam.size()), -1.0f, 0xffffffff);
-
-	if (!strcmp(g_pFresh->GetManager()->GetLayoutID(), "GAMEROOM_EXTRES"))
-		g_pFresh->GetManager()->PrintText(
-			WPoint(rect.x + 429.0f, rect.y + 12.0f), 0,
-			MakeStr("%d", Doc()->m_guildScore[1]), -1.0f, 0xffffffff);
-}
-
-void CLobbyMain::OnGameRoomExt_GuildInviteInit(int param)
-{
-	m_pGuildInvite = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-}
-
-void CLobbyMain::OnGameRoomExt_GuildInviteLBtnUp()
-{
-	if (Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-	{
-		std::map<unsigned long, unsigned int> guildCount;
-		bool bFound = false;
-		char szMsg[256];
-		szMsg[0] = '\0';
-
-		std::map<unsigned long, sBriefUserInfo>::iterator it;
-		for (it = Doc()->m_briefUserInfoMap.begin();
-			it != Doc()->m_briefUserInfoMap.end(); ++it)
-		{
-			if (it->second.m_GuildId &&
-				Doc()->m_myInfo.info.dwGuildId != it->second.m_GuildId &&
-				!it->second.bSleep && it->second.roomIndex == 0xffff)
-			{
-				guildCount[it->second.m_GuildId]++;
-			}
-		}
-
-		std::vector<unsigned long> guildList;
-
-		for (std::map<unsigned long, unsigned int>::iterator itCount =
-				 guildCount.begin();
-			itCount != guildCount.end(); ++itCount)
-		{
-			if (Doc()->m_roomInfo.nUserNum <= itCount->second)
-			{
-				guildList.push_back(itCount->first);
-				bFound = true;
-			}
-		}
-
-		m_guildInviteDelay = 2.0f;
-
-		if (!bFound)
-		{
-			m_pNotifyDlg = CreateForm<FrForm>(g_pFresh->GetManager(), this,
-				"notify", NULL);
-			m_pNotifyDlg->SetMessage(
-				MakeStr(
-					"\xc3\xca\xb4\xeb\xc7\xd2 \xbb\xf3\xb4\xeb \xb1\xe6\xb5\xe5\xb0\xa1 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.",
-					it->second.sNick),
-				false);
-			m_pNotifyDlg->Open(NULL, 0);
-
-			FrButton* pCancel =
-				DYNAMIC_CAST(FrButton, m_pNotifyDlg->FindChildByName("cancel"));
-			return;
-		}
-
-		{
-			unsigned int count = guildList.size();
-
-			for (it = Doc()->m_briefUserInfoMap.begin();
-				it != Doc()->m_briefUserInfoMap.end(); ++it)
-			{
-				for (unsigned int i = 0; i < count; i++)
-				{
-					if (it->second.m_GuildId == guildList[i])
-					{
-						if (IsLocalContent(S4_INVITE_FRIEND))
-						{
-							WSendPacket packet(0xb2);
-							packet.EncodeStr(it->second.sNick);
-							packet.Encode4(it->second.dwUid);
-							packet.Send(TO_GAME);
-						}
-						else
-						{
-							WSendPacket packet(0x29);
-							packet.Encode4(it->second.dwUid);
-							packet.Send(TO_GAME);
-						}
-					}
-				}
-			}
-
-			m_pNotifyDlg = CreateForm<FrForm>(g_pFresh->GetManager(), this,
-				"notify", NULL);
-			m_pNotifyDlg->SetMessage(
-				MakeStr(
-					"\xc3\xca\xb4\xeb \xb8\xde\xbd\xc3\xc1\xf6\xb8\xa6 \xba\xb8\xb3\xc2\xbd\xc0\xb4\xcf\xb4\xd9",
-					it->second.sNick),
-				false);
-			m_pNotifyDlg->Open(NULL, 0);
-
-			FrButton* pCancel =
-				DYNAMIC_CAST(FrButton, m_pNotifyDlg->FindChildByName("cancel"));
-			if (pCancel)
-				pCancel->SetVisible(false);
-		}
-	}
-	else
-	{
-		OnGameRoom_UserListBtnUp();
-	}
-}
-
-void CLobbyMain::OnGameRoomExtRes_RoomUserRankTabInit(int param)
-{
-	m_pRoomUserRankTab = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pRoomUserRankTab)
-	{
-		if (Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH)
-		{
-			m_pRoomUserRankTab->SetBgImg("approach_tab");
+// lobbymain.cpp:16333
+void CLobbyMain::OnGameRoomExtRes_RoomUserRankTabInit(intptr_t param) {
+	m_userRankTabArea = DYNAMIC_CAST(FrArea, param);
+	if (m_userRankTabArea) {
+		if (CSharedDoc::Instance()->m_roomInfo.m_gameType == 10) {
+			m_userRankTabArea->SetBgImg("approach_tab");
 		}
 	}
 }
 
-void CLobbyMain::OnGameRoomExtRes_RoomUserRankInit(int param)
-{
-	m_pRoomUserRank = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (!m_pRoomUserRank)
-		return;
+// lobbymain.cpp:16552
+void CLobbyMain::OnGameRoomExtRes_RoomUserRankLBtnUp(void) {
+	FrListItem* item = m_userRankListBox->GetItemUnderCursor();
 
-	if (Doc()->m_golfGame.gameType == GAME_TYPE_GUILD_MATCH)
-	{
-		m_pRoomUserRank->SetVisible(false);
+	if (!item) {
 		return;
 	}
 
-	m_pRoomUserRank->UseRightButton(true);
-
-	for (std::vector<sRivalData>::iterator it = Doc()->m_rivalList.begin();
-		it != Doc()->m_rivalList.end(); it++)
-		m_pRoomUserRank->AddItem(&(*it));
-
-	if (m_pRoomUserRank->GetScrollBar())
-		m_pRoomUserRank->GetScrollBar()->SetGuideVisible(true);
-
-	if (Doc()->m_golfGame.gameType == GAME_TYPE_NEW_APPROACH)
-		m_pRoomUserRank->SortItem(ApproachRankUserCompare);
-	else
-		m_pRoomUserRank->SortItem(RankUserCompare);
-
-	m_pTeamRankBmp[0] = g_pFresh->RegisterBitmap("30in_team_redteam_rank");
-	m_pTeamRankBmp[1] = g_pFresh->RegisterBitmap("30in_team_blueteam_rank");
-	m_pRankBgBmp = g_pFresh->RegisterBitmap("30in_rank");
-
-	m_pRankBmp[0] = g_pFresh->RegisterBitmap("rank_gold");
-	m_pRankBmp[1] = g_pFresh->RegisterBitmap("rank_silver");
-	m_pRankBmp[2] = g_pFresh->RegisterBitmap("rank_bronze");
-	m_pRankBmp[3] = g_pFresh->RegisterBitmap("rank_noaward");
-
-	m_rankViewKind = 0;
-}
-
-void CLobbyMain::OnGameRoomExtRes_RoomUserRankOwnerDraw(int param)
-{
-	if (param == NULL)
+	sGameResultInfo* info = (sGameResultInfo*)item->pData;
+	if (!info) {
 		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	FrListItem* pItem = (FrListItem*)param;
-	WRect rect(pItem->pos.x, pItem->pos.y,
-		(float)m_pRoomUserRank->GetItemWidth(),
-		(float)m_pRoomUserRank->GetItemHeight());
-
-	if (!pGDI)
-		return;
-
-	sRivalData* pRival = (sRivalData*)pItem->pData;
-
-	if (m_selOID == pRival->oid)
-		pGDI->Box(WRect(rect.x, rect.y + 2.0f, rect.w + 20.0f, rect.h - 2.0f),
-			0x999b9dff, 0, 0.0f);
-
-	int space = pGDI->SetSpace(0);
-
-	pGDI->SetTextStyle(0);
-	pGDI->SetTextColor(0xffffffff, 0xffffffff);
-
-	if (Doc()->m_roomInfo.gameType == GAME_TYPE_30S_TEAM)
-	{
-		if (m_pTeamRankBmp[pRival->team])
-			pGDI->DrawTexture(m_pTeamRankBmp[pRival->team],
-				WRect(rect.x + 5.0f, rect.y + 7.0f - 1.0f,
-					(float)m_pTeamRankBmp[pRival->team]->Width(),
-					(float)m_pTeamRankBmp[pRival->team]->Height()),
-				0xffffffff, 0);
-
-		pGDI->Print(WPoint(pItem->pos.x + 12.0f, pItem->pos.y + 7.0f), 1, "%d",
-			pRival->rank);
-	}
-	else
-	{
-		if (m_pRankBgBmp)
-			pGDI->DrawTexture(m_pRankBgBmp,
-				WRect(rect.x + 5.0f, rect.y + 7.0f - 1.0f,
-					(float)m_pRankBgBmp->Width(),
-					(float)m_pRankBgBmp->Height()),
-				0xffffffff, 0);
-
-		if (pRival->state == 3)
-			pGDI->Print(WPoint(pItem->pos.x + 12.0f, pItem->pos.y + 7.0f), 1,
-				"-");
-		else if (Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH &&
-			pRival->approachResultDistance == -1)
-			pGDI->Print(WPoint(pItem->pos.x + 12.0f, pItem->pos.y + 7.0f), 1,
-				"-");
-		else
-			pGDI->Print(WPoint(pItem->pos.x + 12.0f, pItem->pos.y + 7.0f), 1,
-				"%d", pRival->rank);
 	}
 
-	if (Doc()->m_roomInfo.gameType != GAME_TYPE_NEW_APPROACH &&
-		(!IsLocalContent(S3_HUNDRED_MODE) ||
-			Doc()->m_roomInfo.nUserLimit < 100) &&
-		pRival->state != 3 && pRival->hole != Doc()->m_holeOrder[0])
-	{
-		int medal = GetMedalIndex(pRival->oid);
+	m_selectedUserId = info->m_uid;
+	m_removeFriendUid = info->m_id;
 
-		if (medal >= 0 && medal <= 2)
-		{
-			if (pRival->flag > 3)
-				medal = 3;
-
-			pGDI->DrawTexture(m_pRankBmp[medal],
-				WRect(rect.x - 5.0f, rect.y + 7.0f - 2.0f,
-					(float)m_pRankBmp[medal]->Width(),
-					(float)m_pRankBmp[medal]->Height()),
-				0xffffffff, 0);
+	if (m_scoreDlg) {
+		m_scoreDlg->SetPlayer(m_selectedUserId);
+	} else {
+		if (m_scoreBtn) {
+			m_scoreBtn->Enable(true);
 		}
-	}
-
-	if (pRival->guildUID)
-	{
-		const Bitmap* pEmblem =
-			NetResourceManager::Instance()->GetEmblemByName(pRival->guildMark);
-
-		if (pEmblem)
-		{
-			pGDI->DrawTexture(pEmblem,
-				WRect(pItem->pos.x + 24.0f, pItem->pos.y + 1.0f,
-					(float)pEmblem->Width(), (float)pEmblem->Height()),
-				0xffffffff, 0);
-		}
-	}
-
-	if (pRival->oid == MyGuid(true))
-	{
-		if (Doc()->m_roomInfo.gameType == GAME_TYPE_30S_TEAM)
-			pGDI->SetTextColor(pRival->team ? 0xff0060ff : 0xffff0000,
-				0xffffffff);
-		else
-			pGDI->SetTextColor(0xffff0000, 0xffffffff);
-	}
-	else if (pRival->state == 3)
-		pGDI->SetTextColor(0xff808080, 0xffffffff);
-	else
-		pGDI->SetTextColor(0xff000000, 0xffffffff);
-
-	if (CProjectG::Instance()->HidePrivacy() == false)
-		g_pFresh->GetManager()->PrintText(
-			WPoint(pItem->pos.x + 47.0f, pItem->pos.y + 7.0f), 0,
-			pRival->nickname, 80.0f, 0xffffffff);
-
-	if (Doc()->m_roomInfo.gameType == GAME_TYPE_NEW_APPROACH)
-	{
-		if (pRival->approachTime == -1)
-		{
-			pGDI->Print(WPoint(pItem->pos.x + 142.0f, pItem->pos.y + 7.0f), 2,
-				"Out");
-			pGDI->Print(WPoint(pItem->pos.x + 188.0f, pItem->pos.y + 7.0f), 2,
-				"-");
-		}
-		else
-		{
-			if (pRival->approachResultDistance == -1)
-				pGDI->Print(WPoint(pItem->pos.x + 142.0f, pItem->pos.y + 7.0f),
-					2, "Out");
-			else
-				pGDI->Print(WPoint(pItem->pos.x + 142.0f, pItem->pos.y + 7.0f),
-					2, "%d.%dy", pRival->approachResultDistance / 10,
-					pRival->approachResultDistance % 10);
-
-			pGDI->Print(WPoint(pItem->pos.x + 207.0f, pItem->pos.y + 7.0f), 2,
-				"%d.%03d", pRival->approachTime / 1000,
-				pRival->approachTime % 1000);
-		}
-	}
-	else
-	{
-		pGDI->Print(WPoint(pItem->pos.x + 147.0f, pItem->pos.y + 7.0f), 2, "%d",
-			pRival->totalScore);
-		pGDI->Print(WPoint(pItem->pos.x + 182.0f, pItem->pos.y + 7.0f), 2,
-			"%I64d", pRival->totalPang);
-
-		if (pRival->state == 2 || GetHoleIndex(pRival->hole) == 19)
-			pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 7.0f), 2,
-				"End");
-		else if (pRival->state == 3)
-			pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 7.0f), 2,
-				"Out");
-		else
-			pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 7.0f), 2,
-				"%d\xc8\xa6", GetHoleIndex(pRival->hole));
-	}
-
-	pGDI->SetSpace(space);
-}
-void CLobbyMain::OnGameRoomExtRes_RoomUserRankLBtnUp()
-{
-	FrListItem* item = m_pRoomUserRank->GetItemUnderCursor();
-
-	if (!item)
-		return;
-
-	sRivalData* rival = (sRivalData*)item->pData;
-	if (!rival)
-		return;
-
-	m_selOID = rival->oid;
-	m_selUID = rival->uid;
-
-	if (m_pScoreDlg)
-	{
-		m_pScoreDlg->SetPlayer(m_selOID);
-		return;
-	}
-
-	if (m_pScore)
-		m_pScore->Enable(true);
-
-	if (m_pUserInfo)
-		m_pUserInfo->Enable(true);
-}
-
-void CLobbyMain::OnGameRoomExtRes_RoomUserRankRBtnUp()
-{
-	FrListItem* item = m_pRoomUserRank->GetItemUnderCursor();
-
-	if (!item)
-		return;
-
-	sRivalData* rival = (sRivalData*)item->pData;
-
-	if (!rival)
-		return;
-
-	m_selOID = rival->oid;
-	m_selUID = rival->uid;
-
-	if (m_pScoreDlg)
-		m_pScoreDlg->SetPlayer(m_selOID);
-	else
-	{
-		if (m_pScore)
-			m_pScore->Enable(true);
-	}
-
-	if (CUserInfo::Instance() && rival->state != 3)
-	{
-		std::map<unsigned long, sBriefUserInfo>::iterator it =
-			Doc()->m_briefUserInfoMap.find(rival->oid);
-		if (it != Doc()->m_briefUserInfoMap.end())
-			it->second.roomIndex = Doc()->m_roomInfo.roomGuid;
-
-		CUserInfo::Instance()->SetInfo(it->second.dwUid, rival->oid, true, true,
-			false, false, std::string(it->second.sNick));
-	}
-}
-
-void CLobbyMain::OnGameRoomExtRes_RoomGuildRankInit(int param)
-{
-	m_pRoomGuildRank = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (!m_pRoomGuildRank)
-		return;
-
-	if (Doc()->m_golfGame.gameType != GAME_TYPE_GUILD_MATCH)
-	{
-		m_pRoomGuildRank->SetVisible(false);
-		return;
-	}
-
-	m_pRoomGuildRank->UseRightButton(true);
-
-	for (std::vector<sGuildMatchup>::iterator it =
-			 Doc()->m_guildMatchupList.begin();
-		it != Doc()->m_guildMatchupList.end(); ++it)
-		m_pRoomGuildRank->AddItem(it._Myptr);
-
-	if (m_pRoomGuildRank->GetScrollBar())
-		m_pRoomGuildRank->GetScrollBar()->SetGuideVisible(true);
-
-	m_pTeamRankBmp[0] = NetResourceManager::Instance()->GetEmblemByName(
-		Doc()->m_roomInfo.GuildInfo.szEmblemName[0]);
-	m_pTeamRankBmp[1] = NetResourceManager::Instance()->GetEmblemByName(
-		Doc()->m_roomInfo.GuildInfo.szEmblemName[1]);
-
-	m_pRankBgBmp = g_pFresh->RegisterBitmap("30in_rank_02");
-}
-
-void CLobbyMain::OnGameRoomExtRes_RoomGuildRankLBtnUp()
-{
-	FrListItem* item = m_pRoomGuildRank->GetItemUnderCursor();
-
-	if (!item)
-		return;
-
-	sGuildMatchup* matchup = (sGuildMatchup*)item->pData;
-
-	if (!matchup)
-		return;
-
-	if (m_pScoreDlg)
-	{
-		m_pScoreDlg->SetGuildPlayer(matchup->uid[0]);
-		return;
-	}
-
-	if (m_pScore)
-		m_pScore->Enable(true);
-}
-
-void CLobbyMain::OnGameRoomExtRes_RoomGuildRankRBtnUp()
-{
-	OnGameRoomExtRes_RoomGuildRankLBtnUp();
-	OnGameRoom_ScoreBtnUp();
-}
-
-void CLobbyMain::OnGameRoomExtRes_RoomGuildRankOwnerDraw(int param)
-{
-	if (param == NULL)
-		return;
-
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	FrListItem* pItem = (FrListItem*)param;
-	WRect rect(pItem->pos.x + 2.0f, pItem->pos.y,
-		(float)m_pRoomGuildRank->GetItemWidth() - 10.0f,
-		(float)m_pRoomGuildRank->GetItemHeight());
-
-	if (!pGDI)
-		return;
-
-	int space = pGDI->SetSpace(0);
-
-	sGuildMatchup* pMatchup = (sGuildMatchup*)pItem->pData;
-
-	if (m_selOID == pMatchup->uid[0] || m_selOID == pMatchup->uid[1])
-		pGDI->Box(WRect(rect.x, rect.y + 2.0f, rect.w + 20.0f, rect.h - 2.0f),
-			0x999b9dff, 0, 0.0f);
-
-	pGDI->SetTextStyle(0);
-	pGDI->SetTextColor(0xffffffff, 0xffffffff);
-
-	if (m_pRankBgBmp)
-	{
-		pGDI->DrawTexture(m_pRankBgBmp,
-			WRect(rect.x - 3.0f, rect.y + 6.0f, (float)m_pRankBgBmp->Width(),
-				(float)m_pRankBgBmp->Height()),
-			0xffffffff, 0);
-		pGDI->Print(WPoint(pItem->pos.x + 13.0f, pItem->pos.y + 10.0f), 1,
-			"%d \xc1\xb6", pMatchup->team);
-	}
-
-	sRivalData* pRival;
-
-	pRival = &Doc()->m_rivalList[Doc()->GetIndex(pMatchup->uid[0])];
-
-	if (m_pTeamRankBmp[0])
-		pGDI->DrawTexture(m_pTeamRankBmp[0],
-			WRect(pItem->pos.x + 34.0f, pItem->pos.y + 3.0f,
-				(float)(m_pTeamRankBmp[0]->Width() / 2),
-				(float)(m_pTeamRankBmp[0]->Height() / 2)),
-			0xffffffff, 0);
-
-	if (pRival->oid == MyGuid(true))
-		pGDI->SetTextColor(0xffff0000, 0xffffffff);
-	else if (pRival->state == 3)
-		pGDI->SetTextColor(0xff808080, 0xffffffff);
-	else
-		pGDI->SetTextColor(0xff000000, 0xffffffff);
-
-	if (CProjectG::Instance()->HidePrivacy() == false)
-		g_pFresh->GetManager()->PrintText(
-			WPoint(pItem->pos.x + 47.0f, pItem->pos.y + 3.0f), 0,
-			pRival->nickname, 80.0f, 0xffffffff);
-
-	pGDI->Print(WPoint(pItem->pos.x + 147.0f, pItem->pos.y + 3.0f), 2, "%d",
-		pRival->guildPoint);
-	pGDI->Print(WPoint(pItem->pos.x + 182.0f, pItem->pos.y + 3.0f), 2, "%I64d",
-		pRival->totalPang);
-
-	if (pRival->state == 2 || GetHoleIndex(pRival->hole) == 19)
-		pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 3.0f), 2,
-			"End");
-	else if (pRival->state == 3)
-		pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 3.0f), 2,
-			"Out");
-	else
-		pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 3.0f), 2,
-			"%d\xc8\xa6", GetHoleIndex(pRival->hole));
-
-	pRival = &Doc()->m_rivalList[Doc()->GetIndex(pMatchup->uid[1])];
-
-	if (m_pTeamRankBmp[1])
-		pGDI->DrawTexture(m_pTeamRankBmp[1],
-			WRect(pItem->pos.x + 34.0f, pItem->pos.y + 21.0f,
-				(float)(m_pTeamRankBmp[1]->Width() / 2),
-				(float)(m_pTeamRankBmp[1]->Height() / 2)),
-			0xffffffff, 0);
-
-	if (pRival->oid == MyGuid(true))
-		pGDI->SetTextColor(0xffff0000, 0xffffffff);
-	else if (pRival->state == 3)
-		pGDI->SetTextColor(0xff808080, 0xffffffff);
-	else
-		pGDI->SetTextColor(0xff000000, 0xffffffff);
-
-	if (CProjectG::Instance()->HidePrivacy() == false)
-		g_pFresh->GetManager()->PrintText(
-			WPoint(pItem->pos.x + 47.0f, pItem->pos.y + 20.0f), 0,
-			pRival->nickname, 80.0f, 0xffffffff);
-
-	pGDI->Print(WPoint(pItem->pos.x + 147.0f, pItem->pos.y + 20.0f), 2, "%d",
-		pRival->guildPoint);
-	pGDI->Print(WPoint(pItem->pos.x + 182.0f, pItem->pos.y + 20.0f), 2, "%I64d",
-		pRival->totalPang);
-
-	if (pRival->state == 2 || GetHoleIndex(pRival->hole) == 19)
-		pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 20.0f), 2,
-			"End");
-	else if (pRival->state == 3)
-		pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 20.0f), 2,
-			"Out");
-	else
-		pGDI->Print(WPoint(pItem->pos.x + 220.0f, pItem->pos.y + 20.0f), 2,
-			"%d\xc8\xa6", GetHoleIndex(pRival->hole));
-
-	pGDI->SetSpace(space);
-}
-
-void CLobbyMain::OnGameRoomExt_UserInfoInit(int param)
-{
-	m_pUserInfo = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-
-	if (m_pUserInfo)
-	{
-		m_pUserInfo->Enable(false);
-	}
-}
-
-void CLobbyMain::OnGameRoomExt_UserInfoLBtnUp()
-{
-	if (m_rankViewKind == 0)
-	{
-		if (m_selOID == (unsigned long)-1)
-		{
-			m_pUserInfo->Enable(false);
-			return;
-		}
-
-		if (CUserInfo::Instance())
-		{
-			std::map<unsigned long, sBriefUserInfo>::iterator it =
-				Doc()->m_briefUserInfoMap.find(m_selOID);
-			if (it != Doc()->m_briefUserInfoMap.end())
-			{
-				CUserInfo::Instance()->SetInfo(it->second.dwUid, m_selOID, true,
-					true, false, false, std::string(it->second.sNick));
-			}
+		if (m_userActionBtn) {
+			m_userActionBtn->Enable(true);
 		}
 	}
 }
 
-void CLobbyMain::OnGameRoomExtRes_Init(int param)
-{
-	CTaskMain::OnInit();
+// lobbymain.cpp:16671
+void CLobbyMain::OnGameRoomExtRes_RoomGuildRankLBtnUp(void) {
+	FrListItem* item = m_guildRankListBox->GetItemUnderCursor();
 
-	m_bIdle = false;
-	g_mouse->ResetInputTime();
-	g_ime->ResetInputTime();
-
-	if (Doc()->m_roomInfo.realGameType == 14)
-		g_pFresh->GetManager()->GetDesktop()->SetWallPaper(
-			"chaos_background.jpg", true);
-	else
-		g_pFresh->GetManager()->GetDesktop()->SetWallPaper(
-			"gameroom_background.jpg", true);
-
-	m_bReady = false;
-	m_bLockControls = false;
-	m_bCanStart = false;
-
-	if (Doc()->m_myInfo.info.dwIdentity == 2)
-	{
-		m_bReady = true;
-		m_bLockControls = true;
+	if (!item) {
+		return;
 	}
 
-	m_bRoomStateReq = false;
-	m_selOID = -1;
-	m_selUID = -1;
+	sGuildRankEntry* entry = (sGuildRankEntry*)item->pData;
+	if (!entry) {
+		return;
+	}
 
-	SetTimeVariableBGM();
+	if (m_scoreDlg) {
+		m_scoreDlg->SetGuildPlayer(entry->m_uid);
+	} else {
+		if (m_scoreBtn) {
+			m_scoreBtn->Enable(true);
+		}
+	}
 }
 
-void CLobbyMain::OnGameRoomExtRes_Finish()
-{
-	m_pOverBarTitle->SetBgImg("title_mass");
+// lobbymain.cpp:16820
+void CLobbyMain::OnGameRoomExt_UserInfoInit(intptr_t param) {
+	m_userActionBtn = DYNAMIC_CAST(FrButton, param);
+	if (m_userActionBtn) {
+		m_userActionBtn->Enable(false);
+	}
+}
+
+// lobbymain.cpp:16912
+void CLobbyMain::OnGameRoomExtRes_Finish(void) {
+	m_titleArea->SetBgImg("title_mass");
 
 	EnableUnderBar(false);
-	m_pUnderBarBongdariShop->Enable(true);
+	m_barButton[15]->Enable(true);
 
 	OpenNewRecordForm();
 }
 
-void CLobbyMain::OnGameRoomExtRes_Destroy()
-{
+// lobbymain.cpp:16922
+void CLobbyMain::OnGameRoomExtRes_Destroy(void) {
 	EnableUnderBar(true);
 }
 
-void CLobbyMain::OnCreate_Init(int param)
-{
+// lobbymain.cpp:16932
+void CLobbyMain::OnCreate_Init(int) {
 	CTaskMain::OnInit();
 }
 
-void CLobbyMain::OnCreate_Finish()
-{
+// lobbymain.cpp:16937
+void CLobbyMain::OnCreate_Finish(void) {
 }
 
-void CLobbyMain::OnCreate_Destroy()
-{
-	if (m_pCreateNickDlg)
-	{
-		m_pCreateNickDlg->CloseDlg(1);
-		m_pCreateNickDlg = NULL;
+// lobbymain.cpp:16942
+void CLobbyMain::OnCreate_Destroy(void) {
+	if (m_createNickDlg != 0) {
+		m_createNickDlg->CloseDlg(1);
+		m_createNickDlg = 0;
 	}
 }
 
-void CLobbyMain::OnCreatePetInit(int param)
-{
-	m_pPet[0] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_createCharType = Doc()->m_myInfo.info.gender % 2;
-	SetFirstChar(&Doc()->GetMyPartTidList());
-
-	sRoomSlot slot;
-	slot.pArea = m_pPet[0];
-	slot.pExhibition = NULL;
-	slot.partTidList = Doc()->GetMyPartTidList();
-
-	slot.charInfo.tid = slot.partTidList.m_charTid;
-	slot.charInfo.hairClr = slot.partTidList.m_hairColor;
-	slot.charInfo.shirtsClr = slot.partTidList.m_shirtsColor;
-	slot.charInfo.gift_flag = 1;
-	slot.bAngelWing = 0;
-	slot.bGachaWing = 0;
-	memcpy(slot.charInfo.tidParts, slot.partTidList.m_tid,
-		sizeof(slot.charInfo.tidParts));
-
-	std::map<unsigned long, sRoomSlot>::iterator it =
-		Doc()->m_roomSlotMap.find(MyGuid(false));
-	if (it != Doc()->m_roomSlotMap.end() && it->second.pExhibition)
-	{
-		delete it->second.pExhibition;
-		it->second.pExhibition = NULL;
-	}
-	Doc()->m_roomSlotMap[MyGuid(false)] = slot;
-
-	ShowPet(MyGuid(false));
-}
-
-void CLobbyMain::OnCreatePetOwnerDraw()
-{
-	if (m_bBongdariShop2)
-		return;
-
-	std::map<unsigned long, sRoomSlot>::iterator it =
-		Doc()->m_roomSlotMap.find(MyGuid(false));
-	if (it != Doc()->m_roomSlotMap.end())
-	{
-		CExhibition* pExhibition =
-			Doc()->m_roomSlotMap[MyGuid(false)].pExhibition;
-
-		if (pExhibition)
-			Doc()->m_roomSlotMap[MyGuid(false)].pExhibition->Display(0.0f,
-				0.0f);
-	}
-}
-
-void CLobbyMain::OnCreate_CharInit(int param)
-{
-	m_pCreateChar = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-}
-
-bool CLobbyMain::SetFirstChar(CPartTidList* pTids)
-{
-	IFF_STRUCT::sChar* pChar =
-		ItemManager()->FindChar(0x4000000 | m_createCharType);
-
-	if (pChar == NULL)
-		return false;
-
-	pTids->m_charTid = 0x4000000 | m_createCharType;
-	pTids->m_defPartNum = pChar->nParts;
-	pTids->m_partNum = pChar->nParts + pChar->nAcsries;
-	pTids->m_hairColor = 0;
-	pTids->m_shirtsColor = 0;
-
-	pTids->SetDefaultTids();
-
-	if (m_pCreateChar)
-		m_pCreateChar->SetLine(1, pChar->c.Name, 0, false, 0);
-
-	if (m_pCreateDesc)
-	{
-		m_pCreateDesc->ClearLine();
-
-		IFF_STRUCT::sDesc* pDesc =
-			ItemManager()->FindDesc(0x4000000 | m_createCharType);
-		if (pDesc)
-			m_pCreateDesc->AddText(pDesc->Desc, false, true);
-	}
-
-	return true;
-}
-
-void CLobbyMain::OnCreate_CharPrevInit(int param)
-{
-	FrButton* pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
-		pButton->SetPushDelay(0.0f);
-}
-
-void CLobbyMain::OnCreate_CharNextInit(int param)
-{
-	FrButton* pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
-		pButton->SetPushDelay(0.0f);
-}
-
-void CLobbyMain::OnCreate_CharBtnUp()
-{
-	CPartTidList* pTids = &Doc()->GetMyPartTidList();
-
-	m_createCharType = (m_createCharType + 1) % 2;
-
-	if (!SetFirstChar(pTids))
-	{
-		m_createCharType = (m_createCharType + 1) % 2;
-		SetFirstChar(pTids);
+// lobbymain.cpp:16984
+void CLobbyMain::OnCreatePetOwnerDraw(void) {
+	if (m_bongdariShop[2]) { // 0x122, the same byte CTaskMain names as the third Bongdari shop flag
 		return;
 	}
 
-	if (Doc()->m_roomSlotMap[MyGuid(false)].pExhibition)
-		Doc()->m_roomSlotMap[MyGuid(false)].pExhibition->SetModel(*pTids, NULL,
-			NULL, 3.0f, 0);
+	CSharedDoc* doc = WSingleton<CSharedDoc>::Instance();
+	int guid = MyGuid(false);
+	std::map<unsigned long, sRoomSlot>::iterator it = doc->m_roomSlotMap.find(guid);
+	if (it == doc->m_roomSlotMap.end()) {
+		return;
+	}
 
-	m_createShirtColor = 0;
+	sRoomSlot& slot = doc->m_roomSlotMap[guid];
+
+	if (slot.m_pPet) {
+		WSingleton<CSharedDoc>::Instance()->m_roomSlotMap[MyGuid(false)].m_pPet->Display(0.0f, 0.0f);
+	}
+}
+
+// lobbymain.cpp:16999
+void CLobbyMain::OnCreate_CharInit(intptr_t param) {
+	m_createCharEdit = DYNAMIC_CAST(FrEdit, param);
+}
+
+// lobbymain.cpp:17038
+void CLobbyMain::OnCreate_CharPrevInit(intptr_t param) {
+	FrButton* pButton = DYNAMIC_CAST(FrButton, param);
+	if (pButton) {
+		pButton->SetPushDelay(0.0f);
+	}
+}
+
+// lobbymain.cpp:17050
+void CLobbyMain::OnCreate_CharNextInit(intptr_t param) {
+	FrButton* pButton = DYNAMIC_CAST(FrButton, param);
+	if (pButton) {
+		pButton->SetPushDelay(0.0f);
+	}
+}
+
+// lobbymain.cpp:17088
+void CLobbyMain::OnCreate_HairInit(intptr_t param) {
 	m_createHairColor = 0;
-	if (m_pCreateHair)
-		m_pCreateHair->SetLine(1,
-			"\xb8\xd3\xb8\xae\xbb\xf6"
-			"1",
-			0, false, 0);
-	if (m_pCreateShirt)
-		m_pCreateShirt->SetLine(1,
-			"\xbc\xc5\xc3\xf7\xbb\xf6"
-			"1",
-			0, false, 0);
-
-	SetLevelBar();
+	m_createHairEdit = DYNAMIC_CAST(FrEdit, param);
+	if (m_createHairEdit) {
+		m_createHairEdit->SetLine(1, "\xb8\xd3\xb8\xae\xbb\xf6" "1", 0, false, 0); // "hair color 1" (CP949)
+	}
 }
 
-void CLobbyMain::OnCreate_HairInit(int param)
-{
-	m_createHairColor = 0;
-	m_pCreateHair = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pCreateHair)
-		m_pCreateHair->SetLine(1,
-			"\xb8\xd3\xb8\xae\xbb\xf6"
-			"1",
-			0, false, 0);
-}
-
-void CLobbyMain::OnCreate_HairPrevInit(int param)
-{
-	FrButton* pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
+// lobbymain.cpp:17096
+void CLobbyMain::OnCreate_HairPrevInit(intptr_t param) {
+	FrButton* pButton = DYNAMIC_CAST(FrButton, param);
+	if (pButton) {
 		pButton->SetPushDelay(0.0f);
+	}
 }
 
-void CLobbyMain::OnCreate_HairPrevBtnUp()
-{
-	CPartTidList* pTids = &Doc()->GetMyPartTidList();
-
-	if (m_createHairColor == 0)
-	{
-		m_createHairColor = 2;
-	}
-	else
-	{
-		--m_createHairColor;
-	}
-
-	if (m_pCreateHair)
-		m_pCreateHair->SetLine(1,
-			MakeStr("\xb8\xd3\xb8\xae\xbb\xf6%d", m_createHairColor + 1), 0,
-			false, 0);
-
-	if (Doc()->m_roomSlotMap[MyGuid(false)].pExhibition)
-		Doc()
-			->m_roomSlotMap[MyGuid(false)]
-			.pExhibition->GetPetFrame()
-			->SetHairClr(pTids, m_createHairColor);
-	else
-		pTids->m_hairColor = m_createHairColor;
-}
-
-void CLobbyMain::OnCreate_HairNextInit(int param)
-{
-	FrButton* pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
+// lobbymain.cpp:17125
+void CLobbyMain::OnCreate_HairNextInit(intptr_t param) {
+	FrButton* pButton = DYNAMIC_CAST(FrButton, param);
+	if (pButton) {
 		pButton->SetPushDelay(0.0f);
-}
-
-void CLobbyMain::OnCreate_HairNextBtnUp()
-{
-	CPartTidList* pTids = &Doc()->GetMyPartTidList();
-
-	if (m_createHairColor == 2)
-	{
-		m_createHairColor = 0;
 	}
-	else
-	{
-		++m_createHairColor;
+}
+
+// lobbymain.cpp:17154
+void CLobbyMain::OnCreate_ShirtsInit(intptr_t param) {
+	m_createShirtsEdit = DYNAMIC_CAST(FrEdit, param);
+	m_createShirtsColor = 0;
+	if (m_createShirtsEdit) {
+		m_createShirtsEdit->SetLine(1, "\xbc\xc5\xc3\xf7\xbb\xf6" "1", 0, false, 0); // "shirts color 1" (CP949)
 	}
-
-	if (m_pCreateHair)
-		m_pCreateHair->SetLine(1,
-			MakeStr("\xb8\xd3\xb8\xae\xbb\xf6%d", m_createHairColor + 1), 0,
-			false, 0);
-
-	if (Doc()->m_roomSlotMap[MyGuid(false)].pExhibition)
-		Doc()
-			->m_roomSlotMap[MyGuid(false)]
-			.pExhibition->GetPetFrame()
-			->SetHairClr(pTids, m_createHairColor);
-	else
-		pTids->m_hairColor = m_createHairColor;
 }
 
-void CLobbyMain::OnCreate_ShirtsInit(int param)
-{
-	m_pCreateShirt = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	m_createShirtColor = 0;
-	if (m_pCreateShirt)
-		m_pCreateShirt->SetLine(1,
-			"\xbc\xc5\xc3\xf7\xbb\xf6"
-			"1",
-			0, false, 0);
-}
-
-void CLobbyMain::OnCreate_ShirtsPrevInit(int param)
-{
-	FrButton* pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
+// lobbymain.cpp:17163
+void CLobbyMain::OnCreate_ShirtsPrevInit(intptr_t param) {
+	FrButton* pButton = DYNAMIC_CAST(FrButton, param);
+	if (pButton) {
 		pButton->SetPushDelay(0.0f);
+	}
 }
 
-void CLobbyMain::OnCreate_ShirtsPrevBtnUp()
-{
-	CPartTidList* pTids = &Doc()->GetMyPartTidList();
-
-	m_createShirtColor = (m_createShirtColor == 0) ? 2 : --m_createShirtColor;
-
-	if (m_pCreateShirt)
-		m_pCreateShirt->SetLine(1,
-			MakeStr("\xbc\xc5\xc3\xf7\xbb\xf6%d", m_createShirtColor + 1), 0,
-			false, 0);
-
-	if (Doc()->m_roomSlotMap[MyGuid(false)].pExhibition)
-		Doc()
-			->m_roomSlotMap[MyGuid(false)]
-			.pExhibition->GetPetFrame()
-			->SetShirtsClr(pTids, m_createShirtColor);
-	else
-		pTids->m_shirtsColor = m_createShirtColor;
-}
-
-void CLobbyMain::OnCreate_ShirtsNextInit(int param)
-{
-	FrButton* pButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (pButton)
+// lobbymain.cpp:17184
+void CLobbyMain::OnCreate_ShirtsNextInit(intptr_t param) {
+	FrButton* pButton = DYNAMIC_CAST(FrButton, param);
+	if (pButton) {
 		pButton->SetPushDelay(0.0f);
-}
-
-void CLobbyMain::OnCreate_ShirtsNextBtnUp()
-{
-	CPartTidList* pTids = &Doc()->GetMyPartTidList();
-
-	m_createShirtColor = (m_createShirtColor == 2) ? 0 : ++m_createShirtColor;
-
-	if (m_pCreateShirt)
-		m_pCreateShirt->SetLine(1,
-			MakeStr("\xbc\xc5\xc3\xf7\xbb\xf6%d", m_createShirtColor + 1), 0,
-			false, 0);
-
-	if (Doc()->m_roomSlotMap[MyGuid(false)].pExhibition)
-		Doc()
-			->m_roomSlotMap[MyGuid(false)]
-			.pExhibition->GetPetFrame()
-			->SetShirtsClr(pTids, m_createShirtColor);
-	else
-		pTids->m_shirtsColor = m_createShirtColor;
-}
-
-void CLobbyMain::OnCreate_CreateBtnUp()
-{
-#pragma pack(push, 1)
-	struct
-	{
-		unsigned long charTid;
-		unsigned char hairColor : 4;
-		unsigned char shirtsColor : 4;
-	} info;
-#pragma pack(pop)
-
-	info.charTid = 0x4000000 | m_createCharType;
-	info.hairColor = m_createHairColor;
-	info.shirtsColor = m_createShirtColor;
-
-	WSendPacket packet(8);
-	packet.EncodeBuffer(&info, 5);
-	packet.Send(TO_LOGIN);
-
-	Doc()->m_bAutoRefresh = true;
-
-	HandleMsg(MsgObject(NULL, 1, 0, 0, 0, 0, 0));
-}
-
-void CLobbyMain::OnCreate_DescInit(int param)
-{
-	m_pCreateDesc = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-}
-
-void CLobbyMain::OnCreate_WarningInit(int param)
-{
-	FrEdit* pEdit = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-
-	pEdit->AddText(
-		"\\c0xffff0000\\c* \xc7\xd1 \xb9\xf8 \xbc\xb1\xc5\xc3\xc7\xd1 \xc4\xb3\xb8\xaf\xc5\xcd\xb4\xc2 \xb3\xaa\xc1\xdf\xbf\xa1 \xb9\xd9\xb2\xdc \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.\\c0xff000000\\c",
-		false, true);
-	pEdit->AddText(
-		"  \xbd\xc5\xc1\xdf\xc8\xf7 \xbc\xb1\xc5\xc3\xc7\xd8\xc1\xd6\xbc\xbc\xbf\xe4.",
-		false, true);
-}
-
-void CLobbyMain::On_PowerBarInit(int param)
-{
-	m_pStatBar[0] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[0]->SetRange(0, 50, 0);
-}
-
-void CLobbyMain::On_ControlBarInit(int param)
-{
-	m_pStatBar[1] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[1]->SetRange(0, 30, 0);
-}
-
-void CLobbyMain::On_AccuracyBarInit(int param)
-{
-	m_pStatBar[2] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[2]->SetRange(0, 30, 0);
-}
-
-void CLobbyMain::On_SpinBarInit(int param)
-{
-	m_pStatBar[3] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[3]->SetRange(0, 30, 0);
-}
-
-void CLobbyMain::On_CurveBarInit(int param)
-{
-	m_pStatBar[4] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pStatBar[4]->SetRange(0, 30, 0);
-}
-
-bool CLobbyMain::OnCreateNickResult(int result, FrForm* form)
-{
-	m_pCreateNickDlg = NULL;
-
-	if (result == 0)
-	{
 	}
-	else if (result == 1)
-	{
-		if (IsLocalContent(S4_NT_NICKNAME_CHANGE) && m_pServerDlg)
-			m_pServerDlg->ClickDisableList(true);
+}
+
+// lobbymain.cpp:17205
+void CLobbyMain::OnCreate_CreateBtnUp(void) {
+	sCreateCharacter data;
+	data.m_typeId = m_createCharType | 0x4000000;
+	data.m_colors = (m_createHairColor & 0xF) | (m_createShirtsColor << 4);
+	WSendPacket packet((enumClientPacket)0x08);
+	packet.EncodeBuffer(&data, sizeof(data));
+	packet.Send(SEND_TO_LOGIN);
+	WSingleton<CSharedDoc>::Instance()->m_paranNickChanged = true;
+	MsgObject msg(NULL, 1, 0, 0, 0, 0, 0);
+	HandleMsg(msg);
+}
+
+// lobbymain.cpp:17225
+void CLobbyMain::OnCreate_DescInit(intptr_t param) {
+	m_createDescEdit = DYNAMIC_CAST(FrEdit, param);
+}
+
+// lobbymain.cpp:17230
+void CLobbyMain::OnCreate_WarningInit(intptr_t param) {
+	FrEdit* pEdit = DYNAMIC_CAST(FrEdit, param);
+
+	pEdit->AddText("\\c0xffff0000\\c* \xc7\xd1 \xb9\xf8 \xbc\xb1\xc5\xc3\xc7\xd1 \xc4\xb3\xb8\xaf\xc5\xcd\xb4\xc2 \xb3\xaa\xc1\xdf\xbf\xa1 \xb9\xd9\xb2\xdc \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.\\c0xff000000\\c", false, true);
+	pEdit->AddText("  \xbd\xc5\xc1\xdf\xc8\xf7 \xbc\xb1\xc5\xc3\xc7\xd8\xc1\xd6\xbc\xbc\xbf\xe4.", false, true);
+}
+
+// lobbymain.cpp:17238
+void CLobbyMain::On_PowerBarInit(intptr_t param) {
+	m_powerBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_powerBar->SetRange(0, 50, 0);
+}
+
+// lobbymain.cpp:17244
+void CLobbyMain::On_ControlBarInit(intptr_t param) {
+	m_controlBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_controlBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:17250
+void CLobbyMain::On_AccuracyBarInit(intptr_t param) {
+	m_accuracyBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_accuracyBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:17256
+void CLobbyMain::On_SpinBarInit(intptr_t param) {
+	m_spinBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_spinBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:17262
+void CLobbyMain::On_CurveBarInit(intptr_t param) {
+	m_curveBar = DYNAMIC_CAST(FrGaugeBar, param);
+	m_curveBar->SetRange(0, 30, 0);
+}
+
+// lobbymain.cpp:17290
+bool CLobbyMain::OnMissionEventResult(int, FrForm*) {
+	if (!IsLocalContent((localContentType_t)0x83)) {
+		return false;
 	}
-
+	m_missionEventDlg = 0;
 	return true;
 }
 
-bool CLobbyMain::OnMissionEventResult(int result, FrForm* form)
-{
-	if (!IsLocalContent(S4_NT_EVENT_MISSION))
+// lobbymain.cpp:17303
+bool CLobbyMain::OnBingoEventResult(int, FrForm*) {
+	if (!IsLocalContent((localContentType_t)0x85)) {
 		return false;
-
-	m_pMissionEventDlg = NULL;
-
-	return true;
-}
-
-bool CLobbyMain::OnBingoEventResult(int result, FrForm* form)
-{
-	if (!IsLocalContent(S4_NT_EVENT_BINGO))
-		return false;
-
-	m_pBingoEventDlg = NULL;
-
-	return true;
-}
-
-bool CLobbyMain::OnKoohBirthdayEventDlg(int result, FrForm* form)
-{
-	if (!IsLocalContent((localContentType_t)0x8e))
-		return false;
-
-	m_pToppageKoohBirthdayEvent = NULL;
-
-	return true;
-}
-
-void CLobbyMain::JoinOtherServerRoom()
-{
-}
-
-bool CLobbyMain::OnMatchingDlgResult(int result, FrForm* form)
-{
-	if (!IsLocalContent(S4_MATCHING_SYSTEM))
-		return false;
-
-	if (m_pInviteDlg == NULL)
-		return false;
-
-	bool bAccept = false;
-
-	switch (result)
-	{
-	case 1:
-		bAccept = true;
-		break;
-
-	case 2:
-		break;
-
-	default:
-		AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-			(int)"\xb8\xc5\xc4\xaa\xc0\xcc \xc3\xeb\xbc\xd2\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9.",
-			0, 0, 0, 0);
-		break;
 	}
-
-	WSendPacket packet((enumClientPacket)0xb8);
-	packet.Encode4(m_pInviteDlg->GetFromUID());
-	packet.Encode1(bAccept);
-	packet.Send(TO_GAME);
-
-	m_pInviteDlg = NULL;
-
+	m_bingoEventDlg = 0;
 	return true;
 }
 
-void CLobbyMain::RefreshAllUccClothes()
-{
+// lobbymain.cpp:17315
+bool CLobbyMain::OnKoohBirthdayEventDlg(int, FrForm*) {
+	if (!IsLocalContent((localContentType_t)0x8E)) {
+		return false;
+	}
+	m_toppageKoohBirthdayBtn = 0;
+	return true;
+}
+
+// lobbymain.cpp:17329
+void CLobbyMain::JoinOtherServerRoom(void) {
+}
+
+// lobbymain.cpp:17405
+// Applies up to ten downloaded UCC clothes to the avatars of both slot lists
+// and of the game room's user list.
+void CLobbyMain::RefreshAllUccClothes(void) {
 	if (CUserInfo::Instance()->GetDlg())
 		return;
 
 	sUccRefreshItem item;
 
-	for (int i = 0; i < 10; i++)
-	{
+	for (int i = 0; i < 10; i++) {
 		if (!UccManager()->GetRefreshItem(item))
-			break;
+			return;
 
-		for (std::list<sSlotInfo*>::iterator it = m_blueTeam.begin();
-			it != m_blueTeam.end(); it++)
-		{
-			_RefreshUccClothes(*it, item.typeId, item.uccIndex);
-		}
+		std::list<sSlotInfo*>::iterator it;
+		for (it = m_slotList2.begin(); it != m_slotList2.end(); ++it)
+			_RefreshUccClothes(*it, item.m_typeId, item.m_uccKey);
 
-		for (std::list<sSlotInfo*>::iterator it2 = m_redTeam.begin();
-			it2 != m_redTeam.end(); it2++)
-		{
-			_RefreshUccClothes(*it2, item.typeId, item.uccIndex);
-		}
+		for (it = m_slotList1.begin(); it != m_slotList1.end(); ++it)
+			_RefreshUccClothes(*it, item.m_typeId, item.m_uccKey);
 
-		if (m_pRoomUser)
-		{
-			for (int j = 0; j < m_pRoomUser->GetCurrentItemSize(false); j++)
-			{
-				FrListItem* pItem = m_pRoomUser->GetItem(j);
-				if (pItem)
-				{
-					_RefreshUccClothes((sSlotInfo*)pItem->pData, item.typeId,
-						item.uccIndex);
-				}
+		if (m_roomUserListBox) {
+			for (int j = 0; j < m_roomUserListBox->GetCurrentItemSize(false); j++) {
+				FrListItem* listItem = m_roomUserListBox->GetItem(j);
+				if (listItem)
+					_RefreshUccClothes((sSlotInfo*)listItem->pData, item.m_typeId, item.m_uccKey);
 			}
 		}
 	}
 }
 
-void CLobbyMain::OnToppage_UCCShopBtnUp()
-{
+// lobbymain.cpp:17445
+void CLobbyMain::OnToppage_UCCShopBtnUp(void) {
 	CTaskManager::Instance()->ChangeTask("CShopTask", "", false);
-	AfxPostMsg(NULL, "Shop", 0, (int)"SHOPMAIN", 0, 0, 0);
-	AfxPostMsg(NULL, "Shop", 198, 3, 0, 0, 0);
+	CTaskManager::Instance()->PostMsg(0, "Shop", 0, (intptr_t)"SHOPMAIN", 0, 0, 0);
+	CTaskManager::Instance()->PostMsg(0, "Shop", 0xC6, 3, 0, 0, 0);
 }
 
-void CLobbyMain::OnToppage_CardShopBtnUp()
-{
+// lobbymain.cpp:17452
+void CLobbyMain::OnToppage_CardShopBtnUp(void) {
 	CTaskManager::Instance()->ChangeTask("CShopTask", "", false);
-	AfxPostMsg(NULL, "Shop", 0, (int)"SHOPMAIN", 0, 0, 0);
-	AfxPostMsg(NULL, "Shop", 198, 4, 0, 0, 0);
+	CTaskManager::Instance()->PostMsg(0, "Shop", 0, (intptr_t)"SHOPMAIN", 0, 0, 0);
+	CTaskManager::Instance()->PostMsg(0, "Shop", 0xC6, 4, 0, 0, 0);
 }
 
-float CLobbyMain::GetTopPageBtnRect()
-{
-	if (IsLocalContent(S4_TOPPAGE_BTN_LINEUP))
-	{
-		float x;
-		if (CLoginInfo::Instance()->IsPcBang())
-			x = (float)m_topBtnIndex * 80.0f;
-		else
-			x = (float)m_topBtnIndex * 80.0f;
-		m_topBtnIndex++;
-		return x;
+// lobbymain.cpp:17459
+float CLobbyMain::GetTopPageBtnRect(void) {
+	if (IsLocalContent((localContentType_t)0x6A)) {
+		if (CLoginInfo::Instance()->IsPcBang()) {
+			return m_topPageBtnIndex++ * 80.0f;
+		}
+		return m_topPageBtnIndex++ * 80.0f;
 	}
-
 	return 0.0f;
 }
 
-void CLobbyMain::CheckTikiReport(const char* name)
-{
-	if (!IsLocalContent(S3_CADDIE_REPORT))
-		return;
+// lobbymain.cpp:17484
+// Decides whether the game result screen offers the use report form.
+void CLobbyMain::CheckTikiReport(const char* layout) {
+	if (IsLocalContent((localContentType_t)0x14)) {
+		if (strcmp(layout, "GAMEROOM_EXTRES") == 0) {
+			CSharedDoc* doc = CSharedDoc::Instance();
 
-	if (strcmp(name, "GAMEROOM_EXTRES") == 0)
-	{
-		if ((Doc()->m_myInfo.info.dwIdentity & 2) ||
-			(Doc()->m_myInfo.info.dwIdentity & 4) ||
-			(Doc()->m_myInfo.info.dwIdentity & 8))
-		{
-			m_bUseReport = false;
-		}
-		else
-		{
-			for (std::list<sItemInfo>::iterator it =
-					 Doc()->m_myItemList.begin();
-				it != Doc()->m_myItemList.end(); it++)
-			{
-				sItemInfo info = *it;
-				if (info.tid == 0x1a000041)
-				{
-					m_bUseReport = true;
-					break;
-				}
-				else
-				{
-					m_bUseReport = false;
+			if (doc->GetPangyaUserInfo().identity & 0x0E) {
+				m_useReportEnabled = false;
+			} else {
+				std::list<sItemInfo>::iterator it;
+				for (it = doc->m_itemInfoList.begin(); it != CSharedDoc::Instance()->m_itemInfoList.end(); ++it) {
+					sItemInfo item = *it;
+
+					if (item.m_typeId == 0x1A000041) {
+						m_useReportEnabled = true;
+						break;
+					}
+
+					m_useReportEnabled = false;
 				}
 			}
+
+			if (CSharedDoc::Instance()->m_roomInfo.m_gameType == 6)
+				m_useReportEnabled = false;
+
+			if (CSharedDoc::Instance()->m_roomInfo.m_userLimit > 30)
+				m_useReportEnabled = false;
+
+			if (m_resultReportDlg != NULL)
+				m_useReportEnabled = false;
+
+			if (CSharedDoc::Instance()->m_currentChannel.flags & 0x800)
+				m_useReportEnabled = false;
+
+			if (CSharedDoc::Instance()->m_myLevel <= 5)
+				m_useReportEnabled = false;
 		}
-
-		if (Doc()->m_roomInfo.gameType == GAME_TYPE_GUILD_MATCH)
-			m_bUseReport = false;
-
-		if (Doc()->m_roomInfo.nUserLimit > 30)
-			m_bUseReport = false;
-
-		if (m_pUniteResultDlg)
-			m_bUseReport = false;
-
-		if (Doc()->m_curChannel.Type & 0x800)
-			m_bUseReport = false;
-
-		if (Doc()->m_myInfo.stat.Level <= 5)
-			m_bUseReport = false;
 	}
 }
 
-void CLobbyMain::OnToppage_TopIcon1Init(int param)
-{
+// lobbymain.cpp:18052
+void CLobbyMain::OnToppage_TopIcon1Init(int param) {
 	CIconManager::Instance()->InitalizeTopIcon(0, param);
 }
 
-void CLobbyMain::OnToppage_TopIcon1Up()
-{
+// lobbymain.cpp:18056
+void CLobbyMain::OnToppage_TopIcon1Up(void) {
 	CloseAllDialogs();
 	CIconManager::Instance()->OnButtonDown(0);
 }
 
-void CLobbyMain::OnToppage_TopIcon2Init(int param)
-{
+// lobbymain.cpp:18062
+void CLobbyMain::OnToppage_TopIcon2Init(int param) {
 	CIconManager::Instance()->InitalizeTopIcon(1, param);
 }
 
-void CLobbyMain::OnToppage_TopIcon2Up()
-{
+// lobbymain.cpp:18066
+void CLobbyMain::OnToppage_TopIcon2Up(void) {
 	CloseAllDialogs();
 	CIconManager::Instance()->OnButtonDown(1);
 }
 
-void CLobbyMain::OnToppage_TopIcon3Init(int param)
-{
+// lobbymain.cpp:18072
+void CLobbyMain::OnToppage_TopIcon3Init(int param) {
 	CIconManager::Instance()->InitalizeTopIcon(2, param);
 }
 
-void CLobbyMain::OnToppage_TopIcon3Up()
-{
+// lobbymain.cpp:18076
+void CLobbyMain::OnToppage_TopIcon3Up(void) {
 	CloseAllDialogs();
 	CIconManager::Instance()->OnButtonDown(2);
 }
 
-void CLobbyMain::OnToppage_TopIcon4Init(int param)
-{
+// lobbymain.cpp:18082
+void CLobbyMain::OnToppage_TopIcon4Init(int param) {
 	CIconManager::Instance()->InitalizeTopIcon(3, param);
 }
 
-void CLobbyMain::OnToppage_TopIcon4Up()
-{
+// lobbymain.cpp:18087
+void CLobbyMain::OnToppage_TopIcon4Up(void) {
 	CloseAllDialogs();
 	CIconManager::Instance()->OnButtonDown(3);
 }
 
-void CLobbyMain::OnToppage_TopIcon5Init(int param)
-{
+// lobbymain.cpp:18093
+void CLobbyMain::OnToppage_TopIcon5Init(int param) {
 	CIconManager::Instance()->InitalizeTopIcon(4, param);
 }
 
-void CLobbyMain::OnToppage_TopIcon5Up()
-{
+// lobbymain.cpp:18098
+void CLobbyMain::OnToppage_TopIcon5Up(void) {
 	CloseAllDialogs();
 	CIconManager::Instance()->OnButtonDown(4);
 }
 
-void CLobbyMain::OnToppage_TopIcon6Init(int param)
-{
+// lobbymain.cpp:18104
+void CLobbyMain::OnToppage_TopIcon6Init(int param) {
 	CIconManager::Instance()->InitalizeTopIcon(5, param);
 }
 
-void CLobbyMain::OnToppage_TopIcon6Up()
-{
+// lobbymain.cpp:18109
+void CLobbyMain::OnToppage_TopIcon6Up(void) {
 	CloseAllDialogs();
 	CIconManager::Instance()->OnButtonDown(5);
 }

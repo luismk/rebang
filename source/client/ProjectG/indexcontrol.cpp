@@ -1,342 +1,280 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\indexcontrol.cpp
+#include <string.h>
+
+#include "IndexControl.h"
 #include "fresh.h"
-#include "frwndmanager.h"
 #include "frgraphicinterface.h"
-#include "indexcontrol.h"
+#include "frwndmanager.h"
 
-extern Fresh* g_pFresh;
-
-CIndexControl::CIndexControl()
-	: m_indexRect(0.0f, 0.0f, 30.0f, 10.0f)
-{
+// indexcontrol.cpp:27
+CIndexControl::CIndexControl(void) : m_indexRect(0.0f, 0.0f, 30.0f, 10.0f) {
 	ClearVariables();
 }
 
-CIndexControl::~CIndexControl()
-{
-	if (m_pIndexRect)
-	{
-		delete[] m_pIndexRect;
-		m_pIndexRect = NULL;
+// indexcontrol.cpp:35
+CIndexControl::~CIndexControl(void) {
+	if (m_indexRects) {
+		delete[] m_indexRects;
+		m_indexRects = NULL;
 	}
 }
 
-void CIndexControl::ClearVariables()
-{
-	m_bInit = false;
+// indexcontrol.cpp:47
+void CIndexControl::ClearVariables(void) {
+	m_enabled = false;
 	m_align = 1;
-	m_selColor = 0xffff0000;
-	m_overColor = 0xffaa1111;
-	m_sepColor = 0xffaaaaaa;
-	m_totalIndex = 0;
+	m_color = 0xffff0000;
+	m_selectedColor = 0xffaa1111;
+	m_disabledColor = 0xffaaaaaa;
+	m_totalCount = 0;
 	m_totalPage = 0;
 	m_curIndexCount = 0;
-	m_indexPerPage = 0;
+	m_countPerPage = 0;
 	m_curPage = 0;
-	m_selIndex = 0;
-	m_cellRect = m_indexRect;
-	m_pIndexRect = NULL;
+	m_selectedIndex = 0;
+	m_indexRects = NULL;
+
+	m_drawRect = m_indexRect;
+
 	m_pos = WPoint(0.0f, 0.0f);
 }
 
-bool CIndexControl::Init(unsigned long totalIndex, unsigned long indexPerPage)
-{
-	bool ret = false;
+// indexcontrol.cpp:68
+bool CIndexControl::Init(unsigned long totalCount, unsigned long countPerPage) {
+	bool result = false;
 
-	if (totalIndex > 0 && indexPerPage > 0)
-	{
-		m_totalIndex = totalIndex;
-		m_indexPerPage = indexPerPage;
+	if (totalCount > 0 && countPerPage > 0) {
+		m_totalCount = totalCount;
+		m_countPerPage = countPerPage;
+		m_totalPage = totalCount / countPerPage;
 
-		m_totalPage = totalIndex / indexPerPage;
-
-		if (totalIndex % indexPerPage)
-		{
+		if (totalCount % countPerPage != 0) {
 			m_totalPage++;
 		}
 
-		ret = BuildPage(0);
+		result = BuildPage(0);
 
-		if (ret == true)
-		{
-			m_bInit = true;
+		if (result == true) {
+			m_enabled = result;
 		}
 	}
-	return ret;
+
+	return result;
 }
 
-bool CIndexControl::BuildPage(unsigned long page)
-{
-	bool ret = false;
+// indexcontrol.cpp:99
+bool CIndexControl::BuildPage(unsigned long page) {
+	bool result = false;
 
-	if (page < m_totalPage)
-	{
+	if (page < m_totalPage) {
 		m_curPage = page;
-
-		if (m_totalIndex - (page * m_indexPerPage) >= m_indexPerPage)
-		{
-			m_curIndexCount = m_indexPerPage;
-		}
-		else
-		{
-			if (m_totalIndex % m_indexPerPage)
-			{
-				m_curIndexCount = m_totalIndex % m_indexPerPage;
+		if (m_totalCount - m_countPerPage * page >= m_countPerPage) {
+			m_curIndexCount = m_countPerPage;
+		} else {
+			unsigned long rest = m_totalCount % m_countPerPage;
+			if (rest != 0) {
+				m_curIndexCount = rest;
 			}
 		}
 
-		if (m_curIndexCount <= 0)
-			goto done;
-
-		ret = true;
-
-		if (m_pIndexRect)
-		{
-			delete[] m_pIndexRect;
-			m_pIndexRect = NULL;
-		}
-
-		m_pIndexRect = new WRect[m_curIndexCount];
-
-		if (m_pIndexRect)
-		{
-			memset(m_pIndexRect, 0, sizeof(WRect) * m_curIndexCount);
-
-			for (int i = 0; i < m_curIndexCount; i++)
-			{
-				WRect cell = m_cellRect;
-				WRect& rect = m_pIndexRect[i];
-
-				rect.x = i * cell.w;
-				rect.y = cell.y;
-				rect.w = rect.x + cell.w;
-				rect.h = cell.h;
+		if (m_curIndexCount > 0) {
+			if (m_indexRects) {
+				delete[] m_indexRects;
+				m_indexRects = NULL;
 			}
 
-			m_selIndex = 0;
+			m_indexRects = new WRect[m_curIndexCount];
+
+			if (m_indexRects != NULL) {
+				memset(m_indexRects, 0, m_curIndexCount * sizeof(WRect));
+
+				for (int i = 0; i < m_curIndexCount; i++) {
+					WRect rect = m_drawRect;
+					WRect& indexRect = m_indexRects[i];
+
+					indexRect.x = i * rect.w;
+					indexRect.y = rect.y;
+					indexRect.w = indexRect.x + rect.w;
+					indexRect.h = rect.h;
+				}
+
+				m_selectedIndex = 0;
+			} else {
+				return false;
+			}
+
+			result = true;
 		}
-		else
-			ret = false;
 	}
 
-done:
-	return ret;
+	return result;
 }
 
-void CIndexControl::Draw(WPoint& pos)
-{
-	if (!m_bInit)
-		return;
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+// indexcontrol.cpp:164
+void CIndexControl::Draw(WPoint& pos) {
+	if (m_enabled) {
+		FrGraphicInterface* pGI = g_pFresh->GetManager()->GetGDI();
 
-	if (!gdi)
-		return;
-
-	m_pos = pos;
-
-	float x = m_pos.x;
-	float y = m_pos.y;
-
-	float width = m_curIndexCount * m_indexRect.w;
-
-	switch (m_align)
-	{
-	case 1:
-	{
-		x -= width * 0.5f;
-	}
-	break;
-
-	case 2:
-	{
-		x -= width;
-	}
-	break;
-	}
-
-	for (unsigned long i = 0; i < m_curIndexCount; i++)
-	{
-		WRect rect = m_pIndexRect[i];
-		rect.x += x;
-		rect.y += y;
-		rect.w += x;
-		rect.h += y;
-
-		if (i)
-		{
-			gdi->SetTextColor(m_sepColor, 0xffffffff);
-			gdi->Print(rect.TopLeft(), 1, "-");
+		if (pGI == NULL) {
+			return;
 		}
 
-		const WPoint& mouse = g_pFresh->GetManager()->GetMousePos();
+		m_pos = pos;
+		WPoint drawPos = pos;
 
-		if (mouse.x >= rect.x && mouse.x <= rect.w && mouse.y >= rect.y &&
-			mouse.y <= rect.h)
-		{
-			m_overIndex = i;
-		}
-		else
-		{
-			m_overIndex = m_selIndex;
-		}
+		float width = m_curIndexCount * m_indexRect.w;
 
-		rect.x += m_indexRect.w * 0.5f;
-
-		if (i == m_selIndex)
-		{
-			gdi->SetTextColor(m_selColor, 0xffffffff);
-			gdi->SetTextStyle(1);
-		}
-		else if (i == m_overIndex)
-		{
-			gdi->SetTextColor(m_overColor, 0xffffffff);
-			gdi->SetTextStyle(1);
-		}
-		else
-		{
-			gdi->SetTextColor(0xff000000, 0xffffffff);
-			gdi->SetTextStyle(0);
+		switch (m_align) {
+		case 1:
+			drawPos.x -= width * 0.5f;
+			break;
+		case 2:
+			drawPos.x -= width;
+			break;
 		}
 
-		gdi->Print(rect.TopLeft(), 1, "%d", m_indexPerPage * m_curPage + i + 1);
+		for (unsigned long i = 0; i < m_curIndexCount; i++) {
+			WRect rect = WRect(m_indexRects[i]) + WRect(drawPos.x, drawPos.y, drawPos.x, drawPos.y);
 
-		gdi->SetTextColor(0xff000000, 0xffffffff);
-		gdi->SetTextStyle(0);
+			if (i != 0) {
+				pGI->SetTextColor(m_disabledColor, 0xffffffff);
+				pGI->Print(rect.TopLeft(), 1, "-");
+			}
+
+			const WPoint& mouse = g_pFresh->GetManager()->GetMousePos();
+
+			if (mouse.x >= rect.x && mouse.x <= rect.w && mouse.y >= rect.y && mouse.y <= rect.h) {
+				m_hoverIndex = i;
+			} else {
+				m_hoverIndex = m_selectedIndex;
+			}
+
+			rect.x += m_indexRect.w * 0.5f;
+			if (i == m_selectedIndex) {
+				pGI->SetTextColor(m_color, 0xffffffff);
+				pGI->SetTextStyle(1);
+			} else if (i == m_hoverIndex) {
+				pGI->SetTextColor(m_selectedColor, 0xffffffff);
+				pGI->SetTextStyle(1);
+			} else {
+				pGI->SetTextColor(0xff000000, 0xffffffff);
+				pGI->SetTextStyle(0);
+			}
+
+			pGI->Print(rect.TopLeft(), 1, "%d", m_countPerPage * m_curPage + i + 1);
+
+			pGI->SetTextColor(0xff000000, 0xffffffff);
+			pGI->SetTextStyle(0);
+		}
 	}
 }
 
-bool CIndexControl::Click()
-{
-	bool ret = false;
+// indexcontrol.cpp:251
+bool CIndexControl::Click(void) {
+	bool result = false;
+	WPoint pos = m_pos;
 
-	float x = m_pos.x;
-	float y = m_pos.y;
 	float width = m_curIndexCount * m_indexRect.w;
 
-	switch (m_align)
-	{
+	switch (m_align) {
 	case 1:
-	{
-		x -= width * 0.5f;
-	}
-	break;
-
+		pos.x -= width * 0.5f;
+		break;
 	case 2:
-	{
-		x -= width;
-	}
-	break;
+		pos.x -= width;
+		break;
 	}
 
-	for (unsigned long i = 0; i < m_curIndexCount; i++)
-	{
-		WRect rect = m_pIndexRect[i];
-		rect.x += x;
-		rect.y += y;
-		rect.w += x;
-		rect.h += y;
-
+	for (unsigned long i = 0; i < m_curIndexCount; i++) {
 		const WPoint& mouse = g_pFresh->GetManager()->GetMousePos();
+		WRect rect = WRect(m_indexRects[i]) + WRect(pos.x, pos.y, pos.x, pos.y);
 
-		if (mouse.x >= rect.x && mouse.x <= rect.w && mouse.y >= rect.y &&
-			mouse.y <= rect.h)
-		{
-			if (m_selIndex != i)
-			{
-				m_selIndex = i;
-				ret = true;
+		if (mouse.x >= rect.x && mouse.x <= rect.w && mouse.y >= rect.y && mouse.y <= rect.h) {
+			if (m_selectedIndex != i) {
+				m_selectedIndex = i;
+				result = true;
 				break;
 			}
 		}
 	}
 
-	return ret;
+	return result;
 }
 
-bool CIndexControl::SelectIndex(unsigned long index)
-{
-	bool ret = false;
+// indexcontrol.cpp:304
+bool CIndexControl::SelectIndex(unsigned long index) {
+	bool result = false;
 
-	if (m_selIndex != index)
-	{
-		m_selIndex = index;
-		ret = true;
+	if (m_selectedIndex != index) {
+		m_selectedIndex = index;
+		result = true;
 	}
 
-	return ret;
+	return result;
 }
 
-bool CIndexControl::NextPage()
-{
-	bool ret = false;
+// indexcontrol.cpp:320
+bool CIndexControl::NextPage(void) {
+	bool result = false;
 
-	if (m_totalPage > m_curPage + 1)
-	{
-		m_curPage++;
-		ret = true;
-
+	if (m_totalPage > m_curPage + 1) {
+		m_curPage = m_curPage + 1;
+		result = true;
 		BuildPage(m_curPage);
 	}
 
-	return ret;
+	return result;
 }
 
-bool CIndexControl::PrevPage()
-{
-	bool ret = false;
+// indexcontrol.cpp:338
+bool CIndexControl::PrevPage(void) {
+	bool result = false;
 
-	if (m_curPage > 0)
-	{
-		m_curPage--;
-		ret = true;
-
+	if (m_curPage > 0) {
+		m_curPage = m_curPage - 1;
+		result = true;
 		BuildPage(m_curPage);
 	}
 
-	return ret;
+	return result;
 }
 
-void CIndexControl::SetSelectedNumber(unsigned long number)
-{
+// indexcontrol.cpp:356
+void CIndexControl::SetSelectedNumber(unsigned long number) {
+	if (number <= 0) {
+		return;
+	}
+
 	unsigned long page;
 	unsigned long index;
-
-	if (number > 0)
-	{
-		number--;
-
-		if (number >= m_indexPerPage)
-		{
-			page = number / m_indexPerPage;
-			index = number % m_indexPerPage;
-		}
-		else
-		{
-			page = 0;
-			index = number;
-		}
-
-		BuildPage(page);
-		SelectIndex(index);
+	if (--number >= m_countPerPage) {
+		page = number / m_countPerPage;
+		index = number % m_countPerPage;
+	} else {
+		page = 0;
+		index = number;
 	}
+
+	BuildPage(page);
+	SelectIndex(index);
 }
 
-unsigned long CIndexControl::GetSelectedNumber() const
-{
-	return (m_indexPerPage * m_curPage) + m_selIndex + 1;
+// indexcontrol.cpp:383
+unsigned long CIndexControl::GetSelectedNumber(void) const {
+	return m_curPage * m_countPerPage + m_selectedIndex + 1;
 }
 
-unsigned long CIndexControl::GetSelectedIndex() const
-{
-	return m_selIndex;
+// indexcontrol.cpp:390
+unsigned long CIndexControl::GetSelectedIndex(void) const {
+	return m_selectedIndex;
 }
 
-unsigned long CIndexControl::GetCurIndexCount() const
-{
+// indexcontrol.cpp:397
+unsigned long CIndexControl::GetCurIndexCount(void) const {
 	return m_curIndexCount;
 }
 
-unsigned long CIndexControl::GetTotalPage() const
-{
+// indexcontrol.cpp:404
+unsigned long CIndexControl::GetTotalPage(void) const {
 	return m_totalPage;
 }

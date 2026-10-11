@@ -1,45 +1,77 @@
-#include "minatl.h"
-#include "avatartipdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\avatartipdlg.cpp
+#include "AvatarTipDlg.h"
+#include "ObjectFactory.h"
+#include "commonutil.h"
+#include "frbutton.h"
 #include "frviewer.h"
 
-IMPLEMENT_OBJECT(FrAvatarTipDlg, FrForm)
+// avatartipdlg.cpp:8 (run-time type and factory registration of FrAvatarTipDlg)
+const WRTTI FrAvatarTipDlg::m_RTTI("FrAvatarTipDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrAvatarTipDlg, FrForm)
+IObject* FrAvatarTipDlgMakeInstance(void) {
+	return new FrAvatarTipDlg;
+}
 
-ON_FRESH_VI("tip", FRCMD_INIT, FrAvatarTipDlg::OnTipInit)
-ON_FRESH_VV("tip", FRCMD_LBUTTONUP, FrAvatarTipDlg::OnNextBtnUp)
-ON_FRESH_VI("prev", FRCMD_INIT, FrAvatarTipDlg::OnPrevInit)
-ON_FRESH_VV("prev", FRCMD_LBUTTONUP, FrAvatarTipDlg::OnPrevBtnUp)
-ON_FRESH_VI("next", FRCMD_INIT, FrAvatarTipDlg::OnNextInit)
-ON_FRESH_VV("next", FRCMD_LBUTTONUP, FrAvatarTipDlg::OnNextBtnUp)
-ON_FRESH_VI("cancel", FRCMD_INIT, FrAvatarTipDlg::OnCloseInit)
-ON_FRESH_VV("cancel", FRCMD_LBUTTONUP, FrAvatarTipDlg::OnCloseBtnUp)
+struct __sFrAvatarTipDlg {
+	__sFrAvatarTipDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrAvatarTipDlgMakeInstance, "FrAvatarTipDlg");
+	}
+};
+static __sFrAvatarTipDlg s_registerFrAvatarTipDlg;
 
-END_FRESH_MSGMAP()
+// avatartipdlg.cpp:10
+const sFRESH_MSGMAP* FrAvatarTipDlg::GetMessageMap(void) const {
+	return &FrAvatarTipDlg::_MsgMap;
+}
 
-FrAvatarTipDlg::FrAvatarTipDlg()
-{
+sFRESH_MSGMAP FrAvatarTipDlg::_MsgMap = { &FrForm::_MsgMap, &FrAvatarTipDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrAvatarTipDlg::_MsgEntries[] = {
+	// avatartipdlg.cpp:13
+	{ "tip", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrAvatarTipDlg::OnTipInit },
+	// avatartipdlg.cpp:14
+	{ "tip", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrAvatarTipDlg::OnNextBtnUp },
+	// avatartipdlg.cpp:15
+	{ "prev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrAvatarTipDlg::OnPrevInit },
+	// avatartipdlg.cpp:16
+	{ "prev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrAvatarTipDlg::OnPrevBtnUp },
+	// avatartipdlg.cpp:17
+	{ "next", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrAvatarTipDlg::OnNextInit },
+	// avatartipdlg.cpp:18
+	{ "next", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrAvatarTipDlg::OnNextBtnUp },
+	// avatartipdlg.cpp:19
+	{ "cancel", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrAvatarTipDlg::OnCloseInit },
+	// avatartipdlg.cpp:20
+	{ "cancel", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrAvatarTipDlg::OnCloseBtnUp },
+
+	// avatartipdlg.cpp:23
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// avatartipdlg.cpp:26
+FrAvatarTipDlg::FrAvatarTipDlg(void) {
 	m_tipIndex = 0;
 }
 
-FrAvatarTipDlg::~FrAvatarTipDlg()
-{
+// avatartipdlg.cpp:31
+FrAvatarTipDlg::~FrAvatarTipDlg(void) {
 }
 
-void FrAvatarTipDlg::OnTipInit(int param)
-{
+// avatartipdlg.cpp:36
+void FrAvatarTipDlg::OnTipInit(intptr_t param) {
 	m_pTip = DYNAMIC_CAST(FrViewer, param);
 }
 
-void FrAvatarTipDlg::OnPrevInit(int param)
-{
+// avatartipdlg.cpp:41
+void FrAvatarTipDlg::OnPrevInit(intptr_t param) {
 	m_pPrev = DYNAMIC_CAST(FrButton, param);
-	if (m_pPrev)
-		m_pPrev->SetPushDelay(0);
+	if (m_pPrev) {
+		m_pPrev->SetPushDelay(0.0f);
+	}
 }
 
-void FrAvatarTipDlg::OnPrevBtnUp()
-{
+// avatartipdlg.cpp:48
+void FrAvatarTipDlg::OnPrevBtnUp(void) {
 	m_tipIndex--;
 	if (m_tipIndex < 0)
 		m_tipIndex = 5;
@@ -48,15 +80,16 @@ void FrAvatarTipDlg::OnPrevBtnUp()
 		m_pTip->Open(MakeStr("tip%d.tga", m_tipIndex + 1));
 }
 
-void FrAvatarTipDlg::OnNextInit(int param)
-{
+// avatartipdlg.cpp:58
+void FrAvatarTipDlg::OnNextInit(intptr_t param) {
 	m_pNext = DYNAMIC_CAST(FrButton, param);
-	if (m_pNext)
-		m_pNext->SetPushDelay(0);
+	if (m_pNext) {
+		m_pNext->SetPushDelay(0.0f);
+	}
 }
 
-void FrAvatarTipDlg::OnNextBtnUp()
-{
+// avatartipdlg.cpp:65
+void FrAvatarTipDlg::OnNextBtnUp(void) {
 	m_tipIndex++;
 	if (m_tipIndex > 5)
 		m_tipIndex = 0;
@@ -65,12 +98,12 @@ void FrAvatarTipDlg::OnNextBtnUp()
 		m_pTip->Open(MakeStr("tip%d.tga", m_tipIndex + 1));
 }
 
-void FrAvatarTipDlg::OnCloseInit(int param)
-{
-	m_pCancel = DYNAMIC_CAST(FrButton, param);
+// avatartipdlg.cpp:75
+void FrAvatarTipDlg::OnCloseInit(intptr_t param) {
+	m_pClose = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrAvatarTipDlg::OnCloseBtnUp()
-{
+// avatartipdlg.cpp:80
+void FrAvatarTipDlg::OnCloseBtnUp(void) {
 	Close(true);
 }

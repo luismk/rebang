@@ -1,87 +1,72 @@
-#include "minatl.h"
-#include "newrecorddlg.h"
-#include "courseorder.h"
+// Original: d:\build\custom\temp\code\client\projectg\newrecorddlg.cpp
+#include "NewRecordDlg.h"
+#include "ObjectFactory.h"
+#include "SharedDoc.h"
+#include "../shared/classdefine.h"
 #include "frlistbox.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
-#include "fresh.h"
-#include "commonutil.h"
-#include "s5/utilities.h"
-#include "s5/classicserver/classicserver.h"
 
-extern Fresh* g_pFresh;
+// Course order of the list (low byte of the course type ids, 0x28000000 | n).
+static const unsigned char data_00a244fc[18] = {
+	19, 16, 15, 14, 13, 11, 8, 10, 0, 1, 2, 3, 4, 5, 6, 7, 9, 127
+};
 
-IMPLEMENT_OBJECT(FrNewRecordDlg, FrForm)
+// newrecorddlg.cpp:18 (run-time type and factory registration of FrNewRecordDlg)
+const WRTTI FrNewRecordDlg::m_RTTI("FrNewRecordDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrNewRecordDlg, FrForm)
+IObject* FrNewRecordDlgMakeInstance(void) {
+	return new FrNewRecordDlg;
+}
 
-ON_FRESH_VI("courselist", FRCMD_INIT, FrNewRecordDlg::OnCourseListInit)
-ON_FRESH_VI("courselist", FRCMD_OWNERDRAW,
-	FrNewRecordDlg::OnCourseListOwnerDraw)
+struct __sFrNewRecordDlg {
+	__sFrNewRecordDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrNewRecordDlgMakeInstance, "FrNewRecordDlg");
+	}
+};
+static __sFrNewRecordDlg s_registerFrNewRecordDlg;
 
-END_FRESH_MSGMAP()
+// newrecorddlg.cpp:26
+const sFRESH_MSGMAP* FrNewRecordDlg::GetMessageMap(void) const {
+	return &FrNewRecordDlg::_MsgMap;
+}
 
-void FrNewRecordDlg::OnCourseListInit(int param)
-{
-	m_pCourseList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
+sFRESH_MSGMAP FrNewRecordDlg::_MsgMap = { &FrForm::_MsgMap, &FrNewRecordDlg::_MsgEntries[0] };
 
-	if (m_pCourseList == NULL)
+sFRESH_ENTRY FrNewRecordDlg::_MsgEntries[] = {
+	// newrecorddlg.cpp:28
+	{ "courselist", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewRecordDlg::OnCourseListInit },
+	// newrecorddlg.cpp:29
+	{ "courselist", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrNewRecordDlg::OnCourseListOwnerDraw },
+
+	// newrecorddlg.cpp:31
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// Owner-draw placeholder: no custom drawing required for the course list in
+// this stubbed build. Provide an empty implementation to satisfy the linker.
+void FrNewRecordDlg::OnCourseListOwnerDraw(int) { }
+
+// newrecorddlg.cpp:34
+void FrNewRecordDlg::OnCourseListInit(intptr_t param) {
+	m_pCourseList = DYNAMIC_CAST(FrListBox, param);
+
+	if (m_pCourseList == 0) {
 		return;
+	}
 
-	std::map<unsigned int, IFF_STRUCT::sCourse>& courseMap =
-		ItemManager()->m_CourseMap;
+	std::map<unsigned int, IFF_STRUCT::sCourse>& courseMap = ItemManager()->m_courseMap;
 
-	for (int i = 0; i < 18; ++i)
-	{
-		std::map<unsigned int, IFF_STRUCT::sCourse>::iterator it =
-			courseMap.find(s_courseOrder[i] | 0x28000000);
-
-		if (it == courseMap.end())
+	for (int i = 0; i < 18; i++) {
+		std::map<unsigned int, IFF_STRUCT::sCourse>::iterator it = courseMap.find(data_00a244fc[i] | 0x28000000);
+		if (it == courseMap.end()) {
 			continue;
+		}
 
 		IFF_STRUCT::sCourse* pCourse = &it->second;
 
-		if (pCourse->c.Final == false)
+		if (!pCourse->m_active) {
 			continue;
+		}
 
 		m_pCourseList->AddItem(pCourse);
 	}
-}
-
-void FrNewRecordDlg::OnCourseListOwnerDraw(int param)
-{
-	if (param == NULL)
-		return;
-
-	FrWndManager* pManager = g_pFresh->GetManager();
-	FrGraphicInterface* pGDI = pManager->GetGDI();
-
-	if (pGDI == NULL)
-		return;
-
-	FrListItem* pItem = (FrListItem*)param;
-	IFF_STRUCT::sCourse* pCourse = (IFF_STRUCT::sCourse*)pItem->pData;
-
-	if (pCourse == NULL)
-		return;
-
-	const Bitmap* pBitmap =
-		pManager->GetBitmap("COURSE", MakeStr("small_%s", pCourse->c.Icon));
-
-	if (pBitmap == NULL)
-		return;
-
-	int index = pCourse->c.TypeId & 0x3FFFFFF;
-
-	sMapStatistics* pStat =
-		S5::CLASSICSRV::IsClassicServer(S5::UTIL::GetServerProperty())
-		? &Doc()->m_myInfo.classicMapStat[index]
-		: &Doc()->m_myInfo.mapStat[index];
-
-	int bestScore = pStat->cBestScore;
-	WRect rect(pItem->pos.x, pItem->pos.y, (float)pBitmap->Width(),
-		(float)pBitmap->Height());
-
-	pGDI->DrawTexture(pBitmap, rect,
-		(bestScore >= 0 || bestScore == 127) ? 0x60000000 : 0xFFFFFFFF, 0);
 }

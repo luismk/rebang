@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ProjectG", "vs\ProjectG.vcxproj", "{D6754FC6-53CB-4E42-B791-3E189FC90811}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Wangreal", "vs\Wangreal.vcxproj", "{80AFB76B-3B1B-4C20-8040-C40186F31598}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		ReleaseQA|x86 = ReleaseQA|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D6754FC6-53CB-4E42-B791-3E189FC90811}.ReleaseQA|x86.ActiveCfg = ReleaseQA|Win32
+		{D6754FC6-53CB-4E42-B791-3E189FC90811}.ReleaseQA|x86.Build.0 = ReleaseQA|Win32
+		{80AFB76B-3B1B-4C20-8040-C40186F31598}.ReleaseQA|x86.ActiveCfg = ReleaseQA|Win32
+		{80AFB76B-3B1B-4C20-8040-C40186F31598}.ReleaseQA|x86.Build.0 = ReleaseQA|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

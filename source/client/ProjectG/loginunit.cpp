@@ -1,171 +1,159 @@
-#include "minatl.h"
-#include "loginunit.h"
-#include "networksystem.h"
-#include "projectg.h"
+// Original: d:\build\custom\temp\code\client\projectg\loginunit.cpp
+#include "LoginUnit.h"
+#include "Packet.h"
+#include "SharedDoc.h"
 #include "logininfo.h"
+#include "ProjectG.h"
 
-const char* LSIP_ADDRESS[] = { "211.44.251.73" };
-int LOGIN_PORT_LIST[] = { 10101 };
+#include <stdlib.h>
+#include <string>
 
-LoginUnit::LoginUnit()
-{
+#ifdef PG_OFFLINE
+#include "OfflineServer.h"
+#endif
+
+// The login server's addresses and ports (header unknown).
+extern const char *LSIP_ADDRESS[];
+extern int LOGIN_PORT_LIST[];
+
+// loginunit.cpp:100
+LoginUnit::LoginUnit(void) {
 }
 
-LoginUnit::~LoginUnit()
-{
+// loginunit.cpp:110
+LoginUnit::~LoginUnit(void) {
 }
 
-bool LoginUnit::Init()
-{
+// loginunit.cpp:117
+bool LoginUnit::Init(void) {
 	NetworkUnit::Init();
 	return true;
 }
 
-void LoginUnit::ShutDown()
-{
+// loginunit.cpp:128
+void LoginUnit::ShutDown(void) {
 	Init();
 }
 
-bool LoginUnit::OnLine()
-{
+// loginunit.cpp:136
+bool LoginUnit::OnLine(void) {
 	WReceivedPacket packet;
 
-	if (m_socket.GetPacket(packet) == 3)
-	{
-		CProjectG::Instance()->OnPacket(packet);
+	if (m_socket.GetPacket(packet) == 3) {
+		WSingleton<CProjectG>::Instance()->OnPacket(packet);
 	}
-
 	return true;
 }
 
-bool LoginUnit::OffLine()
-{
+// loginunit.cpp:161
+bool LoginUnit::OffLine(void) {
 	return true;
 }
 
-bool LoginUnit::Connect()
-{
-	if (m_socket.m_bConnected)
-	{
+// loginunit.cpp:170
+bool LoginUnit::Connect(void) {
+	if (m_socket.m_bConnected) {
 		setForceTransition(0);
-	}
-	else
-	{
-		std::string ip;
-
-		ip = LSIP_ADDRESS[rand() % 1];
-
+	} else {
+		std::string address;
+#ifdef PG_OFFLINE
+		// The offline server of the CMake build (CMake PG_OFFLINE) stands in
+		// for Ntreev's login servers.
+		address = "127.0.0.1";
+		int port = PgOfflineLoginPort();
+#else
+		address = LSIP_ADDRESS[rand() % 1];
 		int port = LOGIN_PORT_LIST[rand() % 1];
-
-		m_socket.SetEventMsg(WM_USER + 13);
-		char szIP[21] = "\0";
-
-		hostent* host = gethostbyname(ip.c_str());
-
-		if (host)
-		{
-			wsprintf(szIP, "%s", inet_ntoa(*(in_addr*)host->h_addr_list[0]));
+#endif
+		char ip[21] = "\0";
+		m_socket.m_asyncMessage = 0x40D;
+		hostent *host = gethostbyname(address.c_str());
+		if (host != NULL) {
+			wsprintf(ip, "%s", inet_ntoa(*(in_addr *)host->h_addr_list[0]));
 		}
-
-		if (host == NULL || m_socket.Connect(inet_addr(szIP), htons(port)) == 0)
-		{
+		if (host == NULL || !m_socket.Connect(inet_addr(ip), htons(port))) {
 			setForceTransition(1);
-
-			m_bConnectionComplete = TRUE;
+			m_connectResult = 1;
 			return false;
 		}
-
 		m_connectTime = GetTickCount();
 		setTransition(0);
 	}
-
 	return true;
 }
 
-bool LoginUnit::Connecting()
-{
-	if (GetTickCount() - m_connectTime > 3000 || !m_socket.TryRead())
-	{
+// loginunit.cpp:261
+bool LoginUnit::Connecting(void) {
+	if (GetTickCount() - m_connectTime > 3000 || m_socket.TryRead() == 0) {
 		setTransition(1);
-		m_socket.Close();
-		m_bConnectionComplete = TRUE;
+		GetSocket()->Close();
+		m_connectResult = 1;
 		return false;
 	}
 
 	WReceivedPacket packet;
-	if (m_socket.GetPacket(packet) == 3)
-	{
-		if (OnConnect(packet))
-		{
-			m_socket.AsyncSelect(FD_READ | FD_WRITE | FD_CLOSE);
+	if (m_socket.GetPacket(packet) == 3) {
+		if (OnConnect(packet)) {
+			m_socket.AsyncSelect(0x23);
 			setForceTransition(0);
-			m_bConnectionComplete = TRUE;
+			m_connectResult = 1;
 			return true;
 		}
-
 		return false;
 	}
-
 	return true;
 }
 
-bool LoginUnit::Disconnecting()
-{
-	if (!m_socket.m_bConnected)
-	{
+// loginunit.cpp:292
+bool LoginUnit::Disconnecting(void) {
+	if (m_socket.m_bConnected == 0) {
 		setForceTransition(1);
-	}
-	else
-	{
+	} else {
 		m_socket.Close();
 	}
 	return true;
 }
 
-int LoginUnit::OnConnect(WReceivedPacket& packet)
-{
+// loginunit.cpp:307
+int LoginUnit::OnConnect(WReceivedPacket &packet) {
 	packet.Decode1();
 
-	if (packet.Decode2() != 0)
-		return FALSE;
+	unsigned short result = packet.Decode2();
+	if (result != 0) {
+		return 0;
+	}
 
 	int parseKey = packet.Decode4();
-	unsigned long serverUID = packet.Decode4();
-	Doc()->m_loginServerUID = serverUID;
-
+	unsigned long connectValue = packet.Decode4();
+	WSingleton<CSharedDoc>::Instance()->m_loginConnectValue = connectValue;
 	m_socket.SetParseKey(parseKey);
 
-	WSendPacket send(1);
-	send.EncodeStr(LOGINID());
+	WSendPacket sendPacket(1);
+	sendPacket.EncodeStr(CLoginInfo::Instance()->Id());
 
-	unsigned long provType = LOGININFO()->ProvType();
+	unsigned long provType = CLoginInfo::Instance()->ProvType();
 
-	send.EncodeStr(LOGINPW());
+	sendPacket.EncodeStr(CLoginInfo::Instance()->Passwd());
 
-	send.Encode4(provType);
-	send.Encode1(IsWebLogin());
-	send.Encode4(AUTHUID());
-	switch (provType)
-	{
+	sendPacket.Encode4(provType);
+	sendPacket.Encode1(CLoginInfo::Instance()->IsWebLogin() != 0);
+	sendPacket.Encode4(CLoginInfo::Instance()->AuthUid());
+	switch (provType) {
 	case 2:
-		send.Encode8(0x7fffffffffffffff);
+		sendPacket.Encode8(0x7FFFFFFFFFFFFFFFi64);
 		break;
-
-	case 4:
-	{
-		NhnLogin* pNhn = (NhnLogin*)LOGININFO()->QueryInterface();
-		send.Encode8(pNhn->GetNHNMemberNumber());
-
+	case 4: {
+		NhnLogin *nhnLogin = (NhnLogin *)CLoginInfo::Instance()->QueryInterface();
+		sendPacket.Encode8(nhnLogin->GetNHNMemberNumber());
 		break;
 	}
-
 	default:
-		return FALSE;
+		return 0;
 	}
 
-	send.Encode1(IsPcBang());
+	sendPacket.Encode1(CLoginInfo::Instance()->IsPcBang());
 
-	send.Send(TO_LOGIN);
+	sendPacket.Send((eSendTo)3);
 
-	return TRUE;
+	return 1;
 }

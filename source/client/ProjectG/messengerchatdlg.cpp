@@ -1,262 +1,300 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\messengerchatdlg.cpp
 #include "messengerchatdlg.h"
-#include "messengerdlg.h"
-#include "emoticondlg.h"
+#include "ObjectFactory.h"
+#include "ChatMsg.h"
+#include "GolfTask.h"
+#include "TaskManager.h"
+#include "commonutil.h"
+#include "wfont.h"
+#include "wview.h"
+#include "EmoticonDlg.h"
+#include "frbutton.h"
+#include "fredit.h"
+#include "fresh.h"
+#include "frframe.h"
+#include "frstatic.h"
+#include "frwndmanager.h"
+#include "InputManager.h"
 #include "buddymanager.h"
-#include "golftask.h"
-#include "chatmsg.h"
-#include "projectg.h"
+#include "messengerdlg.h"
+#include "Packet.h"
+#include "SharedDoc.h"
+#include "wutil.h"
 
-extern Fresh* g_pFresh;
+// messengerchatdlg.cpp:21 (run-time type and factory registration of FrMessengerChatDlg)
+const WRTTI FrMessengerChatDlg::m_RTTI("FrMessengerChatDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrMessengerChatDlg, FrForm)
+IObject* FrMessengerChatDlgMakeInstance(void) {
+	return new FrMessengerChatDlg;
+}
 
-BEGIN_FRESH_MSGMAP(FrMessengerChatDlg, FrForm)
+struct __sFrMessengerChatDlg {
+	__sFrMessengerChatDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrMessengerChatDlgMakeInstance, "FrMessengerChatDlg");
+	}
+};
+static __sFrMessengerChatDlg s_registerFrMessengerChatDlg;
 
-ON_FRESH_VV("cancel", FRCMD_LBUTTONDOWN,
-	FrMessengerChatDlg::OnMessenger_CloseLBtnDown)
-ON_FRESH_VI("send", FRCMD_INIT, FrMessengerChatDlg::OnMessenger_ChatInputInit)
-ON_FRESH_VV("send", FRCMD_LBUTTONDOWN,
-	FrMessengerChatDlg::OnMessenger_ChatInputLBtnDown)
-ON_FRESH_BI("send", FRCMD_ENTERKEY, FrMessengerChatDlg::OnChatInputEnterKey)
-ON_FRESH_VI("receive", FRCMD_INIT, FrMessengerChatDlg::OnMessenger_ChatViewInit)
-ON_FRESH_VI("emoticon", FRCMD_INIT,
-	FrMessengerChatDlg::OnMessenger_EmoticonInit)
-ON_FRESH_VV("emoticon", FRCMD_LBUTTONDOWN,
-	FrMessengerChatDlg::OnMessenger_EmoticonLBtnDown)
-ON_FRESH_VI("caption", FRCMD_INIT, FrMessengerChatDlg::OnMessenger_CaptionInit)
+// messengerchatdlg.cpp:23
+const sFRESH_MSGMAP* FrMessengerChatDlg::GetMessageMap(void) const {
+	return &FrMessengerChatDlg::_MsgMap;
+}
 
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrMessengerChatDlg::_MsgMap = { &FrForm::_MsgMap, &FrMessengerChatDlg::_MsgEntries[0] };
 
-FrMessengerChatDlg::FrMessengerChatDlg()
-{
-	m_pEmoticonDlg = NULL;
-	m_pEmoticonBtn = NULL;
-	m_unknown114 = 0;
-	m_pChatInput = NULL;
-	m_pChatView = NULL;
+sFRESH_ENTRY FrMessengerChatDlg::_MsgEntries[] = {
+	// messengerchatdlg.cpp:25
+	{ "cancel", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrMessengerChatDlg::OnMessenger_CloseLBtnDown },
+	// messengerchatdlg.cpp:26
+	{ "send", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMessengerChatDlg::OnMessenger_ChatInputInit },
+	// messengerchatdlg.cpp:27
+	{ "send", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrMessengerChatDlg::OnMessenger_ChatInputLBtnDown },
+	// messengerchatdlg.cpp:28
+	{ "send", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&FrMessengerChatDlg::OnChatInputEnterKey },
+	// messengerchatdlg.cpp:29
+	{ "receive", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMessengerChatDlg::OnMessenger_ChatViewInit },
+	// messengerchatdlg.cpp:30
+	{ "emoticon", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMessengerChatDlg::OnMessenger_EmoticonInit },
+	// messengerchatdlg.cpp:31
+	{ "emoticon", FRCMD_LBUTTONDOWN, FrFuncVV, (FRESH_PMSG)&FrMessengerChatDlg::OnMessenger_EmoticonLBtnDown },
+	// messengerchatdlg.cpp:32
+	{ "caption", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMessengerChatDlg::OnMessenger_CaptionInit },
+
+	// messengerchatdlg.cpp:34
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// messengerchatdlg.cpp:38
+FrMessengerChatDlg::FrMessengerChatDlg(void) {
+	m_pEmoticonDlg = 0;
+	m_pEmoticonBtn = 0;
+	m_reserved114 = 0;
+	m_pChatInput = 0;
+	m_pChatView = 0;
 	m_uid = 0;
-	m_lastName = "";
-	m_vibrateTime = 0;
-	m_vibrateElapsed = 0;
-	m_bVibrate = false;
-	m_vibrateDX = 2;
-	m_vibrateDY = -2;
+	m_nick = "";
+
+	m_vibrationTime = 0;
+	m_vibrationElapsed = 0;
+	m_bVibrating = false;
+	m_shakeOffset = 2.0f;
+	m_shakeOffsetNext = -2.0f;
 }
 
-FrMessengerChatDlg::~FrMessengerChatDlg()
-{
+// messengerchatdlg.cpp:56
+FrMessengerChatDlg::~FrMessengerChatDlg(void) {
 }
 
-void FrMessengerChatDlg::OnMessenger_CloseLBtnDown()
-{
-	std::list<sChatSlot>& slots = MESSENGER()->m_chatSlotList;
+// messengerchatdlg.cpp:71
+void FrMessengerChatDlg::OnMessenger_CloseLBtnDown(void) {
+	std::list<sChatSlot>& chatDlgList = CMessengerInfo::Instance()->m_chatDlgList;
+
 	std::list<sChatSlot>::iterator it;
-	for (it = slots.begin(); it != slots.end(); ++it)
-	{
-		if ((*it).uid == m_uid)
-		{
-			(*it).pDlg = NULL;
-			slots.erase(it);
+	for (it = chatDlgList.begin(); it != chatDlgList.end(); ++it) {
+		if (it->uid == m_uid) {
+			it->pChatDlg = 0;
+			chatDlgList.erase(it);
 			break;
 		}
 	}
+
 	Close(true);
 }
 
-void FrMessengerChatDlg::OnMessenger_ChatInputInit(int param)
-{
-	m_pChatInput = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
+// messengerchatdlg.cpp:104
+void FrMessengerChatDlg::OnMessenger_ChatInputInit(intptr_t param) {
+	m_pChatInput = DYNAMIC_CAST(FrEdit, param);
+
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
 		g_pFresh->GetManager()->SetExclusiveKey(true);
-	if (m_pChatInput)
-		m_pChatInput->SetCharLimit(36, true);
+	}
+
+	if (m_pChatInput) {
+		m_pChatInput->SetCharLimit(0x24, true);
+	}
 }
 
-void FrMessengerChatDlg::OnMessenger_ChatInputLBtnDown()
-{
+// messengerchatdlg.cpp:134
+void FrMessengerChatDlg::OnMessenger_ChatInputLBtnDown(void) {
 	OnLButtonDown(g_pFresh->GetManager()->GetMousePos());
 }
 
-bool FrMessengerChatDlg::OnLButtonDown(const WPoint& pt)
-{
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
-	{
-		if (g_input->GetButton(LEFT_BUTTON) == 1)
-		{
+// messengerchatdlg.cpp:149
+bool FrMessengerChatDlg::OnLButtonDown(const WPoint& pt) {
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
+		if (g_input->GetButton(LEFT_BUTTON) == 1) {
 			g_pFresh->GetManager()->SetExclusiveKey(true);
-			MESSENGER()->SetGameFocus(false);
+			CMessengerInfo::Instance()->SetGameFocus(false);
 		}
 	}
+
 	m_pBaseFrm->SetBlink(false);
+
 	return FrForm::OnLButtonDown(pt);
 }
 
-void FrMessengerChatDlg::OnProc(const float dt)
-{
-	if (m_bVibrate)
-	{
-		if (m_vibrateTime > m_vibrateElapsed)
-		{
-			WPoint pos(m_rect.x, m_rect.y);
-			pos.x += m_vibrateDX;
-			pos.y += m_vibrateDY;
-			MoveWindow(pos);
-			Swap(m_vibrateDX, m_vibrateDY);
-			m_vibrateElapsed += dt;
-		}
-		else
-		{
-			m_bVibrate = false;
-			m_vibrateTime = 0;
-			m_vibrateElapsed = 0;
+// messengerchatdlg.cpp:176
+void FrMessengerChatDlg::OnProc(const float dt) {
+	if (m_bVibrating) {
+		if (m_vibrationTime > m_vibrationElapsed) {
+			WRect rect = GetRect();
+
+			MoveWindow(WPoint(rect.x + m_shakeOffset, rect.y + m_shakeOffsetNext));
+
+			Swap(m_shakeOffset, m_shakeOffsetNext);
+
+			m_vibrationElapsed += dt;
+		} else {
+			m_bVibrating = false;
+			m_vibrationTime = 0;
+			m_vibrationElapsed = 0;
 		}
 	}
-	if (g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false))
-		if (g_input->GetDown("EMOTICON", false))
-			OnMessenger_EmoticonLBtnDown();
+
+	if ((g_input->Get("LCONTROL", false) || g_input->Get("RCONTROL", false)) && g_input->GetDown("EMOTICON", false)) {
+		OnMessenger_EmoticonLBtnDown();
+	}
 }
 
-void FrMessengerChatDlg::Vibration(float time)
-{
+// messengerchatdlg.cpp:215
+void FrMessengerChatDlg::Vibration(float time) {
 	m_pBaseFrm->SetBlink(true);
 }
 
-void FrMessengerChatDlg::OnMessenger_ChatViewInit(int param)
-{
-	m_pChatView = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// messengerchatdlg.cpp:238
+void FrMessengerChatDlg::OnMessenger_ChatViewInit(intptr_t param) {
+	m_pChatView = DYNAMIC_CAST(FrEdit, param);
 }
 
-bool FrMessengerChatDlg::OnChatInputEnterKey(int param)
-{
+// messengerchatdlg.cpp:253
+bool FrMessengerChatDlg::OnChatInputEnterKey(intptr_t param) {
 	char* text = (char*)param;
-	if (strlen(text))
-	{
-		std::list<sChatSlot>& slots = MESSENGER()->m_chatSlotList;
+
+	if (strlen(text)) {
+		CMessengerInfo* pInfo = CMessengerInfo::Instance();
 		std::list<sChatSlot>::iterator it;
-		for (it = slots.begin(); it != slots.end(); it++)
-		{
-			if ((*it).uid == m_uid)
-			{
-				sFriend* buddy = Buddy()->GetBuddy(m_uid);
-				if (!buddy)
+		for (it = pInfo->m_chatDlgList.begin(); it != pInfo->m_chatDlgList.end(); ++it) {
+			if (it->uid == m_uid) {
+				sFriend* pFriend = BuddyMGR->GetBuddy(m_uid);
+				if (!pFriend)
 					return false;
-				if (buddy->IsBlock)
-				{
-					AddChatLine(buddy->NickName,
-						"\302\367\264\334\273\363\264\353\277\315\264\302 \264\353\310\255\307\317\275\307 \274\366 \276\370\275\300\264\317\264\331");
+				if (pFriend->flags & 0x10) {
+					AddChatLine(pFriend->nick, "\xc2\xf7\xb4\xdc\xbb\xf3\xb4\xeb\xbf\xcd\xb4\xc2 \xb4\xeb\xc8\xad\xc7\xcf\xbd\xc7 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9");
 					return false;
 				}
-				if (!buddy->IsLogOn)
-				{
-					AddChatLine(buddy->NickName,
-						"\270\336\275\303\301\366\270\246 \300\374\264\336\307\322 \274\366 \276\370\275\300\264\317\264\331");
+				if (!(pFriend->flags & 2)) {
+					AddChatLine(pFriend->nick, "\xb8\xde\xbd\xc3\xc1\xf6\xb8\xa6 \xc0\xfc\xb4\xde\xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9");
 					return false;
 				}
-				Doc()->m_chatManager.Filtering(text);
-				WSendPacket packet(30);
-				packet.Encode4(buddy->Uid);
+
+				CSharedDoc::Instance()->m_chatManager.Filtering(text);
+
+				WSendPacket packet(0x1E);
+				packet.Encode4(pFriend->uid);
 				packet.EncodeStr(std::string(text));
-				packet.Send(TO_MSN);
-				Doc()->m_chatManager.FilteringHack(text, false);
+				packet.Send((eSendTo)1);
+
+				CSharedDoc::Instance()->m_chatManager.FilteringHack(text, false);
+
 				sMsnChat chat;
-				chat.nick = Doc()->m_myInfo.info.sNick;
-				chat.msg = text;
-				(*it).chatList.push_back(chat);
-				AddChatLine(chat.nick, chat.msg);
+				chat.nick = CSharedDoc::Instance()->GetPangyaUserInfo().nickname;
+				chat.text = text;
+
+				it->chatList.push_back(chat);
+
+				AddChatLine(chat.nick, chat.text);
 				break;
 			}
 		}
 	}
+
 	return true;
 }
 
-void FrMessengerChatDlg::AddChatLine(std::string name, std::string msg)
-{
-	if (m_pChatView)
-	{
-		if (m_lastName != name)
-		{
-			m_pChatView->AddLine(MakeStr("%s : ", name.c_str()), 0xff000000,
-				false);
-			m_lastName = name;
+// messengerchatdlg.cpp:332
+void FrMessengerChatDlg::AddChatLine(std::string nick, std::string text) {
+	if (m_pChatView) {
+		if (m_nick != nick) {
+			m_pChatView->AddLine(MakeStr("%s : ", nick.c_str()), 0xFF000000, false);
+			m_nick = nick;
 		}
-		Doc()->m_chatManager.FilteringHack(msg.c_str(), false);
-		wchar_t text[260];
-		wchar_t line[260];
-		char bytes[260];
-		int length = MultiByteToWideChar(CP_ACP, 0, msg.c_str(),
-			strlen(msg.c_str()) + 1, text, 260);
-		int index = 0;
-		int extra = 0;
-		int last;
-		if (length % 16 == 0)
-			last = Max(length / 16 - 1, 0);
-		else
-			last = length / 16;
-		do
-		{
+
+		CSharedDoc::Instance()->m_chatManager.FilteringHack(text.c_str(), false);
+
+		wchar_t wideText[0x104];
+		wchar_t wideLine[0x104];
+		char line[0x104];
+		int len = MultiByteToWideChar(0, 0, text.c_str(), strlen(text.c_str()) + 1, wideText, 0x104);
+
+		int i = 0;
+		int shift = 0;
+		int lineCount;
+		if (len % 16 == 0) {
+			lineCount = len / 16 - 1;
+			lineCount = lineCount < 0 ? 0 : lineCount;
+		} else {
+			lineCount = len / 16;
+		}
+
+		do {
+			memset(wideLine, 0, sizeof(wideLine));
 			memset(line, 0, sizeof(line));
-			memset(bytes, 0, sizeof(bytes));
-			int start = index * 16 + extra;
-			int end = index * 16 + 16;
-			if (length <= end)
-				end = length - 1;
-			bool open = true;
-			for (int i = 0; i < 4; ++i)
-			{
-				if (text[end - i] == ')')
-					open = false;
-				if (text[end - i] == '(' && open)
+
+			int start = i * 16 + shift;
+			int end = i * 16 + 16;
+			if (!(len > end))
+				end = len - 1;
+
+			wchar_t* p = &wideText[end];
+			bool bOpen = true;
+			for (int j = 0; j < 4; j++, p--) {
+				if (*p == ')')
+					bOpen = false;
+
+				if (*p == '(' && bOpen)
 					break;
 			}
-			for (int i = 0; i < 4; ++i)
-			{
-				if (text[end + i] == ')')
-				{
-					extra = i + 1;
+
+			for (int k = 0; k < 4; k++) {
+				if (wideText[end + k] == ')') {
+					shift = k + 1;
 					break;
 				}
 			}
-			end += extra;
-			wcsncpy(line, text + start, end - start);
-			if (WideCharToMultiByte(CP_ACP, 0, line, -1, bytes, 260, NULL,
-					NULL) > 1)
-			{
-				if (index)
-					m_pChatView->AddLine(MakeStr("   \b%s", bytes), 0xff464646,
-						false);
+
+			end += shift;
+
+			wcsncpy(wideLine, &wideText[start], end - start);
+
+			if (WideCharToMultiByte(0, 0, wideLine, -1, line, 0x104, 0, 0) > 1) {
+				if (i)
+					m_pChatView->AddLine(MakeStr("   \x08%s", line), 0xFF464646, false);
 				else
-					m_pChatView->AddLine(MakeStr(" > \b%s", bytes), 0xff464646,
-						false);
+					m_pChatView->AddLine(MakeStr(" > \x08%s", line), 0xFF464646, false);
 			}
-		} while (index++ < last);
+		} while (i++ < lineCount);
 	}
 }
 
-void FrMessengerChatDlg::OnMessenger_EmoticonInit(int param)
-{
-	m_pEmoticonBtn = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// messengerchatdlg.cpp:455
+void FrMessengerChatDlg::OnMessenger_EmoticonInit(intptr_t param) {
+	m_pEmoticonBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrMessengerChatDlg::OnMessenger_EmoticonLBtnDown()
-{
-	if (m_pEmoticonBtn && !m_pEmoticonDlg)
-	{
-		m_pEmoticonDlg = CreateForm<FrEmoticonDlg>(g_pFresh->GetManager(), this,
-			"emoticon", this);
-		if (m_pEmoticonDlg)
-		{
-			WPoint pos(0, 0);
-			if (m_pEmoticonBtn)
-			{
-				pos.x = m_pEmoticonBtn->GetRect().x + 20;
-				pos.y = m_pEmoticonBtn->GetRect().y + 20;
+// messengerchatdlg.cpp:470
+void FrMessengerChatDlg::OnMessenger_EmoticonLBtnDown(void) {
+	if (m_pEmoticonBtn && !m_pEmoticonDlg) {
+		m_pEmoticonDlg = CreateForm<FrEmoticonDlg>(g_pFresh->GetManager(), this, "emoticon", this);
+		if (m_pEmoticonDlg) {
+			WPoint pt(0, 0);
+			if (m_pEmoticonBtn) {
+				pt.x = m_pEmoticonBtn->GetRect().x + 20.0f;
+				pt.y = m_pEmoticonBtn->GetRect().y + 20.0f;
 			}
+
 			m_pEmoticonDlg->SetFixed(true);
-			m_pEmoticonDlg->Open(
-				(FRESH_PFN_RESULT)&FrMessengerChatDlg::OnEmoticonResult, pos,
-				3);
+			m_pEmoticonDlg->Open((FRESH_RESULT_CALLBACK)&FrMessengerChatDlg::OnEmoticonResult, pt, 3);
+
 			WRect rect = m_pEmoticonDlg->GetRect();
 			m_pEmoticonDlg->Adjust(rect);
 			m_pEmoticonDlg->MoveWindow(WPoint(rect.x, rect.y));
@@ -264,115 +302,117 @@ void FrMessengerChatDlg::OnMessenger_EmoticonLBtnDown()
 	}
 }
 
-bool FrMessengerChatDlg::OnEmoticonResult(int result, FrForm* pForm)
-{
-	if (m_pEmoticonDlg && result == 1)
-	{
-		FrEmoticonDlg* dlg = DYNAMIC_CAST(FrEmoticonDlg, pForm);
-		if (dlg)
-		{
-			const char* icon = dlg->GetSelectedIcon();
-			if (icon)
-			{
-				FrEdit* input = m_pChatInput;
-				if (input)
-				{
-					if (IS_KINDOF(CGolfTask, AfxGetTask()))
+// messengerchatdlg.cpp:507
+bool FrMessengerChatDlg::OnEmoticonResult(int result, FrForm* pForm) {
+	if (m_pEmoticonDlg && result == 1) {
+		FrEmoticonDlg* pDlg = DYNAMIC_CAST(FrEmoticonDlg, pForm);
+		if (pDlg) {
+			const char* icon = pDlg->GetSelectedIcon();
+			if (icon) {
+				FrEdit* pEdit = m_pChatInput;
+
+				if (pEdit) {
+					if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
 						g_pFresh->GetManager()->SetExclusiveKey(true);
-					const char* front = input->GetEditText_Front();
-					const char* comp = input->GetEditText_Comp();
-					const char* end = input->GetEditText_End();
-					if (CChatMsg::Instance()->GetMaskedFont()->GetTextWidth(
-							g_view,
-							MakeStr("%s%s%s%s", front, comp, icon, end)) <
-						input->GetWidthLimit())
-						input->SetLine(1,
-							MakeStr("%s%s%s%s", front, comp, icon, end), 0,
-							false, 0);
-					input->SetKeyFocus(true);
+					}
+
+					const char* front = pEdit->GetEditText_Front();
+					const char* comp = pEdit->GetEditText_Comp();
+					const char* end = pEdit->GetEditText_End();
+
+					if (CChatMsg::Instance()->GetMaskedFont()->GetTextWidth(g_view, MakeStr("%s%s%s%s", front, comp, icon, end)) < pEdit->GetWidthLimit())
+						pEdit->SetLine(1, MakeStr("%s%s%s%s", front, comp, icon, end), 0, false, 0);
+
+					pEdit->SetKeyFocus(true);
 				}
 			}
 		}
 	}
-	m_pEmoticonDlg = NULL;
+
+	m_pEmoticonDlg = 0;
 	return true;
 }
 
-void FrMessengerChatDlg::OnMessenger_CaptionInit(int param)
-{
-	m_pCaption = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// messengerchatdlg.cpp:555
+void FrMessengerChatDlg::OnMessenger_CaptionInit(intptr_t param) {
+	m_pCaption = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrMessengerChatDlg::SetUID(unsigned long uid)
-{
+// messengerchatdlg.cpp:570
+void FrMessengerChatDlg::SetUID(unsigned long uid) {
 	m_uid = uid;
-	sFriend* buddy = Buddy()->GetBuddy(uid);
-	if (buddy)
-		m_pCaption->SetCaption(buddy->NickName);
+
+	sFriend* pFriend = BuddyMGR->GetBuddy(uid);
+	if (pFriend) {
+		m_pCaption->SetCaption(pFriend->nick);
+	}
 }
 
-bool FrMessengerChatDlg::Close(bool bResult)
-{
-	if (m_pEmoticonDlg && !bResult)
-	{
+// messengerchatdlg.cpp:592
+bool FrMessengerChatDlg::Close(bool bDestroy) {
+	if (m_pEmoticonDlg && !bDestroy) {
 		m_pEmoticonDlg->Close(true);
 		return false;
 	}
-	std::list<sChatSlot>& slots = MESSENGER()->m_chatSlotList;
+
+	std::list<sChatSlot>& chatDlgList = CMessengerInfo::Instance()->m_chatDlgList;
+
 	std::list<sChatSlot>::iterator it;
-	for (it = slots.begin(); it != slots.end(); it++)
-	{
-		if ((*it).uid == m_uid)
-		{
-			(*it).pDlg = NULL;
+	for (it = chatDlgList.begin(); it != chatDlgList.end(); ++it) {
+		if (it->uid == m_uid) {
+			it->pChatDlg = 0;
 			break;
 		}
 	}
-	for (it = slots.begin(); it != slots.end(); it++)
-	{
-		if ((*it).pDlg)
-		{
-			(*it).pDlg->FindNextTopFocus(false);
+
+	for (it = chatDlgList.begin(); it != chatDlgList.end(); ++it) {
+		if (it->pChatDlg) {
+			it->pChatDlg->FindNextTopFocus(false);
 			break;
 		}
 	}
+
 	FrForm::Close(true);
-	if (IS_KINDOF(CGolfTask, AfxGetTask()))
-	{
-		if (!CChatMsg::Instance()->IsOpened() && slots.size() == 1)
-		{
+
+	if ((__rtti_obj = AfxGetTask()) != 0 && ((IObject*)__rtti_obj)->IsKindOf(&CGolfTask::m_RTTI)) {
+		if (!CChatMsg::Instance()->IsOpened() && chatDlgList.size() == 1) {
 			g_pFresh->GetManager()->SetExclusiveKey(false);
-			MESSENGER()->SetGameFocus(true);
+			CMessengerInfo::Instance()->SetGameFocus(true);
 		}
 	}
+
 	return true;
 }
 
-void FrMessengerChatDlg::RestoreChat(sChatSlot& slot)
-{
+// messengerchatdlg.cpp:658
+void FrMessengerChatDlg::RestoreChat(sChatSlot& slot) {
 	sMsnChat chat;
+
 	std::list<sMsnChat>::iterator it;
-	for (it = slot.chatList.begin(); it != slot.chatList.end(); it++)
-	{
+	for (it = slot.chatList.begin(); it != slot.chatList.end(); ++it) {
 		chat = *it;
-		AddChatLine(chat.nick, chat.msg);
+		AddChatLine(chat.nick, chat.text);
 	}
+
 	if (m_pChatInput)
 		m_pChatInput->AddLine(slot.tempChat.c_str(), 0, false);
 }
 
-void FrMessengerChatDlg::SaveTempChat(sChatSlot& slot)
-{
+// messengerchatdlg.cpp:684
+void FrMessengerChatDlg::SaveTempChat(sChatSlot& slot) {
 	if (m_pChatInput)
 		slot.tempChat = m_pChatInput->GetLine(1, false);
 }
 
-bool FrMessengerChatDlg::GetEmoticonClientRect(WRect& rect) const
-{
-	if (m_pEmoticonDlg)
-	{
+// messengerchatdlg.cpp:701
+bool FrMessengerChatDlg::GetEmoticonClientRect(WRect& rect) const {
+	if (m_pEmoticonDlg) {
 		rect = m_pEmoticonDlg->GetRect();
 		return true;
 	}
+
 	return false;
 }
+
+// wutil.h:222: the original holds the out-of-line Swap<float> in MessengerChatDlg's object.
+template void Swap<float>(float& a, float& b);

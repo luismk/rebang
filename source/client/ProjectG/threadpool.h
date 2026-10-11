@@ -1,70 +1,83 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\threadpool.h (path assumed: no inline code of it is in the line info)
+#ifndef PG_CLIENT_PROJECTG_THREADPOOL_H
+#define PG_CLIENT_PROJECTG_THREADPOOL_H
 
-#include "parallelwork.h"
+#include "..\..\defines.h"
+#include "ParallelWork.h"
 
-namespace Py
-{
-	namespace Threading
-	{
-		namespace ProcessPriority
-		{
-			enum Enum
-			{
-				Idle = 0x40,
-				Normal = 0x20,
-				High = 0x80,
-				RealTime = 0x100,
-			};
-		}
+namespace Py {
+namespace Threading {
 
-		namespace ThreadPriority
-		{
-			enum Enum
-			{
-				Idle = -15,
-				Lowest = -2,
-				BelowNormal = -1,
-				Normal = 0,
-				AboveNormal = 1,
-				Highest = 2,
-				TimeCritical = 15,
-			};
-		}
+// Implementation selected by ThreadPool's constructor (names invented: the
+// PDB has no enumerators).
+struct ThreadPoolPolicy {
+	enum Enum {
+		ConcurrentQueue = 0,
+		Iocp = 1,               // falls back to a one-thread ConcurrentQueue pool
+		SingleThread = 2,       // a one-thread ConcurrentQueue pool
+		Unimplement = 3
+	};
+};
 
-		namespace ThreadPoolPolicy
-		{
-			enum Enum
-			{
-				MultiThread = 0,
-				Iocp = 1,
-				SingleThread = 2,
-				Unimplemented = 3,
-			};
-		}
+// Values of SetThreadPriority (THREAD_PRIORITY_*).
+struct ThreadPriority {
+	enum Enum {
+		Idle = -15,
+		Lowest = -2,
+		BelowNormal = -1,
+		Normal = 0,
+		AboveNormal = 1,
+		Highest = 2,
+		TimeCritical = 15
+	};
+};
 
-		class ThreadPoolImpl;
+// Values of SetPriorityClass (*_PRIORITY_CLASS).
+struct ProcessPriority {
+	enum Enum {
+		Normal = 0x20,
+		Idle = 0x40,
+		High = 0x80,
+		Realtime = 0x100,
+		BelowNormal = 0x4000,
+		AboveNormal = 0x8000
+	};
+};
 
-		class ThreadPool
-		{
-		public:
-			ThreadPool(ThreadPoolPolicy::Enum policy, unsigned int threadCount);
-			~ThreadPool();
+class ThreadPoolImpl;
 
-			static int __fastcall SetProcessPriority(
-				ProcessPriority::Enum priority);
-			static ProcessPriority::Enum __fastcall GetProcessPriority();
+class ThreadPool {
+public:
+	ThreadPool(ThreadPoolPolicy::Enum policy, unsigned int threadCount);
+	~ThreadPool();
 
-			unsigned int GetThreadCount() const;
-			unsigned int GetInvokedWorkCount() const;
-			ThreadPriority::Enum GetThreadPriority() const;
-			int SetThreadPriority(ThreadPriority::Enum priority);
-			int WaitForCompletionAll(unsigned long timeout);
+	static int SetProcessPriority(ProcessPriority::Enum priority);
+	static ProcessPriority::Enum GetProcessPriority();
 
-		private:
-			void InternalInvokeParallelWork(ParallelWork* work,
-				void (ParallelWork::*callback)());
+	unsigned int GetThreadCount() const;
+	unsigned int GetInvokedWorkCount() const;
+	int WaitForCompletionAll(unsigned long timeout);
+	int SetThreadPriority(ThreadPriority::Enum priority);
+	ThreadPriority::Enum GetThreadPriority() const;
 
-			ThreadPoolImpl* m_implementation;
-		};
+	template <class T>
+	void InvokeParallelWork(T* work, void (T::*func)()) {
+		InternalInvokeParallelWork(work, static_cast<void (ParallelWork::*)()>(func));
 	}
-}
+
+private:
+	void InternalInvokeParallelWork(ParallelWork* work, void (ParallelWork::*func)());
+
+	ThreadPoolImpl* m_pool;         // 0x0
+
+	LAYOUT_CHECK_FRIEND;
+};
+CHECK_SIZE(ThreadPool, 0x4);
+BEGIN_LAYOUT_CHECK(ThreadPool)
+	CHECK_FIELD(ThreadPool, m_pool, 0x0);
+END_LAYOUT_CHECK
+
+} // namespace Threading
+} // namespace Py
+
+#endif

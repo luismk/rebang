@@ -1,405 +1,455 @@
-#include "minatl.h"
-#include "threadpool.h"
-#include <queue>
-#include "concurrentqueue.h"
+// Original: d:\build\custom\temp\code\client\projectg\threadpool.cpp
+#include <windows.h>
+#include <process.h>
+#include <vector>
+#include "ThreadPool.h"
+#include "ConcurrentQueue.h"
 
-namespace Py
-{
-	namespace Threading
-	{
-		struct ThreadProcContext
-		{
-			ThreadPoolImpl* implementation;
-			HANDLE stopEvent;
-		};
+namespace Py {
+namespace Threading {
 
-		struct InvokedWork
-		{
-			_OVERLAPPED overlapped;
-			ParallelWork* work;
-			void (ParallelWork::*callback)();
-		};
+// One unit of work handed to the pool. The OVERLAPPED comes first: the IOCP
+// pool posts the InvokedWork itself as the completion's OVERLAPPED.
+struct InvokedWork {
+	OVERLAPPED m_overlapped;            // 0x0
+	ParallelWork* m_work;               // 0x14
+	void (ParallelWork::*m_func)();     // 0x18
+};
+CHECK_SIZE(InvokedWork, 0x1C);
+CHECK_FIELD(InvokedWork, m_work, 0x14);
+CHECK_FIELD(InvokedWork, m_func, 0x18);
 
-		class ThreadPoolImpl
-		{
-		protected:
-			virtual void OnInvokeParallelWork(InvokedWork* invokedWork) = 0;
-			virtual unsigned int OnThreadProc(void* context) = 0;
-			virtual const char* GetThreadPoolName() const = 0;
+class ThreadPoolImpl {
+public:
+	ThreadPoolImpl();
+	virtual ~ThreadPoolImpl();                              // vtable slot 3
 
-		public:
-			static unsigned int __stdcall ThreadProc(void* context)
-			{
-				ThreadProcContext* procContext = (ThreadProcContext*)context;
-				ThreadPoolImpl* implementation = procContext->implementation;
-				HANDLE stopEvent = procContext->stopEvent;
-				delete procContext;
-				return implementation->OnThreadProc(stopEvent);
-			}
+	unsigned int GetThreadCount() const;
+	unsigned int GetInvokedWorkCount() const;
+	void InvokeParallelWork(ParallelWork* work, void (ParallelWork::*func)());
+	int WaitForCompletionAll(unsigned long timeout);
+	int SetThreadPriority(ThreadPriority::Enum priority);
+	ThreadPriority::Enum GetThreadPriority() const;
 
-			ThreadPoolImpl()
-				: m_threadCount(0), m_invokedWorkCount(0)
-			{
-			}
+	static unsigned int __stdcall ThreadProc(void* param);
 
-			virtual ~ThreadPoolImpl() { }
+protected:
+	virtual void OnInvokeParallelWork(InvokedWork* work) = 0;  // vtable slot 0
+	virtual unsigned int OnThreadProc(void* param) = 0;        // vtable slot 1
+	virtual const char* GetThreadPoolName() const = 0;         // vtable slot 2
 
-			unsigned int GetThreadCount() const { return m_threadCount; }
+public:
+	virtual int Initialize(int threadCount);                // vtable slot 4
+	virtual void Release();                                 // vtable slot 5
 
-			unsigned int GetInvokedWorkCount() const
-			{
-				return m_invokedWorkCount;
-			}
+protected:
+	std::vector<HANDLE> m_events;               // 0x4 (one per thread, set to stop it)
+	std::vector<HANDLE> m_threads;              // 0x14
+	unsigned int m_threadCount;                 // 0x24
+	unsigned int m_invokedWorkCount;            // 0x28 (Interlocked{In,De}crement)
 
-			void InvokeParallelWork(ParallelWork* work,
-				void (ParallelWork::*callback)())
-			{
-				InvokedWork* invokedWork = new InvokedWork();
-				memset(invokedWork, 0, sizeof(InvokedWork));
-				invokedWork->work = work;
-				invokedWork->callback = callback;
-				OnInvokeParallelWork(invokedWork);
-			}
+	LAYOUT_CHECK_FRIEND;
+};
+CHECK_SIZE(ThreadPoolImpl, 0x2C);
+BEGIN_LAYOUT_CHECK(ThreadPoolImpl)
+	CHECK_FIELD(ThreadPoolImpl, m_events, 0x4);
+	CHECK_FIELD(ThreadPoolImpl, m_threads, 0x14);
+	CHECK_FIELD(ThreadPoolImpl, m_threadCount, 0x24);
+	CHECK_FIELD(ThreadPoolImpl, m_invokedWorkCount, 0x28);
+END_LAYOUT_CHECK
 
-			int WaitForCompletionAll(unsigned long timeout)
-			{
-				unsigned long started = GetTickCount();
-				while (GetInvokedWorkCount() > 0)
-				{
-					if (GetTickCount() - started > timeout)
-						return 0;
-					Sleep(0);
-				}
-				return 1;
-			}
+// The argument of ThreadProc, freed by the thread.
+struct ThreadParam {
+	ThreadPoolImpl* m_pool;     // 0x0
+	HANDLE m_event;             // 0x4
+};
+CHECK_SIZE(ThreadParam, 0x8);
 
-			int SetThreadPriority(ThreadPriority::Enum priority)
-			{
-				if (m_threads.empty())
-					return 0;
-				for (std::vector<HANDLE>::iterator thread = m_threads.begin();
-					thread != m_threads.end(); ++thread)
-				{
-					if (!::SetThreadPriority(*thread, priority))
-						return 0;
-				}
-				return 1;
-			}
+// threadpool.cpp:74
+unsigned int __stdcall ThreadPoolImpl::ThreadProc(void* param) {
+	ThreadParam* threadParam = static_cast<ThreadParam*>(param);
 
-			ThreadPriority::Enum GetThreadPriority() const
-			{
-				if (m_threads.empty())
-					return ThreadPriority::Normal;
-				HANDLE thread = *m_threads.begin();
-				return (ThreadPriority::Enum)::GetThreadPriority(thread);
-			}
+	ThreadPoolImpl* pool = threadParam->m_pool;
+	HANDLE event = threadParam->m_event;
+	delete threadParam;
 
-			virtual int Initialize(int threadCount)
-			{
-				if (threadCount == 0)
-				{
-					SYSTEM_INFO systemInfo;
-					GetSystemInfo(&systemInfo);
-					threadCount = systemInfo.dwNumberOfProcessors;
-				}
-				m_threadCount = threadCount;
-				m_stopEvents.reserve(m_threadCount);
-				m_threads.reserve(m_threadCount);
-				for (unsigned int index = 0; index < m_threadCount; ++index)
-				{
-					HANDLE stopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-					HANDLE thread = NULL;
-					if (!stopEvent)
-						goto failed;
-					ThreadProcContext* context = new ThreadProcContext;
-					context->stopEvent = stopEvent;
-					context->implementation = this;
-					thread = (HANDLE)_beginthreadex(NULL, 0, ThreadProc,
-						context, 0, NULL);
-					if (!thread)
-						goto failed;
-					m_stopEvents.push_back(stopEvent);
-					m_threads.push_back(thread);
-				}
-				return 1;
-failed:
-				Release();
-				return 0;
-			}
+	return pool->OnThreadProc(event);
+}
 
-			virtual void Release()
-			{
-				if (m_threads.empty())
-					return;
-				std::vector<HANDLE>::iterator end = m_stopEvents.end();
-				for (std::vector<HANDLE>::iterator it = m_stopEvents.begin();
-					it != end; ++it)
-					SetEvent(*it);
-				if (WaitForMultipleObjects(m_threads.size(), &m_threads[0],
-						TRUE, 10000) == WAIT_TIMEOUT)
-				{
-					end = m_threads.end();
-					for (std::vector<HANDLE>::iterator it = m_threads.begin();
-						it != end; ++it)
-						TerminateThread(*it, 0xffffffff);
-				}
-				end = m_stopEvents.end();
-				for (std::vector<HANDLE>::iterator it = m_stopEvents.begin();
-					it != end; ++it)
-					CloseHandle(*it);
-				end = m_threads.end();
-				for (std::vector<HANDLE>::iterator it = m_threads.begin();
-					it != end; ++it)
-					CloseHandle(*it);
-				m_stopEvents.clear();
-				m_threads.clear();
-			}
+// threadpool.cpp:99
+ThreadPoolImpl::ThreadPoolImpl() : m_threadCount(0), m_invokedWorkCount(0) {}
+// threadpool.cpp:100
+ThreadPoolImpl::~ThreadPoolImpl() {}
 
-		protected:
-			std::vector<HANDLE> m_stopEvents;
-			std::vector<HANDLE> m_threads;
-			unsigned int m_threadCount;
-			volatile long m_invokedWorkCount;
-		};
+// threadpool.cpp:102
+unsigned int ThreadPoolImpl::GetThreadCount() const { return m_threadCount; }
 
-		class ConcurrentQueueThreadPool : public ThreadPoolImpl
-		{
-		public:
-			ConcurrentQueueThreadPool() { }
+// threadpool.cpp:107
+unsigned int ThreadPoolImpl::GetInvokedWorkCount() const { return m_invokedWorkCount; }
 
-		protected:
-			virtual const char* GetThreadPoolName() const
-			{
-				return "ConcurrentQueueThreadPool";
-			}
+// threadpool.cpp:109
+void ThreadPoolImpl::InvokeParallelWork(ParallelWork* work, void (ParallelWork::*func)()) {
+	InvokedWork* invokedWork = new InvokedWork();
+	ZeroMemory(invokedWork, sizeof(InvokedWork));
 
-			virtual unsigned int OnThreadProc(void* context)
-			{
-				while (WaitForSingleObject((HANDLE)context, 1) != WAIT_OBJECT_0)
-				{
-					while (!m_queue.Empty())
-					{
-						InvokedWork* invokedWork = 0;
-						if (m_queue.Pop(invokedWork) && invokedWork != 0)
-						{
-							ParallelWork* work = invokedWork->work;
-							if (work->IsWorkingFirst())
-								(work->*invokedWork->callback)();
-							InvokedWork* completedWork = invokedWork;
-							InterlockedDecrement(&m_invokedWorkCount);
-							completedWork->work->DecrementLockCount();
-							delete invokedWork;
-						}
-					}
-				}
-				return 0;
-			}
+	invokedWork->m_work = work;
+	invokedWork->m_func = func;
 
-			virtual void OnInvokeParallelWork(InvokedWork* invokedWork)
-			{
-				invokedWork->work->IncrementLockCount();
-				InterlockedIncrement(&m_invokedWorkCount);
-				m_queue.Push(invokedWork);
-			}
+	OnInvokeParallelWork(invokedWork);
+}
 
-		private:
-			ConcurrentQueue<InvokedWork*, std::deque<InvokedWork*> > m_queue;
-		};
+// threadpool.cpp:122
+int ThreadPoolImpl::WaitForCompletionAll(unsigned long timeout) {
+	DWORD start = GetTickCount();
+	while (m_invokedWorkCount > 0) {
+		if (GetTickCount() - start > timeout)
+			return FALSE;
 
-		class IocpPool : public ThreadPoolImpl
-		{
-		public:
-			IocpPool() { }
+		Sleep(0);
+	}
+	return TRUE;
+}
 
-			virtual int Initialize(int threadCount)
-			{
-				m_kernel32 = LoadLibrary("kernel32.dll");
-				if (!m_kernel32)
-					return 0;
-				m_CreateIoCompletionPort =
-					(CreateIoCompletionPortFunc)GetProcAddress(m_kernel32,
-						"CreateIoCompletionPort");
-				m_GetQueuedCompletionStatus =
-					(GetQueuedCompletionStatusFunc)GetProcAddress(m_kernel32,
-						"GetQueuedCompletionStatus");
-				m_PostQueuedCompletionStatus =
-					(PostQueuedCompletionStatusFunc)GetProcAddress(m_kernel32,
-						"PostQueuedCompletionStatus");
-				if (!m_CreateIoCompletionPort || !m_GetQueuedCompletionStatus ||
-					!m_PostQueuedCompletionStatus ||
-					!ThreadPoolImpl::Initialize(threadCount))
-					return 0;
-				m_completionPort = m_CreateIoCompletionPort((HANDLE)-1, NULL, 0,
-					m_threadCount);
-				return 1;
-			}
+// threadpool.cpp:133
+int ThreadPoolImpl::SetThreadPriority(ThreadPriority::Enum priority) {
+	if (m_threads.empty())
+		return FALSE;
 
-			virtual void Release()
-			{
-				if (m_completionPort)
-				{
-					for (unsigned int index = 0; index < m_threadCount; ++index)
-						m_PostQueuedCompletionStatus(m_completionPort, 0, 1,
-							NULL);
-					ThreadPoolImpl::Release();
-					CloseHandle(m_completionPort);
-					FreeLibrary(m_kernel32);
-					m_completionPort = NULL;
-					m_kernel32 = NULL;
-				}
-			}
+	for (std::vector<HANDLE>::iterator it = m_threads.begin(); it != m_threads.end(); ++it) {
+		if (!::SetThreadPriority(*it, priority))
+			return FALSE;
+	}
+	return TRUE;
+}
 
-		protected:
-			virtual const char* GetThreadPoolName() const { return "IocpPool"; }
+// threadpool.cpp:144
+ThreadPriority::Enum ThreadPoolImpl::GetThreadPriority() const {
+	if (m_threads.empty())
+		return ThreadPriority::Normal;
 
-			virtual unsigned int OnThreadProc(void* context)
-			{
-				for (;;)
-				{
-					unsigned long bytes = 0;
-					unsigned long key = 0;
-					_OVERLAPPED* overlapped;
-					if (!m_GetQueuedCompletionStatus(m_completionPort, &bytes,
-							&key, &overlapped, INFINITE) &&
-						GetLastError() == ERROR_INVALID_HANDLE)
-						break;
-					if (key == 1)
-						break;
-					InvokedWork* invokedWork = (InvokedWork*)overlapped;
-					if (key == 0 && invokedWork)
-					{
-						ParallelWork* work = invokedWork->work;
-						if (work->IsWorkingFirst())
-							(work->*invokedWork->callback)();
-						InterlockedDecrement(&m_invokedWorkCount);
-						invokedWork->work->DecrementLockCount();
-						delete invokedWork;
-					}
-				}
-				return 0;
-			}
+	HANDLE thread = m_threads.front();
+	return static_cast<ThreadPriority::Enum>(::GetThreadPriority(thread));
+}
 
-			virtual void OnInvokeParallelWork(InvokedWork* invokedWork)
-			{
-				invokedWork->work->IncrementLockCount();
-				InterlockedIncrement(&m_invokedWorkCount);
-				m_PostQueuedCompletionStatus(m_completionPort,
-					sizeof(*invokedWork), 0, &invokedWork->overlapped);
-			}
+// threadpool.cpp:153
+int ThreadPoolImpl::Initialize(int threadCount) {
+	if (threadCount == 0) {
+		SYSTEM_INFO systemInfo;
+		GetSystemInfo(&systemInfo);
+		threadCount = systemInfo.dwNumberOfProcessors;
+	}
 
-		private:
-			typedef HANDLE(__stdcall* CreateIoCompletionPortFunc)(HANDLE,
-				HANDLE, unsigned long, unsigned long);
-			typedef int(__stdcall* GetQueuedCompletionStatusFunc)(HANDLE,
-				unsigned long*, unsigned long*, _OVERLAPPED**, unsigned long);
-			typedef int(__stdcall* PostQueuedCompletionStatusFunc)(HANDLE,
-				unsigned long, unsigned long, _OVERLAPPED*);
+	m_threadCount = threadCount;
+	m_events.reserve(m_threadCount);
+	m_threads.reserve(m_threadCount);
 
-			HANDLE m_completionPort;
-			HINSTANCE m_kernel32;
-			CreateIoCompletionPortFunc m_CreateIoCompletionPort;
-			GetQueuedCompletionStatusFunc m_GetQueuedCompletionStatus;
-			PostQueuedCompletionStatusFunc m_PostQueuedCompletionStatus;
-		};
+	for (unsigned int i = 0; i < m_threadCount; ++i) {
+		HANDLE event = CreateEvent(NULL, TRUE, FALSE, NULL);
+		HANDLE thread = NULL;
 
-		class UnimplementPool : public ThreadPoolImpl
-		{
-		public:
-			virtual int Initialize(int threadCount) { return 1; }
+		if (event != NULL) {
+			ThreadParam* param = new ThreadParam;
+			param->m_pool = this; param->m_event = event;
 
-			virtual void Release() { }
+			thread = reinterpret_cast<HANDLE>(_beginthreadex(NULL, 0, ThreadProc, param, 0, NULL));
 
-		protected:
-			virtual const char* GetThreadPoolName() const
-			{
-				return "UnimplementPool";
-			}
-
-			virtual unsigned int OnThreadProc(void* context) { return 0; }
-
-			virtual void OnInvokeParallelWork(InvokedWork* invokedWork)
-			{
-				(invokedWork->work->*invokedWork->callback)();
-				delete invokedWork;
-			}
-		};
-
-		int __fastcall ThreadPool::SetProcessPriority(
-			ProcessPriority::Enum priority)
-		{
-			return SetPriorityClass(GetCurrentProcess(), priority);
-		}
-
-		ProcessPriority::Enum __fastcall ThreadPool::GetProcessPriority()
-		{
-			return (ProcessPriority::Enum)GetPriorityClass(GetCurrentProcess());
-		}
-
-		ThreadPool::ThreadPool(ThreadPoolPolicy::Enum policy,
-			unsigned int threadCount)
-			: m_implementation(NULL)
-		{
-			switch (policy)
-			{
-			case ThreadPoolPolicy::MultiThread:
-				m_implementation = new ConcurrentQueueThreadPool;
-				m_implementation->Initialize(threadCount);
-				break;
-			case ThreadPoolPolicy::Iocp:
-				m_implementation = new IocpPool;
-				if (m_implementation->Initialize(threadCount))
-					break;
-				delete m_implementation;
-				m_implementation = new ConcurrentQueueThreadPool;
-				m_implementation->Initialize(1);
-				break;
-			case ThreadPoolPolicy::SingleThread:
-				m_implementation = new ConcurrentQueueThreadPool;
-				m_implementation->Initialize(1);
-				break;
-			case ThreadPoolPolicy::Unimplemented:
-				m_implementation = new UnimplementPool;
-				m_implementation->Initialize(0);
-				break;
+			if (thread != NULL) {
+				m_events.push_back(event);
+				m_threads.push_back(thread);
+				continue;
 			}
 		}
 
-		ThreadPool::~ThreadPool()
-		{
-			m_implementation->Release();
-			delete m_implementation;
+		Release();
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+// threadpool.cpp:190
+void ThreadPoolImpl::Release() {
+	if (!m_threads.empty()) {
+		std::vector<HANDLE>::iterator it;
+		for (it = m_events.begin(); it != m_events.end(); ++it) SetEvent(*it);
+		if (WaitForMultipleObjects(m_threads.size(), &m_threads[0], TRUE, 10000) == WAIT_TIMEOUT) {
+			for (it = m_threads.begin(); it != m_threads.end(); ++it) TerminateThread(*it, static_cast<DWORD>(-1));
 		}
 
-		unsigned int ThreadPool::GetThreadCount() const
-		{
-			return m_implementation->GetThreadCount();
-		}
+		for (it = m_events.begin(); it != m_events.end(); ++it) CloseHandle(*it);
+		for (it = m_threads.begin(); it != m_threads.end(); ++it) CloseHandle(*it);
 
-		unsigned int ThreadPool::GetInvokedWorkCount() const
-		{
-			return m_implementation->GetInvokedWorkCount();
-		}
-
-		void ThreadPool::InternalInvokeParallelWork(ParallelWork* work,
-			void (ParallelWork::*callback)())
-		{
-			m_implementation->InvokeParallelWork(work, callback);
-		}
-
-		int ThreadPool::WaitForCompletionAll(unsigned long timeout)
-		{
-			return m_implementation->WaitForCompletionAll(timeout);
-		}
-
-		ThreadPriority::Enum ThreadPool::GetThreadPriority() const
-		{
-			return m_implementation->GetThreadPriority();
-		}
-
-		int ThreadPool::SetThreadPriority(ThreadPriority::Enum priority)
-		{
-			return m_implementation->SetThreadPriority(priority);
-		}
-
+		m_events.clear();
+		m_threads.clear();
 	}
 }
+
+// Threads waiting on a shared queue.
+class ConcurrentQueueThreadPool : public ThreadPoolImpl {
+public:
+	ConcurrentQueueThreadPool();
+
+protected:
+	virtual const char* GetThreadPoolName() const;
+	virtual unsigned int OnThreadProc(void* param);
+	virtual void OnInvokeParallelWork(InvokedWork* work);
+
+	ConcurrentQueue<InvokedWork*> m_queue;      // 0x2C
+
+	LAYOUT_CHECK_FRIEND;
+};
+CHECK_SIZE(ConcurrentQueueThreadPool, 0x5C);
+BEGIN_LAYOUT_CHECK(ConcurrentQueueThreadPool)
+	CHECK_FIELD(ConcurrentQueueThreadPool, m_queue, 0x2C);
+END_LAYOUT_CHECK
+
+// threadpool.cpp:246
+ConcurrentQueueThreadPool::ConcurrentQueueThreadPool() {}
+
+// threadpool.cpp:249
+const char* ConcurrentQueueThreadPool::GetThreadPoolName() const { return "ConcurrentQueueThreadPool"; }
+// threadpool.cpp:250
+unsigned int ConcurrentQueueThreadPool::OnThreadProc(void* param) {
+	HANDLE event = param;
+	while (WaitForSingleObject(event, 1) != WAIT_OBJECT_0) {
+		while (!m_queue.IsEmpty()) {
+			InvokedWork* work = NULL;
+			if (m_queue.Pop(work) && work != NULL) {
+				ParallelWork* parallelWork = work->m_work;
+				if (parallelWork->IsWorkingFirst())
+					(parallelWork->*work->m_func)();
+
+				InterlockedDecrement(reinterpret_cast<LONG*>(&m_invokedWorkCount)); work->m_work->DecrementLockCount();
+				delete work;
+			}
+		}
+	}
+
+	return 0;
+}
+
+// threadpool.cpp:271
+void ConcurrentQueueThreadPool::OnInvokeParallelWork(InvokedWork* work) {
+	work->m_work->IncrementLockCount(); InterlockedIncrement(reinterpret_cast<LONG*>(&m_invokedWorkCount));
+	m_queue.Push(work);
+}
+
+typedef HANDLE (WINAPI* CreateIoCompletionPortFunc)(HANDLE, HANDLE, ULONG_PTR, DWORD);
+typedef BOOL (WINAPI* GetQueuedCompletionStatusFunc)(HANDLE, LPDWORD, PULONG_PTR, LPOVERLAPPED*, DWORD);
+typedef BOOL (WINAPI* PostQueuedCompletionStatusFunc)(HANDLE, DWORD, ULONG_PTR, LPOVERLAPPED);
+
+// Threads waiting on an I/O completion port; the port functions are looked
+// up in kernel32.dll at run time.
+class IocpPool : public ThreadPoolImpl {
+public:
+	IocpPool();
+
+	virtual int Initialize(int threadCount);
+	virtual void Release();
+
+protected:
+	virtual const char* GetThreadPoolName() const;
+	virtual unsigned int OnThreadProc(void* param);
+	virtual void OnInvokeParallelWork(InvokedWork* work);
+
+	HANDLE m_completionPort;                                            // 0x2C
+	HMODULE m_kernel32;                                                 // 0x30
+	CreateIoCompletionPortFunc m_createIoCompletionPort;                // 0x34
+	GetQueuedCompletionStatusFunc m_getQueuedCompletionStatus;          // 0x38
+	PostQueuedCompletionStatusFunc m_postQueuedCompletionStatus;        // 0x3C
+
+	LAYOUT_CHECK_FRIEND;
+};
+CHECK_SIZE(IocpPool, 0x40);
+BEGIN_LAYOUT_CHECK(IocpPool)
+	CHECK_FIELD(IocpPool, m_completionPort, 0x2C);
+	CHECK_FIELD(IocpPool, m_kernel32, 0x30);
+	CHECK_FIELD(IocpPool, m_createIoCompletionPort, 0x34);
+	CHECK_FIELD(IocpPool, m_getQueuedCompletionStatus, 0x38);
+	CHECK_FIELD(IocpPool, m_postQueuedCompletionStatus, 0x3C);
+END_LAYOUT_CHECK
+
+// threadpool.cpp:304
+IocpPool::IocpPool() {}
+
+// threadpool.cpp:306
+int IocpPool::Initialize(int threadCount) {
+	m_kernel32 = LoadLibrary("kernel32.dll");
+	if (m_kernel32 == NULL)
+		return FALSE;
+
+	m_createIoCompletionPort = reinterpret_cast<CreateIoCompletionPortFunc>(GetProcAddress(m_kernel32, "CreateIoCompletionPort"));
+	m_getQueuedCompletionStatus = reinterpret_cast<GetQueuedCompletionStatusFunc>(GetProcAddress(m_kernel32, "GetQueuedCompletionStatus"));
+	m_postQueuedCompletionStatus = reinterpret_cast<PostQueuedCompletionStatusFunc>(GetProcAddress(m_kernel32, "PostQueuedCompletionStatus"));
+
+	if (m_createIoCompletionPort == NULL || m_getQueuedCompletionStatus == NULL || m_postQueuedCompletionStatus == NULL)
+		return FALSE;
+
+	if (!ThreadPoolImpl::Initialize(threadCount))
+		return FALSE;
+	m_completionPort = m_createIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, m_threadCount);
+	return TRUE;
+}
+
+// threadpool.cpp:325
+void IocpPool::Release() {
+	if (m_completionPort != NULL) {
+		// A completion key of 1 stops a thread.
+		for (unsigned int i = 0; i < m_threadCount; ++i)
+			m_postQueuedCompletionStatus(m_completionPort, 0, 1, NULL);
+
+		ThreadPoolImpl::Release();
+
+		CloseHandle(m_completionPort);
+		FreeLibrary(m_kernel32);
+
+		m_completionPort = NULL;
+		m_kernel32 = NULL;
+	}
+}
+
+// threadpool.cpp:345
+const char* IocpPool::GetThreadPoolName() const { return "IocpPool"; }
+// threadpool.cpp:346
+unsigned int IocpPool::OnThreadProc(void* param) {
+	for (;;) {
+		DWORD bytes = 0;
+		ULONG_PTR key = 0;
+		LPOVERLAPPED overlapped;
+
+		if (!m_getQueuedCompletionStatus(m_completionPort, &bytes, &key, &overlapped, INFINITE)) {
+			if (GetLastError() == ERROR_INVALID_HANDLE)
+				break;
+		}
+
+		if (key == 1)
+			break;
+
+		if (key == 0 && overlapped != NULL) {
+			InvokedWork* work = reinterpret_cast<InvokedWork*>(overlapped);
+			ParallelWork* parallelWork = work->m_work;
+			if (parallelWork->IsWorkingFirst())
+				(parallelWork->*work->m_func)();
+
+			InterlockedDecrement(reinterpret_cast<LONG*>(&m_invokedWorkCount)); work->m_work->DecrementLockCount();
+			delete work;
+		}
+	}
+	return 0;
+}
+
+// threadpool.cpp:379
+void IocpPool::OnInvokeParallelWork(InvokedWork* work) {
+	work->m_work->IncrementLockCount(); InterlockedIncrement(reinterpret_cast<LONG*>(&m_invokedWorkCount));
+	m_postQueuedCompletionStatus(m_completionPort, sizeof(InvokedWork), 0, &work->m_overlapped);
+}
+
+// A pool without threads: the work runs on the caller's thread.
+class UnimplementPool : public ThreadPoolImpl {
+public:
+	virtual int Initialize(int threadCount);
+	virtual void Release();
+
+protected:
+	virtual const char* GetThreadPoolName() const;
+	virtual unsigned int OnThreadProc(void* param);
+	virtual void OnInvokeParallelWork(InvokedWork* work);
+};
+CHECK_SIZE(UnimplementPool, 0x2C);
+
+// threadpool.cpp:407
+int UnimplementPool::Initialize(int threadCount) {
+	return TRUE;
+}
+// threadpool.cpp:410
+void UnimplementPool::Release() {}
+
+// threadpool.cpp:413
+const char* UnimplementPool::GetThreadPoolName() const { return "UnimplementPool"; }
+// threadpool.cpp:414
+unsigned int UnimplementPool::OnThreadProc(void* param) { return 0; }
+
+// threadpool.cpp:416
+void UnimplementPool::OnInvokeParallelWork(InvokedWork* work) {
+	(work->m_work->*work->m_func)();
+	delete work;
+}
+
+// threadpool.cpp:432
+int ThreadPool::SetProcessPriority(ProcessPriority::Enum priority) {
+	return SetPriorityClass(GetCurrentProcess(), priority);
+}
+
+// threadpool.cpp:436
+ProcessPriority::Enum ThreadPool::GetProcessPriority() {
+	return static_cast<ProcessPriority::Enum>(GetPriorityClass(GetCurrentProcess()));
+}
+
+// threadpool.cpp:442
+ThreadPool::ThreadPool(ThreadPoolPolicy::Enum policy, unsigned int threadCount) : m_pool(NULL) {
+	switch (policy) {
+	case ThreadPoolPolicy::ConcurrentQueue:
+		m_pool = new ConcurrentQueueThreadPool;
+		m_pool->Initialize(threadCount);
+		break;
+
+	case ThreadPoolPolicy::Iocp:
+		m_pool = new IocpPool;
+		if (m_pool->Initialize(threadCount))
+			break;
+
+		delete m_pool;
+		m_pool = new ConcurrentQueueThreadPool;
+		m_pool->Initialize(1);
+		break;
+
+	case ThreadPoolPolicy::SingleThread:
+		m_pool = new ConcurrentQueueThreadPool;
+		m_pool->Initialize(1);
+		break;
+
+	case ThreadPoolPolicy::Unimplement:
+		m_pool = new UnimplementPool;
+		m_pool->Initialize(0);
+		break;
+	}
+}
+
+// threadpool.cpp:481
+ThreadPool::~ThreadPool() {
+	m_pool->Release();
+	delete m_pool;
+}
+
+// threadpool.cpp:486
+unsigned int ThreadPool::GetThreadCount() const {
+	return m_pool->GetThreadCount();
+}
+
+// threadpool.cpp:490
+unsigned int ThreadPool::GetInvokedWorkCount() const {
+	return m_pool->GetInvokedWorkCount();
+}
+
+// threadpool.cpp:494
+void ThreadPool::InternalInvokeParallelWork(ParallelWork* work, void (ParallelWork::*func)()) {
+	m_pool->InvokeParallelWork(work, func);
+}
+
+// threadpool.cpp:498
+int ThreadPool::WaitForCompletionAll(unsigned long timeout) {
+	return m_pool->WaitForCompletionAll(timeout);
+}
+
+// threadpool.cpp:502
+int ThreadPool::SetThreadPriority(ThreadPriority::Enum priority) {
+	return m_pool->SetThreadPriority(priority);
+}
+
+// threadpool.cpp:506
+ThreadPriority::Enum ThreadPool::GetThreadPriority() const {
+	return m_pool->GetThreadPriority();
+}
+
+} // namespace Threading
+} // namespace Py

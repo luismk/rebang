@@ -1,385 +1,354 @@
-#include "minatl.h"
-#include "iteminfodlg.h"
-#include "../../shared/globalnetworkdefine.h"
-#include "uccmanager.h"
-#include "../../shared/localize.h"
+// Original: d:\build\custom\temp\code\client\projectg\iteminfodlg.cpp
+#include <string.h>
 
-bool IsAngelWing(unsigned long typeId);
-bool IsMannerPlayer();
+#include "ItemInfoDlg.h"
+#include "ObjectFactory.h"
+#include "globalnetworkdefine.h"
+#include "fresh.h"
+#include "frarea.h"
+#include "fredit.h"
+#include "frgaugebar.h"
+#include "frstatic.h"
+#include "frgraphicinterface.h"
+#include "frwndmanager.h"
+#include "../client/Wangreal/include/bitmap.h"
+#include "commonutil.h"
+#include "SharedDoc.h"
+#include "../shared/classdefine.h"
 
-extern Fresh* g_pFresh;
+// iteminfodlg.cpp:19 (run-time type and factory registration of FrItemInfoDlg)
+const WRTTI FrItemInfoDlg::m_RTTI("FrItemInfoDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrItemInfoDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrItemInfoDlg, FrForm)
-
-ON_FRESH_VI("portrait", FRCMD_INIT, FrItemInfoDlg::OnPortraitInit)
-ON_FRESH_VV("portrait", FRCMD_OWNERDRAW, FrItemInfoDlg::OnPortraitOwnerDraw)
-ON_FRESH_VI("name", FRCMD_INIT, FrItemInfoDlg::OnNameInit)
-ON_FRESH_VI("level", FRCMD_INIT, FrItemInfoDlg::OnLevelInit)
-ON_FRESH_VI("static_power", FRCMD_INIT, FrItemInfoDlg::OnPowerStaticInit)
-ON_FRESH_VI("static_control", FRCMD_INIT, FrItemInfoDlg::OnControlStaticInit)
-ON_FRESH_VI("static_accuracy", FRCMD_INIT, FrItemInfoDlg::OnAccuracyStaticInit)
-ON_FRESH_VI("static_spin", FRCMD_INIT, FrItemInfoDlg::OnSpinStaticInit)
-ON_FRESH_VI("static_curve", FRCMD_INIT, FrItemInfoDlg::OnCurveStaticInit)
-ON_FRESH_VI("epower1", FRCMD_INIT, FrItemInfoDlg::OnPowerEdit1Init)
-ON_FRESH_VI("econtrol1", FRCMD_INIT, FrItemInfoDlg::OnControlEdit1Init)
-ON_FRESH_VI("eaccuracy1", FRCMD_INIT, FrItemInfoDlg::OnAccuracyEdit1Init)
-ON_FRESH_VI("espin1", FRCMD_INIT, FrItemInfoDlg::OnSpinEdit1Init)
-ON_FRESH_VI("ecurve1", FRCMD_INIT, FrItemInfoDlg::OnCurveEdit1Init)
-ON_FRESH_VI("epower2", FRCMD_INIT, FrItemInfoDlg::OnPowerEdit2Init)
-ON_FRESH_VI("econtrol2", FRCMD_INIT, FrItemInfoDlg::OnControlEdit2Init)
-ON_FRESH_VI("eaccuracy2", FRCMD_INIT, FrItemInfoDlg::OnAccuracyEdit2Init)
-ON_FRESH_VI("espin2", FRCMD_INIT, FrItemInfoDlg::OnSpinEdit2Init)
-ON_FRESH_VI("ecurve2", FRCMD_INIT, FrItemInfoDlg::OnCurveEdit2Init)
-ON_FRESH_VI("powerbar", FRCMD_INIT, FrItemInfoDlg::OnPowerBarInit)
-ON_FRESH_VI("controlbar", FRCMD_INIT, FrItemInfoDlg::OnControlBarInit)
-ON_FRESH_VI("accuracybar", FRCMD_INIT, FrItemInfoDlg::OnAccuracyBarInit)
-ON_FRESH_VI("spinbar", FRCMD_INIT, FrItemInfoDlg::OnSpinBarInit)
-ON_FRESH_VI("curvebar", FRCMD_INIT, FrItemInfoDlg::OnCurveBarInit)
-
-END_FRESH_MSGMAP()
-
-FrItemInfoDlg::FrItemInfoDlg()
-{
-	m_pItem = NULL;
-	m_pPortrait = NULL;
-	m_pName = NULL;
-	m_pLevel = NULL;
-	memset(m_pBar, 0, sizeof(m_pBar));
-	memset(m_pEdit1, 0, sizeof(m_pEdit1));
-	memset(m_pEdit2, 0, sizeof(m_pEdit2));
-	memset(m_pStatic, 0, sizeof(m_pStatic));
-	m_pEnchantArrow[0] = g_pFresh->GetBitmap("trade_enchant_nothing");
-	m_pEnchantArrow[1] = g_pFresh->GetBitmap("trade_enchant_upgrade");
+IObject* FrItemInfoDlgMakeInstance(void) {
+	return new FrItemInfoDlg;
 }
 
-FrItemInfoDlg::~FrItemInfoDlg()
-{
+struct __sFrItemInfoDlg {
+	__sFrItemInfoDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrItemInfoDlgMakeInstance, "FrItemInfoDlg");
+	}
+};
+static __sFrItemInfoDlg s_registerFrItemInfoDlg;
+
+// iteminfodlg.cpp:21
+const sFRESH_MSGMAP* FrItemInfoDlg::GetMessageMap(void) const {
+	return &FrItemInfoDlg::_MsgMap;
 }
 
-void FrItemInfoDlg::OnPortraitInit(int param)
-{
-	m_pPortrait = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+sFRESH_MSGMAP FrItemInfoDlg::_MsgMap = { &FrForm::_MsgMap, &FrItemInfoDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrItemInfoDlg::_MsgEntries[] = {
+	// iteminfodlg.cpp:23
+	{ "portrait", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnPortraitInit },
+	// iteminfodlg.cpp:24
+	{ "portrait", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrItemInfoDlg::OnPortraitOwnerDraw },
+	// iteminfodlg.cpp:25
+	{ "name", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnNameInit },
+	// iteminfodlg.cpp:26
+	{ "level", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnLevelInit },
+	// iteminfodlg.cpp:27
+	{ "static_power", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnPowerStaticInit },
+	// iteminfodlg.cpp:28
+	{ "static_control", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnControlStaticInit },
+	// iteminfodlg.cpp:29
+	{ "static_accuracy", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnAccuracyStaticInit },
+	// iteminfodlg.cpp:30
+	{ "static_spin", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnSpinStaticInit },
+	// iteminfodlg.cpp:31
+	{ "static_curve", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnCurveStaticInit },
+	// iteminfodlg.cpp:32
+	{ "epower1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnPowerEdit1Init },
+	// iteminfodlg.cpp:33
+	{ "econtrol1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnControlEdit1Init },
+	// iteminfodlg.cpp:34
+	{ "eaccuracy1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnAccuracyEdit1Init },
+	// iteminfodlg.cpp:35
+	{ "espin1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnSpinEdit1Init },
+	// iteminfodlg.cpp:36
+	{ "ecurve1", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnCurveEdit1Init },
+	// iteminfodlg.cpp:37
+	{ "epower2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnPowerEdit2Init },
+	// iteminfodlg.cpp:38
+	{ "econtrol2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnControlEdit2Init },
+	// iteminfodlg.cpp:39
+	{ "eaccuracy2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnAccuracyEdit2Init },
+	// iteminfodlg.cpp:40
+	{ "espin2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnSpinEdit2Init },
+	// iteminfodlg.cpp:41
+	{ "ecurve2", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnCurveEdit2Init },
+	// iteminfodlg.cpp:42
+	{ "powerbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnPowerBarInit },
+	// iteminfodlg.cpp:43
+	{ "controlbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnControlBarInit },
+	// iteminfodlg.cpp:44
+	{ "accuracybar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnAccuracyBarInit },
+	// iteminfodlg.cpp:45
+	{ "spinbar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnSpinBarInit },
+	// iteminfodlg.cpp:46
+	{ "curvebar", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrItemInfoDlg::OnCurveBarInit },
+
+	// iteminfodlg.cpp:47
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// iteminfodlg.cpp:51
+FrItemInfoDlg::FrItemInfoDlg(void)
+	: m_pTradeItem(0),
+
+	m_pPortrait(0),
+	m_pName(0),
+	m_pLevel(0) {
+
+	memset(m_pAbilityBar, 0, sizeof(m_pAbilityBar));
+	memset(m_pAbilityEdit1, 0, sizeof(m_pAbilityEdit1));
+	memset(m_pAbilityEdit2, 0, sizeof(m_pAbilityEdit2));
+	memset(m_pAbilityStatic, 0, sizeof(m_pAbilityStatic));
+
+	m_pEnchantBitmap[0] = g_pFresh->GetBitmap("trade_enchant_nothing");
+	m_pEnchantBitmap[1] = g_pFresh->GetBitmap("trade_enchant_upgrade");
 }
 
-void FrItemInfoDlg::OnPortraitOwnerDraw()
-{
+// iteminfodlg.cpp:68
+FrItemInfoDlg::~FrItemInfoDlg(void) {
+}
+
+// iteminfodlg.cpp:72
+void FrItemInfoDlg::OnPortraitInit(intptr_t param) {
+	m_pPortrait = DYNAMIC_CAST(FrArea, param);
+}
+
+// iteminfodlg.cpp:77
+void FrItemInfoDlg::OnPortraitOwnerDraw(void) {
 	DrawEnchantArrow();
 }
 
-void FrItemInfoDlg::OnNameInit(int param)
-{
-	m_pName = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:82
+void FrItemInfoDlg::OnNameInit(intptr_t param) {
+	m_pName = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnLevelInit(int param)
-{
-	m_pLevel = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// iteminfodlg.cpp:87
+void FrItemInfoDlg::OnLevelInit(intptr_t param) {
+	m_pLevel = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrItemInfoDlg::OnPowerStaticInit(int param)
-{
-	m_pStatic[0] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// iteminfodlg.cpp:92
+void FrItemInfoDlg::OnPowerStaticInit(intptr_t param) {
+	m_pAbilityStatic[0] = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrItemInfoDlg::OnControlStaticInit(int param)
-{
-	m_pStatic[1] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// iteminfodlg.cpp:97
+void FrItemInfoDlg::OnControlStaticInit(intptr_t param) {
+	m_pAbilityStatic[1] = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrItemInfoDlg::OnAccuracyStaticInit(int param)
-{
-	m_pStatic[2] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// iteminfodlg.cpp:102
+void FrItemInfoDlg::OnAccuracyStaticInit(intptr_t param) {
+	m_pAbilityStatic[2] = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrItemInfoDlg::OnSpinStaticInit(int param)
-{
-	m_pStatic[3] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// iteminfodlg.cpp:107
+void FrItemInfoDlg::OnSpinStaticInit(intptr_t param) {
+	m_pAbilityStatic[3] = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrItemInfoDlg::OnCurveStaticInit(int param)
-{
-	m_pStatic[4] = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// iteminfodlg.cpp:112
+void FrItemInfoDlg::OnCurveStaticInit(intptr_t param) {
+	m_pAbilityStatic[4] = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrItemInfoDlg::OnPowerEdit1Init(int param)
-{
-	m_pEdit1[0] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:117
+void FrItemInfoDlg::OnPowerEdit1Init(intptr_t param) {
+	m_pAbilityEdit1[0] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnControlEdit1Init(int param)
-{
-	m_pEdit1[1] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:122
+void FrItemInfoDlg::OnControlEdit1Init(intptr_t param) {
+	m_pAbilityEdit1[1] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnAccuracyEdit1Init(int param)
-{
-	m_pEdit1[2] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:127
+void FrItemInfoDlg::OnAccuracyEdit1Init(intptr_t param) {
+	m_pAbilityEdit1[2] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnSpinEdit1Init(int param)
-{
-	m_pEdit1[3] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:132
+void FrItemInfoDlg::OnSpinEdit1Init(intptr_t param) {
+	m_pAbilityEdit1[3] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnCurveEdit1Init(int param)
-{
-	m_pEdit1[4] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:137
+void FrItemInfoDlg::OnCurveEdit1Init(intptr_t param) {
+	m_pAbilityEdit1[4] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnPowerEdit2Init(int param)
-{
-	m_pEdit2[0] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:142
+void FrItemInfoDlg::OnPowerEdit2Init(intptr_t param) {
+	m_pAbilityEdit2[0] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnControlEdit2Init(int param)
-{
-	m_pEdit2[1] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:147
+void FrItemInfoDlg::OnControlEdit2Init(intptr_t param) {
+	m_pAbilityEdit2[1] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnAccuracyEdit2Init(int param)
-{
-	m_pEdit2[2] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:152
+void FrItemInfoDlg::OnAccuracyEdit2Init(intptr_t param) {
+	m_pAbilityEdit2[2] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnSpinEdit2Init(int param)
-{
-	m_pEdit2[3] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:157
+void FrItemInfoDlg::OnSpinEdit2Init(intptr_t param) {
+	m_pAbilityEdit2[3] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnCurveEdit2Init(int param)
-{
-	m_pEdit2[4] = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// iteminfodlg.cpp:162
+void FrItemInfoDlg::OnCurveEdit2Init(intptr_t param) {
+	m_pAbilityEdit2[4] = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrItemInfoDlg::OnPowerBarInit(int param)
-{
-	m_pBar[0] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pBar[0]->SetRange(0, 50, 0);
+// iteminfodlg.cpp:167
+void FrItemInfoDlg::OnPowerBarInit(intptr_t param) {
+	m_pAbilityBar[0] = DYNAMIC_CAST(FrGaugeBar, param);
+	m_pAbilityBar[0]->SetRange(0, 50, 0);
 }
 
-void FrItemInfoDlg::OnControlBarInit(int param)
-{
-	m_pBar[1] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pBar[1]->SetRange(0, 30, 0);
+// iteminfodlg.cpp:174
+void FrItemInfoDlg::OnControlBarInit(intptr_t param) {
+	m_pAbilityBar[1] = DYNAMIC_CAST(FrGaugeBar, param);
+	m_pAbilityBar[1]->SetRange(0, 30, 0);
 }
 
-void FrItemInfoDlg::OnAccuracyBarInit(int param)
-{
-	m_pBar[2] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pBar[2]->SetRange(0, 30, 0);
+// iteminfodlg.cpp:181
+void FrItemInfoDlg::OnAccuracyBarInit(intptr_t param) {
+	m_pAbilityBar[2] = DYNAMIC_CAST(FrGaugeBar, param);
+	m_pAbilityBar[2]->SetRange(0, 30, 0);
 }
 
-void FrItemInfoDlg::OnSpinBarInit(int param)
-{
-	m_pBar[3] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pBar[3]->SetRange(0, 30, 0);
+// iteminfodlg.cpp:187
+void FrItemInfoDlg::OnSpinBarInit(intptr_t param) {
+	m_pAbilityBar[3] = DYNAMIC_CAST(FrGaugeBar, param);
+	m_pAbilityBar[3]->SetRange(0, 30, 0);
 }
 
-void FrItemInfoDlg::OnCurveBarInit(int param)
-{
-	m_pBar[4] = DYNAMIC_CAST(FrGaugeBar, (FrWnd*)param);
-	m_pBar[4]->SetRange(0, 30, 0);
+// iteminfodlg.cpp:194
+void FrItemInfoDlg::OnCurveBarInit(intptr_t param) {
+	m_pAbilityBar[4] = DYNAMIC_CAST(FrGaugeBar, param);
+	m_pAbilityBar[4]->SetRange(0, 30, 0);
 }
 
-bool FrItemInfoDlg::OnInit()
-{
+// iteminfodlg.cpp:201
+bool FrItemInfoDlg::OnInit(void) {
 	SetControlsAbility(false);
+
 	return true;
 }
 
-void FrItemInfoDlg::SetItemInfo(sTradeItem* item)
-{
-	if (!item)
+// iteminfodlg.cpp:359
+void FrItemInfoDlg::SetLevelBar(void) {
+	if (m_pTradeItem == 0) {
 		return;
-	m_pItem = item;
-	IFF_ITEM_COMMON* common = ItemManager()->FindCommonItem(item->dwTid);
-	if (!common)
-		return;
-	sUccClothes* clothes =
-		UccManager()->FindClothes(item->dwTid, item->UccIndex);
-	if (m_pPortrait)
-	{
-		m_pPortrait->SetBgImg(common->Icon);
-		if (IsLocalContent(S4_UCC) && IsUccClothes(item->dwTid))
-		{
-			const Bitmap* icon = GetUccItemIcon(item->dwGuid);
-			if (icon)
-				m_pPortrait->SetBgImg(icon);
-		}
 	}
-	if (m_pName)
-	{
-		if (IsLocalContent(S4_UCC) && clothes && IsUccClothes(item->dwTid))
-			m_pName->AddText(MakeStr("\300\314\270\247: %s\012\012",
-								 GetUccItemName(item->dwGuid)),
-				false, true);
-		else if (IsAngelWing(common->TypeId) && !IsMannerPlayer())
-			m_pName->AddText(
-				MakeStr(
-					"\300\314\270\247: %s \\c0xffff0000\\c(\302\370\277\353\272\322\260\241)\\c0xff000000\\c\012\012",
-					common->Name),
-				false, true);
-		else
-			m_pName->AddText(
-				MakeStr("\300\314\270\247: %s\012\012", common->Name), false,
-				true);
-	}
-	if (m_pLevel && m_pName)
-	{
-		if (common->IsUnderLvl)
-			m_pName->AddText(
-				"\267\271\272\247:                \300\314\307\317\012", false,
-				true);
-		else
-			m_pName->AddText(
-				"\267\271\272\247:                \300\314\273\363\012", false,
-				true);
-		m_pLevel->SetBgImg(MakeStr("level_%03d", common->Level + 1));
-	}
-	if (m_pName)
-	{
-		std::list<sItemInfo>::iterator it;
-		for (it = Doc()->m_cutinList.begin(); it != Doc()->m_cutinList.end();
-			++it)
-			if (it->tid == m_pItem->dwTid)
-				break;
-		if (it == Doc()->m_cutinList.end())
-			for (it = Doc()->m_myItemList.begin();
-				it != Doc()->m_myItemList.end(); ++it)
-				if (it->tid == m_pItem->dwTid)
-					break;
-		if (it != Doc()->m_myItemList.end())
-		{
-			const unsigned char& type = it->ItemType;
-			int days = it->HourRemain / 24;
-			int hours = it->HourRemain % 24;
-			const bool& expired = it->Expired;
-			switch (type)
-			{
-			case 1:
-				m_pName->AddText(
-					MakeStr(
-						"\273\347\277\353\261\342\260\243: %d\300\317 %d\275\303\260\243",
-						days, hours),
-					false, true);
-				break;
-			case 2:
-			case 3:
-			case 4:
-			case 5:
-				if (expired)
-					m_pName->AddText(
-						"\\c0xffff0000\\c\273\347\277\353\261\342\260\243\\c0xff000000\\c\300\314 \\c0xffff0000\\c\270\270\267\341\\c0xff000000\\c\265\307\276\372\275\300\264\317\264\331.\012",
-						false, true);
-				else if (!days && !hours)
-					m_pName->AddText(
-						"\263\262\300\272\275\303\260\243: 1\275\303\260\243\271\314\270\270\012",
-						false, true);
-				else
-					m_pName->AddText(
-						MakeStr(
-							"\263\262\300\272\275\303\260\243: %d\300\317 %d\275\303\260\243\012",
-							days, hours),
-						false, true);
-			}
-		}
-	}
-	IFF_STRUCT::sDesc* desc = ItemManager()->FindDesc(m_pItem->dwTid);
-	if (desc)
-		SetMessage(desc->Desc, false);
-	if ((m_pItem->dwTid >> 26) == 4)
-	{
-		SetControlsAbility(true);
-		SetLevelBar();
-	}
-	else
-		SetControlsAbility(false);
-}
 
-void FrItemInfoDlg::SetLevelBar()
-{
-	if (!m_pItem)
+	IFF_STRUCT::sClubSet* pClubSet = ItemManager()->FindClubSet(m_pTradeItem->typeId);
+
+	if (pClubSet == 0) {
 		return;
-	IFF_STRUCT::sClubSet* club = ItemManager()->FindClubSet(m_pItem->dwTid);
-	if (!club)
-		return;
-	for (unsigned char i = 0; i < 5; ++i)
-	{
-		int limit = club->Slot[i];
-		int value = club->Attr[i] + m_pItem->arrEnchant[i];
-		if (m_pBar[i])
-		{
-			m_pBar[i]->SetDestPos(value, false);
-			m_pBar[i]->SetExpand(limit - value);
+	}
+
+	for (int i = 0; i < 5; i++) {
+		int maxValue = pClubSet->m_maxStat[i];
+		int value = (short)m_pTradeItem->stats[i] + pClubSet->m_baseStat[i];
+
+		if (m_pAbilityBar[i]) {
+			m_pAbilityBar[i]->SetDestPos(value, false);
+			m_pAbilityBar[i]->SetExpand(maxValue - value);
 		}
+
 		SetLevelNumber(i);
 		SetEnchantNumber(i);
 	}
 }
 
-void FrItemInfoDlg::SetLevelNumber(int index)
-{
-	if (!m_pItem || !m_pEdit1[index])
+// iteminfodlg.cpp:387
+void FrItemInfoDlg::SetLevelNumber(int level) {
+	if (m_pTradeItem == 0) {
 		return;
-	IFF_STRUCT::sClubSet* club = ItemManager()->FindClubSet(m_pItem->dwTid);
-	if (!club)
+	}
+
+	if (m_pAbilityEdit1[level] == 0) {
 		return;
-	unsigned char value = club->Attr[index] + m_pItem->arrEnchant[index];
-	unsigned char limit = club->Slot[index];
-	m_pEdit1[index]->SetLine(1, MakeStr("%d", Min(value, limit)), 0xffff0000,
-		false, 0);
+	}
+
+	IFF_STRUCT::sClubSet* pClubSet = ItemManager()->FindClubSet(m_pTradeItem->typeId);
+
+	if (pClubSet == 0) {
+		return;
+	}
+
+	unsigned char value = (unsigned char)(pClubSet->m_baseStat[level] + m_pTradeItem->stats[level]);
+	unsigned char maxValue = (unsigned char)pClubSet->m_maxStat[level];
+
+	m_pAbilityEdit1[level]->SetLine(1, MakeStr("%d", value > maxValue ? maxValue : value), 0xFFFF0000, false, 0);
 }
 
-void FrItemInfoDlg::SetEnchantNumber(int index)
-{
-	if (!m_pItem || !m_pEdit2[index])
+// iteminfodlg.cpp:408
+void FrItemInfoDlg::SetEnchantNumber(int ability) {
+	if (m_pTradeItem == 0) {
 		return;
-	IFF_STRUCT::sClubSet* club = ItemManager()->FindClubSet(m_pItem->dwTid);
-	if (!club)
+	}
+
+	if (m_pAbilityEdit2[ability] == 0) {
 		return;
-	unsigned short slots = club->Slot[index];
-	m_pEdit2[index]->SetLine(1,
-		MakeStr("%d/%d", m_pItem->arrEnchant[index], slots - club->Attr[index]),
-		0xff000000, false, 0);
+	}
+
+	IFF_STRUCT::sClubSet* pClubSet = ItemManager()->FindClubSet(m_pTradeItem->typeId);
+
+	if (pClubSet == 0) {
+		return;
+	}
+
+	unsigned short maxValue = pClubSet->m_maxStat[ability];
+	m_pAbilityEdit2[ability]->SetLine(1, MakeStr("%d/%d", (short)m_pTradeItem->stats[ability], maxValue - pClubSet->m_baseStat[ability]), 0xFF000000, false, 0);
 }
 
-void FrItemInfoDlg::SetControlsAbility(bool bEnable)
-{
-	for (int i = 0; i < 5; ++i)
-	{
-		if (m_pBar[i])
-			m_pBar[i]->SetVisible(bEnable);
-		if (m_pEdit1[i])
-			m_pEdit1[i]->SetVisible(bEnable);
-		if (m_pEdit2[i])
-			m_pEdit2[i]->SetVisible(bEnable);
-		if (m_pStatic[i])
-			m_pStatic[i]->SetVisible(bEnable);
+// iteminfodlg.cpp:427
+void FrItemInfoDlg::SetControlsAbility(bool bVisible) {
+	// Show or hide the five ability rows.
+	for (int i = 0; i < 5; i++) {
+		if (m_pAbilityBar[i]) m_pAbilityBar[i]->SetVisible(bVisible);
+		if (m_pAbilityEdit1[i]) m_pAbilityEdit1[i]->SetVisible(bVisible);
+		if (m_pAbilityEdit2[i]) m_pAbilityEdit2[i]->SetVisible(bVisible);
+		if (m_pAbilityStatic[i]) m_pAbilityStatic[i]->SetVisible(bVisible);
 	}
 }
 
-void FrItemInfoDlg::DrawEnchantArrow()
-{
-	// HACK
-	if (0)
-		SetEnchantNumber(0);
-	if (!m_pItem || (m_pItem->dwTid >> 26) != 4)
+// iteminfodlg.cpp:441
+void FrItemInfoDlg::DrawEnchantArrow(void) {
+	if (m_pTradeItem == 0) {
 		return;
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (!gdi)
+	}
+
+	// Only a club set carries enchant levels.
+	if ((m_pTradeItem->typeId & 0xFC000000) != 0x10000000) {
 		return;
-	WPoint pos(m_rect.x + 248.0f, m_rect.y + 229.0f);
-	for (int i = 0; i < 5; ++i)
-	{
-		int arrow = m_pItem->arrEnchant[i] ? 1 : 0;
-		if (m_pEnchantArrow[arrow])
-		{
-			gdi->DrawTexture(m_pEnchantArrow[arrow],
-				WRect(pos.x, pos.y + i * 17, m_pEnchantArrow[arrow]->Width(),
-					m_pEnchantArrow[arrow]->Height()),
-				0xffffffff, 0);
+	}
+
+	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
+
+	if (pDevice == 0) {
+		return;
+	}
+
+	float x = m_rect.x + 248.0f, y = m_rect.y + 229.0f;
+
+	// One arrow per ability row, 17 pixels apart: the upgrade arrow for an
+	// enchanted one.
+	for (int i = 0, offsetY = 0; i < 5; i++, offsetY += 17) {
+		int bUpgraded = m_pTradeItem->stats[i] != 0;
+
+		if (m_pEnchantBitmap[bUpgraded] != 0) {
+			pDevice->DrawTexture(m_pEnchantBitmap[bUpgraded], WRect(x, y + offsetY, m_pEnchantBitmap[bUpgraded]->Width(), m_pEnchantBitmap[bUpgraded]->Height()), 0xFFFFFFFF, 0);
 		}
 	}
 }

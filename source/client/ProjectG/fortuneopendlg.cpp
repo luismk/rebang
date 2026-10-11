@@ -1,464 +1,382 @@
-#include "minatl.h"
-#include "fortuneopendlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\fortuneopendlg.cpp
+#include <algorithm>
+
+#include "FortuneOpenDlg.h"
+#include "ObjectFactory.h"
 #include "frlistbox.h"
 #include "frstatic.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
+#include "commonutil.h"
+#include "SharedDoc.h"
+#include "UccManager.h"
+#include "../shared/classdefine.h"
+#include "bitmap.h"
 #include "fresh.h"
+#include "frgraphicinterface.h"
+#include "frwndmanager.h"
 
-extern Fresh* g_pFresh;
+// fortuneopendlg.cpp:469 (run-time type and factory registration of FrFortuneOpenDlg)
+const WRTTI FrFortuneOpenDlg::m_RTTI("FrFortuneOpenDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrFortuneOpenDlg, FrForm)
+IObject* FrFortuneOpenDlgMakeInstance(void) {
+	return new FrFortuneOpenDlg;
+}
 
-BEGIN_FRESH_MSGMAP(FrFortuneOpenDlg, FrForm)
+struct __sFrFortuneOpenDlg {
+	__sFrFortuneOpenDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrFortuneOpenDlgMakeInstance, "FrFortuneOpenDlg");
+	}
+};
+static __sFrFortuneOpenDlg s_registerFrFortuneOpenDlg;
 
-ON_FRESH_VI("list", FRCMD_INIT, FrFortuneOpenDlg::OnItemListInit)
-ON_FRESH_VI("list", FRCMD_OWNERDRAW, FrFortuneOpenDlg::OnItemListOwnerDraw)
-ON_FRESH_VI("total_price", FRCMD_INIT, FrFortuneOpenDlg::OnTotalPriceInit)
-ON_FRESH_VI("desc_items", FRCMD_INIT, FrFortuneOpenDlg::OnDescItemsInit)
+// fortuneopendlg.cpp:471
+const sFRESH_MSGMAP* FrFortuneOpenDlg::GetMessageMap(void) const {
+	return &FrFortuneOpenDlg::_MsgMap;
+}
 
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrFortuneOpenDlg::_MsgMap = { &FrForm::_MsgMap, &FrFortuneOpenDlg::_MsgEntries[0] };
 
-FrFortuneOpenDlg::FrFortuneOpenDlg()
-{
-	m_pItemList = NULL;
-	m_pTotalPrice = NULL;
-	m_pDescItems = NULL;
+sFRESH_ENTRY FrFortuneOpenDlg::_MsgEntries[] = {
+	// fortuneopendlg.cpp:473
+	{ "list", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneOpenDlg::OnItemListInit },
+	{ "list", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneOpenDlg::OnItemListOwnerDraw },
+	{ "total_price", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneOpenDlg::OnTotalPriceInit },
+	{ "desc_items", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFortuneOpenDlg::OnDescItemsInit },
+
+	// fortuneopendlg.cpp:478
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// fortuneopendlg.cpp:481
+FrFortuneOpenDlg::FrFortuneOpenDlg(void) {
+	m_pItemList = 0;
+	m_pTotalPrice = 0;
+	m_pDescItems = 0;
 	m_typeId = 0;
 }
 
-FrFortuneOpenDlg::~FrFortuneOpenDlg()
-{
+// fortuneopendlg.cpp:490
+FrFortuneOpenDlg::~FrFortuneOpenDlg(void) {
 }
 
-void FrFortuneOpenDlg::OnItemListInit(int param)
-{
-	m_pItemList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
+// fortuneopendlg.cpp:494
+void FrFortuneOpenDlg::OnItemListInit(intptr_t param) {
+	m_pItemList = DYNAMIC_CAST(FrListBox, param);
 }
 
-void FrFortuneOpenDlg::OnItemListOwnerDraw(int param)
-{
-	FrListItem* pItem = (FrListItem*)param;
-	if (pItem == NULL)
+// fortuneopendlg.cpp:499
+void FrFortuneOpenDlg::OnItemListOwnerDraw(intptr_t param) {
+	FrListItem* pListItem = (FrListItem*)param;
+	if (pListItem == 0) {
 		return;
+	}
 
 	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
+	if (pGDI == 0) {
 		return;
+	}
 
-	sFortune* pFortune = (sFortune*)pItem->pData;
-	if (pFortune == NULL)
+	sFortune* pFortune = (sFortune*)pListItem->pData;
+	if (pFortune == 0) {
 		return;
+	}
 
-	char desc[64];
-	const Bitmap* pBitmap;
-	IFF_ITEM_COMMON* pCommon = ItemManager()->FindCommonItem(pFortune->typeId);
+	char where[64];
+	const char* pPlace;
+	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(pFortune->m_typeId);
+	const Bitmap* pBitmap = 0;
 
-	switch (pFortune->typeId >> 26)
-	{
+	switch (pFortune->m_typeId >> 26) {
 	case 6:
-		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pCommon->Icon);
-		{
-			const char* p =
-				"\xbc\xd2\xc0\xaf\xc0\xa7\xc4\xa1: \xbe\xc6\xc0\xcc\xc5\xdb\xbc\xa5 > \xb0\xd4\xc0\xd3 \xbe\xc6\xc0\xcc\xc5\xdb \xbc\xa5";
-			strcpy(desc, p);
-		}
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pItem->m_icon);
+		pPlace = "\xBC\xD2\xC0\xAF\xC0\xA7\xC4\xA1: \xBE\xC6\xC0\xCC\xC5\xDB\xBC\xA5 > \xB0\xD4\xC0\xD3 \xBE\xC6\xC0\xCC\xC5\xDB \xBC\xA5";
+		strcpy(where, pPlace);
 		break;
+
 	case 2:
-		pBitmap =
-			g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pCommon->Icon);
-		{
-			const char* p =
-				"\xbc\xd2\xc0\xaf\xc0\xa7\xc4\xa1: \xb3\xbb\xbf\xca\xc0\xe5 > \xc4\xb3\xb8\xaf\xc5\xcd \xb2\xd9\xb9\xcc\xb1\xe2";
-			strcpy(desc, p);
-		}
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pItem->m_icon);
+		pPlace = "\xBC\xD2\xC0\xAF\xC0\xA7\xC4\xA1: \xB3\xBB\xBF\xCA\xC0\xE5 > \xC4\xB3\xB8\xAF\xC5\xCD \xB2\xD9\xB9\xCC\xB1\xE2";
+		strcpy(where, pPlace);
 		break;
+
 	case 5:
-		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pCommon->Icon);
-		{
-			const char* p =
-				"\xbc\xd2\xc0\xaf\xc0\xa7\xc4\xa1: \xbe\xc6\xc0\xcc\xc5\xdb\xbc\xa5 > \xc0\xe5\xba\xf1 \xbc\xa5";
-			strcpy(desc, p);
-		}
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pItem->m_icon);
+		pPlace = "\xBC\xD2\xC0\xAF\xC0\xA7\xC4\xA1: \xBE\xC6\xC0\xCC\xC5\xDB\xBC\xA5 > \xC0\xE5\xBA\xF1 \xBC\xA5";
+		strcpy(where, pPlace);
 		break;
+
 	case 4:
-		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pCommon->Icon);
-		{
-			const char* p =
-				"\xbc\xd2\xc0\xaf\xc0\xa7\xc4\xa1: \xbe\xc6\xc0\xcc\xc5\xdb\xbc\xa5 > \xc0\xe5\xba\xf1 \xbc\xa5";
-			strcpy(desc, p);
-		}
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pItem->m_icon);
+		pPlace = "\xBC\xD2\xC0\xAF\xC0\xA7\xC4\xA1: \xBE\xC6\xC0\xCC\xC5\xDB\xBC\xA5 > \xC0\xE5\xBA\xF1 \xBC\xA5";
+		strcpy(where, pPlace);
 		break;
+
 	case 9:
-		pBitmap =
-			g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pCommon->Icon);
-		{
-			const char* p =
-				"\xbc\xd2\xc0\xaf\xc0\xa7\xc4\xa1: \xb3\xbb\xbf\xca\xc0\xe5 > \xc4\xb3\xb8\xaf\xc5\xcd \xb2\xd9\xb9\xcc\xb1\xe2";
-			strcpy(desc, p);
-		}
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pItem->m_icon);
+		pPlace = "\xBC\xD2\xC0\xAF\xC0\xA7\xC4\xA1: \xB3\xBB\xBF\xCA\xC0\xE5 > \xC4\xB3\xB8\xAF\xC5\xCD \xB2\xD9\xB9\xCC\xB1\xE2";
+		strcpy(where, pPlace);
 		break;
-	case 16:
-		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pCommon->Icon);
-		{
-			const char* p =
-				"\xbc\xd2\xc0\xaf\xc0\xa7\xc4\xa1: \xbe\xc6\xc0\xcc\xc5\xdb\xbc\xa5 > \xb0\xd4\xc0\xd3 \xbe\xc6\xc0\xcc\xc5\xdb \xbc\xa5";
-			strcpy(desc, p);
-		}
+
+	case 13:
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pItem->m_icon);
+		pPlace = "\xBC\xD2\xC0\xAF\xC0\xA7\xC4\xA1: \xBE\xC6\xC0\xCC\xC5\xDB\xBC\xA5 > \xB0\xD4\xC0\xD3 \xBE\xC6\xC0\xCC\xC5\xDB \xBC\xA5";
+		strcpy(where, pPlace);
 		break;
+
 	case 28:
-		pBitmap = g_pFresh->GetManager()->GetBitmap("AUXPART", pCommon->Icon);
-		{
-			const char* p =
-				"\xbc\xd2\xc0\xaf\xc0\xa7\xc4\xa1: \xb3\xbb\xbf\xca\xc0\xe5 > \xc4\xb3\xb8\xaf\xc5\xcd \xb2\xd9\xb9\xcc\xb1\xe2";
-			strcpy(desc, p);
-		}
+		pBitmap = g_pFresh->GetManager()->GetBitmap("AUXPART", pItem->m_icon);
+		pPlace = "\xBC\xD2\xC0\xAF\xC0\xA7\xC4\xA1: \xB3\xBB\xBF\xCA\xC0\xE5 > \xC4\xB3\xB8\xAF\xC5\xCD \xB2\xD9\xB9\xCC\xB1\xE2";
+		strcpy(where, pPlace);
 		break;
-	default:
-		goto draw_text;
 	}
 
-	if (pBitmap)
-	{
-		WRect rect(pItem->pos.x + 10.0f,
-			(m_pItemList->GetItemHeight() - pBitmap->Height()) * 0.5f +
-				pItem->pos.y,
-			(float)pBitmap->Width(), (float)pBitmap->Height());
-		pGDI->DrawTexture(pBitmap, rect, 0xffffffff, 0);
+	if (pBitmap) {
+		pGDI->DrawTexture(pBitmap, WRect(pListItem->pos.x + 10.0f, pListItem->pos.y + (m_pItemList->GetItemHeight() - pBitmap->Height()) * 0.5f, pBitmap->Width(), pBitmap->Height()), 0xFFFFFFFF, 0);
 	}
 
-draw_text:
 	pGDI->SetTextStyle(1);
 
-	if ((pFortune->typeId & 0xfc000000) == 0x8000000)
-	{
-		IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(
-			((pFortune->typeId >> 18) & 0xff) | 0x4000000);
-		pGDI->Print(WPoint(pItem->pos.x + 80.0f, pItem->pos.y + 10.0f), 0,
-			"%s(%s)", pCommon->Name, pChar ? pChar->c.Name : "");
-	}
-	else
-	{
-		pGDI->Print(WPoint(pItem->pos.x + 80.0f, pItem->pos.y + 10.0f), 0,
-			pCommon->Name);
+	if ((pFortune->m_typeId & 0xFC000000) == 0x8000000) {
+		IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(((pFortune->m_typeId >> 18) & 0xFF) | 0x4000000);
+		pGDI->Print(WPoint(pListItem->pos.x + 80.0f, pListItem->pos.y + 10.0f), 0, "%s(%s)", pItem->m_name, pChar ? pChar->m_name : "");
+	} else {
+		pGDI->Print(WPoint(pListItem->pos.x + 80.0f, pListItem->pos.y + 10.0f), 0, pItem->m_name);
 	}
 
 	pGDI->SetTextStyle(0);
-	pGDI->Print(WPoint(pItem->pos.x + 80.0f, pItem->pos.y + 33.0f), 0,
-		"\xb0\xb9   \xbc\xf6: %d\xb0\xb3", pFortune->count);
-	pGDI->Print(WPoint(pItem->pos.x + 80.0f, pItem->pos.y + 50.0f), 0, desc);
+	pGDI->Print(WPoint(pListItem->pos.x + 80.0f, pListItem->pos.y + 33.0f), 0, "\xB0\xB9   \xBC\xF6: %d\xB0\xB3", pFortune->m_count);
+	pGDI->Print(WPoint(pListItem->pos.x + 80.0f, pListItem->pos.y + 50.0f), 0, where);
 }
 
-void FrFortuneOpenDlg::OnTotalPriceInit(int param)
-{
-	m_pTotalPrice = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// fortuneopendlg.cpp:581
+void FrFortuneOpenDlg::OnTotalPriceInit(intptr_t param) {
+	m_pTotalPrice = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrFortuneOpenDlg::OnDescItemsInit(int param)
-{
-	m_pDescItems = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
+// fortuneopendlg.cpp:586
+void FrFortuneOpenDlg::OnDescItemsInit(intptr_t param) {
+	m_pDescItems = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrFortuneOpenDlg::SetItemList(unsigned long* items, int num)
-{
-	std::list<sFortune>::iterator it;
+// fortuneopendlg.cpp:591
+void FrFortuneOpenDlg::SetItemList(unsigned long* pTypeIds, int count) {
+	m_fortunes.clear();
 
-	m_fortuneList.clear();
+	short quantity;
+	for (int i = 0; i < count; i++) {
+		std::list<sFortune>::iterator it = std::find(m_fortunes.begin(), m_fortunes.end(), pTypeIds[i]);
 
-	short count;
-	for (int i = 0; i < num; i++)
-	{
-		it = std::find(m_fortuneList.begin(), m_fortuneList.end(), items[i]);
-
-		switch (items[i] >> 26)
-		{
-		case 5:
-		{
-			IFF_STRUCT::sBall* pBall = ItemManager()->FindBall(items[i]);
-			if (pBall)
-				count = pBall->COM[0];
+		switch (pTypeIds[i] >> 26) {
+		case 5: {
+			IFF_STRUCT::sBall* pBall = ItemManager()->FindBall(pTypeIds[i]);
+			if (pBall) {
+				quantity = pBall->quantity;
+			}
 			break;
 		}
+
 		case 6:
-			if (items[i] & 0x2000000)
-			{
-				IFF_STRUCT::sItem* pItem = ItemManager()->FindItem(items[i]);
-				if (pItem)
-					count = pItem->COM[0];
+			if (pTypeIds[i] & 0x2000000) {
+				IFF_STRUCT::sItem* pData = ItemManager()->FindItem(pTypeIds[i]);
+				if (pData) {
+					quantity = pData->quantity;
+				}
+				break;
 			}
-			else
-			{
-				count = 1;
-			}
+			quantity = 1;
 			break;
+
 		default:
-			count = 1;
+			quantity = 1;
 			break;
 		}
 
-		if (it == m_fortuneList.end())
-		{
+		if (it == m_fortunes.end()) {
 			sFortune fortune;
-			fortune.typeId = items[i];
-			fortune.count = count;
-			m_fortuneList.push_back(fortune);
-		}
-		else
-		{
-			(*it).count += count;
+			fortune.m_typeId = pTypeIds[i];
+			fortune.m_count = quantity;
+			m_fortunes.push_back(fortune);
+		} else {
+			it->m_count += quantity;
 		}
 	}
 
-	int total = 0;
-	if (m_pItemList)
-	{
-		for (std::list<sFortune>::iterator it = m_fortuneList.begin();
-			it != m_fortuneList.end(); ++it)
-		{
-			sFortune* pFortune = &(*it);
-			IFF_ITEM_COMMON* pCommon =
-				ItemManager()->FindCommonItem(pFortune->typeId);
+	int totalPrice = 0;
 
-			if ((pFortune->typeId >> 26) != 2 && pCommon && pCommon->IsCash)
-			{
-				if (pCommon->SalePrice == 0)
-				{
-					if ((pFortune->typeId >> 26) == 6 &&
-						!(pFortune->typeId & 0x2000000))
-					{
-						unsigned int unit = pCommon->Price * 10 / 10;
-						if (unit < 1)
-							unit = 1;
-						total += pFortune->count * unit;
-					}
-					else
-					{
-						switch (pFortune->typeId >> 26)
-						{
-						case 5:
-						{
-							IFF_STRUCT::sBall* pBall =
-								ItemManager()->FindBall(pFortune->typeId);
-							if (pBall)
-								total += pFortune->count * pCommon->Price * 10 /
-									pBall->COM[0];
-							break;
-						}
-						case 6:
-						{
-							IFF_STRUCT::sItem* pItem =
-								ItemManager()->FindItem(pFortune->typeId);
-							if (pItem)
-								total += pFortune->count * pCommon->Price * 10 /
-									pItem->COM[0];
-							break;
-						}
-						default:
-							total += pCommon->Price * 10;
-							break;
-						}
-					}
-				}
-				else
-				{
-					if ((pFortune->typeId >> 26) == 6 &&
-						!(pFortune->typeId & 0x2000000))
-					{
-						unsigned int unit = pCommon->SalePrice * 10 / 10;
-						if (unit < 1)
-							unit = 1;
-						total += pFortune->count * unit;
-					}
-					else
-					{
-						switch (pFortune->typeId >> 26)
-						{
-						case 5:
-						{
-							IFF_STRUCT::sBall* pBall =
-								ItemManager()->FindBall(pFortune->typeId);
-							if (pBall)
-								total += pFortune->count * pCommon->SalePrice *
-									10 / pBall->COM[0];
-							break;
-						}
-						case 6:
-						{
-							IFF_STRUCT::sItem* pItem =
-								ItemManager()->FindItem(pFortune->typeId);
-							if (pItem)
-								total += pFortune->count * pCommon->SalePrice *
-									10 / pItem->COM[0];
-							break;
-						}
-						default:
-							total += pCommon->SalePrice * 10;
-							break;
-						}
-					}
-				}
+	if (m_pItemList) {
+		for (std::list<sFortune>::iterator it = m_fortunes.begin(); it != m_fortunes.end(); ++it) {
+			sFortune* pFortune = &*it;
+			IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(pFortune->m_typeId);
 
-				m_pItemList->AddItem(pFortune);
+			if ((pFortune->m_typeId >> 26) == 2) {
+				continue;
 			}
+			if (pItem == 0) {
+				continue;
+			}
+			if ((pItem->m_flags0 & 1) == 0) {
+				continue;
+			}
+
+			if (pItem->m_discountPrice == 0) {
+				if ((pFortune->m_typeId >> 26) != 6 || (pFortune->m_typeId & 0x2000000) != 0) {
+					switch (pFortune->m_typeId >> 26) {
+					case 6: {
+						IFF_STRUCT::sItem* pData = ItemManager()->FindItem(pFortune->m_typeId);
+						if (pData) {
+							totalPrice += pFortune->m_count * pItem->m_price * 10 / pData->quantity;
+						}
+						break;
+					}
+
+					case 5: {
+						IFF_STRUCT::sBall* pBall = ItemManager()->FindBall(pFortune->m_typeId);
+						if (pBall) {
+							totalPrice += pFortune->m_count * pItem->m_price * 10 / pBall->quantity;
+						}
+						break;
+					}
+
+					default:
+						totalPrice += pItem->m_price * 10;
+						break;
+					}
+				} else {
+					unsigned long price = pItem->m_price * 10 / 10;
+					if (price < 1) {
+						price = 1;
+					}
+					totalPrice += pFortune->m_count * price;
+				}
+			} else {
+				if ((pFortune->m_typeId >> 26) != 6 || (pFortune->m_typeId & 0x2000000) != 0) {
+					switch (pFortune->m_typeId >> 26) {
+					case 6: {
+						IFF_STRUCT::sItem* pData = ItemManager()->FindItem(pFortune->m_typeId);
+						if (pData) {
+							totalPrice += pFortune->m_count * pItem->m_discountPrice * 10 / pData->quantity;
+						}
+						break;
+					}
+
+					case 5: {
+						IFF_STRUCT::sBall* pBall = ItemManager()->FindBall(pFortune->m_typeId);
+						if (pBall) {
+							totalPrice += pFortune->m_count * pItem->m_discountPrice * 10 / pBall->quantity;
+						}
+						break;
+					}
+
+					default:
+						totalPrice += pItem->m_discountPrice * 10;
+						break;
+					}
+				} else {
+					unsigned long price = pItem->m_discountPrice * 10 / 10;
+					if (price < 1) {
+						price = 1;
+					}
+					totalPrice += pFortune->m_count * price;
+				}
+			}
+
+			m_pItemList->AddItem(pFortune);
 		}
 
 		m_pItemList->SetKeyFocus(true);
 	}
 
-	if (m_pTotalPrice)
-	{
-		switch (m_typeId & 0x1ffffff)
-		{
-		case 25:
-		case 27:
-		case 144:
-			m_pTotalPrice->SetCaption(MakeStr(
-				"\xbe\xc6\xc0\xcc\xc5\xdb \xb0\xa1\xb0\xdd \xc7\xd5\xb0\xe8 : %d \xc4\xed\xc5\xb0",
-				total / 10));
+	if (m_pTotalPrice) {
+		switch (m_typeId & 0x1FFFFFF) {
+		case 0x19:
+		case 0x1B:
+		case 0x90:
+			m_pTotalPrice->SetCaption(MakeStr("\xBE\xC6\xC0\xCC\xC5\xDB \xB0\xA1\xB0\xDD \xC7\xD5\xB0\xE8 : %d \xC4\xED\xC5\xB0", totalPrice / 10));
 			break;
 		}
 	}
 }
 
-void FrFortuneOpenDlg::SetItemNewList(unsigned long* items, int num)
-{
-	m_fortuneList.clear();
+// fortuneopendlg.cpp:802
+void FrFortuneOpenDlg::SetItemNewList(unsigned long* pTypeIds, int count) {
+	m_fortunes.clear();
 
-	for (int i = 0; i < num; i++)
-	{
-		std::list<sFortune>::iterator it =
-			std::find(m_fortuneList.begin(), m_fortuneList.end(), items[i]);
+	for (int i = 0; i < count; i++) {
+		std::list<sFortune>::iterator it = std::find(m_fortunes.begin(), m_fortunes.end(), pTypeIds[i]);
 
 		short count = 1;
-		switch (items[i] >> 26)
-		{
+		switch (pTypeIds[i] >> 26) {
 		case 5:
 			count = 1;
 			break;
 		case 6:
 			count = 1;
 			break;
-		case 28:
+		case 0x1c:
 			count = 1;
 			break;
 		}
 
-		if (it == m_fortuneList.end())
-		{
+		if (it == m_fortunes.end()) {
 			sFortune fortune;
-			fortune.typeId = items[i];
-			fortune.count = count;
-			m_fortuneList.push_back(fortune);
-		}
-		else
-		{
-			(*it).count++;
+			fortune.m_typeId = pTypeIds[i];
+			fortune.m_count = count;
+			m_fortunes.push_back(fortune);
+		} else {
+			it->m_count++;
 		}
 	}
 
-	int total = 0;
-	if (m_pItemList)
-	{
-		for (std::list<sFortune>::iterator it = m_fortuneList.begin();
-			it != m_fortuneList.end(); ++it)
-		{
-			sFortune* pFortune = &(*it);
-			IFF_ITEM_COMMON* pCommon =
-				ItemManager()->FindCommonItem(pFortune->typeId);
-			if (pCommon)
-			{
-				if (pCommon->SalePrice == 0)
-				{
-					if ((pFortune->typeId >> 26) == 6 &&
-						!(pFortune->typeId & 0x2000000))
-					{
-						unsigned int unit = pCommon->Price * 10 / 10;
-						if (unit < 1)
-							unit = 1;
-						total += pFortune->count * unit;
-					}
-					else
-					{
-						switch (pFortune->typeId >> 26)
-						{
-						case 5:
-						{
-							IFF_STRUCT::sBall* pBall =
-								ItemManager()->FindBall(pFortune->typeId);
-							if (pBall)
-								total += pFortune->count * pCommon->Price * 10 /
-									pBall->COM[0];
-							break;
-						}
-						case 6:
-						{
-							IFF_STRUCT::sItem* pItem =
-								ItemManager()->FindItem(pFortune->typeId);
-							if (pItem)
-								total += pFortune->count * pCommon->Price * 10 /
-									pItem->COM[0];
-							break;
-						}
-						default:
-							total += pCommon->Price * 10;
-							break;
-						}
-					}
-				}
-				else
-				{
-					if ((pFortune->typeId >> 26) == 6 &&
-						!(pFortune->typeId & 0x2000000))
-					{
-						unsigned int unit = pCommon->SalePrice * 10 / 10;
-						if (unit < 1)
-							unit = 1;
-						total += pFortune->count * unit;
-					}
-					else
-					{
-						switch (pFortune->typeId >> 26)
-						{
-						case 5:
-						{
-							IFF_STRUCT::sBall* pBall =
-								ItemManager()->FindBall(pFortune->typeId);
-							if (pBall)
-								total += pFortune->count * pCommon->SalePrice *
-									10 / pBall->COM[0];
-							break;
-						}
-						case 6:
-						{
-							IFF_STRUCT::sItem* pItem =
-								ItemManager()->FindItem(pFortune->typeId);
-							if (pItem)
-								total += pFortune->count * pCommon->SalePrice *
-									10 / pItem->COM[0];
-							break;
-						}
-						default:
-							total += pCommon->SalePrice * 10;
-							break;
-						}
-					}
-				}
-
-				m_pItemList->AddItem(pFortune);
+	if (m_pItemList) {
+		for (std::list<sFortune>::iterator it = m_fortunes.begin(); it != m_fortunes.end(); ++it) {
+			IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(it->m_typeId);
+			if (pItem == 0) {
+				continue;
 			}
+
+			// Both arms are the same (the price sums of SetItemList are gone); the
+			// compiler merges them and keeps only the m_discountPrice compare.
+			if (pItem->m_discountPrice == 0) {
+				unsigned long typeId = it->m_typeId;
+				unsigned long type = typeId >> 26;
+				if (type != 6 || (typeId & 0x2000000) != 0) {
+					switch (type) {
+					case 6:
+						ItemManager()->FindItem(typeId);
+						break;
+					case 5:
+						ItemManager()->FindBall(typeId);
+						break;
+					}
+				}
+			} else {
+				unsigned long typeId = it->m_typeId;
+				unsigned long type = typeId >> 26;
+				if (type != 6 || (typeId & 0x2000000) != 0) {
+					switch (type) {
+					case 6:
+						ItemManager()->FindItem(typeId);
+						break;
+					case 5:
+						ItemManager()->FindBall(typeId);
+						break;
+					}
+				}
+			}
+
+			m_pItemList->AddItem(&*it);
 		}
 
 		m_pItemList->SetKeyFocus(true);
 	}
 }
 
-void FrFortuneOpenDlg::SetTypeId(unsigned long typeId)
-{
+// fortuneopendlg.cpp:930
+void FrFortuneOpenDlg::SetTypeId(unsigned long typeId) {
 	m_typeId = typeId;
 
-	IFF_ITEM_COMMON* pCommon = ItemManager()->FindCommonItem(typeId);
-	if (m_pDescItems && pCommon)
-		m_pDescItems->SetCaption(MakeStr(
-			"%s \xc0\xbb(\xb8\xa6) \xbf\xad\xbe\xee \xb4\xd9\xc0\xbd\xb0\xfa \xb0\xb0\xc0\xba \xbe\xc6\xc0\xcc\xc5\xdb\xb5\xe9\xc0\xbb \xc8\xb9\xb5\xe6\xc7\xdf\xbd\xc0\xb4\xcf\xb4\xd9.",
-			pCommon->Name));
+	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(typeId);
+
+	if (m_pDescItems && pItem) {
+		m_pDescItems->SetCaption(MakeStr("%s \xC0\xBB(\xB8\xA6) \xBF\xAD\xBE\xEE \xB4\xD9\xC0\xBD\xB0\xFA \xB0\xB0\xC0\xBA \xBE\xC6\xC0\xCC\xC5\xDB\xB5\xE9\xC0\xBB \xC8\xB9\xB5\xE6\xC7\xDF\xBD\xC0\xB4\xCF\xB4\xD9.", pItem->m_name));
+	}
 }

@@ -1,28 +1,47 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\specialbox.h
+#ifndef PG_CLIENT_PROJECTG_SPECIALBOX_H
+#define PG_CLIENT_PROJECTG_SPECIALBOX_H
 
+#include "..\..\defines.h"
 #include "gatewayinterface.h"
 
-namespace _gateway
-{
-	class FrSpecialBoxDlg;
+class FrForm;
 
-	class CSpecialBoxHandler : public CGatewayHandler
-	{
-	public:
-		CSpecialBoxHandler() { }
-		virtual ~CSpecialBoxHandler() { }
+namespace _gateway {
 
-		virtual bool Initialize();
-		virtual bool Execute(const MsgObject& msg);
+class FrSpecialBoxDlg;
 
-	protected:
-		bool OnSpecialBoxCloseCallback(int result, FrForm* pForm);
+// Handler of the special-box gateway content: CGatewayHandler (0x1C bytes),
+// then the box dialog it opens (cleared by the dialog's close callback).
+class CSpecialBoxHandler : public CGatewayHandler {
+	LAYOUT_CHECK_FRIEND;
 
-	private:
-		void OnReqOpenBox();
-		void OnReqWarningMsg(int param);
-		bool VerifyHaveKeyItem();
+public:
+	// specialbox.h:14
+	CSpecialBoxHandler(void) {}
+	// specialbox.h:15
+	virtual ~CSpecialBoxHandler(void) {}
 
-		FrSpecialBoxDlg* m_pSpecialBoxDlg;
-	};
+	virtual bool Initialize(void);
+	virtual bool Execute(const MsgObject& msg);
+
+protected:
+	bool OnSpecialBoxCloseCallback(int result, FrForm* pForm);
+
+private:
+	void OnReqOpenBox(void);
+	void OnReqWarningMsg(intptr_t param);
+	bool VerifyHaveKeyItem(void);
+
+	FrSpecialBoxDlg* m_pSpecialBoxDlg; // 0x1C, set by OnReqOpenBox and OnReqWarningMsg
+};
+
+CHECK_SIZE(CSpecialBoxHandler, 0x20);
+
 }
+
+BEGIN_LAYOUT_CHECK(_gateway::CSpecialBoxHandler)
+	CHECK_FIELD(_gateway::CSpecialBoxHandler, m_pSpecialBoxDlg, 0x1C);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_SPECIALBOX_H

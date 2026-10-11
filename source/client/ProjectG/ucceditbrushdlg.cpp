@@ -1,242 +1,261 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\ucceditbrushdlg.cpp
 #include "ucceditbrushdlg.h"
+#include "ObjectFactory.h"
+#include "frarea.h"
+#include "UccLibrary.h"
 #include "fresh.h"
 #include "frwndmanager.h"
-#include "frarea.h"
-#include "inputmanager.h"
+#include "InputManager.h"
+#include "../client/Wangreal/include/wtypes.h"
+#include <stdlib.h>
 
-extern Fresh* g_pFresh;
-
-CUccEditBrush::CUccEditBrush()
-{
+// ucceditbrushdlg.cpp:12
+CUccEditBrush::CUccEditBrush(void) {
 }
 
-CUccEditBrush::~CUccEditBrush()
-{
+// ucceditbrushdlg.cpp:16
+CUccEditBrush::~CUccEditBrush(void) {
 }
 
-void CUccEditBrush::Process()
-{
+// ucceditbrushdlg.cpp:20
+void CUccEditBrush::Process(void) {
 	CUccBase::Process();
 
 	RefreshTexCache(m_pTexture);
 }
 
-void CUccEditBrush::DrawLine(IPoint from, IPoint to, Bitmap* brush)
-{
-	if (!brush)
+// ucceditbrushdlg.cpp:27
+void CUccEditBrush::DrawLine(IPoint from, IPoint to, Bitmap* pBrush) {
+	if (pBrush == NULL) {
 		return;
-
-	int ady = abs(to.y - from.y);
-	int adx = abs(to.x - from.x);
-	int steps = Max(adx, ady);
-
-	float sx = (float)(to.x - from.x) / steps;
-	float sy = (float)(to.y - from.y) / steps;
-	WPoint cur((float)from.x, (float)from.y);
-
-	while (true)
-	{
-		WPoint pos((float)((int)cur.x / 10 * 10 + 5),
-			(float)((int)cur.y / 10 * 10 + 5));
-		Draw((int)pos.x, (int)pos.y, brush, false);
-
-		if ((steps == adx && cur.x == to.x) || (steps == ady && cur.y == to.y))
-			break;
-
-		cur.x += sx;
-		cur.y += sy;
 	}
 
-	MustRefresh(4);
+	int length = abs(to.x - from.x) >= abs(to.y - from.y) ? abs(to.x - from.x) : abs(to.y - from.y);
+
+	float stepX = (float)(to.x - from.x) / length;
+	float stepY = (float)(to.y - from.y) / length;
+
+	WPoint pos;
+	pos.x = (float)from.x;
+	pos.y = (float)from.y;
+
+	while (true) {
+		// snap to the centre of the 10x10 cell of the magnified brush
+		WPoint pt((float)((int)pos.x / 10 * 10 + 5), (float)((int)pos.y / 10 * 10 + 5));
+		Draw((int)pt.x, (int)pt.y, pBrush, false);
+
+		if ((length == abs(to.x - from.x) && pos.x == to.x) || (length == abs(to.y - from.y) && pos.y == to.y)) {
+			break;
+		}
+
+		pos.x += stepX;
+		pos.y += stepY;
+	}
+
+	m_refreshFlags |= 4;
 }
 
-Bitmap* CUccEditBrush::GetTexture32BPP()
-{
+// ucceditbrushdlg.cpp:67
+Bitmap* CUccEditBrush::GetTexture32BPP(void) {
 	Convert24to32(m_pTexture, m_pTexture32, NULL);
 	return m_pTexture32;
 }
 
-Bitmap* CUccEditBrush::ProduceOriginalBrush()
-{
+// ucceditbrushdlg.cpp:73
+Bitmap* CUccEditBrush::ProduceOriginalBrush(void) {
+	unsigned char r, g, b;
+
 	m_originalBrush.Create(24, 24, 32);
 
-	for (int y = 0; y < 24; y++)
-	{
-		for (int x = 0; x < 24; x++)
-		{
-			BYTE r, g, b;
-			m_pTexture->GetPixel(x * 10, y * 10, r, g, b);
-			m_originalBrush.SetPixel(x, y, r, g, b, 0xff);
+	int destY = 0;
+	for (int y = 0; y < 240; y += 10) {
+		int destX = 0;
+		for (int x = 0; x < 240; x += 10) {
+			m_pTexture->GetPixel(x, y, r, g, b);
+			m_originalBrush.SetPixel(destX, destY, r, g, b, 0xff);
+			destX++;
 		}
+		destY++;
 	}
 
 	return &m_originalBrush;
 }
 
-IMPLEMENT_OBJECT(FrUccEditBrushDlg, FrForm)
+// ucceditbrushdlg.cpp:95 (run-time type and factory registration of FrUccEditBrushDlg)
+const WRTTI FrUccEditBrushDlg::m_RTTI("FrUccEditBrushDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrUccEditBrushDlg, FrForm)
+IObject* FrUccEditBrushDlgMakeInstance(void) {
+	return new FrUccEditBrushDlg;
+}
 
-ON_FRESH_VI("canvas", FRCMD_INIT, FrUccEditBrushDlg::OnCanvasInit)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrUccEditBrushDlg::OnOKBtnUp)
-ON_FRESH_VV("cancel", FRCMD_LBUTTONUP, FrUccEditBrushDlg::OnCancelBtnUp)
+struct __sFrUccEditBrushDlg {
+	__sFrUccEditBrushDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrUccEditBrushDlgMakeInstance, "FrUccEditBrushDlg");
+	}
+};
+static __sFrUccEditBrushDlg s_registerFrUccEditBrushDlg;
 
-END_FRESH_MSGMAP()
+// ucceditbrushdlg.cpp:97
+const sFRESH_MSGMAP* FrUccEditBrushDlg::GetMessageMap(void) const {
+	return &FrUccEditBrushDlg::_MsgMap;
+}
 
-FrUccEditBrushDlg::FrUccEditBrushDlg()
+// ucceditbrushdlg.cpp:98
+sFRESH_MSGMAP FrUccEditBrushDlg::_MsgMap = { &FrForm::_MsgMap, &FrUccEditBrushDlg::_MsgEntries[0] };
 
-{
-	m_index = -2;
+sFRESH_ENTRY FrUccEditBrushDlg::_MsgEntries[] = {
+	{ "canvas", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrUccEditBrushDlg::OnCanvasInit },
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrUccEditBrushDlg::OnOKBtnUp },
+	{ "cancel", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrUccEditBrushDlg::OnCancelBtnUp },
+
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// ucceditbrushdlg.cpp:107
+FrUccEditBrushDlg::FrUccEditBrushDlg(void) {
+	m_brushIndex = -2;
 	m_defaultBrush[0].Create(10, 10, 32);
 	m_defaultBrush[1].Create(10, 10, 32);
 
-	for (int y = 0; y < 10; y++)
-	{
-		for (int x = 0; x < 10; x++)
-		{
+	for (int y = 0; y < 10; y++) {
+		for (int x = 0; x < 10; x++) {
 			m_defaultBrush[0].SetPixel(x, y, 0, 0, 0, 0xff);
 			m_defaultBrush[1].SetPixel(x, y, 0xff, 0xff, 0xff, 0xff);
 		}
 	}
-	m_pCanvasImage = NULL;
+
+	m_pCanvasImage = 0;
 }
 
-FrUccEditBrushDlg::~FrUccEditBrushDlg()
-{
+// ucceditbrushdlg.cpp:128
+FrUccEditBrushDlg::~FrUccEditBrushDlg(void) {
 }
 
-void FrUccEditBrushDlg::InitNew()
-{
-	Bitmap* texture = new Bitmap(240, 240, 32);
-	for (int y = 0; y < 240; y++)
-	{
-		for (int x = 0; x < 240; x++)
-		{
-			texture->SetPixel(x, y, 0xff, 0xff, 0xff, 0xff);
+// ucceditbrushdlg.cpp:132
+void FrUccEditBrushDlg::InitNew(void) {
+	Bitmap* pTexture = new Bitmap(240, 240, 32);
+
+	for (int y = 0; y < 240; y++) {
+		for (int x = 0; x < 240; x++) {
+			pTexture->SetPixel(x, y, 0xff, 0xff, 0xff, 0xff);
 		}
 	}
 
-	m_editBrush.SetTexture(texture);
+	m_editBrush.SetTexture(pTexture);
 
-	if (texture)
-		delete texture;
+	delete pTexture;
 
 	m_pCanvasImage = m_editBrush.GetTexture();
+
 	m_pCanvas->SetBgImg(m_pCanvasImage);
 }
 
-void FrUccEditBrushDlg::InitModify()
-{
-	Bitmap* texture = new Bitmap(240, 240, 32);
-	Bitmap* brush = UccBrushList(m_type)->GetBrush(m_index);
-	if (!brush)
-	{
-		if (texture)
-			delete texture;
+// ucceditbrushdlg.cpp:158
+void FrUccEditBrushDlg::InitModify(void) {
+	unsigned char r, g, b;
+
+	Bitmap* pTexture = new Bitmap(240, 240, 32);
+	Bitmap* pBrush = UccBrushList(m_brushType)->GetBrush(m_brushIndex);
+	if (pBrush == NULL) {
+		delete pTexture;
 		return;
 	}
 
-	for (int y = 0; y < 24; y++)
-	{
-		for (int x = 0; x < 24; x++)
-		{
-			BYTE r, g, b;
-			brush->GetPixel(x, y, r, g, b);
-			for (int i = y * 10; i < y * 10 + 10; i++)
-			{
-				for (int j = x * 10; j < x * 10 + 10; j++)
-				{
-					texture->SetPixel(j, i, r, g, b, 0xff);
+	// each pixel of the 24x24 brush becomes a 10x10 cell of the canvas
+	for (int y = 0, srcY = 0; y < 240; srcY++, y += 10) {
+		for (int x = 0, srcX = 0; x < 240; srcX++, x += 10) {
+			pBrush->GetPixel(srcX, srcY, r, g, b);
+
+			for (int destY = y; destY < y + 10; destY++) {
+				for (int destX = x; destX < x + 10; destX++) {
+					pTexture->SetPixel(destX, destY, r, g, b, 0xff);
 				}
 			}
 		}
 	}
 
-	m_editBrush.SetTexture(texture);
-	if (texture)
-		delete texture;
+	m_editBrush.SetTexture(pTexture);
+
+	delete pTexture;
 
 	m_pCanvasImage = m_editBrush.GetTexture();
+
 	m_pCanvas->SetBgImg(m_pCanvasImage);
 }
 
-void FrUccEditBrushDlg::SetIndex(eBrushType type, int index)
-{
-	if (m_index != -2)
-		return;
-
-	m_index = index;
-	m_type = type;
-
-	if (m_index == -1)
-		InitNew();
-	else
-
-		InitModify();
+// ucceditbrushdlg.cpp:200
+void FrUccEditBrushDlg::SetIndex(eBrushType type, int index) {
+	if (m_brushIndex == -2) {
+		m_brushIndex = index;
+		m_brushType = type;
+		if (m_brushIndex == -1) {
+			InitNew();
+		} else {
+			InitModify();
+		}
+	}
 }
 
-void FrUccEditBrushDlg::OnCanvasInit(int param)
-{
-	m_pCanvas = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// ucceditbrushdlg.cpp:217
+void FrUccEditBrushDlg::OnCanvasInit(intptr_t param) {
+	m_pCanvas = DYNAMIC_CAST(FrArea, param);
 	m_editBrush.SetArea(m_pCanvas);
 }
 
-void FrUccEditBrushDlg::OnOKBtnUp()
-{
-	if (m_index != -2)
-	{
-		Bitmap* brush = m_editBrush.ProduceOriginalBrush();
+// ucceditbrushdlg.cpp:223
+void FrUccEditBrushDlg::OnOKBtnUp(void) {
+	if (m_brushIndex != -2) {
+		Bitmap* pBrush = m_editBrush.ProduceOriginalBrush();
 
 		GetGDI();
 
-		if (m_index == -1)
-		{
-			UccBrushList(m_type)->AddBrush(brush);
-		}
-		else
-		{
-			UccBrushList(m_type)->SetBrush(m_index, brush);
+		if (m_brushIndex == -1) {
+			UccBrushList(m_brushType)->AddBrush(pBrush);
+		} else {
+			UccBrushList(m_brushType)->SetBrush(m_brushIndex, pBrush);
 
-			RefreshTexCache(UccBrushList(m_type)->GetBrush(m_index));
+			RefreshTexCache(UccBrushList(m_brushType)->GetBrush(m_brushIndex));
 		}
 	}
 
 	OnFreshOkay();
 }
 
-void FrUccEditBrushDlg::OnCancelBtnUp()
-{
+// ucceditbrushdlg.cpp:245
+void FrUccEditBrushDlg::OnCancelBtnUp(void) {
 	OnFreshCancel();
 }
 
-void FrUccEditBrushDlg::OnProc(const float dt)
-{
-	CUccEditBrush* pBrush = &m_editBrush;
-	const WPoint& mousePos = g_pFresh->GetManager()->GetMousePos();
+// ucceditbrushdlg.cpp:250
+void FrUccEditBrushDlg::OnProc(const float dt) {
+	const WPoint& mouse = g_pFresh->GetManager()->GetMousePos();
 
-	if (pBrush->IsMouseOver(mousePos))
-	{
-		WRect rect = m_pCanvas->GetRect();
+	if (m_editBrush.IsMouseOver(mouse)) {
+		const WRect& rc = m_pCanvas->GetRect();
 
-		WPoint pos((float)((int)(mousePos.x - rect.x) / 10) * 10.0f + rect.x +
-				5.0f,
-			(float)((int)(mousePos.y - rect.y) / 10) * 10.0f + rect.y + 5.0f);
+		float left = rc.x, top = rc.y;
 
-		if (g_input->GetButton(LEFT_BUTTON) > 0)
-		{
-			pBrush->SetDefaultBrush(&m_defaultBrush[0]);
+		// snap to the centre of the 10x10 cell under the mouse
+		WPoint pt;
+		pt.x = (int)(mouse.x - left) / 10 * 10.0f + left + 5.0f;
+		pt.y = (int)(mouse.y - top) / 10 * 10.0f + top + 5.0f;
 
-			pBrush->MouseEventHandler(LEFT_BUTTON,
-				g_input->GetButton(LEFT_BUTTON), pos);
-		}
-		else if (g_input->GetButton(RIGHT_BUTTON) > 0)
-		{
-			pBrush->SetDefaultBrush(&m_defaultBrush[1]);
-			pBrush->MouseEventHandler(RIGHT_BUTTON,
-				g_input->GetButton(RIGHT_BUTTON), pos);
+		if (g_input->GetButton(LEFT_BUTTON) > 0) {
+			m_editBrush.SetDefaultBrush(&m_defaultBrush[0]);
+			m_editBrush.MouseEventHandler(LEFT_BUTTON, g_input->GetButton(LEFT_BUTTON), pt);
+		} else if (g_input->GetButton(RIGHT_BUTTON) > 0) {
+			m_editBrush.SetDefaultBrush(&m_defaultBrush[1]);
+			m_editBrush.MouseEventHandler(RIGHT_BUTTON, g_input->GetButton(RIGHT_BUTTON), pt);
 		}
 	}
 
-	pBrush->Process();
+	m_editBrush.Process();
+}
+
+// ucceditbrushdlg.h:28
+void CUccEditBrush::Refresh2D(void) {
+}
+
+// ucceditbrushdlg.h:29
+void CUccEditBrush::Refresh3D(void) {
 }

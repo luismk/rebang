@@ -1,83 +1,81 @@
-#include "minatl.h"
-#include "threadload.h"
-#include <process.h>
+// Original: d:\build\custom\temp\code\client\projectg\threadload.cpp
+#include <windows.h>
 #include <mmsystem.h>
+#include <process.h>
+#include <string.h>
 
-sParam g_loadParam = { 0 };
+#include "ThreadLoad.h"
+#include "wresrcmng.h"
 
-CThreadLoad::CThreadLoad()
-	: m_hThread(NULL)
-{
-	g_loadParam.result = NULL;
-	g_loadParam.bComplete = true;
+template <> CThreadLoad* WSingleton<CThreadLoad>::m_pInstance = NULL;
+
+sParam g_loadParam;
+
+// threadload.cpp:19
+CThreadLoad::CThreadLoad(void) : m_hThread(NULL) {
+	g_loadParam.result.pPuppet = NULL;
+	g_loadParam.bLoaded = true;
 }
 
-CThreadLoad::~CThreadLoad()
-{
-	if (m_hThread)
-	{
+// threadload.cpp:25
+CThreadLoad::~CThreadLoad(void) {
+	if (m_hThread != NULL) {
 		CloseHandle(m_hThread);
 		m_hThread = NULL;
 	}
 }
 
-unsigned int __stdcall ThreadProc(void* pParam)
-{
-	sParam* p = (sParam*)pParam;
+// threadload.cpp:34
+unsigned int __stdcall ThreadProc(void* param) {
+	sParam* loadParam = (sParam*)param;
 
-	switch (p->type)
-	{
-	case LOAD_PUPPET:
-		p->result = g_resrcmng->GetPuppet(p->filename, false, true, false);
+	switch (loadParam->type) {
+	case THREADLOAD_PUPPET:
+		loadParam->result.pPuppet = g_resrcmng->GetPuppet(loadParam->name, false, true, false);
 		break;
 
-	case LOAD_TEXTURE:
-		p->result = (void*)g_resrcmng->LoadTexture(p->filename, 0, 0, NULL);
+	case THREADLOAD_TEXTURE:
+		loadParam->result.texture = g_resrcmng->LoadTexture(loadParam->name, 0, 0, NULL);
 		break;
 
-	case LOAD_OVERLAY:
-		p->result = g_resrcmng->GetOverlay(p->filename, 0);
-		break;
-	default:
+	case THREADLOAD_OVERLAY:
+		loadParam->result.pOverlay = g_resrcmng->GetOverlay(loadParam->name, 0);
 		break;
 	}
 
-	g_loadParam.bComplete = true;
+	g_loadParam.bLoaded = true;
 
 	return 0;
 }
 
-void CThreadLoad::LoadPuppet(const char* filename)
-{
-	Load(filename, LOAD_PUPPET);
+// threadload.cpp:62
+void CThreadLoad::LoadPuppet(const char* name) {
+	Load(name, THREADLOAD_PUPPET);
 }
 
-void CThreadLoad::LoadTexture(const char* filename)
-{
-	Load(filename, LOAD_TEXTURE);
+// threadload.cpp:68
+void CThreadLoad::LoadTexture(const char* name) {
+	Load(name, THREADLOAD_TEXTURE);
 }
 
-void CThreadLoad::LoadOverlay(const char* filename)
-{
-	Load(filename, LOAD_OVERLAY);
+// threadload.cpp:73
+void CThreadLoad::LoadOverlay(const char* name) {
+	Load(name, THREADLOAD_OVERLAY);
 }
 
-void CThreadLoad::Load(const char* filename, int type)
-{
-	strcpy(g_loadParam.filename, filename);
-	g_loadParam.result = NULL;
+// threadload.cpp:78
+void CThreadLoad::Load(const char* name, int type) {
+	strcpy(g_loadParam.name, name);
+	g_loadParam.result.pPuppet = NULL;
 	g_loadParam.type = type;
-	g_loadParam.bComplete = false;
-	if (g_loadParam.bComplete)
-		StopLoading();
+	g_loadParam.bLoaded = false;
 	g_loadParam.startTime = timeGetTime();
 
 	unsigned int threadId;
-	m_hThread =
-		(HANDLE)_beginthreadex(NULL, 0, ThreadProc, &g_loadParam, 0, &threadId);
+	m_hThread = (HANDLE)_beginthreadex(NULL, 0, ThreadProc, &g_loadParam, 0, &threadId);
 
-	if (m_hThread == NULL)
-	{
+	if (m_hThread == NULL) {
+		// "_beginthreadex() Failed", caption "경고" (warning, EUC-KR)
 		MessageBoxA(NULL, "_beginthreadex() Failed", "\xb0\xe6\xb0\xed", MB_OK);
 		return;
 	}
@@ -85,11 +83,10 @@ void CThreadLoad::Load(const char* filename, int type)
 	SetThreadPriority(m_hThread, THREAD_PRIORITY_BELOW_NORMAL);
 }
 
-void CThreadLoad::StopLoading()
-{
-	DWORD exitCode;
-	if (m_hThread)
-	{
+// threadload.cpp:104
+void CThreadLoad::StopLoading(void) {
+	if (m_hThread != NULL) {
+		DWORD exitCode;
 		GetExitCodeThread(m_hThread, &exitCode);
 		ExitThread(exitCode);
 	}

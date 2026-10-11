@@ -1,192 +1,444 @@
-#include "minatl.h"
-#include "titles_client.h"
-#include "../../shared/sharedtitledoc.inl"
+// Original: d:\build\custom\temp\code\client\projectg\titles_client.cpp
+#include "Titles_Client.h"
+#include "SharedDoc.h"
+#include "../shared/TitleManager.h"
+#include "../shared/SharedTitleDoc.inl"
 
-void RegisterTitles(TitleManager* titlemanager)
-{
-	titlemanager->Register(TITLE_PANGYASHOT, new Title21);
-	titlemanager->Register(TITLE_STRAIGHTROAD, new Title22);
-	titlemanager->Register(TITLE_GREENMASTER, new Title23);
-	titlemanager->Register(TITLE_COURSEMASTER, new Title24);
-	titlemanager->Register(TITLE_GOLD, new Title25);
-	titlemanager->Register(TITLE_SILVER, new Title26);
-	titlemanager->Register(TITLE_BRONZE, new Title27);
-	titlemanager->Register(TITLE_MANNERANGEL, new Title28);
-	titlemanager->Register((eTitle)357, new Title357);
-	titlemanager->Register((eTitle)358, new Title358);
-	titlemanager->Register((eTitle)359, new Title359);
-	titlemanager->Register((eTitle)360, new Title360);
-	titlemanager->Register((eTitle)361, new Title361);
-}
 
-IMPLEMENT_TITLE(21)
-{
-	if (!CheckLevel(Doc()->m_myInfo.stat.Level, BEGINNER_E))
+// titles_client.cpp:48
+class Title21 : public Title {
+public: virtual bool CanEquip() {
+	if (WSingleton<CSharedDoc>::Instance()->m_myLevel < 6)
 	{
 		return false;
 	}
 
-	if (!CheckPangyaPercent(Doc()->m_myInfo.stat.dwPangya,
-			Doc()->m_myInfo.stat.dwDrive, 70))
+	if (CheckPangyaPercent(WSingleton<CSharedDoc>::Instance()->m_myStatPangyas, WSingleton<CSharedDoc>::Instance()->m_myStatShots, 70.0f))
+	{
+		return true;
+	}
+	return false;
+} };
+
+// titles_client.cpp:63
+class Title22 : public Title {
+public: virtual bool CanEquip() {
+	if (WSingleton<CSharedDoc>::Instance()->m_myLevel < 6)
+	{
+		return false;
+	}
+
+	if (CheckFairawayPercent(WSingleton<CSharedDoc>::Instance()->m_myStatFairways, WSingleton<CSharedDoc>::Instance()->m_myStatDrives, WSingleton<CSharedDoc>::Instance()->m_myStatPar3Drives, 70.0f))
+	{
+		return true;
+	}
+	return false;
+} };
+// titles_client.cpp:77
+class Title23 : public Title {
+public: virtual bool CanEquip() {
+	if (WSingleton<CSharedDoc>::Instance()->m_myLevel < 6)
+	{
+		return false;
+	}
+
+	if (CheckPuttinPercent(WSingleton<CSharedDoc>::Instance()->m_myStatPuttsSunk, WSingleton<CSharedDoc>::Instance()->m_myStatPuttAttempts, 80.0f))
+	{
+		return true;
+	}
+	return false;
+} };
+
+// titles_client.cpp:92
+class Title24 : public Title { public: virtual bool CanEquip(); };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// titles_client.cpp:126
+class Title25 : public Title {
+public: virtual bool CanEquip() {
+	if (CheckGoldMedal(WSingleton<CSharedDoc>::Instance()->m_myTrophy, 10))
+	{
+		return true;
+	}
+	return false;
+} };
+
+// titles_client.cpp:136
+class Title26 : public Title {
+public: virtual bool CanEquip() {
+	if (CheckSilverMedal(WSingleton<CSharedDoc>::Instance()->m_myTrophy, 10))
+	{
+		return true;
+	}
+	return false;
+} };
+
+// titles_client.cpp:146
+class Title27 : public Title {
+public: virtual bool CanEquip() {
+	if (CheckBronzeMedal(WSingleton<CSharedDoc>::Instance()->m_myTrophy, 10))
+	{
+		return true;
+	}
+	return false;
+} };
+
+// titles_client.cpp:156
+class Title28 : public Title {
+public: virtual bool CanEquip() {
+	if (WSingleton<CSharedDoc>::Instance()->m_myLevel < 6)
+	{
+		return false;
+	}
+
+	if (CheckNoMannerPercent(WSingleton<CSharedDoc>::Instance()->m_myStatNoMannerGames, WSingleton<CSharedDoc>::Instance()->m_myStatGamesPlayed, 3.0f))
+	{
+		return true;
+	}
+	return false;
+} };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// titles_client.cpp:422
+class Title357 : public Title {
+public: virtual bool CanEquip() {
+	if (WSingleton<CSharedDoc>::Instance()->m_myPang < 1000000)
 	{
 		return false;
 	}
 	return true;
-}
-
-IMPLEMENT_TITLE(22)
-{
-	if (!CheckLevel(Doc()->m_myInfo.stat.Level, BEGINNER_E))
-	{
-		return false;
-	}
-
-	if (!CheckFairawayPercent(Doc()->m_myInfo.stat.dwFairway,
-			Doc()->m_myInfo.stat.dwHole, Doc()->m_myInfo.stat.dwMatchHole, 70))
+} };
+// titles_client.cpp:431
+class Title358 : public Title {
+public: virtual bool CanEquip() {
+	if (WSingleton<CSharedDoc>::Instance()->m_myPang < 3000000)
 	{
 		return false;
 	}
 	return true;
-}
-
-IMPLEMENT_TITLE(23)
-{
-	if (!CheckLevel(Doc()->m_myInfo.stat.Level, BEGINNER_E))
-	{
-		return false;
-	}
-
-	if (!CheckPuttinPercent(Doc()->m_myInfo.stat.dwPuttIn,
-			Doc()->m_myInfo.stat.dwPutt, 80))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-IMPLEMENT_TITLE(24)
-{
-	std::map<unsigned char, sMapStatistics> MapStat;
-	MapStat.clear();
-
-	std::map<unsigned long, sUserInfoTime>::iterator it;
-	int find = Doc()->FindUserInfoTimeUID(MyUID(), it);
-	if (find)
-	{
-		sUserInfoTime* pInfo = &it->second;
-		if (pInfo)
-		{
-			sMapStatistics* pMapStat = pInfo->oldSeason.classicMapStat;
-			if (pMapStat)
-			{
-				for (int i = 0; i < 20; i++)
-				{
-					if (pMapStat[i].cBestScore != 127)
-					{
-						MapStat[i] = pMapStat[i];
-					}
-				}
-			}
-		}
-	}
-
-	if (!CheckCourseMaster(Doc()->m_myInfo, Doc()->GetMyPastMapStat(0),
-			MapStat))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-IMPLEMENT_TITLE(25)
-{
-	if (!CheckGoldMedal(Doc()->m_myInfo.trophy, 10))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-IMPLEMENT_TITLE(26)
-{
-	if (!CheckSilverMedal(Doc()->m_myInfo.trophy, 10))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-IMPLEMENT_TITLE(27)
-{
-	if (!CheckBronzeMedal(Doc()->m_myInfo.trophy, 10))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-IMPLEMENT_TITLE(28)
-{
-	if (!CheckLevel(Doc()->m_myInfo.stat.Level, BEGINNER_E))
-	{
-		return false;
-	}
-
-	if (!CheckNoMannerPercent(Doc()->m_myInfo.stat.dwNoMannerGameCount,
-			Doc()->m_myInfo.stat.dwGameCount, 3))
-	{
-		return false;
-	}
-
-	return true;
-}
-
-IMPLEMENT_TITLE(357)
-{
-	if (!CheckPang(Doc()->m_myInfo.stat.i64Pang, 1000000))
+} };
+// titles_client.cpp:440
+class Title359 : public Title {
+public: virtual bool CanEquip() {
+	if (WSingleton<CSharedDoc>::Instance()->m_myPang < 5000000)
 	{
 		return false;
 	}
 	return true;
-}
-
-IMPLEMENT_TITLE(358)
-{
-	if (!CheckPang(Doc()->m_myInfo.stat.i64Pang, 3000000))
+} };
+// titles_client.cpp:449
+class Title360 : public Title {
+public: virtual bool CanEquip() {
+	if (CheckHoleinCount(WSingleton<CSharedDoc>::Instance()->m_myStatHoleInOnes, 300))
 	{
-		return false;
+		return true;
 	}
-	return true;
-}
-
-IMPLEMENT_TITLE(359)
-{
-	if (!CheckPang(Doc()->m_myInfo.stat.i64Pang, 5000000))
+	return false;
+} };
+// titles_client.cpp:458
+class Title361 : public Title {
+public: virtual bool CanEquip() {
+	if (CheckHoleinCount(WSingleton<CSharedDoc>::Instance()->m_myStatHoleInOnes, 500))
 	{
-		return false;
+		return true;
 	}
-	return true;
-}
-
-IMPLEMENT_TITLE(360)
-{
-	if (!CheckHoleinCount(Doc()->m_myInfo.stat.wHoleInOne, 300))
-	{
-		return false;
-	}
-	return true;
-}
-
-IMPLEMENT_TITLE(361)
-{
-	if (!CheckHoleinCount(Doc()->m_myInfo.stat.wHoleInOne, 500))
-	{
-		return false;
-	}
-	return true;
+	return false;
+} };
+// The TitleNN classes are defined before RegisterTitles here (it news them);
+// the original line info puts RegisterTitles at line 8, ahead of them.
+// titles_client.cpp:8
+void RegisterTitles(TitleManager *manager) {
+	manager->Register(TITLE_21, new Title21);
+	manager->Register(TITLE_22, new Title22);
+	manager->Register(TITLE_23, new Title23);
+	manager->Register(TITLE_24, new Title24);
+	manager->Register(TITLE_25, new Title25);
+	manager->Register(TITLE_26, new Title26);
+	manager->Register(TITLE_27, new Title27);
+	manager->Register(TITLE_28, new Title28);
+	manager->Register(TITLE_357, new Title357);
+	manager->Register(TITLE_358, new Title358);
+	manager->Register(TITLE_359, new Title359);
+	manager->Register(TITLE_360, new Title360);
+	manager->Register(TITLE_361, new Title361);
 }

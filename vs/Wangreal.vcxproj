@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Visual Studio 2022 wrapper for the wangreal target.
+
+  This is a "Makefile" project on purpose: the build must be done by the original
+  VC7.1 compiler bundled in tools\VC7.1 (that is what makes the output match the
+  original binary), not by MSBuild's v143 toolset. The commands below call
+  build.cmd, which runs tools\build.py. Include paths / defines are only used for
+  IntelliSense and mirror build-wangreal.json.
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="ReleaseQA|Win32">
+      <Configuration>ReleaseQA</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{80AFB76B-3B1B-4C20-8040-C40186F31598}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+    <ProjectName>Wangreal</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseQA|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseQA|Win32'">
+    <OutDir>$(SolutionDir)build\wangreal\</OutDir>
+    <IntDir>$(SolutionDir)build\wangreal\vs\</IntDir>
+    <NMakeOutput>$(SolutionDir)build\wangreal\wangreal_ReleaseQA.dll</NMakeOutput>
+    <NMakeBuildCommandLine>"$(SolutionDir)build.cmd" -t wangreal build</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>"$(SolutionDir)build.cmd" -t wangreal rebuild</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>"$(SolutionDir)build.cmd" -t wangreal clean</NMakeCleanCommandLine>
+    <NMakePreprocessorDefinitions>NDEBUG;WIN32;_WINDOWS;_MBCS;WANGREAL_DEVICE;WANGREAL_DEVICE;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <NMakeIncludeSearchPath>$(SolutionDir)source\rebang;$(SolutionDir)tools\VC7.1\include;$(SolutionDir)tools\VC7.1\atlmfc\include;$(SolutionDir)tools\PlatformSDK-Aug2002\include;$(SolutionDir)tools\DirectX9\include;$(SolutionDir)source\client\Wangreal\include;$(SolutionDir)source\client\device;$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup />
+  <ItemGroup>
+    <ClCompile Include="..\source\client\device\device.cpp" />
+    <ClCompile Include="..\source\client\device\wd3d.cpp" />
+    <ClCompile Include="..\source\client\device\wd3d8.cpp" />
+    <ClCompile Include="..\source\client\device\wdinput\dikeyboard.cpp" />
+    <ClCompile Include="..\source\client\device\wdinput\dimouse.cpp" />
+    <ClCompile Include="..\source\client\device\wdinput\directinput.cpp" />
+    <ClCompile Include="..\source\client\device\wime\wime.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\baseobject.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\bitmap.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\freetype-2.2.1\freetype2.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\freetype-2.2.1\textout.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\freetype2.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\textout.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\w3danispr.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\w3dspr.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wavi.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wblockmodel.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wbone.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wbone_physics.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wboneset.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wdevmng.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wdxtc.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\westpak.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wfont.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wlock.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wmath.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wmathutil.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\woverlay.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wpuppet.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wreg.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wresrcmng.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wshadowview.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wtextureview.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wvideo.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wview.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wxpuppet.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\wxtnlbuffer.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\xunzip.cpp" />
+    <ClCompile Include="..\source\client\Wangreal\source\xzip.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\source\client\device\screencape.h" />
+    <ClInclude Include="..\source\client\device\wd3d.h" />
+    <ClInclude Include="..\source\client\device\wd3d8.h" />
+    <ClInclude Include="..\source\client\device\wdinput\dikeyboard.h" />
+    <ClInclude Include="..\source\client\device\wdinput\dimouse.h" />
+    <ClInclude Include="..\source\client\device\wdinput\directinput.h" />
+    <ClInclude Include="..\source\client\device\wime\wime.h" />
+    <ClInclude Include="..\source\client\device\wvideo.inl" />
+    <ClInclude Include="..\source\client\Wangreal\include\baseobject.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\bitmap.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\cfile.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\freetype2.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\ijl.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\list.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\rectmng.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\singleton.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\textout.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\w3danispr.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\w3dspr.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wavi.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wblockmodel.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wbone.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wboneset.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wboneset.inl" />
+    <ClInclude Include="..\source\client\Wangreal\include\wdevice.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wdevmng.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wdxtc.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\westpak.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wevent.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wflag.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wfont.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\winput.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\winput.inl" />
+    <ClInclude Include="..\source\client\Wangreal\include\wlist.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wlocalize.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wlock.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wmath.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wmath.inl" />
+    <ClInclude Include="..\source\client\Wangreal\include\wmathutil.inl" />
+    <ClInclude Include="..\source\client\Wangreal\include\wmemblock.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wmemblock.inl" />
+    <ClInclude Include="..\source\client\Wangreal\include\wmempak.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wmesh.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wminmax.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\woverlay.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wpetfile.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wproc.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wproc.inl" />
+    <ClInclude Include="..\source\client\Wangreal\include\wpuppet.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wpuppetutil.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wreg.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wresource.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wresrccache.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wresrcmng.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wscene.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wshadowview.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wsplash.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wtextureview.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wtypes.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wutil.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wvideo.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wview.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wxpuppet.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\wxtnlbuffer.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\xunzip.h" />
+    <ClInclude Include="..\source\client\Wangreal\include\xzip.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\source\client\device\device.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\build-wangreal.json" />
+    <None Include="..\tools\targets.json" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

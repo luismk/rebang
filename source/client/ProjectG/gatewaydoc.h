@@ -1,247 +1,155 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\gatewaydoc.h
+#ifndef PG_CLIENT_PROJECTG_GATEWAYDOC_H
+#define PG_CLIENT_PROJECTG_GATEWAYDOC_H
+
+#include "..\..\defines.h"
+#include "..\..\padding.h"
+#include "icontentsdoc.h"
 
 #include <vector>
 
-#include "contentsdoc.h"
-#include "gatewayinterface.h"
+// Enumerators not recovered yet.
+enum eSecondPasswordState {
+};
 
-enum eSecondPasswordState;
-class FrNoticeDlg;
+namespace _gateway {
 
-namespace _gateway
-{
-	class FrExplanePassword;
-	class FrPasswordInputDlg;
-	class FrSelectCertification;
-	class FrPasswordNotifyDlg;
-	class CGatewayControlDoc : public IContentsDataContainer
-	{
-	public:
-		CGatewayControlDoc();
-		virtual ~CGatewayControlDoc();
+class CGatewayHandler;
 
-		virtual CGatewayHandler* GetGatewayHandler() { return NULL; }
-	};
+// The document of the second-password content. Its handler (a
+// CSecondaryPassword) is created by Initialize and deleted by Release.
+class CSecondPwdDoc : public IContentsDataContainer {
+public:
+	CSecondPwdDoc(void);
+	// gatewaydoc.h:36
+	virtual ~CSecondPwdDoc(void) {}
 
-	class CSecondPwdDoc : public CGatewayControlDoc
-	{
-	public:
-		CSecondPwdDoc();
-		virtual ~CSecondPwdDoc() { }
+	virtual bool Initialize(void);
+	virtual bool Release(void);
 
-		virtual bool Initialize();
-		virtual bool Release();
+	// gatewaydoc.h:43
+	virtual CGatewayHandler* GetGatewayHandler(void) { return m_pGatewayHandler; }
 
-		void InitializeForLogout();
+	void SetPasswordState(eSecondPasswordState state); // gatewaydoc.h:45
+	eSecondPasswordState GetPasswordState(void); // gatewaydoc.h:46
+	void SetRemainDay(int remainDay); // gatewaydoc.h:48
+	int GetRemainDay(void); // gatewaydoc.h:49
+	void IncreseInvalidInputPassword(void); // gatewaydoc.h:51
+	void SetSecondPasswordConfirm(void); // gatewaydoc.h:54
+	bool GetSecondPasswordConfirm(void); // gatewaydoc.h:55
+	void SetCertifyFlag(void); // gatewaydoc.h:57
+	bool GetCertifyFlag(void); // gatewaydoc.h:58
 
-		virtual CGatewayHandler* GetGatewayHandler() { return m_pHandler; }
+	void InitializeForLogout(void);
 
-		void SetPasswordState(eSecondPasswordState state)
-		{
-			m_passwordState = state;
-		}
-		eSecondPasswordState GetPasswordState() { return m_passwordState; }
+	CGatewayHandler* m_pGatewayHandler; // 0x4
+	eSecondPasswordState m_ePasswordState; // 0x8
+	int m_iRemainDay; // 0xC
+	int m_iInvalidInputCount; // 0x10
+	bool m_bSecondPasswordConfirm; // 0x14
+	bool m_bCertifyFlag; // 0x15
+};
 
-		void SetRemainDay(int day) { m_remainDay = day; }
-		int GetRemainDay() { return m_remainDay; }
+CHECK_FIELD(CSecondPwdDoc, m_pGatewayHandler, 0x4);
+CHECK_FIELD(CSecondPwdDoc, m_ePasswordState, 0x8);
+CHECK_FIELD(CSecondPwdDoc, m_iRemainDay, 0xC);
+CHECK_FIELD(CSecondPwdDoc, m_iInvalidInputCount, 0x10);
+CHECK_FIELD(CSecondPwdDoc, m_bSecondPasswordConfirm, 0x14);
+CHECK_FIELD(CSecondPwdDoc, m_bCertifyFlag, 0x15);
+CHECK_SIZE(CSecondPwdDoc, 0x18);
 
-		void IncreseInvalidInputPassword() { ++m_invalidInputCount; }
+// The document of the golf-item content: its handler (a CGolfItemHandler),
+// the calipers count and the usable-item list.
+class CGolfItemDoc : public IContentsDataContainer {
+public:
+	CGolfItemDoc(void);
+	// gatewaydoc.h:87
+	virtual ~CGolfItemDoc(void) {}
 
-		void SetSecondPasswordConfirm() { m_bSecondPasswordConfirm = true; }
-		bool GetSecondPasswordConfirm() { return m_bSecondPasswordConfirm; }
+	virtual bool Initialize(void);
+	virtual bool Release(void);
 
-		void SetCertifyFlag() { m_bCertifyFlag = true; }
-		bool GetCertifyFlag() { return m_bCertifyFlag; }
+	// gatewaydoc.h:92
+	virtual CGatewayHandler* GetGatewayHandler(void) { return m_pGatewayHandler; }
 
-	private:
-		CGatewayHandler* m_pHandler;
-		eSecondPasswordState m_passwordState;
-		int m_remainDay;
-		int m_invalidInputCount;
-		bool m_bSecondPasswordConfirm;
-		bool m_bCertifyFlag;
-	};
+	void ResetUsableItemList(void);
+	void ResetCalipersVariable(void);
 
-	class CGolfItemDoc : public CGatewayControlDoc
-	{
-	public:
-		CGolfItemDoc();
-		virtual ~CGolfItemDoc() { }
+	// gatewaydoc.h:98
+	void SetCalipersCount(int count) { m_iCalipersCount = count; }
+	// gatewaydoc.h:99
+	int GetCalipersCount(void) const { return m_iCalipersCount; }
+	void DeceaseCalipersCount(void);
+	// gatewaydoc.h:101
+	void EnableCalipers(bool bEnable) { m_usableItemList[1] = bEnable == true; }
+	// gatewaydoc.h:102
+	bool GetEnableCalipers(void) const { return m_usableItemList[1] == 1 ? true : false; }
 
-		virtual bool Initialize();
-		virtual bool Release();
+	// gatewaydoc.h:104
+	void EnableTimeBooster(bool bEnable) { m_usableItemList[0] = bEnable == true; }
+	// gatewaydoc.h:105
+	bool GetEnableTimeBooster(void) const { return m_usableItemList[0] == 1 ? true : false; }
 
-		virtual CGatewayHandler* GetGatewayHandler() { return m_pHandler; }
+	// gatewaydoc.h:107
+	void IncreaseSpecialBoxCount(void) { ++m_iSpecialBoxCount; }
+	// gatewaydoc.h:108
+	void ResetSpecialBoxCount(void) { m_iSpecialBoxCount = 0; }
+	// gatewaydoc.h:109
+	int GetSpecialBoxCount(void) const { return m_iSpecialBoxCount; }
 
-		void DeceaseCalipersCount();
-		void ResetUsableItemList();
-		void ResetCalipersVariable();
+	// gatewaydoc.h:111
+	void SetOwnSpecialBoxCount(int count) { m_iOwnSpecialBoxCount = count; }
+	// gatewaydoc.h:112
+	int GetOwnSpecialBoxCount(void) const { return m_iOwnSpecialBoxCount; }
 
-		void SetCalipersCount(int count) { m_calipersCount = count; }
-		int GetCalipersCount() const { return m_calipersCount; }
+	CGatewayHandler* m_pGatewayHandler; // 0x4
+	int m_iCalipersCount; // 0x8
+	std::vector<int> m_usableItemList; // 0xC
+	int m_iSpecialBoxCount; // 0x1C
+	int m_iOwnSpecialBoxCount; // 0x20
+};
 
-		void EnableCalipers(bool bEnable)
-		{
-			m_usableItemList[1] = (bEnable == true);
-		}
-		bool GetEnableCalipers() const
-		{
-			return m_usableItemList[1] == 1 ? true : false;
-		}
+CHECK_FIELD(CGolfItemDoc, m_pGatewayHandler, 0x4);
+CHECK_FIELD(CGolfItemDoc, m_iCalipersCount, 0x8);
+CHECK_FIELD(CGolfItemDoc, m_usableItemList, 0xC);
+CHECK_FIELD(CGolfItemDoc, m_iSpecialBoxCount, 0x1C);
+CHECK_FIELD(CGolfItemDoc, m_iOwnSpecialBoxCount, 0x20);
+CHECK_SIZE(CGolfItemDoc, 0x24);
 
-		void EnableTimeBooster(bool bEnable)
-		{
-			m_usableItemList[0] = (bEnable == true);
-		}
-		bool GetEnableTimeBooster() const
-		{
-			return m_usableItemList[0] == 1 ? true : false;
-		}
+// The document of the trade content: its handler (a CTradeHandler).
+class CTradeDoc : public IContentsDataContainer {
+public:
+	CTradeDoc(void);
+	virtual ~CTradeDoc(void);
 
-		void IncreaseSpecialBoxCount() { ++m_specialBoxCount; }
-		void ResetSpecialBoxCount() { m_specialBoxCount = 0; }
-		int GetSpecialBoxCount() const { return m_specialBoxCount; }
+	virtual bool Initialize(void);
+	virtual bool Release(void);
 
-		void SetOwnSpecialBoxCount(int count) { m_ownSpecialBoxCount = count; }
-		int GetOwnSpecialBoxCount() const { return m_ownSpecialBoxCount; }
+	// gatewaydoc.h:140
+	virtual CGatewayHandler* GetGatewayHandler(void) { return m_pGatewayHandler; }
 
-	private:
-		CGatewayHandler* m_pHandler;
-		int m_calipersCount;
-		std::vector<int> m_usableItemList;
-		int m_specialBoxCount;
-		int m_ownSpecialBoxCount;
-	};
+	CGatewayHandler* m_pGatewayHandler; // 0x4
+	bool m_bUnidentified; // 0x8 (cleared by the constructor; no reader decompiled yet)
+};
 
-	class CTradeDoc : public CGatewayControlDoc
-	{
-	public:
-		CTradeDoc();
-		virtual ~CTradeDoc();
+CHECK_FIELD(CTradeDoc, m_pGatewayHandler, 0x4);
+CHECK_FIELD(CTradeDoc, m_bUnidentified, 0x8);
+CHECK_SIZE(CTradeDoc, 0xC);
 
-		virtual bool Initialize();
-		virtual bool Release();
+// The document of the special-box content: its handler (a
+// CSpecialBoxHandler).
+class CSpecialBoxDoc : public IContentsDataContainer {
+public:
+	virtual bool Initialize(void);
+	virtual bool Release(void);
+	// gatewaydoc.h:161
+	virtual CGatewayHandler* GetGatewayHandler(void) { return m_pGatewayHandler; }
 
-		void SetPackageSale(bool bPackageSale)
-		{
-			m_bPackageSale = bPackageSale;
-		}
-		bool GetPackageSale() const { return m_bPackageSale; }
+	CGatewayHandler* m_pGatewayHandler; // 0x4
+};
 
-		virtual CGatewayHandler* GetGatewayHandler() { return m_pHandler; }
+CHECK_FIELD(CSpecialBoxDoc, m_pGatewayHandler, 0x4);
 
-	private:
-		CGatewayHandler* m_pHandler;
-		bool m_bPackageSale;
-	};
-
-	class CSpecialBoxDoc : public CGatewayControlDoc
-	{
-	public:
-		virtual ~CSpecialBoxDoc() { }
-
-		virtual bool Initialize();
-		virtual bool Release();
-
-		virtual CGatewayHandler* GetGatewayHandler() { return m_pHandler; }
-
-	private:
-		CGatewayHandler* m_pHandler;
-	};
-
-	class CSecondaryPassword : public CGatewayHandler
-	{
-	public:
-		CSecondaryPassword();
-		virtual ~CSecondaryPassword();
-
-		virtual bool Initialize();
-		virtual bool Execute(const MsgObject& msg);
-
-		bool OnPasswordExplaneFormResult(int result, FrForm* pForm);
-		bool OnInputPasswordFormResult(int result, FrForm* pForm);
-		bool OnSelectCertifyFormResult(int result, FrForm* pForm);
-		bool OnSystemMsgFormResult(int result, FrForm* pForm);
-
-	private:
-		void OnClosePasswordDlg();
-		void OnCloseSelectCertifyDlg();
-		void OnWaitGameServerList();
-		void OnRequestStoreCertifyFlag(int param);
-		void OnOpenSelfCertifyWebPage();
-		void OnNotifyPasswordInfo(int param);
-		void OnRequestAvailableContents(int param);
-		void OnNotifyCannotUseContents();
-		void OnNotifySecondPasswordConfirm();
-		void OnRequestQualifyLogin(int param);
-		void OnRequestRegistPassword(int param);
-		void OnOpenPasswordExplaneDlg();
-		void OnOpenPasswordCreateDlg();
-		void OnOpenPasswordLoginDlg();
-		void OnOpenSelectCertifyDlg();
-		void OnRequestLoginPassword(int param);
-		void OnOpenSystemMsg(int msg);
-		void OnOpenSystemMsg(int msg, const char* text);
-		void OnResultRegistPassword(int param);
-		void OnRequestCheckCertifyFlag();
-		void OnResultLoginPassword(int param);
-		void OnRequestCheckPasswordValid(int param);
-		void OnNotifySystemMsg(int param);
-
-		FrExplanePassword* m_pExplanePasswordDlg;
-		FrPasswordInputDlg* m_pPasswordInputDlg;
-		FrSelectCertification* m_pSelectCertifyDlg;
-		FrPasswordNotifyDlg* m_pPasswordNotifyDlg;
-	};
-
-	class CGolfItemHandler : public CGatewayHandler
-	{
-	public:
-		CGolfItemHandler();
-		virtual ~CGolfItemHandler();
-
-		virtual bool Initialize();
-		virtual bool Execute(const MsgObject& msg);
-
-	protected:
-		bool OnCloseWizCityNoticeResult(int result, FrForm* pForm);
-
-	private:
-		int CalcRemainMoreGetSpecialBoxCount(int count);
-		void OnRequestResetCalipers();
-		void OnGetCountCalipers(int param);
-		void OnSetCountCalipers(int param);
-		void OnDecreaseCalipers();
-		void OnIncSpecialBox();
-		void OnGetSpecialBox(int param);
-		void OnResetSpecialBox();
-		void OnCheckSomeMoreGetSpecialBox();
-		void OnRequestWizCityNoticeDlg();
-		void OnGetFlagCalipers(int param);
-		void OnSetFlagCalipersEnable();
-		void OnSetFlagCalipersDisable();
-		void OnGetEnableTimeBooster(int param);
-		void OnSetEnableItemTID(int param);
-
-		FrNoticeDlg* m_pWizCityNoticeDlg;
-	};
-
-	class CTradeHandler : public CGatewayHandler
-	{
-	public:
-		CTradeHandler();
-		virtual ~CTradeHandler();
-
-		virtual bool Initialize();
-		virtual bool Execute(const MsgObject& msg);
-
-	private:
-		void OnSetEnablePackageSale();
-		void OnSetDisablePackageSale();
-		void OnGetPackageSale(int param);
-		void OnNotifyTradeErrorCode(int param);
-		void OnUpdateTradeMinusItem(int param);
-		void OnUpdateTradeSellItem(int param);
-		void OnUpdateTradeBuyItem(int param);
-	};
 }
+
+#endif // PG_CLIENT_PROJECTG_GATEWAYDOC_H

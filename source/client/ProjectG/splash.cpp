@@ -1,87 +1,90 @@
-#include "minatl.h"
-#include "splash.h"
+// Original: d:\build\custom\temp\code\client\projectg\splash.cpp
+#include <windows.h>
+#include <string.h>
 
+// File-local in the original (sub_0070a0b0); declared before the class so its
+// friend declaration names this function.
+static LRESULT CALLBACK SplashClassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+#include "Splash.h"
+
+#ifndef WS_EX_LAYERED
 #define WS_EX_LAYERED 0x00080000
+#endif
+#ifndef LWA_COLORKEY
 #define LWA_COLORKEY 0x00000001
+#endif
 
-static LRESULT CALLBACK ExtWndProc(HWND hwnd, UINT uMsg, WPARAM wParam,
-	LPARAM lParam)
-{
-	static CSplash* spl = NULL;
+// The splash object that created the window (WM_CREATE's lpCreateParams).
+static CSplash* s_pSplash = NULL;
+
+// splash.cpp:43
+static LRESULT CALLBACK SplashClassWndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
 	if (uMsg == WM_CREATE)
-	{
-		spl = (CSplash*)((LPCREATESTRUCT)lParam)->lpCreateParams;
-	}
-	if (spl)
-		return spl->WindowProc(hwnd, uMsg, wParam, lParam);
-	else
-		return DefWindowProc(hwnd, uMsg, wParam, lParam);
+		s_pSplash = (CSplash*)((LPCREATESTRUCT)lParam)->lpCreateParams;
+
+	if (s_pSplash)
+		switch (uMsg) { case WM_PAINT: s_pSplash->OnPaint(hwnd); return 0; }
+
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-LRESULT CALLBACK CSplash::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
-	LPARAM lParam)
-{
-	switch (uMsg)
-	{
+// splash.cpp:56
+long __stdcall CSplash::WindowProc(HWND hwnd, unsigned int uMsg, unsigned int wParam, long lParam) {
+	switch (uMsg) {
 	case WM_PAINT:
-		return (OnPaint(hwnd), 0L);
+		OnPaint(hwnd); return 0;
 	}
 
 	return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-CSplash::CSplash()
-{
+// splash.cpp:77
+CSplash::CSplash(void) {
 	Init();
 }
 
-CSplash::~CSplash()
-{
+// splash.cpp:82
+CSplash::~CSplash(void) {
 	FreeResources();
 }
 
-CSplash::CSplash(LPCTSTR lpszFileName, COLORREF colTrans)
-{
+// splash.cpp:98
+CSplash::CSplash(const char* lpszFileName, unsigned long colTrans) {
 	Init();
 
 	SetBitmap(lpszFileName);
 	SetTransparentColor(colTrans);
 }
 
-void CSplash::Init()
-{
+// splash.cpp:116
+void CSplash::Init(void) {
 	m_hwnd = NULL;
-	m_lpszClassName = TEXT("SPLASH");
+	m_lpszClassName = "SPLASH";
 	m_colTrans = 0;
 	m_dwHeight = 0;
 	m_dwWidth = 0;
 	strcpy(m_szText, "Initializing....");
-	m_textX = 10;
-	m_textY = 100;
+	m_nTextX = 10;
+	m_nTextY = 100;
 
-	HMODULE hUser32 = GetModuleHandle(TEXT("USER32.DLL"));
-	if (hUser32)
-	{
-		m_pSetLayeredWindowAttributes =
-			(lpfnSetLayeredWindowAttributes)GetProcAddress(hUser32,
-				"SetLayeredWindowAttributes");
-	}
-	else
-	{
+	HMODULE hUser32 = GetModuleHandle("USER32.DLL");
+	if (hUser32) {
+		m_pSetLayeredWindowAttributes = (lpfnSetLayeredWindowAttributes)GetProcAddress(hUser32, "SetLayeredWindowAttributes");
+	} else {
 		m_pSetLayeredWindowAttributes = NULL;
 	}
 
 	m_reserved = 0;
 }
 
-void CSplash::OnPaint(HWND hwnd)
-{
-	if (!m_hBitmap)
-	{
+// splash.cpp:168
+void CSplash::OnPaint(HWND hwnd) {
+	if (!m_hBitmap) {
 		PAINTSTRUCT ps;
 		HDC hDC = BeginPaint(hwnd, &ps);
 		SetBkMode(hDC, TRANSPARENT);
-		TextOut(hDC, m_textX, m_textY, m_szText, strlen(m_szText));
+		TextOut(hDC, m_nTextX, m_nTextY, m_szText, strlen(m_szText));
 		EndPaint(hwnd, &ps);
 		return;
 	}
@@ -90,38 +93,38 @@ void CSplash::OnPaint(HWND hwnd)
 	HDC hDC = BeginPaint(hwnd, &ps);
 
 	RECT rect;
-	::GetClientRect(m_hwnd, &rect);
+	GetClientRect(m_hwnd, &rect);
 
-	HDC hMemDC = ::CreateCompatibleDC(hDC);
-	HBITMAP hOldBmp = (HBITMAP)::SelectObject(hMemDC, m_hBitmap);
+	HDC hMemDC = CreateCompatibleDC(hDC);
+	HBITMAP hOldBmp = (HBITMAP)SelectObject(hMemDC, m_hBitmap);
 
 	BitBlt(hDC, 0, 0, m_dwWidth, m_dwHeight, hMemDC, 0, 0, SRCCOPY);
 
-	::SelectObject(hMemDC, hOldBmp);
-	::DeleteDC(hMemDC);
+	SelectObject(hMemDC, hOldBmp);
+	DeleteDC(hMemDC);
 
 	EndPaint(hwnd, &ps);
 }
 
-void CSplash::SetText(char* text)
-{
+// splash.cpp:216
+void CSplash::SetText(char* text) {
 	strcpy(m_szText, text);
 	OnPaint(m_hwnd);
 	InvalidateRect(m_hwnd, NULL, FALSE);
 }
 
-HWND CSplash::RegAndCreateWindow()
-{
+// splash.cpp:233
+HWND CSplash::RegAndCreateWindow(void) {
 	WNDCLASSEX wndclass;
 	wndclass.cbSize = sizeof(wndclass);
 	wndclass.style = CS_BYTEALIGNCLIENT | CS_BYTEALIGNWINDOW;
-	wndclass.lpfnWndProc = ExtWndProc;
+	wndclass.lpfnWndProc = SplashClassWndProc;
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = DLGWINDOWEXTRA;
-	wndclass.hInstance = ::GetModuleHandle(NULL);
+	wndclass.hInstance = GetModuleHandle(NULL);
 	wndclass.hIcon = NULL;
-	wndclass.hCursor = ::LoadCursor(NULL, IDC_WAIT);
-	wndclass.hbrBackground = (HBRUSH)::GetStockObject(LTGRAY_BRUSH);
+	wndclass.hCursor = LoadCursor(NULL, IDC_WAIT);
+	wndclass.hbrBackground = (HBRUSH)GetStockObject(LTGRAY_BRUSH);
 	wndclass.lpszMenuName = NULL;
 	wndclass.lpszClassName = m_lpszClassName;
 	wndclass.hIconSm = NULL;
@@ -129,22 +132,19 @@ HWND CSplash::RegAndCreateWindow()
 	if (!RegisterClassEx(&wndclass))
 		return NULL;
 
-	DWORD nScrWidth = ::GetSystemMetrics(SM_CXFULLSCREEN);
-	DWORD nScrHeight = ::GetSystemMetrics(SM_CYFULLSCREEN);
+	DWORD nScrWidth = GetSystemMetrics(SM_CXFULLSCREEN);
+	DWORD nScrHeight = GetSystemMetrics(SM_CYFULLSCREEN);
 
-	if (!m_dwHeight && !m_dwWidth)
-	{
+	if (m_dwHeight == 0 && m_dwWidth == 0) {
 		m_dwWidth = 480;
 		m_dwHeight = 360;
 	}
 
-	int x = (nScrWidth - m_dwWidth) / 2;
-	int y = (nScrHeight - m_dwHeight) / 2;
-	m_hwnd = ::CreateWindowEx(WS_EX_TOOLWINDOW, m_lpszClassName, NULL, WS_POPUP,
-		x, y, m_dwWidth, m_dwHeight, NULL, NULL, NULL, this);
+	DWORD x = (nScrWidth - m_dwWidth) / 2;
+	DWORD y = (nScrHeight - m_dwHeight) / 2;
+	m_hwnd = CreateWindowEx(WS_EX_TOOLWINDOW, m_lpszClassName, NULL, WS_POPUP, x, y, m_dwWidth, m_dwHeight, NULL, NULL, NULL, this);
 
-	if (m_hwnd)
-	{
+	if (m_hwnd) {
 		MakeTransparent();
 		ShowWindow(m_hwnd, SW_SHOW);
 		UpdateWindow(m_hwnd);
@@ -152,80 +152,74 @@ HWND CSplash::RegAndCreateWindow()
 	return m_hwnd;
 }
 
-void CSplash::ShowSplash()
-{
+// splash.cpp:294
+void CSplash::ShowSplash(void) {
 	CloseSplash();
 	RegAndCreateWindow();
 	SetText("");
-
 	ShowWindow(m_hwnd, SW_SHOW);
 }
 
-int CSplash::CloseSplash()
-{
+// splash.cpp:323
+int CSplash::CloseSplash(void) {
 	ShowWindow(m_hwnd, SW_HIDE);
 
-	if (m_hwnd)
-	{
+	if (m_hwnd) {
 		DestroyWindow(m_hwnd);
-		m_hwnd = 0;
-		UnregisterClass(m_lpszClassName, ::GetModuleHandle(NULL));
+		m_hwnd = NULL;
+		UnregisterClass(m_lpszClassName, GetModuleHandle(NULL));
 		return 1;
 	}
 	return 0;
 }
 
-void CSplash::HideSplash()
-{
+// splash.cpp:346
+void CSplash::HideSplash(void) {
 	ShowWindow(m_hwnd, SW_HIDE);
 }
 
-DWORD CSplash::SetBitmap(LPCTSTR lpszFileName)
-{
-	HBITMAP hBitmap = NULL;
-	hBitmap = (HBITMAP)::LoadImage(0, lpszFileName, IMAGE_BITMAP, 0, 0,
-		LR_LOADFROMFILE);
+// splash.cpp:361
+unsigned long CSplash::SetBitmap(const char* lpszFileName) {
+	HBITMAP hBitmap = (HBITMAP)LoadImage(NULL, lpszFileName, IMAGE_BITMAP, 0, 0, LR_LOADFROMFILE);
 	return SetBitmap(hBitmap);
 }
 
-DWORD CSplash::SetBitmap(HBITMAP hBitmap)
-{
+// splash.cpp:371
+unsigned long CSplash::SetBitmap(HBITMAP hBitmap) {
 	int nRetValue;
 	BITMAP csBitmapSize;
 
 	FreeResources();
 
-	if (hBitmap)
-	{
+	if (hBitmap) {
 		m_hBitmap = hBitmap;
-		nRetValue = ::GetObject(hBitmap, sizeof(csBitmapSize), &csBitmapSize);
-		if (nRetValue == 0)
-		{
+
+		nRetValue = GetObject(hBitmap, sizeof(csBitmapSize), &csBitmapSize);
+		if (nRetValue == 0) {
 			FreeResources();
 			return 0;
 		}
-		m_dwWidth = (DWORD)csBitmapSize.bmWidth;
-		m_dwHeight = (DWORD)csBitmapSize.bmHeight;
+		m_dwWidth = csBitmapSize.bmWidth;
+		m_dwHeight = csBitmapSize.bmHeight;
 	}
 
 	return 1;
 }
 
-void CSplash::FreeResources()
-{
+// splash.cpp:402
+void CSplash::FreeResources(void) {
 	if (m_hBitmap)
-		::DeleteObject(m_hBitmap);
+		DeleteObject(m_hBitmap);
 	m_hBitmap = NULL;
 }
 
-int CSplash::DoLoop()
-{
+// splash.cpp:419
+int CSplash::DoLoop(void) {
 	if (!m_hwnd)
 		ShowSplash();
 
 	MSG msg;
-	while (GetMessage(&msg, NULL, 0, 0))
-	{
+	while (GetMessage(&msg, NULL, 0, 0)) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
@@ -233,21 +227,17 @@ int CSplash::DoLoop()
 	return msg.wParam;
 }
 
-bool CSplash::SetTransparentColor(COLORREF col)
-{
+// splash.cpp:450
+bool CSplash::SetTransparentColor(unsigned long col) {
 	m_colTrans = col;
-
 	return MakeTransparent();
 }
 
-bool CSplash::MakeTransparent()
-{
-	if (m_hwnd && m_pSetLayeredWindowAttributes && m_colTrans)
-	{
-		SetWindowLong(m_hwnd, GWL_EXSTYLE,
-			GetWindowLong(m_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-
+// splash.cpp:457
+bool CSplash::MakeTransparent(void) {
+	if (m_hwnd && m_pSetLayeredWindowAttributes && m_colTrans) {
+		SetWindowLong(m_hwnd, GWL_EXSTYLE, GetWindowLong(m_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 		m_pSetLayeredWindowAttributes(m_hwnd, m_colTrans, 0, LWA_COLORKEY);
 	}
-	return TRUE;
+	return true;
 }

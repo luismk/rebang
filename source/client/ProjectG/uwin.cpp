@@ -1,307 +1,318 @@
-#include "minatl.h"
-#include "uwin.h"
-#include <sys/stat.h>
-#include <io.h>
+// Original: d:\build\custom\temp\code\client\projectg\uwin.cpp
+#include "UWIN.h"
+
 #include <process.h>
+#include <ctype.h>
+#include <io.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <mbstring.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <wchar.h>
 #include <tlhelp32.h>
 #include <iphlpapi.h>
 
-namespace UWIN
-{
+namespace UWIN {
 
-	unsigned int GetFileSize(const char* filename)
-	{
-		struct stat st;
-		if (stat(filename, &st) == 0)
-			return st.st_size;
-		return 0;
+// uwin.cpp:32
+unsigned int GetFileSize(const char* filename) {
+	struct _stat fileStat;
+	int result = _stat(filename, &fileStat);
+	return result == 0 ? fileStat.st_size : 0;
+}
+
+// uwin.cpp:41
+void GenerateCurrentFullPath(const char* filename, char* fullPath) {
+	if (filename != NULL && fullPath != NULL) {
+		GetCurrentDirectory(MAX_PATH, fullPath);
+		strcat(fullPath, "\\");
+		strcat(fullPath, filename);
 	}
+}
 
-	void GenerateCurrentFullPath(const char* filename, char* fullpath)
-	{
-		if (filename == NULL || fullpath == NULL)
-			return;
-		GetCurrentDirectory(MAX_PATH, fullpath);
-		strcat(fullpath, "\\");
-		strcat(fullpath, filename);
-	}
-
-	void DeleteReadOnlyFile(const char* filename)
-	{
-		if (filename == NULL)
-			return;
-		DWORD attr = GetFileAttributes(filename);
-		SetFileAttributes(filename, attr & ~FILE_ATTRIBUTE_READONLY);
+// uwin.cpp:55
+void DeleteReadOnlyFile(const char* filename) {
+	if (filename != NULL) {
+		DWORD attributes = GetFileAttributes(filename);
+		SetFileAttributes(filename, attributes & ~FILE_ATTRIBUTE_READONLY);
 		DeleteFile(filename);
 	}
+}
 
-	void DeleteReadOnlyFiles(const char* filename)
-	{
-		if (filename == NULL)
-			return;
-		WIN32_FIND_DATA fd;
-		HANDLE hFind = FindFirstFile(filename, &fd);
-		if (hFind == INVALID_HANDLE_VALUE)
-			return;
-		do
-		{
-			DeleteReadOnlyFile(fd.cFileName);
-		} while (FindNextFile(hFind, &fd));
+// uwin.cpp:69
+void DeleteReadOnlyFiles(const char* pattern) {
+	if (pattern != NULL) {
+		WIN32_FIND_DATA findData;
+		HANDLE hFind = FindFirstFile(pattern, &findData);
+		if (hFind != INVALID_HANDLE_VALUE) {
+			do {
+				DeleteReadOnlyFile(findData.cFileName);
+			} while (FindNextFile(hFind, &findData));
+		}
 	}
+}
 
-	int IsDots(const char* str)
-	{
-		if (_tcscmp(str, ".") && _tcscmp(str, ".."))
-			return FALSE;
-		return TRUE;
-	}
+// uwin.cpp:91
+int IsDots(const char* name) {
+	if (_mbscmp((const unsigned char*)name, (const unsigned char*)".") != 0 && _mbscmp((const unsigned char*)name, (const unsigned char*)"..") != 0)
+		return FALSE;
 
-	int DeleteDirectory(const char* sPath)
-	{
-		HANDLE hFind;
-		WIN32_FIND_DATA FindFileData;
+	return TRUE;
+}
 
-		char DirPath[MAX_PATH];
-		char FileName[MAX_PATH];
+// uwin.cpp:109
+int DeleteDirectory(const char* path) {
+	HANDLE hFind;
+	WIN32_FIND_DATA findData;
+	char dirPath[MAX_PATH];
+	char fileName[MAX_PATH];
 
-		_tcscpy(DirPath, sPath);
-		_tcscat(DirPath, "\\*");
-		_tcscpy(FileName, sPath);
-		_tcscat(FileName, "\\");
+	strcpy(dirPath, path);
+	strcat(dirPath, "\\*");
+	strcpy(fileName, path);
+	strcat(fileName, "\\");
+	hFind = FindFirstFile(dirPath, &findData);
+	if (hFind == INVALID_HANDLE_VALUE)
+		return FALSE;
 
-		hFind = FindFirstFile(DirPath, &FindFileData);
-		if (hFind == INVALID_HANDLE_VALUE)
-			return FALSE;
-		_tcscpy(DirPath, FileName);
+	strcpy(dirPath, fileName);
 
-		bool bSearch = true;
-		while (bSearch)
-		{
-			if (FindNextFile(hFind, &FindFileData))
-			{
-				if (IsDots(FindFileData.cFileName))
-					continue;
-				_tcscat(FileName, FindFileData.cFileName);
-				if ((FindFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
-				{
-					if (!DeleteDirectory(FileName))
-					{
-						FindClose(hFind);
-						return FALSE;
-					}
-					RemoveDirectory(FileName);
-					_tcscpy(FileName, DirPath);
-				}
-				else
-				{
-					if (FindFileData.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
-						_chmod(FileName, _S_IWRITE);
-					if (!DeleteFile(FileName))
-					{
-						FindClose(hFind);
-						return FALSE;
-					}
-					_tcscpy(FileName, DirPath);
-				}
-			}
-			else
-			{
-				if (GetLastError() == ERROR_NO_MORE_FILES)
-					bSearch = false;
-				else
-				{
+	bool searching = true;
+	while (searching) {
+		if (FindNextFile(hFind, &findData)) {
+			if (IsDots(findData.cFileName))
+				continue;
+
+			strcat(fileName, findData.cFileName);
+			if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				if (!DeleteDirectory(fileName)) {
 					FindClose(hFind);
 					return FALSE;
 				}
+				RemoveDirectory(fileName);
+				strcpy(fileName, dirPath);
+			} else {
+				if (findData.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
+					_chmod(fileName, _S_IWRITE);
+
+				if (!DeleteFile(fileName)) {
+					FindClose(hFind);
+					return FALSE;
+				}
+				strcpy(fileName, dirPath);
+			}
+		} else {
+			if (GetLastError() == ERROR_NO_MORE_FILES) {
+				searching = false;
+			} else {
+				FindClose(hFind);
+				return FALSE;
 			}
 		}
-		FindClose(hFind);
-
-		return RemoveDirectory(sPath);
 	}
+	FindClose(hFind);
 
-	void SetWindowVisible(HWND hWnd, bool visible)
-	{
-		LONG style = GetWindowLong(hWnd, GWL_STYLE);
-		if (visible)
-			SetWindowLong(hWnd, GWL_STYLE, style | WS_VISIBLE);
-		else
-			SetWindowLong(hWnd, GWL_STYLE, style & ~WS_VISIBLE);
-	}
-
-	bool GetExeFilename(HWND hWnd, char* filename)
-	{
-		if (hWnd == NULL)
-			return false;
-		bool ret = false;
-
-		DWORD processId = 0;
-		GetWindowThreadProcessId(hWnd, &processId);
-
-		HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-		PROCESSENTRY32* pe = new PROCESSENTRY32;
-		pe->dwSize = sizeof(PROCESSENTRY32);
-		if (Process32First(hSnapshot, pe))
-		{
-			do
-			{
-				if (pe->th32ProcessID == processId)
-				{
-					if (stricmp(pe->szExeFile, "[System Process]") != 0)
-					{
-						char* p = strrchr(pe->szExeFile, '\\');
-						if (p)
-							strcpy(filename, p + 1);
-						else
-							strcpy(filename, pe->szExeFile);
-						ret = true;
-					}
-					break;
-				}
-			} while (Process32Next(hSnapshot, pe));
-		}
-		delete pe;
-		CloseHandle(hSnapshot);
-		return ret;
-	}
-
-	bool FindProcessByModuleName(const char* moduleName)
-	{
-		HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-		bool ret = false;
-		PROCESSENTRY32* pe = new PROCESSENTRY32;
-		pe->dwSize = sizeof(PROCESSENTRY32);
-		if (Process32First(hSnapshot, pe))
-		{
-			do
-			{
-				char* p = strrchr(pe->szExeFile, '\\');
-				const char* name = p ? p + 1 : pe->szExeFile;
-				if (stricmp(name, moduleName) == 0)
-				{
-					ret = true;
-					break;
-				}
-			} while (Process32Next(hSnapshot, pe));
-		}
-		delete pe;
-		CloseHandle(hSnapshot);
-		return ret;
-	}
-
-	void* BeginThreadEx(unsigned(__stdcall* startAddress)(void*), void* arg)
-	{
-		HANDLE hThread =
-			(HANDLE)_beginthreadex(NULL, 0, startAddress, arg, 0, NULL);
-		CloseHandle(hThread);
-		return hThread;
-	}
-
-	int axtoi(char* hex)
-	{
-		int n = 0;
-		while (*hex)
-		{
-			char c = *hex++;
-			if (iswdigit(c))
-				c = c - '0';
-			else if (c >= 'A' && c <= 'F')
-				c = c - 'A' + 10;
-			else if (c >= 'a' && c <= 'f')
-				c = c - 'a' + 10;
-			else
-				c = 0;
-			n = n * 16 + c;
-		}
-		return n;
-	}
-
-	int IP2Integer(const char* ip)
-	{
-		int len = strlen(ip);
-		if (len < 16)
-		{
-			char buf[20];
-			char num[4];
-			int part[4];
-			memcpy(buf, ip, len);
-			buf[len++] = '.';
-			buf[len] = 0;
-
-			int j = 0;
-			int k = 0;
-			for (int i = 0; i < len; ++i)
-			{
-				if (buf[i] != '.')
-				{
-					num[j++] = buf[i];
-				}
-				else
-				{
-					num[j] = 0;
-					part[k++] = atoi(num);
-					j = 0;
-				}
-			}
-			return (((((part[0] << 8) | part[1]) << 8) | part[2]) << 8) |
-				part[3];
-		}
-		return -1;
-	}
-
-	void AlterChar(std::string& str, char from, char to)
-	{
-		char* p = (char*)str.c_str();
-		for (unsigned int i = 0; i < str.size(); ++i, ++p)
-		{
-			if (*p == from)
-				*p = to;
-		}
-	}
-
-	int GetLocalMacAddress(char* buf, int len, char sep)
-	{
-		int total = 0;
-		if (buf == NULL && len < 20)
-			return 0;
-
-		PIP_ADAPTER_INFO pInfo =
-			(PIP_ADAPTER_INFO) new char[sizeof(IP_ADAPTER_INFO)];
-		ULONG size = sizeof(IP_ADAPTER_INFO);
-		int count = 0;
-		if (pInfo)
-		{
-			DWORD ret = GetAdaptersInfo(pInfo, &size);
-			if (ret == ERROR_BUFFER_OVERFLOW)
-			{
-				delete[] pInfo;
-				pInfo = (PIP_ADAPTER_INFO) new char[size];
-				ret = GetAdaptersInfo(pInfo, &size);
-			}
-			if (ret == NO_ERROR)
-			{
-				PIP_ADAPTER_INFO p = pInfo;
-				buf[0] = 0;
-				while (p)
-				{
-					char mac[32];
-					sprintf(mac, "%02x%c%02x%c%02x%c%02x%c%02x%c%02x",
-						p->Address[0], sep, p->Address[1], sep, p->Address[2],
-						sep, p->Address[3], sep, p->Address[4], sep,
-						p->Address[5]);
-					total += strlen(mac);
-					if (total >= len)
-						break;
-					strcat(buf, mac);
-					++count;
-					p = p->Next;
-				}
-			}
-			if (pInfo)
-				delete[] pInfo;
-		}
-		return count;
-	}
-
+	return RemoveDirectory(path);
 }
+
+// uwin.cpp:212
+void SetWindowVisible(HWND hWnd, bool visible) {
+	LONG style = GetWindowLong(hWnd, GWL_STYLE);
+
+	if (visible)
+		style |= WS_VISIBLE;
+	else
+		style &= ~WS_VISIBLE;
+
+	SetWindowLong(hWnd, GWL_STYLE, style);
+}
+
+// uwin.cpp:243
+bool GetExeFilename(HWND hWnd, char* filename) {
+	if (hWnd == NULL)
+		return false;
+
+	bool found = false;
+	DWORD processId = 0;
+	GetWindowThreadProcessId(hWnd, &processId);
+
+	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+	PROCESSENTRY32* pEntry = new PROCESSENTRY32;
+	pEntry->dwSize = sizeof(PROCESSENTRY32);
+
+	if (Process32First(hSnapshot, pEntry)) {
+		do {
+			if (pEntry->th32ProcessID == processId) {
+				if (stricmp(pEntry->szExeFile, "[System Process]") != 0) {
+					char* name = strrchr(pEntry->szExeFile, '\\');
+
+					if (name != NULL)
+						strcpy(filename, name + 1);
+					else
+						strcpy(filename, pEntry->szExeFile);
+
+					found = true;
+				}
+				break;
+			}
+		} while (Process32Next(hSnapshot, pEntry));
+	}
+
+	delete pEntry;
+	CloseHandle(hSnapshot);
+	return found;
+}
+
+// uwin.cpp:294
+bool FindProcessByModuleName(const char* moduleName) {
+	HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	bool found = false;
+
+	PROCESSENTRY32* pEntry = new PROCESSENTRY32;
+	pEntry->dwSize = sizeof(PROCESSENTRY32);
+
+	if (Process32First(hSnapshot, pEntry)) {
+		do {
+			char* name = strrchr(pEntry->szExeFile, '\\');
+			if (name != NULL)
+				name++;
+			else
+				name = pEntry->szExeFile;
+
+			if (stricmp(name, moduleName) == 0) {
+				found = true;
+				break;
+			}
+		} while (Process32Next(hSnapshot, pEntry));
+	}
+
+	delete pEntry;
+	CloseHandle(hSnapshot);
+	return found;
+}
+
+// uwin.cpp:397
+void* BeginThreadEx(unsigned int (__stdcall* startAddress)(void*), void* arg) {
+	HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, startAddress, arg, 0, NULL);
+	CloseHandle(hThread);
+	return hThread;
+}
+
+// uwin.cpp:437
+int axtoi(char* hex) {
+	int value = 0;
+
+	while (*hex != '\0') {
+		char digit = *hex++;
+		if (iswdigit(digit))
+			digit -= '0';
+		else if (digit >= 'A' && digit <= 'F')
+			digit -= 'A' - 10;
+		else if (digit >= 'a' && digit <= 'f')
+			digit -= 'a' - 10;
+		else
+			digit = 0;
+
+		value = value * 16 + digit;
+	}
+
+	return value;
+}
+
+// uwin.cpp:459
+int IP2Integer(const char* ip) {
+	int parts[4];
+	char number[4];
+	char address[20];
+
+	int length = strlen(ip);
+
+	if (length < 16) {
+		memcpy(address, ip, length);
+
+		address[length++] = '.';
+		address[length] = '\0';
+
+		int digits = 0;
+		int part = 0;
+		for (int i = 0; i < length; i++) {
+			if (address[i] != '.') {
+				number[digits++] = address[i];
+			} else {
+				number[digits] = '\0';
+				parts[part++] = atoi(number);
+				digits = 0;
+			}
+		}
+
+		return ((parts[0] << 8 | parts[1]) << 8 | parts[2]) << 8 | parts[3];
+	}
+
+	return -1;
+}
+
+// uwin.cpp:535
+void AlterChar(std::string& str, char from, char to) {
+	char* p = (char*)str.c_str();
+
+	for (unsigned int i = 0; i < str.size(); i++) {
+		if (p[i] == from)
+			p[i] = to;
+	}
+}
+
+// uwin.cpp:686
+int GetLocalMacAddress(char* buffer, int size, char separator) {
+	if (buffer == NULL && size < 20)
+		return 0;
+
+	IP_ADAPTER_INFO* pAdapterInfo = (IP_ADAPTER_INFO*)new char[sizeof(IP_ADAPTER_INFO)];
+	ULONG bufferLength = sizeof(IP_ADAPTER_INFO);
+	int count = 0;
+
+	if (pAdapterInfo != NULL) {
+		DWORD result = GetAdaptersInfo(pAdapterInfo, &bufferLength);
+
+		if (result == ERROR_BUFFER_OVERFLOW) {
+			delete[] (char*)pAdapterInfo;
+			pAdapterInfo = (IP_ADAPTER_INFO*)new char[bufferLength];
+			result = GetAdaptersInfo(pAdapterInfo, &bufferLength);
+		}
+
+		if (result == NO_ERROR) {
+			int length = 0;
+			buffer[0] = '\0';
+			IP_ADAPTER_INFO* pAdapter = pAdapterInfo;
+			while (pAdapter != NULL) {
+				char address[32];
+				sprintf(address, "%02x%c%02x%c%02x%c%02x%c%02x%c%02x",
+					pAdapter->Address[0], separator,
+					pAdapter->Address[1], separator,
+					pAdapter->Address[2], separator,
+					pAdapter->Address[3], separator,
+					pAdapter->Address[4], separator,
+					pAdapter->Address[5]);
+
+				length += strlen(address);
+
+				if (length >= size)
+					break;
+
+				strcat(buffer, address);
+				count++;
+				pAdapter = pAdapter->Next;
+			}
+		}
+
+		if (pAdapterInfo != NULL)
+			delete[] (char*)pAdapterInfo;
+	}
+
+	return count;
+}
+
+} // namespace UWIN

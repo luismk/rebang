@@ -1,72 +1,97 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\formbar.cpp
 #include "formbar.h"
+#include "ObjectFactory.h"
 #include "fresh.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
+#include "frarea.h"
 #include "frbutton.h"
 #include "fredit.h"
-#include "frarea.h"
+#include "frwndmanager.h"
+#include "frgraphicinterface.h"
+#include "bitmap.h"
 
-extern Fresh* g_pFresh;
-IMPLEMENT_OBJECT(FrFormBar, FrForm)
-BEGIN_FRESH_MSGMAP(FrFormBar, FrForm)
+// formbar.cpp:13 (run-time type and factory registration of FrFormBar)
+const WRTTI FrFormBar::m_RTTI("FrFormBar", &FrForm::m_RTTI);
 
-ON_FRESH_VI("gauge_area", FRCMD_INIT, FrFormBar::OnInitGaugeArea)
-ON_FRESH_VV("gauge_area", FRCMD_OWNERDRAW, FrFormBar::OnDrawGaugeArea)
-ON_FRESH_VI("ok", FRCMD_INIT, FrFormBar::OnInitBtnOK)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrFormBar::OnDownBtnOK)
-ON_FRESH_VI("no", FRCMD_INIT, FrFormBar::OnInitBtnNO)
-ON_FRESH_VV("no", FRCMD_LBUTTONUP, FrFormBar::OnDownBtnNO)
-ON_FRESH_VI("msg", FRCMD_INIT, FrFormBar::OnInitEdMsg)
-
-END_FRESH_MSGMAP()
-
-FrFormBar::FrFormBar()
-	: m_pGaugeArea(NULL),
-	  m_pGaugeImg(NULL),
-	  m_pFrameImg(NULL),
-	  m_min(0.0f),
-	  m_max(100.0f),
-	  m_pos(0.0f),
-	  m_gaugePivot(1.0f, 1.0f),
-	  m_pEdMsg(NULL),
-	  m_autoCloseTime(0.0f),
-	  m_autoCloseRemain(0.0f)
-{
-	m_btn.first = m_btn.second = NULL;
+IObject* FrFormBarMakeInstance(void) {
+	return new FrFormBar;
 }
 
-FrFormBar::~FrFormBar()
-{
+struct __sFrFormBar {
+	__sFrFormBar(void) {
+		ObjectFactory().AddObjectFunctor(FrFormBarMakeInstance, "FrFormBar");
+	}
+};
+static __sFrFormBar s_registerFrFormBar;
+
+// formbar.cpp:14
+const sFRESH_MSGMAP* FrFormBar::GetMessageMap(void) const {
+	return &FrFormBar::_MsgMap;
 }
 
-void FrFormBar::Attach(const WRect& rect, const char* image)
-{
-	const Bitmap* bitmap = g_pFresh->GetBitmap(image);
+sFRESH_MSGMAP FrFormBar::_MsgMap = { &FrForm::_MsgMap, &FrFormBar::_MsgEntries[0] };
 
-	if (bitmap == NULL)
-		return;
+sFRESH_ENTRY FrFormBar::_MsgEntries[] = {
+	// formbar.cpp:16
+	{ "gauge_area", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFormBar::OnInitGaugeArea },
+	// formbar.cpp:17
+	{ "gauge_area", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrFormBar::OnDrawGaugeArea },
+	// formbar.cpp:18
+	{ "ok", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFormBar::OnInitBtnOK },
+	// formbar.cpp:19
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrFormBar::OnDownBtnOK },
+	// formbar.cpp:20
+	{ "no", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFormBar::OnInitBtnNO },
+	// formbar.cpp:21
+	{ "no", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrFormBar::OnDownBtnNO },
+	// formbar.cpp:22
+	{ "msg", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrFormBar::OnInitEdMsg },
 
-	sATTACHRES res;
-	res.pBitmap = bitmap;
-	res.rect = rect;
-	m_attachList.push_back(res);
+	// formbar.cpp:24
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// formbar.cpp:30
+FrFormBar::FrFormBar(void)
+	: m_pGaugeArea(0), m_pGaugeImg(0), m_pFrameImg(0), m_min(0.0f), m_max(100.0f), m_pos(0.0f),
+	  m_pivot(1.0f, 1.0f), m_pBtnOK(0), m_pBtnNO(0), m_pEdMsg(0), m_autoCloseTime(0.0f), m_autoCloseTimer(0.0f) {
+	m_pBtnNO = 0;
+	m_pBtnOK = 0;
 }
 
-void FrFormBar::SetFixedWnd()
-{
-	m_dwStyle.Enable(FWS_FIXED);
+// formbar.cpp:36
+FrFormBar::~FrFormBar(void) {
+}
+
+// formbar.cpp:50
+void FrFormBar::Attach(const WRect& rect, const char* name) {
+	const Bitmap* pBitmap = g_pFresh->GetBitmap(name);
+
+	if (pBitmap) {
+
+
+
+
+		sATTACHRES res;
+		res.pBitmap = pBitmap;
+		res.rect = rect;
+		m_attachList.push_back(res);
+	}
+}
+
+// formbar.cpp:63
+void FrFormBar::SetFixedWnd(void) {
+	m_dwStyle.Enable(0x100);
 	EnableDrag(false);
 }
 
-bool FrFormBar::Open(FRESH_PFN_RESULT pFnResult, unsigned long flag)
-{
+// formbar.cpp:69
+bool FrFormBar::Open(FRESH_RESULT_CALLBACK pfnResult, unsigned long flag) {
 	Init();
-	return FrForm::Open(pFnResult, flag);
+	return FrForm::Open(pfnResult, flag);
 }
 
-void FrFormBar::SetGaugeSize(const WSize& size)
-{
+// formbar.cpp:75
+void FrFormBar::SetGaugeSize(const WSize& size) {
 	WRect rect;
 	rect.x = m_rect.x;
 	rect.y = m_rect.y;
@@ -77,219 +102,230 @@ void FrFormBar::SetGaugeSize(const WSize& size)
 	ReCalcRects();
 }
 
-void FrFormBar::MoveBar(const WPoint& pos)
-{
-	m_barPos = pos;
+// formbar.cpp:85
+void FrFormBar::MoveBar(const WPoint& pt) {
+	m_barPos.x = pt.x;
+	m_barPos.y = pt.y;
 }
 
-WPoint FrFormBar::GetRelativeBarPos()
-{
+// formbar.cpp:90
+WPoint FrFormBar::GetRelativeBarPos(void) {
 	return m_barPos;
 }
 
-void FrFormBar::Init()
-{
+// formbar.cpp:95
+void FrFormBar::Init(void) {
 	MakeDefault();
-	m_orgRect = m_rect;
+	m_defaultRect = m_rect;
 }
 
-void FrFormBar::SetFrameImg(const char* image)
-{
-	m_pFrameImg = g_pFresh->GetBitmap(image);
+// formbar.cpp:101
+void FrFormBar::SetFrameImg(const char* name) {
+	m_pFrameImg = g_pFresh->GetBitmap(name);
 }
 
-void FrFormBar::SetGaugeImg(const char* image)
-{
-	m_pGaugeImg = g_pFresh->GetBitmap(image);
+// formbar.cpp:107
+void FrFormBar::SetGaugeImg(const char* name) {
+	m_pGaugeImg = g_pFresh->GetBitmap(name);
 }
 
-void FrFormBar::SetRange(int min, int max)
-{
+// formbar.cpp:113
+void FrFormBar::SetRange(int min, int max) {
 	m_min = (float)min;
 	m_max = (float)max;
 }
 
-void FrFormBar::SetPos(float pos)
-{
+// formbar.cpp:119
+void FrFormBar::SetPos(float pos) {
 	m_pos = pos;
 }
 
-void FrFormBar::SetGaugeFrameSize(const WSize& size)
-{
-	WRect rect = GetRect();
+// formbar.cpp:124
+void FrFormBar::SetGaugeFrameSize(const WSize& size) {
+	WSize wndSize(m_rect.w, m_rect.h);
 
-	if (rect.w > size.w)
+	if (wndSize.w > size.w) {
 		m_frameSize.w = size.w;
-	else
-	{
-		m_frameSize.w = rect.w - 2.0f;
+	}
+	else {
+		m_frameSize.w = wndSize.w - 2.0f;
 	}
 
-	if (rect.h > size.h)
+	if (wndSize.h > size.h) {
 		m_frameSize.h = size.h;
-	else
-	{
-		m_frameSize.h = rect.h - 2.0f;
+	}
+	else {
+		m_frameSize.h = wndSize.h - 2.0f;
 	}
 
 	ReCalcRects();
 }
 
-void FrFormBar::SetGaugePivot(const WPoint& pivot)
-{
-	m_gaugePivot = pivot;
+// formbar.cpp:145
+void FrFormBar::SetGaugePivot(const WPoint& pivot) {
+	m_pivot = pivot;
 	ReCalcRects();
 }
 
-void FrFormBar::OnProc(const float deltaTime)
-{
-	FrForm::OnProc(deltaTime);
+// formbar.cpp:151
+void FrFormBar::OnProc(const float dt) {
+	FrForm::OnProc(dt);
 
-	if (m_autoCloseTime > 0.0f)
-	{
-		if (m_autoCloseRemain > 0.0f)
-		{
-			m_autoCloseRemain -= deltaTime;
-			if (m_autoCloseRemain < 0.0f)
-				m_autoCloseRemain = 0.0f;
-		}
+	if (m_autoCloseTime > 0.0f) {
 
-		m_pos = (m_autoCloseRemain / m_autoCloseTime) * m_max;
+		if (m_autoCloseTimer > 0.0f && (m_autoCloseTimer -= dt) < 0.0f) m_autoCloseTimer = 0.0f;
 
-		if (m_autoCloseRemain == 0.0f)
-		{
-			if (m_btn.second->IsVisible())
+		m_pos = m_autoCloseTimer / m_autoCloseTime * m_max;
+
+		if (m_autoCloseTimer == 0.0f) {
+
+
+			if (m_pBtnNO->IsVisible()) {
 				FrForm::Close(FrNO, true);
-			else
+			}
+			else {
 				FrForm::Close(FrCANCEL, true);
+			}
 		}
 	}
 }
 
-void FrFormBar::OnInitEdMsg(int param)
-{
+// formbar.cpp:173
+void FrFormBar::OnInitEdMsg(intptr_t param) {
 	m_pEdMsg = DYNAMIC_CAST(FrEdit, param);
-	if (m_pEdMsg)
+	if (m_pEdMsg) {
 		m_pEdMsg->SetVisible(false);
+	}
 }
 
-void FrFormBar::OnInitBtnOK(int param)
-{
+// formbar.cpp:181
+void FrFormBar::OnInitBtnOK(intptr_t param) {
 	FrButton* pBtn = DYNAMIC_CAST(FrButton, param);
-	if (pBtn == NULL)
-		return;
+	if (pBtn) {
 
-	pBtn->SetVisible(false);
-	m_btn.first = pBtn;
+
+		pBtn->SetVisible(false);
+		m_pBtnOK = pBtn;
+	}
 }
 
-void FrFormBar::OnDownBtnOK()
-{
+// formbar.cpp:192
+void FrFormBar::OnDownBtnOK(void) {
 	FrForm::Close(FrOK, true);
 }
 
-void FrFormBar::OnInitBtnNO(int param)
-{
+// formbar.cpp:198
+void FrFormBar::OnInitBtnNO(intptr_t param) {
 	FrButton* pBtn = DYNAMIC_CAST(FrButton, param);
-	if (pBtn == NULL)
-		return;
+	if (pBtn) {
 
-	pBtn->SetVisible(false);
-	m_btn.second = pBtn;
+
+		pBtn->SetVisible(false);
+		m_pBtnNO = pBtn;
+	}
 }
 
-void FrFormBar::OnDownBtnNO()
-{
+// formbar.cpp:209
+void FrFormBar::OnDownBtnNO(void) {
+
 	FrForm::Close(FrNO, true);
 }
 
-void FrFormBar::OnInitGaugeArea(int param)
-{
+// formbar.cpp:217
+void FrFormBar::OnInitGaugeArea(intptr_t param) {
 	m_pGaugeArea = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrFormBar::OnDrawGaugeArea()
-{
-	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
-	if (pDevice == NULL)
+// formbar.cpp:224
+void FrFormBar::OnDrawGaugeArea(void) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+	if (pGDI == 0) {
 		return;
+	}
+
+
 
 	ReCalcRects();
 
-	for (std::list<sATTACHRES>::iterator it = m_attachList.begin();
-		it != m_attachList.end(); ++it)
-	{
-		WRect src(0.0f, 0.0f, (float)(*it).pBitmap->Width(),
-			(float)(*it).pBitmap->Height());
 
-		WRect dest = GetRect();
-		dest.x += (*it).rect.x;
-		dest.y += (*it).rect.y;
-		dest.w = (*it).rect.w;
-		dest.h = (*it).rect.h;
-		pDevice->DrawTexture((*it).pBitmap, src, dest, 0xffffffff, false);
+	for (std::list<sATTACHRES>::iterator it = m_attachList.begin(); it != m_attachList.end(); ++it) {
+
+
+		WRect src(0.0f, 0.0f, (*it).pBitmap->Width(), (*it).pBitmap->Height());
+
+
+
+		WRect dest(m_rect.x + (*it).rect.x, m_rect.y + (*it).rect.y, (*it).rect.w, (*it).rect.h);
+
+
+		pGDI->DrawTexture((*it).pBitmap, src, dest, 0xFFFFFFFF, 0);
 	}
 
-	WRect rect = m_gaugeRect;
-	float value = m_pos + m_min;
+	float pos = m_pos + m_min;
+	WRect gauge = m_gaugeRect;
 
-	if (m_max != m_min && value < m_max)
-		rect.w = (value / (m_max - m_min)) * rect.w;
+	if (m_max != m_min && pos < m_max) {
+		gauge.w = pos / (m_max - m_min) * gauge.w;
+	}
 
-	pDevice->DrawTexture(m_pGaugeImg, rect, 0xffffffff, false);
+	pGDI->DrawTexture(m_pGaugeImg, gauge, 0xFFFFFFFF, 0);
 
-	pDevice->DrawTexture(m_pFrameImg, m_frameRect, 0xffffffff, false);
+
+	pGDI->DrawTexture(m_pFrameImg, m_frameRect, 0xFFFFFFFF, 0);
 }
 
-void FrFormBar::EnableButton(bool bEnable)
-{
-	m_btn.first->SetVisible(bEnable);
-	m_btn.first->Enable(bEnable);
+// formbar.cpp:264
+void FrFormBar::EnableButton(bool enable) {
+	m_pBtnOK->SetVisible(enable);
+	m_pBtnOK->Enable(enable);
 
-	m_btn.second->SetVisible(bEnable);
-	m_btn.second->Enable(bEnable);
+	m_pBtnNO->SetVisible(enable);
+	m_pBtnNO->Enable(enable);
 }
 
-void FrFormBar::SetDesc(const char* desc)
-{
-	if (m_pEdMsg)
-	{
+// formbar.cpp:273
+void FrFormBar::SetDesc(const char* desc) {
+	if (m_pEdMsg) {
+
 		m_pEdMsg->SetVisible(true);
-		m_pEdMsg->SetLine(1, desc, 0, 0, 0);
+		m_pEdMsg->SetLine(1, desc, 0, false, 0);
 	}
 }
 
-void FrFormBar::MakeDefault()
-{
+// formbar.cpp:282
+void FrFormBar::MakeDefault(void) {
 	m_pFrameImg = g_pFresh->GetBitmap("formbar_frame");
 	m_pGaugeImg = g_pFresh->GetBitmap("formbar_gauge_n");
+
+
 
 	SetGaugeFrameSize(WSize(228.0f, 18.0f));
 	SetGaugePivot(WPoint(1.0f, 1.0f));
 
-	WRect rect = GetRect();
-	m_barPos.x = (rect.w - m_frameSize.w) * 0.5f;
-	m_barPos.y = (rect.h - m_frameSize.h) * 0.8f;
+	WSize wndSize(m_rect.w, m_rect.h);
+	m_barPos.x = (wndSize.w - m_frameSize.w) * 0.5f;
+	m_barPos.y = (wndSize.h - m_frameSize.h) * 0.8f;
 }
 
-void FrFormBar::ReCalcRects()
-{
-	WRect rect = GetRect();
+// formbar.cpp:297
+void FrFormBar::ReCalcRects(void) {
+	WPoint pt(m_rect.x, m_rect.y);
 
-	m_frameRect.x = rect.x + m_barPos.x;
-	m_frameRect.y = rect.y + m_barPos.y;
+	m_frameRect.x = pt.x + m_barPos.x;
+	m_frameRect.y = pt.y + m_barPos.y;
 	m_frameRect.w = m_frameSize.w;
 	m_frameRect.h = m_frameSize.h;
 
-	m_gaugeRect.x = m_frameRect.x + m_gaugePivot.x;
-	m_gaugeRect.y = m_frameRect.y + m_gaugePivot.y;
-	m_gaugeRect.w = m_frameRect.w - (m_gaugePivot.x + m_gaugePivot.x);
-	m_gaugeRect.h = m_frameRect.h - (m_gaugePivot.y + m_gaugePivot.y);
+	m_gaugeRect.x = m_frameRect.x + m_pivot.x;
+	m_gaugeRect.y = m_frameRect.y + m_pivot.y;
+	m_gaugeRect.w = m_frameRect.w - (m_pivot.x + m_pivot.x);
+	m_gaugeRect.h = m_frameRect.h - (m_pivot.y + m_pivot.y);
 }
 
-void FrFormBar::SetAutoCloseTimer(float time)
-{
-	m_autoCloseTime = m_autoCloseRemain = time;
+// formbar.cpp:320
+void FrFormBar::SetAutoCloseTimer(float time) {
+	m_autoCloseTimer = time;
+	m_autoCloseTime = time;
 
 	m_pos = m_max;
 }

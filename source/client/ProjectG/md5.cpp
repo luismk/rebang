@@ -1,46 +1,32 @@
-// This file is based on the MD5 implementation by Colin Plumb in 1993.
-// Some minor changes were made to match the implementation in PangYa.
-#include "minatl.h"
+// Original: client/ProjectG/md5.cpp
 #include <stdio.h>
 #include <string.h>
 #include "md5.h"
 
-#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-void byteReverse(unsigned char* buf, unsigned longs)
-{
-	uint32 t;
-	do
-	{
-		t = (uint32)((unsigned)buf[3] << 8 | buf[2]) << 16 |
-			((unsigned)buf[1] << 8 | buf[0]);
-		*(uint32*)buf = t;
-		buf += 4;
-	} while (--longs);
-}
-#else
-#define byteReverse(buf, len)
-#endif
+// Little-endian target: no byte swapping.
+#define byteReverse(buf, len) /* Nothing */
 
-void GetMD5String(const char* src, char* dst)
+// md5.cpp:53
+void GetMD5String(const char *src, char *dst)
 {
-	struct MD5Context ctx;
+	MD5Context ctx;
 	unsigned char digest[16];
+	char hex[4];
 
-	unsigned len = strlen(src);
+	unsigned int len = strlen(src);
 
 	MD5Init(&ctx);
-	MD5Update(&ctx, (unsigned char const*)src, len);
+	MD5Update(&ctx, (unsigned char const *)src, len);
 	MD5Final(digest, &ctx);
 
-	char hex[4];
-	for (int i = 0; i < 16; i++)
-	{
+	for (int i = 0; i < 16; i++) {
 		sprintf(hex, "%02X", digest[i]);
 		strcat(dst, hex);
 	}
 }
 
-void MD5Init(struct MD5Context* ctx)
+// md5.cpp:76
+void MD5Init(struct MD5Context *ctx)
 {
 	ctx->buf[0] = 0x67452301;
 	ctx->buf[1] = 0xefcdab89;
@@ -51,89 +37,100 @@ void MD5Init(struct MD5Context* ctx)
 	ctx->bits[1] = 0;
 }
 
-void MD5Update(struct MD5Context* ctx, unsigned char const* buf, unsigned len)
+// md5.cpp:91
+void MD5Update(struct MD5Context *ctx, unsigned char const *buf, unsigned len)
 {
 	uint32 t;
 
+	// Update bitcount
 	t = ctx->bits[0];
 	if ((ctx->bits[0] = t + ((uint32)len << 3)) < t)
-		ctx->bits[1]++;
+		ctx->bits[1]++; // Carry from low to high
 	ctx->bits[1] += len >> 29;
 
-	t = (t >> 3) & 0x3f;
+	t = (t >> 3) & 0x3f; // Bytes already in ctx->in
 
-	if (t)
-	{
-		unsigned char* p = (unsigned char*)ctx->in + t;
+	// Handle any leading odd-sized chunks
+	if (t) {
+		unsigned char *p = (unsigned char *)ctx->in + t;
 
 		t = 64 - t;
-		if (len < t)
-		{
+		if (len < t) {
 			memcpy(p, buf, len);
 			return;
 		}
 		memcpy(p, buf, t);
 		byteReverse(ctx->in, 16);
-		MD5Transform(ctx->buf, (uint32*)ctx->in);
+		MD5Transform(ctx->buf, (uint32 *)ctx->in);
 		buf += t;
 		len -= t;
 	}
 
-	while (len >= 64)
-	{
+	// Process data in 64-byte chunks
+	while (len >= 64) {
 		memcpy(ctx->in, buf, 64);
 		byteReverse(ctx->in, 16);
-		MD5Transform(ctx->buf, (uint32*)ctx->in);
+		MD5Transform(ctx->buf, (uint32 *)ctx->in);
 		buf += 64;
 		len -= 64;
 	}
 
+	// Handle any remaining bytes of data
 	memcpy(ctx->in, buf, len);
 }
 
-void MD5Final(unsigned char digest[16], struct MD5Context* ctx)
+// md5.cpp:139
+void MD5Final(unsigned char digest[16], struct MD5Context *ctx)
 {
 	unsigned count;
-	unsigned char* p;
+	unsigned char *p;
 
+	// Compute number of bytes mod 64
 	count = (ctx->bits[0] >> 3) & 0x3F;
 
+	// Set the first char of padding to 0x80; there is always one byte free
 	p = ctx->in + count;
 	*p++ = 0x80;
 
+	// Bytes of padding needed to make 64 bytes
 	count = 64 - 1 - count;
 
-	if (count < 8)
-	{
+	// Pad out to 56 mod 64
+	if (count < 8) {
+		// Two lots of padding: pad the first block to 64 bytes
 		memset(p, 0, count);
 		byteReverse(ctx->in, 16);
-		MD5Transform(ctx->buf, (uint32*)ctx->in);
+		MD5Transform(ctx->buf, (uint32 *)ctx->in);
 
+		// Now fill the next block with 56 bytes
 		memset(ctx->in, 0, 56);
-	}
-	else
-	{
+	} else {
+		// Pad block to 56 bytes
 		memset(p, 0, count - 8);
 	}
 	byteReverse(ctx->in, 14);
 
-	((uint32*)ctx->in)[14] = ctx->bits[0];
-	((uint32*)ctx->in)[15] = ctx->bits[1];
+	// Append length in bits and transform
+	((uint32 *)ctx->in)[14] = ctx->bits[0];
+	((uint32 *)ctx->in)[15] = ctx->bits[1];
 
-	MD5Transform(ctx->buf, (uint32*)ctx->in);
-	byteReverse((unsigned char*)ctx->buf, 4);
+	MD5Transform(ctx->buf, (uint32 *)ctx->in);
+	byteReverse((unsigned char *)ctx->buf, 4);
 	memcpy(digest, ctx->buf, 16);
-	memset(ctx, 0, sizeof(ctx));
+	memset(ctx, 0, sizeof(ctx)); // sizeof the pointer: clears buf[0] only
 }
 
+// The four core functions; F1 is optimized somewhat
 #define F1(x, y, z) (z ^ (x & (y ^ z)))
 #define F2(x, y, z) F1(z, x, y)
 #define F3(x, y, z) (x ^ y ^ z)
 #define F4(x, y, z) (y ^ (x | ~z))
 
+// This is the central step in the MD5 algorithm.
 #define MD5STEP(f, w, x, y, z, data, s) \
 	(w += f(x, y, z) + data, w = w << s | w >> (32 - s), w += x)
 
+// md5.cpp:199
 void MD5Transform(uint32 buf[4], uint32 const in[16])
 {
 	register uint32 a, b, c, d;

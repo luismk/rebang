@@ -1,108 +1,62 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\tooltip.h
+#ifndef PG_CLIENT_PROJECTG_TOOLTIP_H
+#define PG_CLIENT_PROJECTG_TOOLTIP_H
 
-enum eBarButton
-{
-	TOOLTIP_BACK,
-	TOOLTIP_FRONT,
-	TOOLTIP_SHOP,
-	TOOLTIP_MYROOM,
-	TOOLTIP_DOL,
-	RMR_RM_POSTBOX,
-	TOOLTIP_COOKIE,
-	TOOLTIP_GAME,
-	TOOLTIP_SERVER,
-	TOOLTIP_EXIT,
-	TOOLTIP_SPECIAL_CARD,
-	TOOLTIP_MSN,
-	TOOLTIP_MYINFO,
-	TOOLTIP_OPTION,
-	TOOLTIP_MAGICBOX,
-	TOOLTIP_BONG,
-	TOOLTIP_RANKING,
-	TOOLTIP_GUILD,
-	TOOLTIP_NOTICE,
-	RMR_TOOLTIP_MARKET,
-	TOOLTIP_SCRATCH,
-	TOOLTIP_PLAY,
-	TOOLTIP_BUY,
-	TOOLTIP_GIFT,
-	TOOLTIP_BUYALL,
-	TOOLTIP_BUYRESET,
-	TOOLTIP_EQUIP,
-	TOOLTIP_MOVEGIFT,
-	TOOLTIP_DELETE,
-	TOOLTIP_RESET,
-	TOOLTIP_REEMPLOY,
-	TOOLTIP_REPLY,
-	TOOLTIP_HANDSEL,
-	TOOLTIP_OPENGIFT,
-	TOOLTIP_REPORT,
-	TOOLTIP_UPGRADE,
-	TOOLTIP_DOWNGRADE,
-	TOOLTIP_EQUIPCANCEL,
-	TOOLTIP_EQUIPRESET,
-	TOOLTIP_CARD,
-	TOOLTIP_CHARACTER,
-	TOOLTIP_CADDIE,
-	TOOLTIP_CLUB,
-	TOOLTIP_AZTEC,
-	TOOLTIP_MASCOT,
-	UCC_TOOLTIP_DRAW,
-	UCC_TOOLTIP_COPY,
-	UCC_TOOLTIP_DRAG,
-	UCC_TOOLTIP_GRID,
-	UCC_TOOLTIP_PAINT,
-	UCC_TOOLTIP_REDO,
-	UCC_TOOLTIP_UNDO,
-	UCC_TOOLTIP_RESET,
-	UCC_TOOLTIP_ZOOMIN,
-	UCC_TOOLTIP_ZOOMOUT,
-	UCC_TOOLTIP_SPOID,
-	UCC_TOOLTIP_TAB_DRAW,
-	UCC_TOOLTIP_TAB_PATTERN,
-	UCC_TOOLTIP_TAB_EMOTICON,
-	UCC_TOOLTIP_TAB_TEXT,
-	UCC_TOOLTIP_REDRAW,
-	UCC_TOOLTIP_TEMPSAVE,
-	RMR_RM_DECO,
-	RMR_RM_LETTER,
-	RMR_DELETE,
-	RMR_RM_WITHDRAWAL,
-	RMR_TOOLTIP_CANCEL,
-	RMR_TOOLTIP_EXTEND,
-	RMR_ITEM_UPLOAD,
-	RMR_TOOLTIP_RETURN,
-	TOOLTIP_USE,
-	TOOLTIP_PACKAGE,
-	MAX_BARBUTTON
+#include "..\..\defines.h"
+
+class Bitmap;
+
+// Icon bar button; only the enumerators the transcribed code uses are
+// named (CTaskMain::CheckNaviButtons).
+enum eBarButton {
+	BAR_BUTTON_NAVI_BACKWARD = 0,
+	BAR_BUTTON_NAVI_FORWARD = 1
 };
 
-class CIconToolTip
-{
-private:
-	CIconToolTip();
-	~CIconToolTip();
-
+// Singleton showing the tool tip of the icon bar buttons.
+class CIconToolTip {
+	LAYOUT_CHECK_FRIEND;
 public:
-	static CIconToolTip* GetInstance()
-	{
-		static CIconToolTip _Instance;
-		return &_Instance;
-	}
+	// tooltip.h:89, inline in the original header (TaskMain emitted the
+	// copy the linker kept). Defined in TaskMain.cpp: its local static's
+	// guard shifts the _$E<n> numbering of every includer, whose
+	// symbol_mappings.json pairs would all need remapping.
+	static CIconToolTip *GetInstance(void);
 
-	void SetToolTip(eBarButton tip);
-	void ClearToolTip();
-	bool IsCurToolTip(eBarButton tip);
-	void Render();
-	int GetCurTipIndex() { return m_curTipIndex; }
+	void SetToolTip(eBarButton button);
+	void ClearToolTip(void);
+	bool IsCurToolTip(eBarButton button);
+	void Render(void);
+
+	int GetCurTipIndex(void);          // tooltip.h:98
 
 private:
-	int m_curTipIndex;
-	const Bitmap* m_pCurToolTip;
-	const Bitmap* m_pToolTip[MAX_BARBUTTON];
+	CIconToolTip(void);
+	~CIconToolTip(void);
+
+	int m_curTipIndex;              // 0x0, -1 when no tip is shown
+	const Bitmap *m_curTipBitmap;   // 0x4
+	const Bitmap *m_tipBitmaps[72]; // 0x8, one per bar button
 };
 
-inline CIconToolTip* TOOLTIP()
-{
+CHECK_SIZE(CIconToolTip, 0x128);
+
+BEGIN_LAYOUT_CHECK(CIconToolTip)
+	CHECK_FIELD(CIconToolTip, m_curTipIndex, 0x0);
+	CHECK_FIELD(CIconToolTip, m_curTipBitmap, 0x4);
+	CHECK_FIELD(CIconToolTip, m_tipBitmaps, 0x8);
+END_LAYOUT_CHECK
+
+// TaskMain.cpp defines TASKMAIN_TOOLTIP_INLINE empty before its first
+// include, so its object emits the out-of-line copy of TOOLTIP, as the
+// original's did.
+#ifndef TASKMAIN_TOOLTIP_INLINE
+#define TASKMAIN_TOOLTIP_INLINE inline
+#endif
+
+// tooltip.h:111
+TASKMAIN_TOOLTIP_INLINE CIconToolTip *TOOLTIP(void) {
 	return CIconToolTip::GetInstance();
 }
+
+#endif // PG_CLIENT_PROJECTG_TOOLTIP_H

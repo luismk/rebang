@@ -1,264 +1,194 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\wtemplate.h
+#ifndef PG_CLIENT_PROJECTG_WTEMPLATE_H
+#define PG_CLIENT_PROJECTG_WTEMPLATE_H
 
-#include <map>
+#include "..\..\defines.h"
+
 #include <algorithm>
+#include <map>
 
 class FunctionMapper;
-typedef void (FunctionMapper::*FUNCTION_PTR)();
 
-struct sFunctionHandler
-{
-	int id;
-	int type;
-	FUNCTION_PTR pFunc;
+// Signature of a FunctionMapper handler (enumerator names not in the PDB):
+// V = void, B = bool, P = the Exec parameter.
+enum eFunctionType {
+	FUNCTION_TYPE_VV = 1,
+	FUNCTION_TYPE_BV = 2,
+	FUNCTION_TYPE_VP = 3,
+	FUNCTION_TYPE_BP = 4
 };
 
-enum eFunctionType
-{
-	FUNCTIONTYPE_VOID = 1,
-	FUNCTIONTYPE_BOOL,
-	FUNCTIONTYPE_ARG,
-	FUNCTIONTYPE_BOOL_ARG,
-};
+// Declared while FunctionMapper is incomplete: cl gives the handler the
+// general 16-byte pointer-to-member representation (8-byte aligned).
+typedef void (FunctionMapper::*FUNCTION_MAPPER_PFN)(void);
 
-class FunctionMapper
-{
+// One registered handler: its id, signature and member function.
+struct sFunctionHandler {
+	int id;                       // 0x0
+	eFunctionType type;           // 0x4
+	FUNCTION_MAPPER_PFN pFunc;    // 0x8
+};
+CHECK_SIZE(sFunctionHandler, 0x18);
+CHECK_FIELD(sFunctionHandler, id, 0x0);
+CHECK_FIELD(sFunctionHandler, type, 0x4);
+CHECK_FIELD(sFunctionHandler, pFunc, 0x8);
+
+// Dispatches to the member function registered under the current type.
+class FunctionMapper {
 public:
-	FunctionMapper() { }
-	virtual ~FunctionMapper() { }
+	// wtemplate.h:65
+	FunctionMapper(void) {}
+	// wtemplate.h:66
+	virtual ~FunctionMapper(void) {}
 
-	void AddFunctionType(int id, eFunctionType type, FUNCTION_PTR pFunc)
-	{
+	// wtemplate.h:69
+	void AddFunctionType(int id, eFunctionType type, void (FunctionMapper::*pFunc)(void)) {
 		sFunctionHandler handler;
 		handler.id = id;
 		handler.type = type;
 		handler.pFunc = pFunc;
 
-		m_functionMap.insert(std::make_pair(id, handler));
+		m_functions.insert(std::map<int, sFunctionHandler>::value_type(id, handler));
 	}
 
-	void SetFunctionType(int type) { m_functionType = type; }
+	// wtemplate.h:79
+	void SetFunctionType(int type) {
+		m_type = type;
+	}
 
-	template <class T, class A>
-	bool Exec(T* pObj, A arg)
-	{
-		std::map<int, sFunctionHandler>::const_iterator it =
-			m_functionMap.find(m_functionType);
-		if (it == m_functionMap.end())
-		{
+	// wtemplate.h:86
+	template <class T, class P>
+	bool Exec(T* pObj, P param) {
+		std::map<int, sFunctionHandler>::iterator it = m_functions.find(m_type);
+		if (it == m_functions.end()) {
 			return false;
 		}
 
-		sFunctionHandler handler = (*it).second;
-
-		FUNCTION_PTR pFunc = handler.pFunc;
+		sFunctionHandler handler = it->second;
 
 		bool bResult = true;
-
-		switch (handler.type)
-		{
-		case FUNCTIONTYPE_VOID:
-			(pObj->*(void (T::*)())pFunc)();
+		switch (handler.type) {
+		case FUNCTION_TYPE_VV:
+			(pObj->*(void (T::*)(void))handler.pFunc)();
 			break;
-		case FUNCTIONTYPE_BOOL:
-			bResult = (pObj->*(bool (T::*)())(void (T::*)())pFunc)();
+		case FUNCTION_TYPE_BV:
+			bResult = (pObj->*(bool (T::*)(void))(void (T::*)(void))handler.pFunc)();
 			break;
-		case FUNCTIONTYPE_ARG:
-			(pObj->*(void (T::*)(A))(void (T::*)())pFunc)(arg);
+		case FUNCTION_TYPE_VP:
+			(pObj->*(void (T::*)(P))(void (T::*)(void))handler.pFunc)(param);
 			break;
-		case FUNCTIONTYPE_BOOL_ARG:
-			bResult = (pObj->*(bool (T::*)(A))(void (T::*)())pFunc)(arg);
+		case FUNCTION_TYPE_BP:
+			bResult = (pObj->*(bool (T::*)(P))(void (T::*)(void))handler.pFunc)(param);
 			break;
 		}
-
 		return bResult;
 	}
 
-protected:
-	std::map<int, sFunctionHandler> m_functionMap;
-	int m_functionType;
+	std::map<int, sFunctionHandler> m_functions;    // 0x4
+	int m_type;                                     // 0x10
+};
+CHECK_FIELD(FunctionMapper, m_functions, 0x4);
+CHECK_FIELD(FunctionMapper, m_type, 0x10);
+CHECK_SIZE(FunctionMapper, 0x14);
+
+namespace _util {
+
+// Creates a T with new; a creator callable through a plain function pointer.
+template <class T>
+struct NewCreator {
+	// wtemplate.h:141
+	static T* CreateObject(void) {
+		return new T;
+	}
 };
 
-namespace _util
-{
-
-	template <class T>
-	struct NewCreator
-	{
-		static T* CreateObject() { return new T; }
-	};
-
-	template <class T, class R>
-	struct WMemFun
-	{
-		typedef R (T::*Func)();
-
-		WMemFun(T& obj, Func func)
-			: m_pObj(&obj), m_func(func)
-		{
-		}
-
-		R operator()() { return (m_pObj->*m_func)(); }
-
-		T* m_pObj;
-		Func m_func;
-	};
-
-	template <class T, class R, class A>
-	struct WMemFun1
-	{
-		typedef R (T::*Func)(A);
-
-		WMemFun1(T& obj, Func func)
-			: m_pObj(&obj), m_func(func)
-		{
-		}
-
-		R operator()(A a) { return (m_pObj->*m_func)(a); }
-
-		T* m_pObj;
-		Func m_func;
-	};
-
-	template <class T, class R>
-	WMemFun<T, R> MakeMemFun(T& obj, R (T::*func)())
-	{
-		return WMemFun<T, R>(obj, func);
+// A member function bound to its object (object at 0x0, member pointer at
+// 0x4). Only the members the decompiled units use are transcribed.
+template <class T, class R>
+struct WMemFun {
+	// wtemplate.h:166
+	WMemFun(T& obj, R (T::*pFunc)(void))
+		: m_pObj(&obj), m_pFunc(pFunc) {
 	}
 
-	template <class T, class R, class A>
-	WMemFun1<T, R, A> MakeMemFun1(T& obj, R (T::*func)(A))
-	{
-		return WMemFun1<T, R, A>(obj, func);
+	T* m_pObj;                  // 0x0
+	R (T::*m_pFunc)(void);      // 0x4
+};
+
+// A one-argument member function bound to its object. The member pointer
+// follows the object; its size and alignment depend on T's inheritance
+// (0x4 for a single-inheritance class, 0x8-aligned 0x8 for multiple).
+template <class T, class R, class A>
+struct WMemFun1 {
+	// wtemplate.h:186
+	WMemFun1(T& obj, R (T::*pFunc)(A))
+		: m_pObj(&obj), m_pFunc(pFunc) {
 	}
 
+	// wtemplate.h:191
+	R operator()(A arg) {
+		return (m_pObj->*m_pFunc)(arg);
+	}
+
+	T* m_pObj;                  // 0x0
+	R (T::*m_pFunc)(A);         // after m_pObj
+};
+
+// wtemplate.h:222
+template <class T, class R>
+WMemFun<T, R> MakeMemFun(T& obj, R (T::*pFunc)(void)) {
+	return WMemFun<T, R>(obj, pFunc);
 }
 
-template <class C, class P>
-bool FindIf(const C& c, P pred)
-{
-	typename C::const_iterator it = std::find_if(c.begin(), c.end(), pred);
-	return it != c.end() ? true : false;
+// wtemplate.h:229
+template <class T, class R, class A>
+WMemFun1<T, R, A> MakeMemFun1(T& obj, R (T::*pFunc)(A)) {
+	return WMemFun1<T, R, A>(obj, pFunc);
 }
 
+}
+
+// wtemplate.h:270
+// Whether pred holds for an element of the list.
+template <class L, class P>
+bool FindIf(const L& list, P pred) {
+	typename L::const_iterator it = std::find_if(list.begin(), list.end(), pred);
+	return it != list.end() ? true : false;
+}
+
+// wtemplate.h:313
+// Subtracts amount from value without going below limit; returns the result.
 template <class T>
-T wAbs(T value)
-{
-	return value >= 0 ? value : -value;
-}
-
-template <class T>
-T SAFE_SUBVALUE(T& value, const T& min, T sub)
-{
-	if (value > min)
-	{
-		value -= sub;
-		if (value < min)
-			value = min;
+T SAFE_SUBVALUE(T& value, const T& limit, T amount) {
+	if (value > limit) {
+		value -= amount;
+		if (value < limit) {
+			value = limit;
+		}
 	}
 	return value;
 }
 
+// wtemplate.h:354
+// Adds amount to value without going above limit; returns the result.
 template <class T>
-T SAFE_ADDVALUE(T& value, const T& max, T add)
-{
-	if (value < max)
-	{
-		value += add;
-		if (value > max)
-			value = max;
+T SAFE_ADDVALUE(T& value, const T& limit, T amount) {
+	if (value < limit) {
+		value += amount;
+		if (value > limit) {
+			value = limit;
+		}
 	}
 	return value;
 }
 
-template <class T, class U>
-bool SAFE_RANGEVALUE(T& value, const U& min, const U& max, const U& newValue)
-{
-	if (value < min || value > max)
-	{
-		value = min;
-		return false;
-	}
-	value = newValue;
-	return true;
-}
-
+// wtemplate.h:502
+// Appends count null elements to the container.
 template <class T>
-bool IS_INRANGE(const T& value, const T& min, const T& max)
-{
-	return value >= min && value <= max;
+void back_insert_null(T& container, unsigned int count) {
+	for (; count != 0; count--) {
+		container.push_back(0);
+	}
 }
 
-struct _FindByGuid
-{
-	_FindByGuid(unsigned long guid)
-		: m_guid(guid)
-	{
-	}
-	template <class T>
-	bool operator()(const T& t) const
-	{
-		return m_guid == t.id;
-	}
-
-	unsigned long m_guid;
-};
-
-struct _FindByGuid_Ptr
-{
-	_FindByGuid_Ptr(unsigned long guid)
-		: m_guid(guid)
-	{
-	}
-	template <class T>
-	bool operator()(const T* p) const
-	{
-		return m_guid == p->id;
-	}
-
-	unsigned long m_guid;
-};
-
-struct _FindItem
-{
-	_FindItem(unsigned long typeId, unsigned long id)
-		: m_typeId(typeId), m_id(id)
-	{
-	}
-	template <class T>
-	bool operator()(const T& t) const
-	{
-		return m_typeId == t.typeId && m_id == t.id;
-	}
-
-	unsigned long m_typeId;
-	unsigned long m_id;
-};
-
-struct _FindByUid
-{
-	_FindByUid(unsigned long uid)
-		: m_uid(uid)
-	{
-	}
-	template <class T>
-	bool operator()(const T& t) const
-	{
-		return m_uid == t.uid;
-	}
-
-	unsigned long m_uid;
-};
-
-template <class T>
-struct less_guid_ptr
-{
-	bool operator()(const T a, const T b) const { return a->id < b->id; }
-};
-
-template <class C>
-void back_insert_null(C& c, unsigned int n)
-{
-	while (n--)
-		c.push_back(NULL);
-}
+#endif // PG_CLIENT_PROJECTG_WTEMPLATE_H

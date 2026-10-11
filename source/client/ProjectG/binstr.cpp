@@ -1,28 +1,33 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\binstr.cpp
+#include <windows.h>
+#include <stdio.h>
+#include <string.h>
+#include <new>
+
 #include "binstr.h"
-#include "../../shared/localize.h"
+#include "../shared/Localize.h"
 
-cToken::cToken()
-{
+// binstr.cpp:19
+cToken::cToken(void) {
 	m_Len = m_Pos = m_ResLen = 0;
-	m_pcResBuf = NULL;
+	m_pcResBuf = 0;
 }
 
-cToken::~cToken()
-{
-	if (m_pcResBuf)
+// binstr.cpp:28
+cToken::~cToken(void) {
+	if (m_pcResBuf) {
 		delete[] m_pcResBuf;
+	}
 }
 
-bool cToken::GetResultBuf()
-{
-	if (m_Len + 1 > m_ResLen)
-	{
-		if (m_pcResBuf)
+// binstr.cpp:36
+bool cToken::GetResultBuf(void) {
+	if (m_Len + 1 > m_ResLen) {
+		if (m_pcResBuf) {
 			delete[] m_pcResBuf;
+		}
 		m_pcResBuf = new char[m_Len + 1];
-		if (m_pcResBuf == NULL)
-		{
+		if (!m_pcResBuf) {
 			m_ResLen = 0;
 			return false;
 		}
@@ -31,436 +36,466 @@ bool cToken::GetResultBuf()
 	return true;
 }
 
-bool cToken::GetToken(char* const pOut, const char* pcSep, int nSep)
-{
-	*pOut = 0;
-	if (!GetBuf())
+// binstr.cpp:69
+bool cToken::GetToken(char *const pToken, const char *sep, int sepLen) {
+	pToken[0] = '\0';
+	if (!GetBuf()) {
 		return false;
+	}
 
-	int nPos = m_Pos;
-	bool bFind = false;
-	while (nPos < m_Len)
-	{
-		int j = 0;
-		for (int i = 0; i < nSep; ++i, ++j)
-		{
-			char c = pcSep[j];
-			if (GetBuf()[nPos] == c)
-			{
-				if (!Custom_IsLeadByte(c))
-					goto FOUND;
-				++j;
-				bool bMatch;
-				if (IsLocalCountry(30))
-					bMatch = nPos + 1 < m_Len && GetBuf()[nPos + 1] == pcSep[j];
-				else
-					bMatch = GetBuf()[nPos + 1] == pcSep[j];
-				if (bMatch)
-					goto FOUND2;
+	int found = 0;
+	bool bRet = false;
+	int i;
+	int j;
+	const char *pSep;
+	for (i = m_Pos; i < m_Len; i++) {
+		pSep = sep;
+		for (j = 0; j < sepLen; j++, pSep++) {
+			if (GetBuf()[i] == *pSep) {
+				if (*pSep & 0x80) {
+					bool bSame;
+					pSep++;
+					if (IsLocalCountry(30)) {
+						bSame = i + 1 < m_Len && GetBuf()[i + 1] == *pSep;
+					} else {
+						bSame = GetBuf()[i + 1] == *pSep;
+					}
+					if (bSame) {
+						found = 2;
+						break;
+					}
+				} else {
+					found = 1;
+					break;
+				}
+			} else if (*pSep & 0x80) {
+				pSep++;
 			}
-			else if (Custom_IsLeadByte(c))
-				++j;
 		}
-		pOut[nPos - m_Pos] = GetBuf()[nPos];
-		if (Custom_IsLeadByte(GetBuf()[nPos]))
-		{
-			if (IsLocalCountry(30))
-			{
-				if (nPos + 1 < m_Len)
-				{
-					++nPos;
-					pOut[nPos - m_Pos] = GetBuf()[nPos];
+		if (found) {
+			break;
+		}
+
+		pToken[i - m_Pos] = GetBuf()[i];
+		if (GetBuf()[i] & 0x80) {
+			if (IsLocalCountry(30)) {
+				if (i + 1 < m_Len) {
+					i++;
+					pToken[i - m_Pos] = GetBuf()[i];
+				}
+			} else {
+				i++;
+				if (i < m_Len) {
+					pToken[i - m_Pos] = GetBuf()[i];
 				}
 			}
-			else if (++nPos < m_Len)
-				pOut[nPos - m_Pos] = GetBuf()[nPos];
 		}
-		++nPos;
 	}
-	goto END;
-FOUND:
-	bFind = true;
-END:
-	pOut[nPos - m_Pos] = 0;
-	goto RET;
-FOUND2:
-	++nPos;
-	bFind = true;
-	pOut[nPos - m_Pos - 1] = 0;
-RET:
-	m_Pos = nPos < m_Len ? nPos + 1 : m_Len;
-	return bFind;
+
+	if (found == 1) {
+		bRet = true;
+	}
+	if (found == 2) {
+		bRet = true;
+		i++;
+		pToken[i - m_Pos - 1] = '\0';
+	} else {
+		pToken[i - m_Pos] = '\0';
+	}
+	m_Pos = (i < m_Len) ? i + 1 : m_Len;
+	return bRet;
 }
 
-bool cToken::GetTokenFullSep(char* const pOut, const char* pcSep, int nSep)
-{
-	*pOut = 0;
-	if (!GetBuf())
+// binstr.cpp:158
+bool cToken::GetTokenFullSep(char *const pToken, const char *sep, int sepLen) {
+	pToken[0] = '\0';
+	if (!GetBuf()) {
 		return false;
+	}
 
-	int nPos = m_Pos;
-	int nFind = PosB(GetBuf() + nPos, m_Len - nPos, pcSep, nSep);
-	if (nFind < 0)
-	{
-		nFind = m_Len - nPos;
-		memcpy(pOut, GetBuf() + m_Pos, nFind);
-		pOut[nFind] = 0;
+	int len = PosB(GetBuf() + m_Pos, m_Len - m_Pos, sep, sepLen);
+	if (len < 0) {
+
+
+		len = m_Len - m_Pos; memcpy(pToken, GetBuf() + m_Pos, len);
+		pToken[len] = '\0';
 		m_Pos = m_Len;
 		return false;
 	}
-	memcpy(pOut, GetBuf() + m_Pos, nFind);
-	pOut[nFind] = 0;
-	m_Pos += nFind + nSep;
+
+	memcpy(pToken, GetBuf() + m_Pos, len);
+
+	pToken[len] = '\0'; m_Pos += len + sepLen;
 	return true;
 }
 
-int cToken::GetTokenNum(int nPos, char cSep) const
-{
-	return GetTokenNum(nPos, &cSep, 1);
+// binstr.cpp:184
+int cToken::GetTokenNum(int start, char sep) const {
+	return GetTokenNum(start, &sep, 1);
 }
 
-int cToken::GetTokenNum(int nPos, const char* pcSep, int nSep) const
-{
-	if (!GetBuf())
+// binstr.cpp:191
+int cToken::GetTokenNum(int start, const char *sep, int sepLen) const {
+	if (!GetBuf()) {
 		return 0;
+	}
 
-	int nCount = nPos < m_Len;
-	for (; nPos < m_Len; ++nPos)
-	{
-		for (int i = 0; i < nSep; ++i)
-		{
-			if (GetBuf()[nPos] == pcSep[i])
-			{
-				++nCount;
+	int count = start < m_Len;
+	for (int i = start; i < m_Len; i++) {
+		for (int j = 0; j < sepLen; j++) {
+			if (GetBuf()[i] == sep[j]) {
+				count++;
 				break;
 			}
 		}
-		if (Custom_IsLeadByte(GetBuf()[nPos]))
-			++nPos;
+		if (GetBuf()[i] & 0x80) {
+			i++;
+		}
 	}
-	return nCount;
+	return count;
 }
 
-char cToken::GetChar()
-{
+// binstr.cpp:218
+char cToken::GetChar(void) {
 	return (GetBuf() && m_Pos < m_Len) ? GetBuf()[m_Pos++] : 0;
 }
 
-int cToken::GetChange(char* const pOut)
-{
-	if (GetBuf() && m_Pos < m_Len)
-	{
-		memcpy(pOut, GetBuf() + m_Pos, m_Len - m_Pos);
+// binstr.cpp:229
+int cToken::GetChange(char *const pDest) {
+	if (GetBuf() && m_Pos < m_Len) {
+		memcpy(pDest, GetBuf() + m_Pos, m_Len - m_Pos);
 		return m_Len - m_Pos;
 	}
-	pOut[0] = 0;
+
+	pDest[0] = 0;
 	return 0;
 }
 
-cTokenV::cTokenV()
-{
-	m_pcBuf = NULL;
+// binstr.cpp:251
+cTokenV::cTokenV(void) {
+	m_pcBuf = 0;
 }
 
-cTokenV::~cTokenV()
-{
+// binstr.cpp:255
+cTokenV::~cTokenV(void) {
 }
 
-bool cTokenV::Init(const char* pcBuf, int nLen)
-{
-	if (pcBuf == NULL || nLen < 1)
+// binstr.cpp:261
+bool cTokenV::Init(const char *buf, int len) {
+	if (!buf || len < 1) {
 		return false;
-	m_pcBuf = pcBuf;
-	m_Len = nLen;
+	}
+
+	m_pcBuf = buf; m_Len = len;
 	m_Pos = 0;
 	return true;
 }
 
-cTokenS::cTokenS()
-{
-	m_pcBuf = NULL;
+// binstr.cpp:280
+cTokenS::cTokenS(void) {
+	m_pcBuf = 0;
 }
 
-cTokenS::~cTokenS()
-{
-	if (m_pcBuf)
+// binstr.cpp:286
+cTokenS::~cTokenS(void) {
+	if (m_pcBuf) {
 		delete[] m_pcBuf;
+	}
 }
 
-bool cTokenS::Init(const char* pcBuf, int nLen)
-{
-	if (pcBuf == NULL || nLen < 1)
+// binstr.cpp:294
+bool cTokenS::Init(const char *buf, int len) {
+	if (!buf || len < 1) {
 		return false;
+	}
 
-	if (nLen > m_Len)
-	{
-		if (m_pcBuf)
+	if (len > m_Len) {
+		if (m_pcBuf) {
 			delete[] m_pcBuf;
-		m_pcBuf = new char[nLen];
-		if (m_pcBuf == NULL)
-		{
+		}
+		m_pcBuf = new char[len];
+		if (!m_pcBuf) {
 			m_Len = 0;
 			return false;
 		}
 	}
-	memcpy(m_pcBuf, pcBuf, nLen);
-	m_Len = nLen;
+
+	memcpy(m_pcBuf, buf, len);
+	m_Len = len;
 	m_Pos = 0;
 	return true;
 }
 
-int StrToIntDefA(const char* str, int def)
-{
-	if (str == NULL || *str == 0)
+// binstr.cpp:322
+int StrToIntDefA(const char *str, int def) {
+	if (!str || !str[0]) {
 		return def;
-
-	int i = strlen(str) - 1;
-	int result = 0;
-	int mul = 1;
-	for (; i > 0; --i)
-	{
-		char c = str[i];
-		if (c < '0' || c > '9')
-			return def;
-		result += (c - '0') * mul;
-		mul *= 10;
 	}
-	if (str[0] == '-')
-		result = -result;
-	else
-	{
-		if (str[0] < '0' || str[0] > '9')
-			return def;
-		result += (str[0] - '0') * mul;
-	}
-	return result;
-}
-
-int StrToIntDefFilterA(const char* str, int def)
-{
-	if (str == NULL)
-		return def;
 
 	int last = strlen(str) - 1;
-	int start;
-	for (start = 0; start <= last; ++start)
-	{
-		if (str[start] >= '0' && str[start] <= '9')
-			break;
-	}
-	if (start > last)
-		return def;
-
-	int i;
-	for (i = start + 1; i <= last; ++i)
-	{
-		if (str[i] < '0' || str[i] > '9')
-			break;
-	}
-	--i;
-
 	int result = 0;
-	int mul = 1;
-	for (; i > start; --i)
-	{
-		char c = str[i];
-		if (c < '0' || c > '9')
+	int mul;
+	int i;
+	for (i = last, mul = 1; i > 0; i--) {
+		if (str[i] < '0' || str[i] > '9') {
 			return def;
-		result += (c - '0') * mul;
+		}
+		result += (str[i] - '0') * mul;
 		mul *= 10;
 	}
-	if (str[start] == '-')
+
+	if (str[0] == '-') {
 		result = -result;
-	else
-	{
-		if (str[start] < '0' || str[start] > '9')
+	} else {
+		if (str[0] < '0' || str[0] > '9') {
 			return def;
-		result += (str[start] - '0') * mul;
+		}
+		result += (str[0] - '0') * mul;
 	}
+
 	return result;
 }
 
-char* IntToStrA(int value, char* str)
-{
-	int i;
+// binstr.cpp:358
+int StrToIntDefFilterA(const char *str, int def) {
+	if (!str) {
+		return def;
+	}
+
+	int last = strlen(str) - 1;
+	int start = 0;
+	while (start <= last && (str[start] < '0' || str[start] > '9')) {
+		start++;
+	}
+
+	if (start > last) {
+		return def;
+	}
+	int end = start + 1;
+	while (end <= last && str[end] >= '0' && str[end] <= '9') {
+		end++;
+	}
+	end--;
+
+	int result = 0;
+	int mul;
+	for (mul = 1; end > start; end--) {
+		if (str[end] < '0' || str[end] > '9') {
+			return def;
+		}
+		result += (str[end] - '0') * mul;
+		mul *= 10;
+	}
+
+	if (str[start] == '-') {
+		result = -result;
+	} else {
+		if (str[start] < '0' || str[start] > '9') {
+			return def;
+		}
+		result += (str[start] - '0') * mul;
+	}
+
+	return result;
+}
+
+// binstr.cpp:409
+char *IntToStrA(int value, char *buf) {
+	int pos;
 	int len;
 	int div;
-	if (value < 0)
-	{
-		str[0] = '-';
-		i = 1;
-		len = 2;
-		div = -1;
+
+	if (value < 0) {
+		buf[0] = '-'; pos = 1; len = 2; div = -1;
+	} else {
+		len = 1; pos = 0; div = 1;
 	}
-	else
-	{
-		i = 0;
-		len = 1;
-		div = 1;
+
+	while (value / div > 9) {
+		div *= 10; len++;
 	}
-	for (; value / div > 9; ++len)
-		div *= 10;
-	str[len] = 0;
-	for (; i < len; ++i)
-	{
-		str[i] = value / div + '0';
-		value %= div;
+
+	buf[len] = '\0';
+	while (pos < len) {
+		buf[pos++] = (char)(value / div + '0'); value %= div;
+
 		div /= 10;
 	}
-	return str;
+
+	return buf;
 }
 
-char* TrimA(char* str, const char* trim)
-{
+// binstr.cpp:442
+char *TrimA(char *str, const char *chars) {
 	int start = 0;
 	int end = strlen(str) - 1;
-	while (start <= end && strrchr(trim, str[start]))
-	{
-		if (Custom_IsLeadByte(str[start]))
-			++start;
-		++start;
+
+	while (start <= end && strrchr(chars, str[start])) {
+
+		if (str[start] & 0x80) {
+			start++;
+		}
+		start++;
 	}
-	if (start <= end)
-	{
-		while (strrchr(trim, str[end]))
-			--end;
-		int len = end - start;
-		memmove(str, str + start, len + 1);
-		str[len + 1] = 0;
+
+	if (start <= end) {
+
+		while (strrchr(chars, str[end])) {
+			end--;
+		}
+
+		memmove(str, str + start, end - start + 1);
+		str[end - start + 1] = '\0';
+	} else {
+		str[0] = '\0';
 	}
-	else
-		str[0] = 0;
+
 	return str;
 }
 
-char* ExchangeA(char* str, const char* from, const char* to)
-{
+// binstr.cpp:472
+char *ExchangeA(char *str, const char *from, const char *to) {
 	cTokenS token;
-	char* buf = new char[strlen(str) + 1];
-	buf[0] = 0;
-	token.Init(str, strlen(str));
-	str[0] = 0;
-	bool bRet = token.GetTokenFullSep(buf, from, strlen(from));
-	lstrcat(str, buf);
-	while (bRet)
-	{
-		lstrcat(str, to);
-		bRet = token.GetTokenFullSep(buf, from, strlen(from));
-		lstrcat(str, buf);
+
+	char *pBuf = new char[strlen(str) + 1];
+
+	pBuf[0] = '\0'; token.Init(str, strlen(str));
+
+	str[0] = '\0'; bool bRet = token.GetTokenFullSep(pBuf, from, strlen(from));
+	lstrcatA(str, pBuf);
+	while (bRet) {
+		lstrcatA(str, to);
+		bRet = token.GetTokenFullSep(pBuf, from, strlen(from));
+		lstrcatA(str, pBuf);
 	}
-	delete[] buf;
+
+	delete[] pBuf;
+
 	return str;
 }
 
-char* RemoveA(char* str, const char* remove)
-{
+// binstr.cpp:500
+char *RemoveA(char *str, const char *chars) {
 	cTokenS token;
-	char* buf = new char[strlen(str) + 1];
-	buf[0] = 0;
-	token.Init(str, strlen(str));
-	str[0] = 0;
+
+	char *pBuf = new char[strlen(str) + 1];
+
+	pBuf[0] = '\0'; token.Init(str, strlen(str));
+	str[0] = '\0';
+
 	bool bRet;
-	do
-	{
-		bRet = token.GetTokenFullSep(buf, remove, strlen(remove));
-		lstrcat(str, buf);
+	do {
+		bRet = token.GetTokenFullSep(pBuf, chars, strlen(chars));
+		lstrcatA(str, pBuf);
 	} while (bRet);
-	delete[] buf;
+
+	delete[] pBuf;
+
 	return str;
 }
 
-char* MakePriceStrA(char* str, __int64 price)
-{
-	sprintf(str, "%I64d", price);
-	int len = strlen(str);
-	int commas = len - 1 > 0 ? (len - 1) / 3 : 0;
-	int newLen = len + commas;
-	str[newLen] = 0;
-	str[newLen - 1] = str[len - 1];
-	for (int i = len - 2, j = newLen - 2; i >= 0 && j >= 0; --i, --j)
-	{
-		if ((len - i - 1) % 3 == 0)
-			str[j--] = ',';
-		str[j] = str[i];
+// binstr.cpp:525
+char *MakePriceStrA(char *buf, __int64 price) {
+	sprintf(buf, "%I64d", price);
+
+	int len = strlen(buf);
+	int newLen = len + ((len - 1 > 0) ? (len - 1) / 3 : 0);
+
+	buf[newLen] = '\0';
+	buf[newLen - 1] = buf[len - 1];
+
+	for (int i = len - 2, j = newLen - 2; i >= 0 && j >= 0; i--, j--) {
+
+		if ((len - 1 - i) % 3 == 0) {
+			buf[j--] = ',';
+		}
+		buf[j] = buf[i];
 	}
-	return str;
+
+	return buf;
 }
 
-char* UpperCase(const char* src, char* dest)
-{
+// binstr.cpp:548
+char *UpperCase(const char *src, char *dest) {
 	int len = strlen(src);
-	for (int i = 0; i < len; ++i)
-	{
-		char c = src[i];
-		if (Custom_IsLeadByte(c))
-			++i;
-		else
-			dest[i] = (c >= 'a' && c <= 'z') ? c - ('a' - 'A') : c;
+
+	for (int i = 0; i < len; i++) {
+
+		if (src[i] & 0x80) {
+			i++;
+			continue;
+		}
+		dest[i] = (src[i] >= 'a' && src[i] <= 'z') ? src[i] - 0x20 : src[i];
 	}
-	dest[len] = 0;
+
+	dest[len] = '\0';
 	return dest;
 }
 
-char* LowerCase(const char* src, char* dest)
-{
+// binstr.cpp:565
+char *LowerCase(const char *src, char *dest) {
 	int len = strlen(src);
-	for (int i = 0; i < len; ++i)
-	{
-		char c = src[i];
-		if (Custom_IsLeadByte(c))
-			++i;
-		else
-			dest[i] = (c >= 'A' && c <= 'Z') ? c + ('a' - 'A') : c;
+
+	for (int i = 0; i < len; i++) {
+
+		if (src[i] & 0x80) {
+			i++;
+			continue;
+		}
+		dest[i] = (src[i] >= 'A' && src[i] <= 'Z') ? src[i] + 0x20 : src[i];
 	}
-	dest[len] = 0;
+
+	dest[len] = '\0';
 	return dest;
 }
 
-void MakeShortFileName(const char* path, char* name)
-{
+// binstr.cpp:583
+void MakeShortFileName(const char *path, char *dest) {
 	cTokenV token;
 	token.Init(path, strlen(path));
+
 	int num = token.GetTokenNum(0, "/\\", 2);
-	for (int i = 0; i < num; ++i)
-		token.GetToken(name, "/\\", 2);
-}
+	for (int i = 0; i < num; i++) {
 
-void ExtractPath(const char* path, char* dir)
-{
-	cTokenV token;
-	token.Init(path, strlen(path));
-	dir[0] = 0;
-	int num = token.GetTokenNum(0, "/\\", 2) - 1;
-	for (int i = 0; i < num; ++i)
-	{
-		char* p;
-		token.GetToken(&p, "/\\", 2);
-		lstrcat(dir, p);
-		lstrcat(dir, "\\");
+		token.GetToken(dest, "/\\", 2);
 	}
 }
 
-int __cdecl mbscut(char* dest, const char* src, unsigned int len)
-{
-	if (len == 0)
-	{
-		dest[0] = 0;
+// binstr.cpp:612
+int __cdecl mbscut(char *dest, const char *src, unsigned int len) {
+	if (len == 0) {
+		dest[0] = '\0';
 		return 0;
 	}
-	if (strlen(src) > len)
-	{
-		unsigned int last = len - 1;
-		if (Custom_IsLeadByte(src[last]))
-		{
-			unsigned int i = 0;
-			for (; i < last; ++i)
-			{
-				if (Custom_IsLeadByte(src[i]))
-					++i;
+
+	if (strlen(src) > len) {
+		if (src[len - 1] & 0x80) {
+			unsigned int i;
+			for (i = 0; i < len - 1; i++) {
+				if (src[i] & 0x80) {
+					i++;
+				}
 			}
 			len = i;
 		}
 	}
+
 	strncpy(dest, src, len);
 	return strlen(dest);
+}
+
+// binstr.cpp:596
+void ExtractPath(const char *path, char *dest) {
+	cTokenV token;
+	token.Init(path, strlen(path));
+
+	char *pToken;
+	dest[0] = '\0'; int num = token.GetTokenNum(0, "/\\", 2) - 1;
+	for (int i = 0; i < num; i++) {
+
+
+		token.GetToken(&pToken, "/\\", 2);
+		lstrcatA(dest, pToken);
+		lstrcatA(dest, "\\");
+	}
 }

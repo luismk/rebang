@@ -1,43 +1,44 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\concurrentqueue.h
+#ifndef PG_CLIENT_PROJECTG_CONCURRENTQUEUE_H
+#define PG_CLIENT_PROJECTG_CONCURRENTQUEUE_H
 
-#include <queue>
-#include "parallellock.h"
+#include <deque>
+#include "ParallelLock.h"
 
-namespace Py
-{
-	namespace Threading
-	{
-		template <typename T, typename Container>
-		class ConcurrentQueue
-		{
-		public:
-			ConcurrentQueue() { }
-			~ConcurrentQueue() { }
+namespace Py {
+namespace Threading {
 
-			bool Empty() const { return m_queue.empty(); }
+// A queue guarded by a critical section. The original member is a
+// std::queue<T, Container>; the toolchain copy in externs has no <queue>, so
+// the container is used directly with the calls std::queue makes on it.
+template <class T, class Container = std::deque<T> >
+class ConcurrentQueue {
+public:
+	ConcurrentQueue() {}
+	~ConcurrentQueue() {}
 
-			void Push(const T& value)
-			{
-				SingleLock lock(&m_lock);
-				m_queue.push(value);
-			}
-
-			bool Pop(T& value)
-			{
-				SingleLock lock(&m_lock);
-				if (!m_queue.empty())
-				{
-					T front = m_queue.front();
-					m_queue.pop();
-					value = front;
-					return true;
-				}
-				return false;
-			}
-
-		private:
-			std::queue<T, Container> m_queue;
-			CriticalSection m_lock;
-		};
+	void Push(const T& value) {
+		SingleLock lock(&m_lock);
+		m_queue.push_back(value);
 	}
-}
+	bool Pop(T& value) {
+		SingleLock lock(&m_lock);
+		if (!m_queue.empty()) {
+			T front = m_queue.front();
+			m_queue.pop_front();
+			value = front;
+			return true;
+		}
+		return false;
+	}
+	bool IsEmpty() const { return m_queue.empty(); }
+
+private:
+	Container m_queue;                  // 0x0
+	CriticalSection m_lock;             // 0x14
+};
+
+} // namespace Threading
+} // namespace Py
+
+#endif

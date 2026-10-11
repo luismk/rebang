@@ -1,120 +1,136 @@
-#pragma once
-#include "rebang.h"
-#include "wtypes.h"
-#include "wutil.h"
+// Original: d:\build\custom\temp\code\client\wangreal\include\wmath.h
+#ifndef PG_CLIENT_WANGREAL_INCLUDE_WMATH_H
+#define PG_CLIENT_WANGREAL_INCLUDE_WMATH_H
+
+#include "..\..\defines.h"
 #include <math.h>
 #include <string.h>
 
-const float g_PI = 3.14159265358979323846f;
-const float g_2_PI = 6.28318530717958647692f;
-const float g_PI_DIV_2 = 1.57079632679489661923f;
-const float g_DEGTORAD = 0.01745329251994329577f;
-const float g_RADTODEG = 57.2957795130823208768f;
+// The original's out-of-line copies of some wmath inlines sit in one unit's
+// object; that unit defines its macro empty before its includes.
+#ifndef AVATAR_AVATAR_WMATH_INLINE
+#define AVATAR_AVATAR_WMATH_INLINE inline
+#endif
+#ifndef CAMERAWORK_WMATH_INLINE
+#define CAMERAWORK_WMATH_INLINE inline
+#endif
+#ifndef AMBIENTSOUND_WMATH_INLINE
+#define AMBIENTSOUND_WMATH_INLINE inline
+#endif
+#ifndef GOLFDOC_WMATH_INLINE
+#define GOLFDOC_WMATH_INLINE inline
+#endif
+#ifndef WBONE_WMATH_INLINE
+#define WBONE_WMATH_INLINE inline
+#endif
+#ifndef WVIEW_WMATH_INLINE
+#define WVIEW_WMATH_INLINE inline
+#endif
+#ifndef CLIENTSETTING_WMATH_INLINE
+#define CLIENTSETTING_WMATH_INLINE inline
+#endif
+#ifndef SEA_WMATH_INLINE
+#define SEA_WMATH_INLINE inline
+#endif
+#ifndef POOL_WMATH_INLINE
+#define POOL_WMATH_INLINE inline
+#endif
+#ifndef GOLFRULE_WMATH_INLINE
+#define GOLFRULE_WMATH_INLINE inline
+#endif
+#ifndef WIND_WMATH_INLINE
+#define WIND_WMATH_INLINE inline
+#endif
+#ifndef QUADTREE_WMATH_INLINE
+#define QUADTREE_WMATH_INLINE inline
+#endif
+
+// Under /Op (Wangreal) these are read from storage (_g_HUGE, _g_EPSILON).
 const float g_HUGE = 3.402823466e+38f;
 const float g_EPSILON = 0.00001f;
 const float g_CM_TO_WU = 0.32f;
 
-namespace
-{
-	// This is a placeholder; there were probably inlines that used these
-	// constants, but we have not recovered them yet.
-	inline void InstantiateWangrealMathInlines()
-	{
-		(void)g_PI;
-		(void)g_2_PI;
-		(void)g_PI_DIV_2;
-		(void)g_HUGE;
-		(void)g_EPSILON;
-		(void)g_CM_TO_WU;
-	}
-}
+// Nameless .rdata floats of Wangreal's math (pi, pi/2, degrees to radians,
+// radians to degrees, epsilon), read through memory rather than literals.
+extern "C" const float data_9eb420[5];
 
-inline float Wabs(const float& value)
-{
+// wmath.h:98 (emitted out of line; the body sits in avatar_avatar.cpp for now)
+float RadianNormalize2PI(float radian);
+// wmath.h:106
+float RadianNormalizePI(float radian);
+// wmath.h:115
+float RadianDelta(float a, float b);
+
+// wmath.h:80
+// Absolute value by the sign bit: the stored float's sign is tested, not an
+// fabs instruction.
+CLIENTSETTING_WMATH_INLINE float Wabs(const float& value) {
 	return (*(const unsigned long*)&value & 0x80000000) ? -value : value;
 }
 
-inline int WisEqual(const float& left, const float& right, float epsilon)
-{
-	return Wabs(left - right) < epsilon;
+// wmath.h:92
+CLIENTSETTING_WMATH_INLINE int WisEqual(const float& a, const float& b, float eps) {
+	return Wabs(a - b) < eps;
 }
 
-class WVector2D
-{
-public:
-	WVector2D() { }
-	WVector2D(float x_, float y_)
-		: x(x_), y(y_)
-	{
-	}
-	void Reset();
-	void operator+=(const WVector2D& v);
-	float SquareMagnitude() const;
-	float Magnitude() const;
-	WVector2D& Normalize();
-	void operator*=(float f);
-	void operator/=(float f);
-#ifdef REBANG_LEGACY_CPP
-	WVector2D& operator=(const WVector2D& other);
-#endif
-	float x;
-	float y;
-};
-
+class WVector;
 class WMatrix;
-class WQuat;
 
-class WVector
-{
+class WQuat {
 public:
-	union
-	{
-		struct
-		{
-			float x;
-			float y;
-			float z;
-		};
-		float p[3];
-	};
-
-	WVector() DEFAULT_IMPL;
-
-	WVector(const float x_, const float y_, const float z_)
-	{
-		x = x_;
-		y = y_;
-		z = z_;
+	WQuat() {
+	}
+	WQuat(float a, float b, float c, float d) {
+		x = a; y = b; z = c; w = d;
 	}
 
-	WVector(const float* v)
-	{
-		x = v[0];
-		y = v[1];
-		z = v[2];
+	void Reset(void);
+	void Normalize(void);
+	void ConvertToAxisAngle(WVector* axis, float* angle);
+	void ConvertToRotationMatrix(WMatrix& m) const;
+	void SetFromAngles(float x, float y, float z);
+	void operator=(const WMatrix& m);
+	WQuat& operator=(const WQuat& q);
+
+private:
+	void SetFromAxisAngle(const WVector& axis, float angle);
+
+public:
+	float x; // 0x0
+	float y; // 0x4
+	float z; // 0x8
+	float w; // 0xC
+};
+CHECK_SIZE(WQuat, 0x10);
+CHECK_FIELD(WQuat, x, 0x0);
+CHECK_FIELD(WQuat, y, 0x4);
+CHECK_FIELD(WQuat, z, 0x8);
+CHECK_FIELD(WQuat, w, 0xC);
+
+WQuat WQuaternionSlerp(const WQuat& from, const WQuat& to, float t);
+
+class WVector {
+public:
+	WVector() {
+	}
+	WVector(const float a, const float b, const float c) {
+		x = a; y = b; z = c;
+	}
+	WVector(const float* v) {
+		x = v[0]; y = v[1]; z = v[2];
 	}
 
-#ifdef REBANG_LEGACY_CPP
-#ifndef WANGREAL_DEVICE
-	WVector& operator=(const WVector& other);
-#endif
-#else
-	WVector& operator=(const WVector& other) = default;
-#endif
-
-	void Reset();
-	WVector operator-() const;
-
-	WVector& Normalize();
-	void operator+=(const WVector& right);
-
-	float Magnitude() const;
-
-	float SquareMagnitude() const;
-
-	void operator*=(float scalar);
-	void operator/=(float scalar);
-	void operator-=(const WVector& other);
+	WVector operator-(void) const;
+	WVector& operator=(const WVector& v);
+	void operator+=(const WVector& v);
+	void operator-=(const WVector& v);
+	void operator*=(const float f);
+	void operator/=(const float f);
+	void Reset(void);
+	float SquareMagnitude(void) const;
+	float Magnitude(void) const;
+	WVector& Normalize(void);
+	void Negate(void);
 
 	static const WVector ONE;
 	static const WVector ZERO;
@@ -124,121 +140,57 @@ public:
 	static const WVector UNIT_NEG_X;
 	static const WVector UNIT_NEG_Y;
 	static const WVector UNIT_NEG_Z;
-};
 
-class WVector4
-{
-public:
-	union
-	{
-		struct
-		{
-			float x;
-			float y;
-			float z;
-			float w;
-		};
-		float p[4];
+	union {
+		struct { float x, y, z; };
+		float p[3];
 	};
-
-	WVector4() { }
-
-	WVector4(float x_, float y_, float z_, float w_);
-
-	static const WVector4 ONE;
-	static const WVector4 ZERO;
 };
+CHECK_SIZE(WVector, 0xC);
+CHECK_FIELD(WVector, x, 0x0);
+CHECK_FIELD(WVector, y, 0x4);
+CHECK_FIELD(WVector, z, 0x8);
 
-class Waabb
-{
+int WisEqual(const WVector& a, const WVector& b, float eps);
+float __cdecl CalcDeltaAngle(const WVector& a, const WVector& b);
+
+class WMatrix;
+WVector operator+(const WVector& a, const WVector& b);
+WVector operator-(const WVector& a, const WVector& b);
+WVector operator*(const WVector& v, float f);
+WVector operator*(float f, const WVector& v);
+WVector operator*(const WVector& v, const WMatrix& m);
+float WDotProduct(const WVector& a, const WVector& b);
+float WDotProduct(const WQuat& a, const WQuat& b);
+WVector WCrossProduct(const WVector& a, const WVector& b);
+// wmath.h:442
+float WVectorLen(const WVector& v);
+
+class WPlane;
+class WMatrix {
 public:
-	Waabb() { Reset(); }
-	Waabb(const WVector& minimum, const WVector& maximum)
-	{
-		min = minimum;
-		max = maximum;
+	WMatrix() {   // wmath.h:274
 	}
-	Waabb(short* minimum, short* maximum);
+	WMatrix(float xx, float yx, float zx, float xy, float yy, float zy, float xz, float yz, float zz);   // wmath.inl:441
+	WMatrix(const WPlane& plane);   // wmath.inl:455: the reflection about the plane
 
-	WVector min;
-	WVector max;
+	WMatrix& operator=(const WMatrix& m);
+	void operator=(const WQuat& q);
+	void operator*=(const float f);
+	void Reset(void);
+	void Normalize(void);
+	void GetRotMatrix(WMatrix* m) const;
+	void AxisScale(WVector& scale);
+	void Rotate(float angle, char axis);
+	void Rotate(const WVector& angles);
+	WMatrix operator~(void) const;   // wmath.inl:405 (emitted out of line in pool)
 
-	Waabb& operator+=(const Waabb& box);
-	Waabb& operator+=(const WVector& vector);
-	void Reset()
-	{
-		min.Reset();
-		max.Reset();
-	}
-	void Default();
-	bool IsInclude(const Waabb& box) const;
-	bool IsInclude(const WVector& vector) const
-	{
-		if (min.x <= vector.x && vector.x <= max.x && min.y <= vector.y &&
-			vector.y <= max.y && min.z <= vector.z && vector.z <= max.z)
-			return true;
-		return false;
-	}
-	bool IsInclude(WVector& vector) const;
-	void Clear()
-	{
-		min = WVector(3.402823466e+38f, 3.402823466e+38f, 3.402823466e+38f);
-		max = WVector(-3.402823466e+38f, -3.402823466e+38f, -3.402823466e+38f);
-	}
-	void AddPoint(const WVector& vector)
-	{
-		if (vector.x > max.x)
-			max.x = vector.x;
-		if (vector.x < min.x)
-			min.x = vector.x;
-		if (vector.y > max.y)
-			max.y = vector.y;
-		if (vector.y < min.y)
-			min.y = vector.y;
-		if (vector.z > max.z)
-			max.z = vector.z;
-		if (vector.z < min.z)
-			min.z = vector.z;
-	}
-	WVector GetCenter() const;
-};
+	static const WMatrix IDENTITY;
+	static const WMatrix ZERO;
 
-class Wobb
-{
-public:
-#ifdef WANGREAL_DEVICE
-	Wobb();
-#else
-	Wobb() { }
-#endif
-#ifndef WANGREAL_DEVICE
-	Wobb(const Wobb& obb) { *this = obb; }
-#endif
-
-	WVector center;
-	WVector extend[3];
-
-	void operator*=(const WVector& scale);
-	Wobb& operator=(const WMatrix& mat);
-	Wobb& operator=(const Wobb& obb);
-	Wobb& operator=(const Waabb& box);
-	bool IsInclude(const WVector& point) const;
-};
-
-class WMatrix
-{
-public:
-	union
-	{
-		struct
-		{
-			WVector xa;
-			WVector ya;
-			WVector za;
-			WVector pivot;
-		};
-		struct
-		{
+	union {
+		struct { WVector xa, ya, za, pivot; };
+		struct {
 			float xx, yx, zx;
 			float xy, yy, zy;
 			float xz, yz, zz;
@@ -246,224 +198,232 @@ public:
 		};
 		float p[12];
 	};
-
-	WMatrix() { }
-
-	WMatrix(float xx_, float yx_, float zx_, float xy_, float yy_, float zy_,
-		float xz_, float yz_, float zz_)
-		: xx(xx_),
-		  yx(yx_),
-		  zx(zx_),
-		  xy(xy_),
-		  yy(yy_),
-		  zy(zy_),
-		  xz(xz_),
-		  yz(yz_),
-		  zz(zz_)
-	{
-		pivot.Reset();
-	}
-
-	WMatrix& operator=(const WMatrix& other);
-	void operator=(const WQuat& quat);
-	void Normalize();
-#ifdef WANGREAL_DEVICE
-	void Reset();
-#else
-	void Reset()
-	{
-		xx = yy = zz = 1.0f;
-		yx = zx = xy = zy = xz = yz = xm = ym = zm = 0.0f;
-	}
-#endif
-	void GetRotMatrix(WMatrix* result) const;
-	WMatrix operator~() const;
-	void operator*=(float right);
-	void AxisScale(WVector& scale);
-	void Rotate(float angle, char direct);
-	void Rotate(const WVector& rotation);
-
-	static const WMatrix IDENTITY;
-	static const WMatrix ZERO;
 };
+CHECK_SIZE(WMatrix, 0x30);
+CHECK_FIELD(WMatrix, xa, 0x0);
+CHECK_FIELD(WMatrix, ya, 0xC);
+CHECK_FIELD(WMatrix, za, 0x18);
+CHECK_FIELD(WMatrix, pivot, 0x24);
+CHECK_FIELD(WMatrix, xx, 0x0);
+CHECK_FIELD(WMatrix, xy, 0xC);
+CHECK_FIELD(WMatrix, xz, 0x18);
+CHECK_FIELD(WMatrix, xm, 0x24);
+CHECK_FIELD(WMatrix, p, 0x0);
 
-class WMatrix4
-{
+WMatrix operator*(const WMatrix& a, const WMatrix& b);
+float TransformZ(const WVector& v, const WMatrix& m);
+// wmath.inl:264 (emitted out of line in ball)
+WMatrix operator*(const WMatrix& m, float f);
+// wmath.inl:286 (inline in the original; the body inlines into w3danispr when given here)
+WMatrix RotMat(WVector angles);
+WMatrix RotMat(float angle, char axis);
+WMatrix RotMat(const WVector& axis, float angle);
+float TransformZ(float x, float y, float z, const WMatrix& m);
+bool operator==(const WMatrix& mat1, const WMatrix& mat2);
+bool operator!=(const WMatrix& mat1, const WMatrix& mat2);
+// wmath.inl:328 (emitted out of line in GolfRule)
+WVector RotVec(const WVector& v, const WMatrix& m);
+
+class WPlane {
 public:
-	union
-	{
-		struct
-		{
-			WVector xa;
-			float wx;
-			WVector ya;
-			float wy;
-			WVector za;
-			float wz;
-			WVector pivot;
-			float wm;
-		};
-		struct
-		{
-			float xx, yx, zx;
-			unsigned char gapC[4];
-			float xy, yy, zy;
-			unsigned char gap1C[4];
-			float xz, yz, zz;
-			unsigned char gap2C[4];
-			float xm, ym, zm;
-		};
+	WPlane();
+	WPlane(const WVector& n, const WVector& p);   // wmath.inl:745 (emitted out of line in wview)
+	WPlane(float a, float b, float c, float d) { x = a; y = b; z = c; dis = d; }   // wmath.h:419
+	WPlane(const WVector& n, float d) { normal = n; dis = d; }                       // wmath.h:420
+	WPlane& operator=(const WPlane& p);   // wmath.inl:751
+	void Normalize();
 
-		float m[4][4];
-		float p[16];
+	union {
+		struct { float x, y, z, dis; };
+		struct { float a, b, c, d; };
+		struct { WVector normal; };
 	};
+};
+CHECK_SIZE(WPlane, 0x10);
+CHECK_FIELD(WPlane, x, 0x0);
+CHECK_FIELD(WPlane, y, 0x4);
+CHECK_FIELD(WPlane, z, 0x8);
+CHECK_FIELD(WPlane, dis, 0xC);
+CHECK_FIELD(WPlane, normal, 0x0);
 
-	WMatrix4() { }
+// wmath.h:418
+AVATAR_AVATAR_WMATH_INLINE WPlane::WPlane() {
+}
 
-	WMatrix4(float p0, float p1, float p2, float p3, float p4, float p5,
-		float p6, float p7, float p8, float p9, float p10, float p11, float p12,
-		float p13, float p14, float p15);
+class WMatrix4 {
+public:
+	WMatrix4() {
+	}
+	WMatrix4(float a00, float a01, float a02, float a03, float a10, float a11, float a12, float a13,
+	         float a20, float a21, float a22, float a23, float a30, float a31, float a32, float a33);
 
-	WMatrix4& operator=(const WMatrix4& other);
+	WMatrix4& operator=(const WMatrix4& m);   // wmath.inl:568 (emitted out of line in wview)
 
 	static const WMatrix4 IDENTITY;
 	static const WMatrix4 ZERO;
+
+	union {
+		struct {
+			WVector xa; float wx;
+			WVector ya; float wy;
+			WVector za; float wz;
+			WVector pivot; float wm;
+		};
+		struct {   // the w column is unnamed here (the PDB lists no alias)
+			float xx, yx, zx; int : 32;
+			float xy, yy, zy; int : 32;
+			float xz, yz, zz; int : 32;
+			float xm, ym, zm; int : 32;
+		};
+		float m[4][4];
+		float p[16];
+	};
 };
+CHECK_SIZE(WMatrix4, 0x40);
+CHECK_FIELD(WMatrix4, xa, 0x0);
+CHECK_FIELD(WMatrix4, wx, 0xC);
+CHECK_FIELD(WMatrix4, ya, 0x10);
+CHECK_FIELD(WMatrix4, wy, 0x1C);
+CHECK_FIELD(WMatrix4, za, 0x20);
+CHECK_FIELD(WMatrix4, wz, 0x2C);
+CHECK_FIELD(WMatrix4, pivot, 0x30);
+CHECK_FIELD(WMatrix4, wm, 0x3C);
+CHECK_FIELD(WMatrix4, xx, 0x0);
+CHECK_FIELD(WMatrix4, xm, 0x30);
+CHECK_FIELD(WMatrix4, m, 0x0);
+CHECK_FIELD(WMatrix4, p, 0x0);
 
-#ifdef WANGREAL_DEVICE
-inline Wobb::Wobb()
-{
-}
-#endif
+void SetWMatrix4FromWMatrix(WMatrix4& m4, const WMatrix& m);
+WMatrix4 operator*(const WMatrix4& a, const WMatrix4& b);   // wmath.inl:510 (emitted out of line in pool)
 
-class WPlane
-{
+class WVector2D {
 public:
-	union
-	{
-		struct
-		{
-			float x;
-			float y;
-			float z;
-			float dis;
-		};
-		struct
-		{
-			float a;
-			float b;
-			float c;
-			float d;
-		};
-		struct
-		{
-			WVector normal;
-		};
+	WVector2D() {
+	}
+	WVector2D(const float a, const float b) {
+		x = a; y = b;
+	}
+
+	WVector2D& operator=(const WVector2D& v);
+	void operator+=(const WVector2D& v);
+	void operator*=(const float f);
+	void operator/=(const float f);
+	void Reset(void);
+	WVector2D& Normalize(void);
+
+	float x; // 0x0
+	float y; // 0x4
+};
+CHECK_SIZE(WVector2D, 0x8);
+CHECK_FIELD(WVector2D, x, 0x0);
+CHECK_FIELD(WVector2D, y, 0x4);
+
+class WVector4 {
+public:
+	WVector4() {
+	}
+	WVector4(float x, float y, float z, float w);
+
+	union {
+		struct { float x, y, z, w; };
+		float p[4];
 	};
 
-	WPlane() { }
-
-	WPlane(const WVector& normal_, const WVector& point);
-
-	WPlane(const WVector& normal_, float dis_)
-	{
-		x = normal_.x;
-		y = normal_.y;
-		z = normal_.z;
-		dis = dis_;
-	}
-
-	WPlane(float x_, float y_, float z_, float dis_)
-	{
-		x = x_;
-		y = y_;
-		z = z_;
-		dis = dis_;
-	}
-
-	WPlane& operator=(const WPlane& other);
+	static const WVector4 ONE;
+	static const WVector4 ZERO;
 };
+CHECK_SIZE(WVector4, 0x10);
+CHECK_FIELD(WVector4, x, 0x0);
+CHECK_FIELD(WVector4, y, 0x4);
+CHECK_FIELD(WVector4, z, 0x8);
+CHECK_FIELD(WVector4, w, 0xC);
+CHECK_FIELD(WVector4, p, 0x0);
 
-class WSphere
-{
+class WSphere {
 public:
-	WSphere() { }
-	WSphere(const WVector& position, float length)
-	{
-		pos = position;
-		radius = length;
+	WSphere() {
+	}
+	WSphere(const WVector& p, float r) : pos(p), radius(r) {
 	}
 
-	WVector pos;
-	float radius;
+	WVector pos;    // 0x0
+	float radius;   // 0xC
 };
+CHECK_SIZE(WSphere, 0x10);
+CHECK_FIELD(WSphere, pos, 0x0);
+CHECK_FIELD(WSphere, radius, 0xC);
 
-class WQuat
-{
+class Waabb {
 public:
-	float x;
-	float y;
-	float z;
-	float w;
+	Waabb() { min.Reset(); max.Reset(); }   // wmath.h:535
+	Waabb(const WVector& vmin, const WVector& vmax);   // wmath.h:536
 
-	WQuat() DEFAULT_IMPL;
+	Waabb& operator+=(const WVector& v);
 
-	WQuat(float x_, float y_, float z_, float w_)
-	{
-		x = x_;
-		y = y_;
-		z = z_;
-		w = w_;
+	// wmath.h:546
+	void Reset(void) {
+		min.Reset();
+		max.Reset();
 	}
 
-	WQuat& operator=(const WQuat& other);
-	void Reset();
-	void Normalize();
-	void ConvertToAxisAngle(WVector* vector, float* theta);
-	void ConvertToRotationMatrix(WMatrix& rotation) const;
-	void SetFromAngles(float yaw, float pitch, float roll);
-	void operator=(const WMatrix& matrix);
+	void Clear(void);
+	void AddPoint(const WVector& v);
 
-private:
-	void SetFromAxisAngle(const WVector& vector, float theta);
+	// wmath.h:557
+	bool IsInclude(const WVector& pos) const {
+		return min.x <= pos.x && pos.x <= max.x
+			&& min.y <= pos.y && pos.y <= max.y
+			&& min.z <= pos.z && pos.z <= max.z ? true : false;
+	}
+
+	// wmath.h:571
+	bool IsInclude(const Waabb& b) const {
+		return min.x <= b.min.x && b.max.x <= max.x
+			&& min.y <= b.min.y && b.max.y <= max.y
+			&& min.z <= b.min.z && b.max.z <= max.z ? true : false;
+	}
+
+	WVector min;    // 0x0
+	WVector max;    // 0xC
 };
+CHECK_SIZE(Waabb, 0x18);
+CHECK_FIELD(Waabb, min, 0x0);
+CHECK_FIELD(Waabb, max, 0xC);
 
-int WisEqual(const WVector& left, const WVector& right, float epsilon);
-Waabb operator+(const Waabb& box, const WVector& vector);
-WMatrix operator*(const WMatrix& left, const WMatrix& right);
-WMatrix RotMat(float angle, char direct);
-WMatrix RotMat(WVector rotation);
-WVector MinPointLineSegment(WVector& vp, WVector& va, WVector& vb, WVector* vt);
-float WCollisionTest(const Waabb& origin, const WVector& vec,
-	const Waabb& target, WPlane* plane);
-float __cdecl CalcDeltaAngle(const WVector& v1, const WVector& v2);
-void __cdecl InitMath();
-void __cdecl UninitMath();
+// wmath.h:536
+SEA_WMATH_INLINE Waabb::Waabb(const WVector& vmin, const WVector& vmax) {
+	min = vmin;
+	max = vmax;
+}
 
-class WView;
+int operator&(const Waabb& a, const Waabb& b);
+Waabb operator+(const Waabb& a, const WVector& v);
 
-void __cdecl MakePlaneEq(WPlane* out_plane, const Waabb& aabb,
-	const WMatrix* matrix);
-bool __fastcall PlaneFromVecs(WPlane* result, const WVector& first,
-	const WVector& second, const WVector& point);
-float __cdecl RayIntersect(const WVector& pivot, const WVector& vec,
-	WPlane* plane, WPlane* out, float rlen);
-float __cdecl ObbIntersect(const Waabb& src_aabb, const WVector& direction,
-	const Wobb& dest_obb, WPlane* out_plane);
-float __fastcall RayIntersectAABB(const Waabb& box, const WVector& start,
-	const WVector& ray, WPlane* result, float radius);
+// An oriented box: its center and its three half-axes.
+class Wobb {
+public:
+	Wobb() {   // wmath.h:617
+	}
+	Wobb(const Wobb& b);
+	Wobb(const WMatrix& m);
 
-float __cdecl RayIntersectAABB(const Waabb& box, const WVector& start,
-	const WVector& ray, WMatrix* matrix, WPlane* result, float radius);
-float __cdecl AabbIntersect(const Waabb& src_aabb, const WVector& direction,
-	const Waabb& dest_aabb, WPlane* out_plane);
-float __cdecl DotContact(const WVector& vec, const WPlane* plane);
-WMatrix __cdecl Make3rdCamMatrix(const WVector& position,
-	const WVector& target);
-WRect __cdecl ScaleRect(WView* view, WRect* rectangle);
-void __cdecl ScalePoint(WView* view, WPoint* point);
+	void operator+=(const WVector& v);
+	void operator*=(const WVector& v);
+	void operator*=(float f);
+	Wobb& operator=(const WMatrix& m);
+	Wobb& operator=(const Waabb& b);
+	bool IsInclude(const WVector& pos) const;
+	bool IsIncludeObb(const Wobb& b, const WVector& v) const;
+	void Normalize(void);
 
-float WVectorLen(const WVector& vector);
-WVector RotVec(const WVector& vector, const WMatrix& matrix);
+	WVector center;     // 0x0
+	WVector extend[3];  // 0xC
+};
+CHECK_SIZE(Wobb, 0x30);
+CHECK_FIELD(Wobb, center, 0x0);
+CHECK_FIELD(Wobb, extend, 0xC);
 
 #include "wmath.inl"
+#include "wmathutil.inl"
+
+#endif // PG_CLIENT_WANGREAL_INCLUDE_WMATH_H

@@ -1,52 +1,48 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\frgroupbox.cpp
 #include "frgroupbox.h"
+#include "frelement.h"
+#include "frwndmanager.h"
+#include "ObjectFactory.h"
 
-struct __sFrGroupBox
-{
-	__sFrGroupBox();
-};
+// frgroupbox.cpp:16 (run-time type and factory registration of FrGroupBox)
+const WRTTI FrGroupBox::m_RTTI("FrGroupBox", &FrWnd::m_RTTI);
 
-IObject* FrGroupBoxMakeInstance()
-{
+IObject* FrGroupBoxMakeInstance(void) {
 	return new FrGroupBox;
 }
 
-__sFrGroupBox::__sFrGroupBox()
-{
-	ObjectFactory().AddObjectFunctor(FrGroupBoxMakeInstance, "FrGroupBox");
+struct __sFrGroupBox {
+	__sFrGroupBox(void) {
+		ObjectFactory().AddObjectFunctor(FrGroupBoxMakeInstance, "FrGroupBox");
+	}
+};
+static __sFrGroupBox s_registerFrGroupBox;
+
+// frgroupbox.cpp:21
+FrGroupBox::FrGroupBox(void) {
 }
 
-FrGroupBox::FrGroupBox()
-{
+// frgroupbox.cpp:25
+FrGroupBox::~FrGroupBox(void) {
 }
 
-const WRTTI* FrGroupBox::GetRTTI() const
-{
-	return &m_RTTI;
-}
+// frgroupbox.cpp:29
+void FrGroupBox::Init(FrGuiItem& item, FrWndManager* pWndManager, FrWnd* pParent) {
+	pWndManager->GetDocument();
 
-FrGroupBox::~FrGroupBox()
-{
-}
-
-void FrGroupBox::Init(FrGuiItem& item, FrWndManager* manager, FrWnd* parent)
-{
-	manager->GetDocument();
+	// The group box covers the gui item's rectangle.
 	WRect rect((float)item.m_rect.left, (float)item.m_rect.top,
 		(short)(item.m_rect.right - item.m_rect.left),
 		(short)(item.m_rect.bottom - item.m_rect.top));
 
-	Create("GroupBox", item.m_name.c_str(), manager, 0x841, rect, parent);
+	Create("GroupBox", item.m_name.c_str(), pWndManager, 0x841, rect, pParent);
 
-	const std::list<FrGuiItem*>* children = item.GetChildList();
-	if (children)
-	{
-		std::list<FrGuiItem*>::const_iterator it = children->begin();
-		std::list<FrGuiItem*>::const_iterator end = children->end();
+	// Create the child items inside the group box.
+	const std::list<FrGuiItem*>* pChildList = item.GetChildList();
+	if (pChildList) {
+		std::list<FrGuiItem*>::const_iterator it = pChildList->begin();
+		std::list<FrGuiItem*>::const_iterator end = pChildList->end();
 		for (; it != end; ++it)
-			manager->DoCreate(**it, manager, this, m_pOwner);
+			pWndManager->DoCreate(**it, pWndManager, this, m_pOwner);
 	}
 }
-
-const WRTTI FrGroupBox::m_RTTI("FrGroupBox", &FrWnd::m_RTTI);
-
-static __sFrGroupBox __implFrGroupBox;

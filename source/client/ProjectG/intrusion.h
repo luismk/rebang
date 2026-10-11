@@ -1,66 +1,74 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\intrusion.h
+#ifndef PG_CLIENT_PROJECTG_INTRUSION_H
+#define PG_CLIENT_PROJECTG_INTRUSION_H
 
-struct sRoomInfo;
+#include "..\..\defines.h"
+#include "frcmdtarget.h"
+#include "singleton.h"
+
+class FrForm;
 class WReceivedPacket;
+struct sRoomInfo;
 
-enum eIntrusionPermitCode
-{
-	INTRUSION_PERMIT_ROOM,
-	INTRUSION_PERMIT_SLOTS,
-	INTRUSION_PERMIT_MATCH,
-	INTRUSION_PERMIT_RIVAL,
-	INTRUSION_PERMIT_GAME
-};
-enum eIntrusionDenyCode
-{
-	INTRUSION_DENY_NONE,
-	INTRUSION_DENY_CROWDED,
-	INTRUSION_DENY_LATE,
-	INTRUSION_DENY_PRIVATE,
-	INTRUSION_DENY_RECENT,
-	INTRUSION_DENY_CLOSED,
-	INTRUSION_DENY_PLAYED,
-	INTRUSION_DENY_KICKED
+enum eIntrusionDenyCode {
 };
 
-class CIntrusion : public FrCmdTarget, public WSingleton<CIntrusion>
-{
+enum eIntrusionPermitCode {
+};
+
+// Joining a game already in progress ("intrusion"). Layout from the
+// constructor (intrusion.cpp:41) and the accessors; the size is not proven.
+class CIntrusion : public FrCmdTarget, public WSingleton<CIntrusion> {
+	LAYOUT_CHECK_FRIEND;
 public:
-	struct sInfoTime
-	{
-		int passMin;
-		int passSec;
-		int remainMin;
-		int remainSec;
-		sInfoTime()
-			: passMin(0), passSec(0), remainMin(0), remainSec(0)
-		{
+	// An elapsed and a remaining time in minutes and seconds, filled by
+	// GetInfoTime from two millisecond counts.
+	struct sInfoTime {
+		// intrusion.h:25
+		sInfoTime(void) {
+			m_elapsedMin = 0;
+			m_elapsedSec = 0;
+			m_remainMin = 0;
+			m_remainSec = 0;
 		}
+
+		int m_elapsedMin;   // 0x0
+		int m_elapsedSec;   // 0x4
+		int m_remainMin;    // 0x8
+		int m_remainSec;    // 0xc
 	};
 
-	CIntrusion();
-	virtual ~CIntrusion();
+	CIntrusion(void);
+	virtual ~CIntrusion(void);
 
-	unsigned char GetCalcExpMemberSize();
-	void FinishGame();
-	unsigned long GetActiveColor();
+	unsigned char GetCalcExpMemberSize(void);
+	void FinishGame(void);
+	unsigned long GetActiveColor(void);
 	bool OnAccessRoom(sRoomInfo& room);
-	void PacketAnalysis(WReceivedPacket& packet);
-	bool IsIntrusionGame(unsigned short roomNumber);
 	void DoJoinRoom(unsigned short roomNumber);
+	bool IsIntrusionGame(unsigned short roomNumber);
+	void PacketAnalysis(WReceivedPacket& packet);
 
 private:
-	void DoIntrusionAccess(WReceivedPacket& packet, eIntrusionPermitCode code);
-	void RivalDataUpdate(WReceivedPacket& packet);
-	void PlayersUpdate(int state);
-	void GetInfoTime(sInfoTime* info, unsigned long passTime,
-		unsigned long remainTime);
-	bool OnAlarmDlgResult(int result, FrForm* form);
-	bool OnDelayDlgResult(int result, FrForm* form);
-	bool OnDenyDlgResult(int result, FrForm* form);
+	void GetInfoTime(sInfoTime* pInfo, unsigned long elapsed, unsigned long limit);
+	bool OnDelayDlgResult(int result, FrForm* pForm);
+	bool OnDenyDlgResult(int result, FrForm* pForm);
 	void DenyAnlaysis(eIntrusionDenyCode code);
+	void RivalDataUpdate(WReceivedPacket& packet);
+	bool OnAlarmDlgResult(int result, FrForm* pForm);
+	void DoIntrusionAccess(WReceivedPacket& packet, eIntrusionPermitCode code);
+	void PlayersUpdate(int param);
 
-	FrForm* m_pDlg;
-	unsigned short m_roomNumber;
-	unsigned char m_calcExpMemberSize;
+	FrForm* m_pDlg;                         // 0x2c (the open alarm/delay/deny form)
+	unsigned short m_roomNumber;            // 0x30
+	unsigned char m_calcExpMemberSize;      // 0x32
 };
+
+CHECK_SIZE(CIntrusion::sInfoTime, 0x10);
+BEGIN_LAYOUT_CHECK(CIntrusion)
+	CHECK_FIELD(CIntrusion, m_pDlg, 0x2c);
+	CHECK_FIELD(CIntrusion, m_roomNumber, 0x30);
+	CHECK_FIELD(CIntrusion, m_calcExpMemberSize, 0x32);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_INTRUSION_H

@@ -1,403 +1,281 @@
-#include "browser.h"
-#include "clientsetting.h"
-#include "projectg.h"
-#include "../../shared/localize.h"
-#include "mathconsts.h"
+// Original: d:\build\custom\temp\code\client\projectg\browser.cpp
+#include <windows.h>
+#include <atlbase.h>
 
-ILFILLB1
+#include "Browser.h"
+#include "ClientSetting.h"
+#include "InputManager.h"
+#include "Registry.h"
+#include "winput.h"
+#include "wview.h"
+#include "woverlay.h"
 
+// The main window (?g_hwnd@@3PAUHWND__@@A) and the mouse
+// (?g_mouse@@3PAVWInputDev@@A); their header is not known yet.
 extern HWND g_hwnd;
 extern WInputDev* g_mouse;
 
-/*
- *
- * It was really, really hard to make the IL balance line up for this file.
- * It turns out that the line numbers have a subtle impact on the IL offsets.
- * So this comment is, uhh, "load-bearing", to borrow a word from our AI overlords.
- *
- */
+// The event descriptions CBrowserView's sink map points at (DWebBrowserEvents2's
+// WindowClosing(VARIANT_BOOL, VARIANT_BOOL*) and the parameterless download
+// events).
+ATL::_ATL_FUNC_INFO WindowClosingInfo = { CC_STDCALL, VT_EMPTY, 2, { VT_BOOL, VT_BYREF | VT_BOOL } };
+ATL::_ATL_FUNC_INFO DownloadInfo = { CC_STDCALL, VT_EMPTY, 0 };
 
-BOOL CBrowserView::PreTranslateMessage(MSG* pMsg)
-{
+// browser.cpp:26
+BOOL CBrowserView::PreTranslateMessage(MSG* pMsg) {
 	if ((pMsg->message < WM_KEYFIRST || pMsg->message > WM_KEYLAST) &&
-		(pMsg->message < WM_MOUSEFIRST || pMsg->message > WM_MOUSELAST))
+		(pMsg->message < WM_MOUSEFIRST || pMsg->message > WM_MOUSELAST)) {
 		return FALSE;
+	}
 
-	return (BOOL)SendMessage(WM_FORWARDMSG, 0, (LPARAM)pMsg);
+	return (BOOL)::SendMessage(m_hWnd, WM_FORWARDMSG, 0, (LPARAM)pMsg);
 }
 
-BOOL CBrowserView::OnIdle()
-{
-	return FALSE;
+// browser.cpp:37
+int CBrowserView::OnIdle(void) {
+	return 0;
 }
 
-LRESULT CBrowserView::OnDestory(UINT uMsg, WPARAM wParam, LPARAM lParam,
-	BOOL& bHandled)
-{
-	if (CBrowser::Instance()->IsOpen())
-	{
+// browser.cpp:42
+long CBrowserView::OnDestory(unsigned int uMsg, unsigned int wParam, long lParam, int& bHandled) {
+	if (CBrowser::Instance()->IsOpen()) {
 		CBrowser::Instance()->Close();
 	}
 
 	return 1;
 }
 
-void __stdcall CBrowserView::OnWindowClosing(VARIANT_BOOL bIsChildWindow,
-	VARIANT_BOOL* bCancel)
-{
+// browser.cpp:87
+void CBrowserView::OnWindowClosing(short bIsChildWindow, short* Cancel) {
 	USES_CONVERSION;
 
-	*bCancel = VARIANT_TRUE;
-	if (CBrowser::Instance()->IsOpen())
-	{
+	*Cancel = VARIANT_TRUE;
+	if (CBrowser::Instance()->IsOpen()) {
 		CBrowser::Instance()->Close();
 	}
 }
 
-void __stdcall CBrowserView::OnDownloadBegin()
-{
-	m_downloadCount++;
+// browser.cpp:130
+void CBrowserView::OnDownloadBegin(void) {
+	++m_downloadCount;
 }
 
-void __stdcall CBrowserView::OnDownloadComplete()
-{
-	if (m_downloadCount > 0)
+// browser.cpp:140
+void CBrowserView::OnDownloadComplete(void) {
+	if (m_downloadCount > 0) {
 		m_downloadCount--;
-}
-
-CBrowser::CBrowser()
-{
-	m_bOpen = false;
-	m_dwOpenTime = 0xffffffff;
-	m_reserved50 = 0;
-	m_count = 0;
-	m_hInstance = NULL;
-	m_hWndParent = NULL;
-
-	m_hWndBrowser = NULL;
-
-	m_dwStyle = 0;
-
-	sOption opt = *COption::Instance()->GetOption();
-
-	m_oldFillMode = opt.vFillMode;
-	m_oldWindowMode = opt.vWindowMode;
-
-	m_pageType = WEBPAGE_NORMAL;
-}
-
-CBrowser::~CBrowser()
-{
-	if (m_spBrowser)
-	{
-		m_view.DispEventUnadvise(m_spBrowser);
-
-		m_spBrowser.Release();
-		if (IsOpen() || m_bOpen == true)
-		{
-			m_view.DestroyWindow();
-		}
 	}
 }
 
-void CBrowser::Init(HINSTANCE hInstance, HWND hWndParent, const RECT& rect)
-{
+// browser.cpp:156
+CBrowser::CBrowser(void) {
+	m_isShown = false;
+	m_openTick = INFINITE;
+	m_state50 = 0;
+	m_count = 0;
+	m_hInstance = NULL;
+	m_hParent = NULL;
+
+	m_hViewWnd = NULL;
+
+	m_viewStyle = 0;
+
+	sOption option = *WSingleton<COption>::Instance()->GetOption();
+
+	m_savedWindowed = option.m_windowed;
+	m_savedFillScreen = option.m_fillScreen;
+	m_pageType = (eWebPage)0;
+}
+
+// browser.cpp:220
+void CBrowser::Init(HINSTANCE hInstance, HWND hWnd, const RECT& rect) {
 	m_hInstance = hInstance;
-	m_hWndParent = hWndParent;
+	m_hParent = hWnd;
 	m_rect = rect;
 }
 
-void CBrowser::Close()
-{
-	m_dwStyle = 0;
-	if (m_spBrowser)
-	{
-		CComVariant vEmpty;
-		m_spBrowser->Navigate(
-			CComBSTR("http://211.43.194.137:3129/PANGYA/logout/GMlogout.asp"),
-			&vEmpty, &vEmpty, &vEmpty, &vEmpty);
-		sOption opt = *COption::Instance()->GetOption();
+// browser.cpp:732
+void CBrowser::Refresh(void) {
+}
 
-		if (m_bResetScreenSize)
-		{
-			COption::Instance()->vApplyGameScreenSize();
-		}
-
-		if (m_bWindowed &&
-			(opt.vWindowMode != m_oldWindowMode ||
-				opt.vFillMode != m_oldFillMode))
-		{
-			opt.vWindowMode = m_oldWindowMode;
-			opt.vFillMode = m_oldFillMode;
-			COption::Instance()->ApplyChange(opt, m_bResetScreenSize);
-		}
-
-		g_input->SetActive(true);
-
-		g_mouse->InitDevice(m_hWndParent, true);
-
-		m_view.DispEventUnadvise(m_spBrowser);
-
-		m_spBrowser.Release();
-		if (m_bOpen == true)
-		{
-			m_view.DestroyWindow();
-		}
-
-		m_hWndBrowser = NULL;
-		m_bOpen = false;
-		m_dwOpenTime = 0xffffffff;
-
-		SetFocus(m_hWndParent);
+// browser.cpp:780
+int CBrowser::PreTranslateMessage(MSG* msg) {
+	if (!m_isShown) {
+		return 0;
 	}
 
-	g_audio->SetBGMVolumeInBGMArea(1.0f);
-
-	SetCurrentDirectory(g_executeDirectory);
-
-	if (m_pageType == WEBPAGE_NORMAL)
-	{
-		WSendPacket packet((enumClientPacket)0x3d);
-		packet.Send(TO_GAME);
-
-		if (IsLocalContent(S3_SCRATCH))
-		{
-			WSendPacket packet((enumClientPacket)0x72);
-			packet.Send(TO_GAME);
-		}
-
-		if (IsLocalContent((localContentType_t)0x15))
-		{
-			WSendPacket packet((enumClientPacket)0x89);
-			packet.Send(TO_GAME);
-		}
-	}
-
-	m_pageType = WEBPAGE_NORMAL;
+	return m_view.PreTranslateMessage(msg);
 }
 
-void CBrowser::Refresh()
-{
-}
-
-void CBrowser::OnAnotherHand(int key, void* param)
-{
-	int count = 0;
-	while (true)
-	{
-		WVideoDev* video = g_view->GetVideoDevice();
-
-		if (video && (video->GetRenderCount() & 1) == 0)
-		{
-			if (COption::Instance()->vIsWindowed() || m_count == 0)
-			{
-				m_count++;
-				InvalidateRect(NULL, NULL, FALSE);
-			}
-			return;
-		}
-
-		Sleep(1);
-		if (++count >= 1000)
-			return;
-	}
-}
-
-BOOL CBrowser::PreTranslateMessage(MSG* pMsg)
-{
-	if (!m_bOpen)
-		return FALSE;
-
-	return m_view.PreTranslateMessage(pMsg);
-}
-
-void CBrowser::Process(float elapsed)
-{
-	if (!m_bOpen)
+// browser.cpp:789
+void CBrowser::Process(float elapsed) {
+	if (!m_isShown) {
 		return;
+	}
 
-	if (m_dwOpenTime >= 0xffffffff)
+	if (m_openTick >= INFINITE) {
 		return;
+	}
 
 	WVideoDev* video = g_view->GetVideoDevice();
 
-	if (!video || (video->GetRenderCount() & 1) ||
-		GetTickCount() - m_dwOpenTime <= 200)
+	if (!video || (video->GetRenderCount() & 1) || GetTickCount() - m_openTick <= 200) {
 		return;
-	m_dwOpenTime = 0xffffffff;
+	}
+	m_openTick = INFINITE;
 
-	if (m_spBrowser == NULL)
-	{
-		int w = (int)g_view->GetWidth();
-		int h = (int)g_view->GetHeight();
-		RECT rc = { 0, 0, w, h };
+	if (m_spBrowser == NULL) {
+		int width = (int)g_view->GetWidth();
+		int height = (int)g_view->GetHeight();
+		RECT rect = { 0, 0, width, height };
 
-		m_hWndBrowser = m_view.Create(m_hWndParent, rc, "about:blank",
-			m_dwStyle | WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS |
-				WS_CLIPCHILDREN | WS_CAPTION | WS_SYSMENU);
-		m_view.SetWindowText("팡야");
+		m_hViewWnd = m_view.Create(m_hParent, rect, "about:blank", m_viewStyle | WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_CAPTION | WS_SYSMENU);
+		m_view.SetWindowText("\xc6\xce\xbe\xdf");
 
-		RECT rcView;
-		m_view.GetWindowRect(&rcView);
-		RECT rcMain;
-		GetWindowRect(g_hwnd, &rcMain);
+		RECT viewRect;
+		m_view.GetWindowRect(&viewRect);
+		RECT mainRect;
+		GetWindowRect(g_hwnd, &mainRect);
 
-		HWND hWndInsertAfter = HWND_TOP;
+		HWND insertAfter = HWND_TOP;
 		UINT flags = 0;
-		int width = 0;
-		int height = 0;
+		int viewWidth = 0;
+		int viewHeight = 0;
 
-		switch (m_pageType)
-		{
+		switch (m_pageType) {
 		case WEBPAGE_NORMAL:
-			width = 500;
-			height = 600;
-			hWndInsertAfter = HWND_TOP;
+			viewWidth = 500;
+			viewHeight = 600;
+			insertAfter = HWND_TOP;
 			break;
 		case WEBPAGE_SELFCERTIFY:
-			width = 800;
-			height = 600;
-			hWndInsertAfter = HWND_NOTOPMOST;
+			viewWidth = 800;
+			viewHeight = 600;
+			insertAfter = HWND_NOTOPMOST;
 			flags = SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED;
 			break;
 		}
 
-		rcView.left = rcMain.left + (rcMain.right - rcMain.left) / 2 -
-			(width - rcView.left) / 2;
-		rcView.top = rcMain.top + (rcMain.bottom - rcMain.top) / 2 -
-			(height - rcView.top) / 2;
-		rcView.right = rcView.left + width;
-		rcView.bottom = rcView.top + height;
+		viewRect.left = mainRect.left + (mainRect.right - mainRect.left) / 2 - (viewWidth - viewRect.left) / 2;
+		viewRect.top = mainRect.top + (mainRect.bottom - mainRect.top) / 2 - (viewHeight - viewRect.top) / 2;
+		viewRect.right = viewRect.left + viewWidth;
+		viewRect.bottom = viewRect.top + viewHeight;
 
-		m_view.SetWindowPos(hWndInsertAfter, &rcView, flags);
+		m_view.SetWindowPos(insertAfter, &viewRect, flags);
 
 		m_view.m_downloadCount = 0;
 		m_view.QueryControl(&m_spBrowser);
 		m_view.DispEventAdvise(m_spBrowser);
 
-		CComVariant vEmpty;
+		CComVariant empty;
 
-		if (!m_postArgument.empty())
-		{
-			VARIANT vHeaders = { 0 };
-			VARIANT vPostData = { 0 };
-			CString strHeaders(
-				"Content-Type: application/x-www-form-urlencoded\r\n");
-			vHeaders.vt = VT_BSTR;
-			vHeaders.bstrVal = strHeaders.AllocSysString();
-			std::string postData = GetPostArgument();
-			SAFEARRAY* psa =
-				SafeArrayCreateVector(VT_UI1, 0, postData.length());
-			if (psa)
-			{
-				void* pData;
-				SafeArrayAccessData(psa, &pData);
-				memcpy(pData, postData.c_str(), postData.length());
-				SafeArrayUnaccessData(psa);
+		if (!m_postArguments.empty()) {
+			VARIANT headers = { 0 };
+			VARIANT postData = { 0 };
+			WTL::CString headerText("Content-Type: application/x-www-form-urlencoded\r\n");
+			headers.vt = VT_BSTR;
+			headers.bstrVal = headerText.AllocSysString();
+			std::string postArgument = GetPostArgument();
+			SAFEARRAY* array = SafeArrayCreateVector(VT_UI1, 0, postArgument.length());
+			if (array) {
+				void* data;
+				SafeArrayAccessData(array, &data);
+				memcpy(data, postArgument.c_str(), postArgument.length());
+				SafeArrayUnaccessData(array);
 
-				vPostData.vt = VT_ARRAY | VT_UI1;
-				vPostData.parray = psa;
+				postData.vt = VT_ARRAY | VT_UI1;
+				postData.parray = array;
 			}
 
-			m_spBrowser->Navigate(CComBSTR(m_url.c_str()), &vEmpty, &vEmpty,
-				&vPostData, &vHeaders);
-			SafeArrayDestroy(psa);
-			SysFreeString(vHeaders.bstrVal);
-		}
-		else
-		{
-			m_spBrowser->Navigate(CComBSTR(m_url.c_str()), &vEmpty, &vEmpty,
-				&vEmpty, &vEmpty);
+			m_spBrowser->Navigate(CComBSTR(m_url.c_str()), &empty, &empty, &postData, &headers);
+			SafeArrayDestroy(array);
+			SysFreeString(headers.bstrVal);
+		} else {
+			m_spBrowser->Navigate(CComBSTR(m_url.c_str()), &empty, &empty, &empty, &empty);
 		}
 
 		g_input->SetActive(false);
-		g_mouse->InitDevice(m_hWndParent, false);
+		g_mouse->InitDevice(m_hParent, false);
 	}
 }
 
-void CBrowser::Display()
-{
-	if (m_bOpen && m_dwOpenTime < 0xffffffff)
-	{
+// browser.cpp:966
+void CBrowser::Display(void) {
+	if (m_isShown && m_openTick < INFINITE) {
 		WRect rect(0, 0, g_view->GetWidth(), g_view->GetHeight());
 
 		WOverlay::DrawBox(g_view, rect, 0, 0x88404040, 0.001f);
 	}
 }
 
-void CBrowser::DrawCloseButton(tagDRAWITEMSTRUCT* pDis)
-{
+// browser.cpp:1072
+void CBrowser::DrawCloseButton(tagDRAWITEMSTRUCT* drawItem) {
 }
 
-void CBrowser::DrawBgButton(tagDRAWITEMSTRUCT* pDis)
-{
+// browser.cpp:1088
+void CBrowser::DrawBgButton(tagDRAWITEMSTRUCT* drawItem) {
 }
 
-void CBrowser::PrepareOpen(const char* url, const char* bgImage,
-	bool bResetScreenSize, bool bWindowed)
-{
-	m_bWindowed = bWindowed;
-	m_bResetScreenSize = bResetScreenSize;
-	if (m_bOpen)
+// browser.cpp:1124
+void CBrowser::PrepareOpen(const char* url, const char* bgImage, bool restoreScreenSize, bool forceWindowed) {
+	m_forceWindowed = forceWindowed;
+	m_restoreScreenSize = restoreScreenSize;
+
+	if (m_isShown) {
 		return;
+	}
 
-	sOption opt = *COption::Instance()->GetOption();
-	m_oldFillMode = opt.vFillMode;
-	m_oldWindowMode = opt.vWindowMode;
-	if (m_bWindowed)
-	{
-		if (!opt.vWindowMode || opt.vFillMode)
-		{
-			opt.vWindowMode = 1;
-			opt.vFillMode = 0;
-			COption::Instance()->ApplyChange(opt, false);
+	sOption option = *WSingleton<COption>::Instance()->GetOption();
+	m_savedFillScreen = option.m_fillScreen;
+	m_savedWindowed = option.m_windowed;
+	if (m_forceWindowed) {
+		if (!option.m_windowed || option.m_fillScreen) {
+			option.m_windowed = 1;
+			option.m_fillScreen = 0;
+			WSingleton<COption>::Instance()->ApplyChange(option, false);
 		}
 	}
 
-	m_bOpen = true;
+	m_isShown = true;
 	m_url = url;
-	m_dwOpenTime = GetTickCount();
-	SetWaitMsg("로딩 중입니다...");
+	m_openTick = GetTickCount();
+	m_waitMsg = "\xb7\xce\xb5\xf9 \xc1\xdf\xc0\xd4\xb4\xcf\xb4\xd9...";
 }
 
-void CBrowser::Open(const char* url, bool bResetScreenSize, bool bWindowed)
-{
-	InitializePostArgument();
-	PrepareOpen(url, "[text_pangya00.jpg", bResetScreenSize, bWindowed);
+// browser.cpp:1163
+void CBrowser::Open(const char* url, bool arg2, bool arg3) {
+	m_postArguments.clear();
+	PrepareOpen(url, "[text_pangya00.jpg", arg2, arg3);
 }
 
-void CBrowser::OpenPost(const char* url, bool bResetScreenSize, bool bWindowed)
-{
-	PrepareOpen(url, "[text_pangya00.jpg", bResetScreenSize, bWindowed);
+// browser.cpp:1197
+void CBrowser::OpenPost(const char* url, bool arg2, bool arg3) {
+	PrepareOpen(url, "[text_pangya00.jpg", arg2, arg3);
 }
 
-void CBrowser::InitializePostArgument()
-{
-	m_postArgument.clear();
+// browser.cpp:1203
+void CBrowser::InitializePostArgument(void) {
+	m_postArguments.clear();
 }
 
-void CBrowser::AddPostArgument(const char* key, const char* value)
-{
-	m_postArgument.push_back(std::pair<std::string, std::string>(
-		std::string(key), std::string(value)));
+// browser.cpp:1208
+void CBrowser::AddPostArgument(const char* name, const char* value) {
+	m_postArguments.push_back(std::pair<std::string, std::string>(std::string(name), std::string(value)));
 }
 
-std::string CBrowser::GetPostArgument() const
-{
+// browser.cpp:1213
+std::string CBrowser::GetPostArgument(void) const {
 	std::string result;
-	std::list<std::pair<std::string, std::string> >::const_iterator it =
-		m_postArgument.begin();
-	while (it != m_postArgument.end())
-	{
-		result += (*it).first;
+	std::list<std::pair<std::string, std::string> >::const_iterator it = m_postArguments.begin();
+	while (it != m_postArguments.end()) {
+		result += it->first;
 		result += "=";
-		result += (*it).second;
+		result += it->second;
 
-		if (++it != m_postArgument.end())
+		if (++it != m_postArguments.end()) {
 			result += "&";
+		}
 	}
 
 	return result;
 }
-
-ILFILLB2

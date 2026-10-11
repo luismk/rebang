@@ -1,161 +1,175 @@
-#include "minatl.h"
-#include "uccsetinfodlg.h"
-#include "uccdrawdlg.h"
-#include "uccclothes.h"
-#include "fresh.h"
-#include "frgraphicinterface.h"
-#include "fredit.h"
-#include "frbutton.h"
+// Original: d:\build\custom\temp\code\client\projectg\uccsetinfodlg.cpp
+// This object also emits hatmanager.h:38-43 (the FilteringNick reasons).
+#define PG_HATMANAGER_FILE_STRINGS
+#include <atlbase.h>	// stand-in for the precompiled header: _AtlWinModule initializer
+#include <string.h>
+#include <string>
+
+#include "UccSetInfoDlg.h"
+#include "ObjectFactory.h"
 #include "frarea.h"
+#include "frbutton.h"
+#include "fredit.h"
+#include "hatmanager.h"
+#include "SharedDoc.h"
+#include "TaskManager.h"
 #include "actor.h"
+#include "UccDrawDlg.h"
+#include "UccBase.h"
+#include "UccLibrary.h"
+#include "commonutil.h"
+#include "../shared/globalgamedefine.h"
+#include "../shared/ItemManager.h"
+#include "../shared/classdefine.h"
+#include "frgraphicinterface.h"
+#include "fresh.h"
 
-extern Fresh* g_pFresh;
+static const char* const s_nickReasonEmpty = "\xB4\xEB\xC8\xAD\xB8\xED\xC0\xBB \xC0\xD4\xB7\xC2\xC7\xD8 \xC1\xD6\xBC\xBC\xBF\xE4. ";
+static const char* const s_nickReasonLength = "\xB4\xEB\xC8\xAD\xB8\xED\xC0\xBA \\c0xffff0000\\c\xBF\xB5\xB9\xAE 4 - 16 \xB1\xDB\xC0\xDA\\c0xff000000\\c \xB6\xC7\xB4\xC2 \\c0xffff0000\\c\xC7\xD1\xB1\xDB 2 - 8\xB1\xDB\xC0\xDA\\c0xff000000\\c\xC0\xC7 \xB1\xE6\xC0\xCC\xB8\xA6 \xB0\xA1\xC1\xAE\xBE\xDF \xC7\xD5\xB4\xCF\xB4\xD9.";
+static const char* const s_nickReasonSpace = "\xB4\xEB\xC8\xAD\xB8\xED\xC0\xBA \\c0xffff0000\\c\xB0\xF8\xB9\xE9\xB9\xAE\xC0\xDA\\c0xff000000\\c\xB8\xA6 \xC6\xF7\xC7\xD4\xC7\xD2 \xBC\xF6 \xBE\xF8\xBD\xC0\xB4\xCF\xB4\xD9.";
+static const char* const s_nickReasonBadChar = "\xB4\xEB\xC8\xAD\xB8\xED\xBF\xA1\xBC\xAD \xBB\xE7\xBF\xEB\xC7\xD2 \xBC\xF6 \xBE\xF8\xB4\xC2 \xB9\xAE\xC0\xDA\xB8\xA6 \xC6\xF7\xC7\xD4\xC7\xCF\xB0\xED \xC0\xD6\xBD\xC0\xB4\xCF\xB4\xD9.";
+static const char* const s_nickReasonBadWord = "\xB4\xEB\xC8\xAD\xB8\xED\xC0\xB8\xB7\xCE \xBB\xE7\xBF\xEB\xC7\xD2 \xBC\xF6 \xBE\xF8\xB4\xC2 \xB4\xDC\xBE\xEE\xC0\xD4\xB4\xCF\xB4\xD9.";
+static const char* const s_nickReasonHasBadWord = "\xB4\xEB\xC8\xAD\xB8\xED\xC0\xB8\xB7\xCE \xBB\xE7\xBF\xEB\xC7\xD2 \xBC\xF6 \xBE\xF8\xB4\xC2 \xB4\xDC\xBE\xEE\xB8\xA6 \xC6\xF7\xC7\xD4\xC7\xCF\xB0\xED \xC0\xD6\xBD\xC0\xB4\xCF\xB4\xD9.";
 
-IMPLEMENT_OBJECT(FrUccSetInfoDlg, FrForm)
+// uccsetinfodlg.cpp:10 (run-time type and factory registration of FrUccSetInfoDlg)
+const WRTTI FrUccSetInfoDlg::m_RTTI("FrUccSetInfoDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrUccSetInfoDlg, FrForm)
-
-ON_FRESH_VI("name", FRCMD_INIT, FrUccSetInfoDlg::OnNameInit)
-ON_FRESH_BI("name", FRCMD_ENTERKEY, FrUccSetInfoDlg::OnNameEnterKey)
-ON_FRESH_VI("ok_btn", FRCMD_INIT, FrUccSetInfoDlg::OnOkBtnInit)
-ON_FRESH_VV("ok_btn", FRCMD_LBUTTONUP, FrUccSetInfoDlg::OnOkBtnUp)
-ON_FRESH_VI("cancel_btn", FRCMD_INIT, FrUccSetInfoDlg::OnCancelBtnInit)
-ON_FRESH_VV("cancel_btn", FRCMD_LBUTTONUP, FrUccSetInfoDlg::OnCancelBtnUp)
-ON_FRESH_VI("icon_area", FRCMD_INIT, FrUccSetInfoDlg::OnIconAreaInit)
-ON_FRESH_VI("icon_area", FRCMD_OWNERDRAW, FrUccSetInfoDlg::OnIconAreaOwnerDraw)
-
-END_FRESH_MSGMAP()
-
-FrUccSetInfoDlg::FrUccSetInfoDlg()
-{
-	m_pParent = NULL;
+IObject* FrUccSetInfoDlgMakeInstance(void) {
+	return new FrUccSetInfoDlg;
 }
 
-void FrUccSetInfoDlg::OnNameInit(int param)
-{
-	m_pName = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+struct __sFrUccSetInfoDlg {
+	__sFrUccSetInfoDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrUccSetInfoDlgMakeInstance, "FrUccSetInfoDlg");
+	}
+};
+static __sFrUccSetInfoDlg s_registerFrUccSetInfoDlg;
+
+// uccsetinfodlg.cpp:12
+const sFRESH_MSGMAP* FrUccSetInfoDlg::GetMessageMap(void) const {
+	return &FrUccSetInfoDlg::_MsgMap;
 }
 
-bool FrUccSetInfoDlg::OnNameEnterKey(int param)
-{
+sFRESH_MSGMAP FrUccSetInfoDlg::_MsgMap = { &FrForm::_MsgMap, &FrUccSetInfoDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrUccSetInfoDlg::_MsgEntries[] = {
+	// uccsetinfodlg.cpp:14
+	{ "name", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrUccSetInfoDlg::OnNameInit },
+	{ "name", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&FrUccSetInfoDlg::OnNameEnterKey },
+	{ "ok_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrUccSetInfoDlg::OnOkBtnInit },
+	{ "ok_btn", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrUccSetInfoDlg::OnOkBtnUp },
+	{ "cancel_btn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrUccSetInfoDlg::OnCancelBtnInit },
+	{ "cancel_btn", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrUccSetInfoDlg::OnCancelBtnUp },
+	{ "icon_area", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrUccSetInfoDlg::OnIconAreaInit },
+	{ "icon_area", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrUccSetInfoDlg::OnIconAreaOwnerDraw },
+
+	// uccsetinfodlg.cpp:23
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// uccsetinfodlg.cpp:26
+FrUccSetInfoDlg::FrUccSetInfoDlg(void) {
+	m_pParent = 0;
+}
+
+// uccsetinfodlg.cpp:31
+void FrUccSetInfoDlg::OnNameInit(intptr_t param) {
+	m_pName = DYNAMIC_CAST(FrEdit, param);
+}
+
+// uccsetinfodlg.cpp:35
+bool FrUccSetInfoDlg::OnNameEnterKey(int param) {
 	OnOkBtnUp();
 	return true;
 }
 
-void FrUccSetInfoDlg::OnOkBtnInit(int param)
-{
-	m_pOkBtn = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// uccsetinfodlg.cpp:41
+void FrUccSetInfoDlg::OnOkBtnInit(intptr_t param) {
+	m_pOkBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrUccSetInfoDlg::OnOkBtnUp()
-{
-	if (!m_pParent)
+// uccsetinfodlg.cpp:46
+void FrUccSetInfoDlg::OnOkBtnUp(void) {
+	if (m_pParent == 0)
 		return;
 
-	char nick[208];
-	strcpy(nick, m_pName->GetLine(1, false));
+	char name[208];
+	strcpy(name, m_pName->GetLine(1, false));
 
-	const char* err = Doc()->m_chatManager.FilteringNick(nick);
-	if (err)
-	{
-		if (!strcmp(err, NICK_ERR_EMPTY))
-		{
-			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 0x23,
-				(int)"\xc0\xc7\xbb\xf3 \xc0\xcc\xb8\xa7\xc0\xbb \xc0\xd4\xb7\xc2\xc7\xd8\xc1\xd6\xbc\xbc\xbf\xe4.",
-				0, 0, 0, 0);
-		}
-		else if (!strcmp(err, NICK_ERR_LENGTH))
-		{
-			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 0x23,
-				(int)"\xc0\xc7\xbb\xf3 \xc0\xcc\xb8\xa7\xc0\xba \\c0xffff0000\\c\xbf\xb5\xb9\xae 4 - 16 \xb1\xdb\xc0\xda\\c0xff000000\\c \xb6\xc7\xb4\xc2 \\c0xffff0000\\c\xc7\xd1\xb1\xdb 2 - 8\xb1\xdb\xc0\xda\\c0xff000000\\c\xc0\xc7 \xb1\xe6\xc0\xcc\xb8\xa6 \xb0\xa1\xc1\xae\xbe\xdf \xc7\xd5\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-		}
-		else if (!strcmp(err, NICK_ERR_SPACE))
-		{
-			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 0x23,
-				(int)"\xc0\xc7\xbb\xf3 \xc0\xcc\xb8\xa7\xc0\xba \\c0xffff0000\\c\xb0\xf8\xb9\xe9\xb9\xae\xc0\xda\\c0xff000000\\c\xb8\xa6 \xc6\xf7\xc7\xd4\xc7\xd2 \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-		}
-		else if (!strcmp(err, NICK_ERR_INVALID_CHAR))
-		{
-			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 0x23,
-				(int)"\xc0\xc7\xbb\xf3 \xc0\xcc\xb8\xa7\xc0\xb8\xb7\xce \xbb\xe7\xbf\xeb\xc7\xd2 \xbc\xf6 \xbe\xf8\xb4\xc2 \xb9\xae\xc0\xda\xb8\xa6 \xc6\xf7\xc7\xd4\xc7\xcf\xb0\xed \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-		}
-		else if (!strcmp(err, NICK_ERR_BAD_WORD) ||
-			!strcmp(err, NICK_ERR_HAS_BAD_WORD))
-		{
-			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(NULL, 0x23,
-				(int)"\xc0\xc7\xbb\xf3 \xc0\xcc\xb8\xa7\xbf\xa1 \xbb\xe7\xbf\xeb\xc7\xd2 \xbc\xf6 \xbe\xf8\xb4\xc2 \xc7\xa5\xc7\xf6\xc0\xcc \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9.",
-				0, 0, 0, 0);
-		}
-	}
-	else
-	{
-		std::string name = m_pName->GetLine(1, false);
-		name = name.substr(0, Min((int)name.size(), 40));
-		m_pParent->SetName(name.c_str());
+	const char* reason = WSingleton<CSharedDoc>::Instance()->m_chatManager.FilteringNick(name);
 
-		OnOK();
+	if (reason) {
+		if (strcmp(reason, s_nickReasonEmpty) == 0) {
+			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xC0\xC7\xBB\xF3 \xC0\xCC\xB8\xA7\xC0\xBB \xC0\xD4\xB7\xC2\xC7\xD8\xC1\xD6\xBC\xBC\xBF\xE4.", 0, 0, 0, 0);
+		} else if (strcmp(reason, s_nickReasonLength) == 0) {
+			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xC0\xC7\xBB\xF3 \xC0\xCC\xB8\xA7\xC0\xBA \\c0xffff0000\\c\xBF\xB5\xB9\xAE 4 - 16 \xB1\xDB\xC0\xDA\\c0xff000000\\c \xB6\xC7\xB4\xC2 \\c0xffff0000\\c\xC7\xD1\xB1\xDB 2 - 8\xB1\xDB\xC0\xDA\\c0xff000000\\c\xC0\xC7 \xB1\xE6\xC0\xCC\xB8\xA6 \xB0\xA1\xC1\xAE\xBE\xDF \xC7\xD5\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+		} else if (strcmp(reason, s_nickReasonSpace) == 0) {
+			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xC0\xC7\xBB\xF3 \xC0\xCC\xB8\xA7\xC0\xBA \\c0xffff0000\\c\xB0\xF8\xB9\xE9\xB9\xAE\xC0\xDA\\c0xff000000\\c\xB8\xA6 \xC6\xF7\xC7\xD4\xC7\xD2 \xBC\xF6 \xBE\xF8\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+		} else if (strcmp(reason, s_nickReasonBadChar) == 0) {
+			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xC0\xC7\xBB\xF3 \xC0\xCC\xB8\xA7\xC0\xB8\xB7\xCE \xBB\xE7\xBF\xEB\xC7\xD2 \xBC\xF6 \xBE\xF8\xB4\xC2 \xB9\xAE\xC0\xDA\xB8\xA6 \xC6\xF7\xC7\xD4\xC7\xCF\xB0\xED \xC0\xD6\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+		} else if (strcmp(reason, s_nickReasonBadWord) == 0 || strcmp(reason, s_nickReasonHasBadWord) == 0) {
+			AfxGetTask()->GetActor("RealMyRoom") << MsgObject(0, 0x23, (intptr_t)"\xC0\xC7\xBB\xF3 \xC0\xCC\xB8\xA7\xBF\xA1 \xBB\xE7\xBF\xEB\xC7\xD2 \xBC\xF6 \xBE\xF8\xB4\xC2 \xC7\xA5\xC7\xF6\xC0\xCC \xC0\xD6\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0);
+		}
+		return;
 	}
+
+	std::string strName = m_pName->GetLine(1, false);
+	strName = strName.substr(0, (int)strName.size() > 40 ? 40 : strName.size());
+	m_pParent->SetName(strName.c_str());
+
+	OnOK();
 }
 
-void FrUccSetInfoDlg::OnCancelBtnInit(int param)
-{
-	m_pCancelBtn = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// uccsetinfodlg.cpp:98
+void FrUccSetInfoDlg::OnCancelBtnInit(intptr_t param) {
+	m_pCancelBtn = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrUccSetInfoDlg::OnCancelBtnUp()
-{
+// uccsetinfodlg.cpp:103
+void FrUccSetInfoDlg::OnCancelBtnUp(void) {
 	OnCancel();
 }
 
-void FrUccSetInfoDlg::OnIconAreaInit(int param)
-{
-	m_pIconArea = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// uccsetinfodlg.cpp:108
+void FrUccSetInfoDlg::OnIconAreaInit(intptr_t param) {
+	m_pIconArea = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrUccSetInfoDlg::OnIconAreaOwnerDraw(int param)
-{
+// uccsetinfodlg.cpp:113
+void FrUccSetInfoDlg::OnIconAreaOwnerDraw(int param) {
 	FrGraphicInterface* pGDI = GetGDI();
-	if (!pGDI)
+	if (pGDI == 0)
 		return;
 
-	WRect rect = m_rect;
+	WPoint pos(m_rect.x, m_rect.y);
 
-	if (m_pParent && m_pParent->m_pItemInfo)
-	{
-		IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(
-			0x4000000 | ((m_pParent->m_pItemInfo->tid >> 18) & 0xff));
-		if (pChar)
-		{
-			const Bitmap* pBmp =
-				g_pFresh->GetBitmap(MakeStr("s_%s", pChar->c.Icon));
-			if (pBmp)
+	if (m_pParent) {
+		sItemInfo* pItemInfo = m_pParent->m_pItemInfo;
 
-				pGDI->DrawTexture(pBmp,
-					WRect(rect.x + 60.0f, rect.y + 68.0f, (float)pBmp->Width(),
-						(float)pBmp->Height()),
-					0xffffffff, 0);
+		if (pItemInfo) {
+			IFF_STRUCT::sChar* pChar = ItemManager()->FindChar(((pItemInfo->m_typeId >> 18) & 0xFF) | 0x4000000);
+			if (pChar) {
+				const Bitmap* pBitmap = g_pFresh->GetBitmap(MakeStr("s_%s", pChar->m_icon));
+
+				if (pBitmap) {
+					pGDI->DrawTexture(pBitmap, WRect(pos.x + 60.0f, pos.y + 68.0f, pBitmap->Width(), pBitmap->Height()), 0xFFFFFFFF, 0);
+				}
+			}
 		}
 	}
 
-	if (m_thumbnail.Width() > 0 && m_thumbnail.Height() > 0)
-	{
-		pGDI->DrawTexture(&m_thumbnail,
-			WRect(rect.x + 66.0f, rect.y + 70.0f, (float)m_thumbnail.Width(),
-				(float)m_thumbnail.Height()),
-			0xffffffff, 0);
+	if (m_icon.Width() > 0 && m_icon.Height() > 0) {
+		pGDI->DrawTexture(&m_icon, WRect(pos.x + 66.0f, pos.y + 70.0f, m_icon.Width(), m_icon.Height()), 0xFFFFFFFF, 0);
 	}
 }
 
-void FrUccSetInfoDlg::SetParent(FrUccDrawDlg* pParent)
-{
+// uccsetinfodlg.cpp:163
+void FrUccSetInfoDlg::SetParent(FrUccDrawDlg* pParent) {
 	m_pParent = pParent;
 
-	Bitmap* texture = m_pParent->m_pClothes[0]->GetTexture();
-	Bitmap* mask = m_pParent->m_pClothes[0]->GetMask();
+	Bitmap* pTexture = pParent->m_pUccBase[0]->GetTexture();
+	Bitmap* pMask = pParent->m_pUccBase[0]->GetMask();
 
-	m_thumbnail.Create(64, 84, 32);
-	CreateItemThumbnail(texture, mask, &m_thumbnail);
+	m_icon.Create(64, 84, 32);
+	CreateItemThumbnail(pTexture, pMask, &m_icon);
 }

@@ -1,121 +1,107 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\fresh\include\frcmdtarget.h
+// (no inline code of this header carries line marks; the name follows the
+// unit client/Fresh/source/FrCmdTarget)
+#ifndef PG_CLIENT_FRESH_INCLUDE_FRCMDTARGET_H
+#define PG_CLIENT_FRESH_INCLUDE_FRCMDTARGET_H
 
-enum eFrCmd
-{
-	FRCMD_NONE,
-	FRCMD_INIT,
-	FRCMD_MOUSEMOVE,
-	FRCMD_LBUTTONDOWN,
-	FRCMD_LBUTTONUP,
-	FRCMD_RBUTTONDOWN,
-	FRCMD_RBUTTONUP,
-	FRCMD_DBLCLICK,
-	FRCMD_OWNERDRAW,
-	FRCMD_ENTERKEY,
-	FRCMD_LOSTKEYFOCUS,
-	FRCMD_HOVERON,
-	FRCMD_HOVEROFF,
-	FRCMD_FINISH,
-	FRCMD_DESTROY
-};
-
-enum eFrFuncType
-{
-	FrFuncNone,
-	FrFuncVV,
-	FrFuncBV,
-	FrFuncBI,
-	FrFuncVI,
-	FrFuncBI2,
-	FrFuncBI3
-};
-
+#include "..\..\..\defines.h"
+#include "..\..\..\padding.h"
 class FrCmdTarget;
-typedef void (FrCmdTarget::*FRESH_PFN)();
-typedef bool (FrCmdTarget::*FRESH_PFN_BV)();
-typedef void (FrCmdTarget::*FRESH_PFN_VI)(int);
-typedef bool (FrCmdTarget::*FRESH_PFN_BI)(int);
-
 class FrForm;
-typedef bool (FrCmdTarget::*FRESH_PFN_RESULT)(int, FrForm*);
 
-union uFreshFunctions
-{
-	FRESH_PFN pFn;
-	FRESH_PFN pFn_FRESH;
-	FRESH_PFN pFn_FRESH_VV;
-	FRESH_PFN_BV pFn_FRESH_BV;
-	FRESH_PFN_VI pFn_FRESH_VI;
-	FRESH_PFN_BI pFn_FRESH_BI;
+// Commands a window sends to its owner's message map (PDB enum).
+enum eFrCmd {
+	FRCMD_NONE = 0,
+	FRCMD_INIT = 1,
+	FRCMD_MOUSEMOVE = 2,
+	FRCMD_LBUTTONDOWN = 3,
+	FRCMD_LBUTTONUP = 4,
+	FRCMD_RBUTTONDOWN = 5,
+	FRCMD_RBUTTONUP = 6,
+	FRCMD_DBLCLICK = 7,
+	FRCMD_OWNERDRAW = 8,
+	FRCMD_ENTERKEY = 9,
+	FRCMD_LOSTKEYFOCUS = 10,
+	FRCMD_HOVERON = 11,
+	FRCMD_HOVEROFF = 12,
+	FRCMD_FINISH = 13,
+	FRCMD_DESTROY = 14
 };
 
-struct sFRESH_ENTRY
-{
-	char* pName;
-	eFrCmd cmd;
-	eFrFuncType eFt;
-	FRESH_PFN pFn;
+// Signature of a message-map handler (PDB enum): V = void, B = bool, I = int.
+enum eFrFuncType {
+	FrFuncNone = 0,
+	FrFuncVV = 1,
+	FrFuncBV = 2,
+	FrFuncBI = 3,
+	FrFuncVI = 4,
+	FrFuncBI2 = 5,
+	FrFuncBI3 = 6
 };
 
-struct sFRESH_HANDLER
-{
-	FrCmdTarget* pFresh;
-	eFrFuncType eFt;
-	FRESH_PFN pFn;
-};
+// The handler pointers (PDB typedefs) are declared while FrCmdTarget is still
+// incomplete, so cl gives them the general 16-byte pointer-to-member
+// representation (the PDB's CV_PMTYPE_Undef, 8-byte aligned): that is what
+// puts sFRESH_ENTRY::pFn at 0x10 and FrForm::m_pFnResult at 0xe0..0xf0.
+typedef void (FrCmdTarget::*FRESH_PMSG)(void);
+typedef bool (FrCmdTarget::*FRESH_PMSGBV)(void);
+typedef void (FrCmdTarget::*FRESH_PMSGVI)(intptr_t);
+typedef bool (FrCmdTarget::*FRESH_PMSGBI)(intptr_t);
+typedef bool (FrCmdTarget::*FRESH_RESULT_CALLBACK)(int, FrForm*);
 
-struct sFRESH_MSGMAP
-{
-	sFRESH_MSGMAP* pBaseMsgMap;
-	sFRESH_ENTRY* pEntry;
+// One message-map row: the control name, the command and the handler.
+struct sFRESH_ENTRY {
+	char* pName;          // 0x0
+	eFrCmd cmd;           // 0x4
+	eFrFuncType eFt;      // 0x8
+	FRESH_PMSG pFn;       // 0x10
 };
+CHECK_SIZE(sFRESH_ENTRY, 0x20);
+CHECK_FIELD(sFRESH_ENTRY, pName, 0x0);
+CHECK_FIELD(sFRESH_ENTRY, cmd, 0x4);
+CHECK_FIELD(sFRESH_ENTRY, eFt, 0x8);
+CHECK_FIELD(sFRESH_ENTRY, pFn, 0x10);
 
-class FrCmdTarget
-{
+// A class's message map: its rows and its base class's map.
+struct sFRESH_MSGMAP {
+	sFRESH_MSGMAP* pBaseMsgMap;   // 0x0
+	sFRESH_ENTRY* pEntry;         // 0x4
+};
+CHECK_SIZE(sFRESH_MSGMAP, 0x8);
+CHECK_FIELD(sFRESH_MSGMAP, pBaseMsgMap, 0x0);
+CHECK_FIELD(sFRESH_MSGMAP, pEntry, 0x4);
+
+// A resolved handler, passed along with a command.
+struct sFRESH_HANDLER {
+	FrCmdTarget* pFresh;   // 0x0
+	eFrFuncType eFt;       // 0x4
+	FRESH_PMSG pFn;        // 0x8
+};
+CHECK_SIZE(sFRESH_HANDLER, 0x18);
+CHECK_FIELD(sFRESH_HANDLER, pFresh, 0x0);
+CHECK_FIELD(sFRESH_HANDLER, eFt, 0x4);
+CHECK_FIELD(sFRESH_HANDLER, pFn, 0x8);
+
+// Receiver of Fresh commands (layout and vtable from the PDB: slot 0 the
+// destructor, slot 1 GetMessageMap). A class with a message map declares
+// _MsgEntries (private) and _MsgMap (protected) and overrides GetMessageMap.
+class FrCmdTarget {
 public:
-	FrCmdTarget();
-	virtual ~FrCmdTarget();
-	bool OnFreshMsg(const char* pName, eFrCmd cmd, int var1,
-		sFRESH_HANDLER* pHandler);
+	FrCmdTarget(void);
+	virtual ~FrCmdTarget(void);
+
+	bool OnFreshMsg(const char* name, eFrCmd cmd, intptr_t param, sFRESH_HANDLER* pHandler);
+
+private:
+	static sFRESH_ENTRY _MsgEntries[];
 
 protected:
-	virtual const sFRESH_MSGMAP* GetMessageMap() const;
-	sFRESH_ENTRY* FindFreshEntry(sFRESH_ENTRY* pBegin, const char* pName,
-		eFrCmd cmd);
-
 	static sFRESH_MSGMAP _MsgMap;
-	static sFRESH_ENTRY _MsgEntries[];
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;
+
+	sFRESH_ENTRY* FindFreshEntry(sFRESH_ENTRY* pEntry, const char* name, eFrCmd cmd);
 };
 
-#define DECLARE_FRESH_MSGMAP() \
-private: \
-	static sFRESH_ENTRY _MsgEntries[]; \
-\
-protected: \
-	static sFRESH_MSGMAP _MsgMap; \
-	virtual const sFRESH_MSGMAP* GetMessageMap() const;
+CHECK_SIZE(FrCmdTarget, 0x4);
 
-#define BEGIN_FRESH_MSGMAP(thisClass, baseClass) \
-	const sFRESH_MSGMAP* thisClass::GetMessageMap() const \
-	{ \
-		return &thisClass::_MsgMap; \
-	} \
-	sFRESH_MSGMAP thisClass::_MsgMap = { &baseClass::_MsgMap, \
-		&thisClass::_MsgEntries[0] }; \
-	sFRESH_ENTRY thisClass::_MsgEntries[] = {
-#define END_FRESH_MSGMAP() \
-	{ 0, FRCMD_NONE, FrFuncNone, 0 } \
-	} \
-	;
-
-#define ON_FRESH_VV(name, cmd, memberFxn) \
-	{ name, cmd, FrFuncVV, (FRESH_PFN) & memberFxn },
-
-#define ON_FRESH_VI(name, cmd, memberFxn) \
-	{ name, cmd, FrFuncVI, (FRESH_PFN)(FRESH_PFN_VI) & memberFxn },
-
-#define ON_FRESH_BV(name, cmd, memberFxn) \
-	{ name, cmd, FrFuncBV, (FRESH_PFN)(FRESH_PFN_BV) & memberFxn },
-
-#define ON_FRESH_BI(name, cmd, memberFxn) \
-	{ name, cmd, FrFuncBI, (FRESH_PFN)(FRESH_PFN_BI) & memberFxn },
+#endif // PG_CLIENT_FRESH_INCLUDE_FRCMDTARGET_H

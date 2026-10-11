@@ -1,100 +1,101 @@
+// Original: d:\build\custom\temp\code\client\fresh\source\fresh.cpp
+#include <string.h>
+
 #include "fresh.h"
-#include "frwndmanager.h"
 #include "frdesktop.h"
+#include "frwndmanager.h"
 
-Fresh::Fresh()
-	: manager(0), show(true)
-{
+// fresh.cpp:19
+Fresh::Fresh(void) : m_pWndManager(NULL), m_bShow(true) {
 }
 
-Fresh::~Fresh()
-{
-	ShutDown();
+// fresh.cpp:23
+Fresh::~Fresh(void) {
+	if (m_pWndManager) { delete m_pWndManager; m_pWndManager = NULL; }
 }
 
-void Fresh::ShutDown()
-{
-	if (manager)
-	{
-		delete manager;
-		manager = 0;
-	}
+// Define the global instance pointer expected by many translation units.
+// The real program initializes g_pFresh at startup; for progressive
+// linkage provide a nullptr initial value here.
+Fresh* g_pFresh = NULL;
+
+// fresh.cpp:28
+void Fresh::ShutDown(void) {
+	if (m_pWndManager) { delete m_pWndManager; m_pWndManager = NULL; }
 }
 
-bool Fresh::Init(const char* path, bool option, const char* name)
-{
-	if (!document.Load(path))
+// fresh.cpp:33
+bool Fresh::Init(const char* pszXmlFilename, bool exclusiveKey, const char* wallPaper) {
+	if (!m_doc.Load(pszXmlFilename))
 		return false;
-	filename = path;
-	manager = new FrWndManager(&document);
-	manager->Init(name, option);
+
+	m_xmlFileName = pszXmlFilename;
+	m_pWndManager = new FrWndManager(&m_doc);
+	m_pWndManager->Init(wallPaper, exclusiveKey);
 	return true;
 }
 
-void Fresh::OnProcess(float delta)
-{
-	if (manager && show)
-		manager->Process(delta);
+// fresh.cpp:47
+void Fresh::OnProcess(const float deltaTime) {
+	if (m_pWndManager && m_bShow)
+		m_pWndManager->Process(deltaTime);
 }
 
-void Fresh::OnDisplay(bool option)
-{
-	if (manager && show)
-		manager->Display(option);
+// fresh.cpp:54
+void Fresh::OnDisplay(bool drawDesktop) {
+	if (m_pWndManager && m_bShow)
+		m_pWndManager->Display(drawDesktop);
 }
 
-void Fresh::CloseLayout()
-{
-	if (manager)
-		manager->CloseLayout();
-}
-
-const FreshBitmapMap& Fresh::ListBres(std::string& output)
-{
-	output = filename;
-	return document.GetBitmapList();
-}
-
-void Fresh::HidePrivacy(bool hidden)
-{
-	manager->HidePrivacy(hidden);
-}
-
-bool Fresh::IsCurrentLayout(const char* name) const
-{
-	const char* current = manager->GetLayoutID();
-	bool matches = stricmp(current, name) == 0;
-	return matches;
-}
-
-const Bitmap* Fresh::RegisterBitmap(const char* name)
-{
-	return manager->GetBitmap("", name);
-}
-
-const Bitmap* Fresh::GetBitmap(const char* name)
-{
-	return manager->GetBitmap("", name);
-}
-
-bool Fresh::OpenLayout(const char* name, FrCmdTarget* owner, bool option)
-{
-	// HACK: the exact reason why this is needed is unknown.
-	std::allocator<FrElement*> allocator;
-	if (!manager)
+// fresh.cpp:62
+bool Fresh::OpenLayout(const char* layout, FrCmdTarget* owner, bool first) {
+	if (m_pWndManager == NULL)
 		return false;
-	manager->CloseLayout();
-	return manager->CreateLayout(name, owner, option);
+
+	m_pWndManager->CloseLayout();
+	return m_pWndManager->CreateLayout(layout, owner, first);
 }
 
-bool Fresh::IsDesktopFocused() const
-{
-	// HACK: the exact reason why this is needed is unknown.
-	std::allocator<FrElement*> allocator;
-	if (!manager)
+// fresh.cpp:84
+void Fresh::CloseLayout(void) {
+	if (m_pWndManager)
+		m_pWndManager->CloseLayout();
+}
+
+// fresh.cpp:91
+bool Fresh::IsDesktopFocused(void) const {
+	if (m_pWndManager == NULL)
 		return false;
-	FrDesktop* desktop = manager->GetDesktop();
-	if (!desktop)
+
+	FrDesktop* pDesktop = m_pWndManager->GetDesktop();
+	if (pDesktop == NULL)
 		return false;
-	return desktop->m_nFlags.GetFlag(8);
+
+	return pDesktop->m_nFlags.GetFlag(0x8) ? true : false;
+}
+
+// fresh.cpp:105
+const std::map<std::string, resBitmap_t>& Fresh::ListBres(std::string& name) {
+	name = m_xmlFileName;
+	return m_doc.GetBitmapList();
+}
+
+// fresh.cpp:111
+void Fresh::HidePrivacy(bool hide) {
+	m_pWndManager->HidePrivacy(hide);
+}
+
+// fresh.cpp:116
+bool Fresh::IsCurrentLayout(const char* layout) const {
+	return stricmp(m_pWndManager->GetLayoutID(), layout) == 0 ? true : false;
+}
+
+// fresh.cpp:124
+const Bitmap* Fresh::RegisterBitmap(const char* bitmap) {
+	return m_pWndManager->GetBitmap("", bitmap);
+}
+
+// fresh.cpp:130
+const Bitmap* Fresh::GetBitmap(const char* bitmap) {
+	return m_pWndManager->GetBitmap("", bitmap);
 }

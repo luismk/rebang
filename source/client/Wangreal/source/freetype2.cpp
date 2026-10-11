@@ -34,8 +34,8 @@ bool CFreeType2::Load(const char* fname, int fntsize, int fontindex,
 		cFile* file = GetCFile(fname, 0x8000, 0);
 		if (file)
 		{
-			int length = file->m_nLen;
-			m_pFileBuffer = new uchar[length];
+			int length = file->Length();
+			m_pFileBuffer = new unsigned char[length];
 			file->Read(m_pFileBuffer, length);
 			CloseCFile(file);
 			if (!FT_New_Memory_Face(m_Library, m_pFileBuffer, length, fontindex,
@@ -83,7 +83,7 @@ bool CFreeType2::Render(unsigned short code, int* w, int* h)
 	return true;
 }
 
-void CFreeType2::Write24(uchar* img24, int pitch)
+void CFreeType2::Write24(unsigned char* img24, int pitch)
 {
 	FT_GlyphSlot glyph = m_Face->glyph;
 	int u;
@@ -123,7 +123,7 @@ void CFreeType2::Write24(uchar* img24, int pitch)
 	}
 }
 
-void CFreeType2::Write32a(uchar* img32, int pitch)
+void CFreeType2::Write32a(unsigned char* img32, int pitch)
 {
 	FT_GlyphSlot glyph = m_Face->glyph;
 	int u;

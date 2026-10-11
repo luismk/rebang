@@ -16,6 +16,8 @@
     "/DWANGREAL_DEVICE"
   ],
   "includes": [
+    "source",
+    "source/shared",
     "source/rebang",
     "tools/VC7.1/include",
     "tools/VC7.1/atlmfc/include",

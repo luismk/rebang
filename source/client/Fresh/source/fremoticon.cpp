@@ -1,23 +1,26 @@
-#include "fremoticon.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
-#include "wresrcmng.h"
-#include "tinyxml.h"
-#include "../../../shared/token.h"
+// Original: d:\build\custom\temp\code\client\fresh\source\fremoticon.cpp
+#include <stdlib.h>
+#include <string.h>
+#include <windows.h>
 #include <mmsystem.h>
 
-// HACK: stands in for an unknown erased inline use of __rtti_obj
-static __declspec(thread) int __rtti_tls_pad;
+#include "fremoticon.h"
+#include "frgraphicinterface.h"
+#include "frwndmanager.h"
+#include "../client/ProjectG/binstr.h"
+#include "../client/ProjectG/tinyxml.h"
+#include "../client/Wangreal/include/woverlay.h"
+#include "../client/Wangreal/include/wresrcmng.h"
+#include "../client/Wangreal/include/wview.h"
 
-extern "C" __declspec(dllimport) int __cdecl strcmpi(const char*, const char*);
+// Initialisers of the guarded function-local separator pointers of the
+// text routines (the original folds the literal into the guarded store).
+static const char* const EMOTICON_LEFT = "(";
+static const char* const EMOTICON_RITE = ")";
+static const char* const EMOTICON_BOTH = "()";
 
-inline const char* cTokenV::GetBuf() const
-{
-	return m_pcBuf;
-}
-
-FrEmoticon::FrEmoticon(FrWndManager* pManager)
-{
+// fremoticon.cpp:17
+FrEmoticon::FrEmoticon(FrWndManager* pManager) {
 	m_pManager = pManager;
 	m_overlay = 0;
 	m_EnableAnim = false;
@@ -29,102 +32,109 @@ FrEmoticon::FrEmoticon(FrWndManager* pManager)
 	m_selNum = 90;
 }
 
-FrEmoticon::~FrEmoticon()
-{
-	std::vector<sEmoticon*>::iterator e;
-	for (e = m_Emoticons.begin(); e != m_Emoticons.end(); e++)
-	{
-		(*e)->Frames.clear();
-		delete *e;
+// fremoticon.cpp:32
+FrEmoticon::~FrEmoticon(void) {
+	for (EMOTICONLIST_itr it = m_Emoticons.begin(); it != m_Emoticons.end(); ++it) {
+		(*it)->Frames.clear();
+		delete *it;
 	}
 	m_Emoticons.clear();
-	std::map<std::string, WOverlay*>::iterator i;
-	for (i = m_ResMap.begin(); i != m_ResMap.end(); i++)
-		if (g_resrcmng && (*i).second)
-		{
-			g_resrcmng->Release((*i).second);
-			(*i).second = 0;
+
+	for (RESMAP_itr itr = m_ResMap.begin(); itr != m_ResMap.end(); ++itr) {
+		if (g_resrcmng && itr->second) {
+			g_resrcmng->Release(itr->second);
+			itr->second = 0;
 		}
+	}
 	m_ResMap.clear();
-	if (g_resrcmng && m_overlay)
-	{
+
+	if (g_resrcmng && m_overlay) {
 		g_resrcmng->Release(m_overlay);
 		m_overlay = 0;
 	}
 }
 
-bool FrEmoticon::Init()
-{
+// fremoticon.cpp:56
+bool FrEmoticon::Init(void) {
 	LoadXml("emoticon.xml");
-	if (!m_overlay)
+
+	if (m_overlay == 0) {
 		m_overlay = g_resrcmng->GetOverlay("emoticon.tga", 0);
+	}
 	return true;
 }
 
-bool FrEmoticon::Draw(int icon, float x, float y, unsigned long diffuse,
-	bool flip)
-{
+// fremoticon.cpp:67
+bool FrEmoticon::Draw(int icon, float x, float y, unsigned long diffuse, bool flip) {
 	return Draw(icon, WRect(x, y, m_selWidth, m_selHeight), diffuse, flip);
 }
 
-void FrEmoticon::SetClippingArea(WRect* clip)
-{
+// fremoticon.cpp:72
+void FrEmoticon::SetClippingArea(WRect* clip) {
 	m_pManager->GetGDI()->SetClippingArea(clip);
 	m_overlay->SetClippingArea(clip);
-	for (std::map<std::string, WOverlay*>::iterator i = m_ResMap.begin();
-		i != m_ResMap.end(); i++)
-		i->second->SetClippingArea(clip);
+
+	for (RESMAP_itr it = m_ResMap.begin(); it != m_ResMap.end(); ++it) {
+		it->second->SetClippingArea(clip);
+	}
 }
 
-bool FrEmoticon::Draw(int icon, const WRect& dst, unsigned long diffuse,
-	bool flip)
-{
+// fremoticon.cpp:86
+bool FrEmoticon::Draw(int icon, const WRect& dst, unsigned long diffuse, bool flip) {
 	if (icon < 0)
 		return false;
+
 	FrGraphicInterface* pGdi = m_pManager->GetGDI();
-	if (!pGdi)
+	if (pGdi == 0)
 		return false;
+
 	unsigned long frame = (timeGetTime() - m_AnimStart) / (1000 / m_Fps);
-	sEmoticon* emo = m_Emoticons[icon];
+
+	sEmoticon* emoticon = m_Emoticons[icon];
 	int selected;
-	if (m_EnableAnim && emo->Frames.size())
-		selected = emo->Frames[frame % emo->Frames.size()];
-	else
+	if (m_EnableAnim && emoticon->Frames.size() != 0) {
+		selected = emoticon->Frames[frame % emoticon->Frames.size()];
+	} else {
 		selected = icon;
+	}
+
 	int selX = selected % m_selXNum;
 	int selY = (selected % m_selNum) / m_selXNum;
-	WOverlay* overlay =
-		m_EnableAnim && emo->Frames.size() ? emo->Overlay : m_overlay;
+
+	WOverlay* overlay;
+	if (m_EnableAnim && emoticon->Frames.size() != 0) {
+		overlay = emoticon->Overlay;
+	} else {
+		overlay = m_overlay;
+	}
+
 	int width = overlay->GetWidth();
 	int height = overlay->GetHeight();
-	unsigned long color = (int(pGdi->GetAlpha() * 255) << 24) | 0xffffff;
-	if (flip)
-		overlay->Render(g_view,
-			WRect(float((selX + 1) * m_selWidth) / width,
-				float(selY * m_selHeight) / height, float(-m_selWidth) / width,
-				float(m_selHeight) / height),
-			dst, 0, color, 0, 0);
-	else
-		overlay->Render(g_view,
-			WRect(float(selX * m_selWidth) / width,
-				float(selY * m_selHeight) / height, float(m_selWidth) / width,
-				float(m_selHeight) / height),
-			dst, 0, color, 0, 0);
+
+	unsigned long color = ((int)(pGdi->GetAlpha() * 255.0f) << 24) | 0xffffff;
+
+	if (flip) {
+		overlay->Render(g_view, WRect((float)((selX + 1) * m_selWidth) / width, (float)(selY * m_selHeight) / height,
+			(float)-m_selWidth / width, (float)m_selHeight / height), dst, 0, color, 0, 0);
+	} else {
+		overlay->Render(g_view, WRect((float)(selX * m_selWidth) / width, (float)(selY * m_selHeight) / height,
+			(float)m_selWidth / width, (float)m_selHeight / height), dst, 0, color, 0, 0);
+	}
 	return true;
 }
 
-float FrEmoticon::PrintText(const WPoint& pos, unsigned long align,
-	const char* text, unsigned long emoDiffuse)
-{
+// fremoticon.cpp:137
+float FrEmoticon::PrintText(const WPoint& pos, unsigned long align, const char* text, unsigned long emoDiffuse) {
 	FrGraphicInterface* pGdi = m_pManager->GetGDI();
-	if (!pGdi)
+	if (pGdi == 0)
 		return 0.0f;
-	pGdi->SetTextColor((pGdi->GetTextColor() & 0xffffff) |
-			(emoDiffuse & 0xff000000),
+
+	pGdi->SetTextColor((pGdi->GetTextColor() & 0xffffff) | (emoDiffuse & 0xff000000),
 		(pGdi->GetTextOutlineColor() & 0xffffff) | (emoDiffuse & 0xff000000));
+
 	WPoint p;
-	switch (align)
-	{
+	int icon;
+	switch (align) {
 	case 0:
 		p.x = pos.x;
 		p.y = pos.y;
@@ -138,64 +148,65 @@ float FrEmoticon::PrintText(const WPoint& pos, unsigned long align,
 		p.y = pos.y;
 		break;
 	}
+
 	cTokenV token;
 	token.Init(text, strlen(text));
-	static const char* pLeft = (0, "(");
-	static const char* pRite = (0, ")");
-	static const char* pBoth = (0, "()");
-	while (token.GetPos() < token.GetLen())
-	{
-		char* str;
-		bool found = token.GetToken(&str, pLeft, 1);
-		p.x += pGdi->PrintText(p, 0, str, 0);
-		if (token.GetPos() >= token.GetLen())
-		{
-			if (found)
+
+	static const char* pLeft = EMOTICON_LEFT;
+	static const char* pRite = EMOTICON_RITE;
+	static const char* pBoth = EMOTICON_BOTH;
+
+	while (token.GetPos() < token.GetLen()) {
+		char* pToken;
+		bool ret = token.GetToken(&pToken, pLeft, 1);
+		p.x += pGdi->PrintText(p, 0, pToken, 0);
+		if (token.GetPos() >= token.GetLen()) {
+			if (ret)
 				p.x += pGdi->PrintText(p, 0, pLeft, 0);
 			break;
 		}
-		while ((found = token.GetToken(&str, pBoth, 2)))
-		{
-			if (token.GetPos() == 0 ||
-				token.GetBuf()[token.GetPos() - 1] == *pRite)
-				break;
-			p.x += pGdi->PrintText(p, 0, pLeft, 0);
-			p.x += pGdi->PrintText(p, 0, str, 0);
+
+		for (;;) {
+			ret = token.GetToken(&pToken, pBoth, 2);
+			if (ret && token.GetPos() != 0 && token.GetBuf()[token.GetPos() - 1] != *pRite) {
+				p.x += pGdi->PrintText(p, 0, pLeft, 0);
+				p.x += pGdi->PrintText(p, 0, pToken, 0);
+				continue;
+			}
+			break;
 		}
-		int icon = GetIconIndex(str);
-		if (found && icon != -1)
-		{
-			bool flip = strstr(str, "-") != 0;
+
+		icon = GetIconIndex(pToken);
+		if (ret && icon != -1) {
+			bool flip = strstr(pToken, "-") != 0;
 			int height = m_selHeight;
 			float y = p.y - (height - pGdi->GetFontHeight());
 			float h = height;
 			float w = m_selWidth;
 			Draw(icon, WRect(p.x, y, w, h), emoDiffuse, flip);
 			p.x += m_selWidth;
-		}
-		else
-		{
+		} else {
 			p.x += pGdi->PrintText(p, 0, pLeft, 0);
-			p.x += pGdi->PrintText(p, 0, str, 0);
-			if (found)
+			p.x += pGdi->PrintText(p, 0, pToken, 0);
+			if (ret)
 				p.x += pGdi->PrintText(p, 0, pRite, 0);
 		}
 	}
 	return p.x - pos.x;
 }
 
-float FrEmoticon::PrintText11(const WPoint& pos, unsigned long align,
-	const char* text, unsigned long emoDiffuse)
-{
+// fremoticon.cpp:247
+float FrEmoticon::PrintText11(const WPoint& pos, unsigned long align, const char* text, unsigned long emoDiffuse) {
 	FrGraphicInterface* pGdi = m_pManager->GetGDI();
-	if (!pGdi)
+	if (pGdi == 0)
 		return 0.0f;
-	pGdi->SetTextColor((pGdi->GetTextColor() & 0xffffff) |
-			(emoDiffuse & 0xff000000),
+
+	pGdi->SetTextColor((pGdi->GetTextColor() & 0xffffff) | (emoDiffuse & 0xff000000),
 		(pGdi->GetTextOutlineColor() & 0xffffff) | (emoDiffuse & 0xff000000));
+
 	WPoint p;
-	switch (align)
-	{
+	int icon;
+	switch (align) {
 	case 0:
 		p.x = pos.x;
 		p.y = pos.y;
@@ -209,224 +220,245 @@ float FrEmoticon::PrintText11(const WPoint& pos, unsigned long align,
 		p.y = pos.y;
 		break;
 	}
+
 	cTokenV token;
 	token.Init(text, strlen(text));
-	static const char* pLeft = (0, "(");
-	static const char* pRite = (0, ")");
-	static const char* pBoth = (0, "()");
-	while (token.GetPos() < token.GetLen())
-	{
-		char* str;
-		bool found = token.GetToken(&str, pLeft, 1);
-		p.x += pGdi->PrintText11(p, 0, str, 0);
-		if (token.GetPos() >= token.GetLen())
-		{
-			if (found)
+
+	static const char* pLeft = EMOTICON_LEFT;
+	static const char* pRite = EMOTICON_RITE;
+	static const char* pBoth = EMOTICON_BOTH;
+
+	while (token.GetPos() < token.GetLen()) {
+		char* pToken;
+		bool ret = token.GetToken(&pToken, pLeft, 1);
+		p.x += pGdi->PrintText11(p, 0, pToken, 0);
+		if (token.GetPos() >= token.GetLen()) {
+			if (ret)
 				p.x += pGdi->PrintText11(p, 0, pLeft, 0);
 			break;
 		}
-		while ((found = token.GetToken(&str, pBoth, 2)))
-		{
-			if (token.GetPos() == 0 ||
-				token.GetBuf()[token.GetPos() - 1] == *pRite)
-				break;
-			p.x += pGdi->PrintText11(p, 0, pLeft, 0);
-			p.x += pGdi->PrintText11(p, 0, str, 0);
+
+		for (;;) {
+			ret = token.GetToken(&pToken, pBoth, 2);
+			if (ret && token.GetPos() != 0 && token.GetBuf()[token.GetPos() - 1] != *pRite) {
+				p.x += pGdi->PrintText11(p, 0, pLeft, 0);
+				p.x += pGdi->PrintText11(p, 0, pToken, 0);
+				continue;
+			}
+			break;
 		}
-		int icon = GetIconIndex(str);
-		if (found && icon != -1)
-		{
-			bool flip = strstr(str, "-") != 0;
+
+		icon = GetIconIndex(pToken);
+		if (ret && icon != -1) {
+			bool flip = strstr(pToken, "-") != 0;
 			int height = m_selHeight;
 			float y = p.y - (height - pGdi->GetFontHeight());
 			float h = height;
 			float w = m_selWidth;
 			Draw(icon, WRect(p.x, y, w, h), emoDiffuse, flip);
 			p.x += m_selWidth;
-		}
-		else
-		{
+		} else {
 			p.x += pGdi->PrintText11(p, 0, pLeft, 0);
-			p.x += pGdi->PrintText11(p, 0, str, 0);
-			if (found)
+			p.x += pGdi->PrintText11(p, 0, pToken, 0);
+			if (ret)
 				p.x += pGdi->PrintText11(p, 0, pRite, 0);
 		}
 	}
 	return p.x - pos.x;
 }
 
-float FrEmoticon::GetTextWidth(const char* text)
-{
+// fremoticon.cpp:343
+float FrEmoticon::GetTextWidth(const char* text) {
 	FrGraphicInterface* pGdi = m_pManager->GetGDI();
-	if (!pGdi)
+	if (pGdi == 0)
 		return 0.0f;
+
 	float width = 0.0f;
 	cTokenV token;
 	token.Init(text, strlen(text));
-	static const char* pLeft = (0, "(");
-	static const char* pRite = (0, ")");
-	static const char* pBoth = (0, "()");
-	while (token.GetPos() < token.GetLen())
-	{
-		char* str;
-		bool found = token.GetToken(&str, pLeft, 1);
-		width += pGdi->GetTextExtend(str);
-		if (token.GetPos() >= token.GetLen())
-		{
-			if (found)
+
+	static const char* pLeft = EMOTICON_LEFT;
+	static const char* pRite = EMOTICON_RITE;
+	static const char* pBoth = EMOTICON_BOTH;
+
+	while (token.GetPos() < token.GetLen()) {
+		char* pToken;
+		bool ret = token.GetToken(&pToken, pLeft, 1);
+		width += pGdi->GetTextExtend(pToken);
+		if (token.GetPos() >= token.GetLen()) {
+			if (ret)
 				width += pGdi->GetTextExtend(pLeft);
 			break;
 		}
-		while ((found = token.GetToken(&str, pBoth, 2)))
-		{
-			if (token.GetPos() == 0 ||
-				token.GetBuf()[token.GetPos() - 1] == *pRite)
+
+		for (;;) {
+			ret = token.GetToken(&pToken, pBoth, 2);
+			if (ret && token.GetPos() != 0 && token.GetBuf()[token.GetPos() - 1] != *pRite) {
+				width += pGdi->GetTextExtend(pLeft);
+				width += pGdi->GetTextExtend(pToken);
+				continue;
+			}
+			if (ret && GetIconIndex(pToken) != -1) {
+				width += m_selWidth;
 				break;
+			}
 			width += pGdi->GetTextExtend(pLeft);
-			width += pGdi->GetTextExtend(str);
-		}
-		if (found && GetIconIndex(str) != -1)
-			width += m_selWidth;
-		else
-		{
-			width += pGdi->GetTextExtend(pLeft);
-			width += pGdi->GetTextExtend(str);
-			if (found)
+			width += pGdi->GetTextExtend(pToken);
+			if (ret)
 				width += pGdi->GetTextExtend(pRite);
+			break;
 		}
 	}
 	return width;
 }
 
-float FrEmoticon::GetTextWidth11(const char* text)
-{
+// fremoticon.cpp:425
+float FrEmoticon::GetTextWidth11(const char* text) {
 	FrGraphicInterface* pGdi = m_pManager->GetGDI();
-	if (!pGdi)
+	if (pGdi == 0)
 		return 0.0f;
+
 	float width = 0.0f;
 	cTokenV token;
 	token.Init(text, strlen(text));
-	static const char* pLeft = (0, "(");
-	static const char* pRite = (0, ")");
-	static const char* pBoth = (0, "()");
-	while (token.GetPos() < token.GetLen())
-	{
-		char* str;
-		bool found = token.GetToken(&str, pLeft, 1);
-		width += pGdi->GetTextExtend11(str);
-		if (token.GetPos() >= token.GetLen())
-		{
-			if (found)
+
+	static const char* pLeft = EMOTICON_LEFT;
+	static const char* pRite = EMOTICON_RITE;
+	static const char* pBoth = EMOTICON_BOTH;
+
+	while (token.GetPos() < token.GetLen()) {
+		char* pToken;
+		bool ret = token.GetToken(&pToken, pLeft, 1);
+		width += pGdi->GetTextExtend11(pToken);
+		if (token.GetPos() >= token.GetLen()) {
+			if (ret)
 				width += pGdi->GetTextExtend11(pLeft);
 			break;
 		}
-		while ((found = token.GetToken(&str, pBoth, 2)))
-		{
-			if (token.GetPos() == 0 ||
-				token.GetBuf()[token.GetPos() - 1] == *pRite)
+
+		for (;;) {
+			ret = token.GetToken(&pToken, pBoth, 2);
+			if (ret && token.GetPos() != 0 && token.GetBuf()[token.GetPos() - 1] != *pRite) {
+				width += pGdi->GetTextExtend11(pLeft);
+				width += pGdi->GetTextExtend11(pToken);
+				continue;
+			}
+			if (ret && GetIconIndex(pToken) != -1) {
+				width += m_selWidth;
 				break;
+			}
 			width += pGdi->GetTextExtend11(pLeft);
-			width += pGdi->GetTextExtend11(str);
-		}
-		if (found && GetIconIndex(str) != -1)
-			width += m_selWidth;
-		else
-		{
-			width += pGdi->GetTextExtend11(pLeft);
-			width += pGdi->GetTextExtend11(str);
-			if (found)
+			width += pGdi->GetTextExtend11(pToken);
+			if (ret)
 				width += pGdi->GetTextExtend11(pRite);
+			break;
 		}
 	}
 	return width;
 }
 
-int FrEmoticon::GetIconIndex(const char* key)
-{
-	if (!key || !*key)
+// fremoticon.cpp:504
+int FrEmoticon::GetIconIndex(const char* key) {
+	if (key == 0 || key[0] == 0) {
 		return -1;
-	for (int i = 0; i < m_Emoticons.size(); i++)
-	{
-		sEmoticon* emo = m_Emoticons[i];
-		if (!strcmpi(emo->Name.c_str(), key) ||
-			(*key == '-' && !strcmpi(emo->Name.c_str(), key + 1)))
+	}
+
+	for (int i = 0; i < m_Emoticons.size(); i++) {
+		sEmoticon* emoticon = m_Emoticons[i];
+		if (_strcmpi(emoticon->Name.c_str(), key) == 0 || (key[0] == '-' && _strcmpi(emoticon->Name.c_str(), key + 1) == 0)) {
 			return i;
-		for (int j = 0; j < 2; j++)
-		{
-			if (!strcmpi(emo->Alias[j].c_str(), key))
+		}
+		for (int j = 0; j < 2; j++) {
+			if (_strcmpi(emoticon->Alias[j].c_str(), key) == 0 || (key[0] == '-' && _strcmpi(emoticon->Alias[j].c_str(), key + 1) == 0)) {
 				return i;
-			if (*key == '-' && !strcmpi(emo->Alias[j].c_str(), key + 1))
-				return i;
+			}
 		}
 	}
 	return -1;
 }
 
-const char* FrEmoticon::GetIconName(int index)
-{
+// fremoticon.cpp:590
+const char* FrEmoticon::GetIconName(int index) {
 	return m_Emoticons[index]->Name.c_str();
 }
-int FrEmoticon::GetIconNum()
-{
+
+// fremoticon.cpp:600
+int FrEmoticon::GetIconNum(void) {
 	return m_Emoticons.size();
 }
-void FrEmoticon::GetAlias(std::string (*buffer)[2], int index)
-{
-	if (strlen(m_Emoticons[index]->Alias[0].c_str()))
+
+// fremoticon.cpp:605
+void FrEmoticon::GetAlias(std::string (*buffer)[2], int index) {
+	if (strlen(m_Emoticons[index]->Alias[0].c_str()) != 0) {
 		(*buffer)[0] = m_Emoticons[index]->Alias[0];
-	if (strlen(m_Emoticons[index]->Alias[1].c_str()))
+	}
+	if (strlen(m_Emoticons[index]->Alias[1].c_str()) != 0) {
 		(*buffer)[1] = m_Emoticons[index]->Alias[1];
+	}
 }
 
-void FrEmoticon::ParseAnimFrame(const std::string& Frames,
-	std::vector<int>& Vector)
-{
-	char Seps[] = " ";
-	char* token = strtok(const_cast<char*>(Frames.c_str()), Seps);
-	while (token)
-	{
+// fremoticon.cpp:619
+void FrEmoticon::ParseAnimFrame(const std::string& Frames, std::vector<int>& Vector) {
+	char Seps[2] = " ";
+	char* token = strtok((char*)Frames.c_str(), Seps);
+
+	while (token) {
 		Vector.push_back(atoi(token));
 		token = strtok(0, Seps);
 	}
 }
 
-bool FrEmoticon::LoadXml(const char* FileName)
-{
+// fremoticon.cpp:632
+bool FrEmoticon::LoadXml(const char* FileName) {
 	TiXmlDocument Xml;
-	if (m_Emoticons.size())
+	if (m_Emoticons.size() != 0)
 		return true;
+
 	if (!Xml.LoadFileEx(FileName))
 		return false;
-	TiXmlNode* Root = Xml.FirstChild("emoticon");
-	if (!Root)
+
+	TiXmlNode* Node = Xml.FirstChild("emoticon");
+
+	if (Node == 0)
 		return false;
-	Root->ToElement()->Attribute("fps", &m_Fps);
-	TiXmlNode* DefNode = Root->FirstChild("def");
-	while (DefNode)
-	{
-		TiXmlElement* Def = DefNode->ToElement();
+
+	Node->ToElement()->Attribute("fps", &m_Fps);
+
+	TiXmlNode* DefNode = Node->FirstChild("def");
+
+	while (DefNode) {
+		TiXmlElement* Elem = DefNode->ToElement();
+
 		sEmoticon* Emoticon = new sEmoticon;
-		Emoticon->Name = Def->Attribute("name");
-		Emoticon->Alias[0] = Def->Attribute("alias");
-		Emoticon->Alias[1] = Def->Attribute("alias2");
+		Emoticon->Name = Elem->Attribute("name");
+		Emoticon->Alias[0] = Elem->Attribute("alias");
+		Emoticon->Alias[1] = Elem->Attribute("alias2");
+
 		TiXmlNode* AnimNode = DefNode->FirstChild("anim");
-		if (AnimNode)
-		{
+
+		if (AnimNode) {
 			TiXmlElement* Anim = AnimNode->ToElement();
+
 			std::string Res = Anim->Attribute("res");
+
 			ParseAnimFrame(Anim->Attribute("frame"), Emoticon->Frames);
-			std::map<std::string, WOverlay*>::iterator i = m_ResMap.find(Res);
-			if (i == m_ResMap.end())
-			{
-				WOverlay* overlay = g_resrcmng->GetOverlay(Res.c_str(), 0);
-				m_ResMap[Res] = overlay;
-				Emoticon->Overlay = overlay;
-			}
-			else
+
+			RESMAP_itr i = m_ResMap.find(Res);
+
+			if (i == m_ResMap.end()) {
+				WOverlay* Overlay = g_resrcmng->GetOverlay(Res.c_str(), 0);
+
+				m_ResMap[Res] = Overlay;
+				Emoticon->Overlay = Overlay;
+			} else {
 				Emoticon->Overlay = m_ResMap[Res];
+			}
 		}
+
 		m_Emoticons.push_back(Emoticon);
+
 		DefNode = DefNode->NextSibling();
 	}
+
 	return true;
 }

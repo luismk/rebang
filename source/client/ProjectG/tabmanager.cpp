@@ -1,70 +1,70 @@
-#include "minatl.h"
-#include "tabmanager.h"
+// Original: d:\build\custom\temp\code\client\projectg\tabmanager.cpp
+#include "TabManager.h"
+
 #include <stdarg.h>
 
-CTabManager::CTabManager()
-{
+#include "FrWnd.h"
+
+// tabmanager.cpp:9
+CTabManager::CTabManager(void) {
 }
 
-CTabManager::~CTabManager()
-{
+// tabmanager.cpp:13
+CTabManager::~CTabManager(void) {
 }
 
-sTabElement* CTabManager::Find(int id)
-{
-	for (unsigned int i = 0; i < m_tabs.size(); ++i)
-	{
-		if (m_tabs[i].id == id)
-			return &m_tabs[i];
-	}
-	return NULL;
-}
+// tabmanager.cpp:17
+void __cdecl CTabManager::Add(int id, ...) {
+	sTabElement* pElement = Find(id);
 
-void CTabManager::Add(int id, ...)
-{
-	sTabElement* tab = Find(id);
-	if (!tab)
-	{
+	if (pElement == NULL) {
 		sTabElement element;
-		element.id = id;
+		element.m_id = id;
 		m_tabs.push_back(element);
-		tab = Find(id);
+		pElement = Find(id);
 	}
 
 	va_list args;
 	va_start(args, id);
-	FrWnd** window = va_arg(args, FrWnd**);
-	while (window)
-	{
-		tab->windows.push_back(window);
-		window = va_arg(args, FrWnd**);
+
+	FrWnd** ppWnd = va_arg(args, FrWnd**);
+	while (ppWnd != NULL) {
+		pElement->m_wnds.push_back(ppWnd);
+		ppWnd = va_arg(args, FrWnd**);
 	}
 	va_end(args);
 }
 
-void CTabManager::Open(int id)
-{
-	for (unsigned int i = 0; i < m_tabs.size(); ++i)
-	{
-		if (m_tabs[i].id != id)
-		{
-			for (unsigned int j = 0; j < m_tabs[i].windows.size(); ++j)
-			{
-				FrWnd** window = m_tabs[i].windows[j];
-				if (window && *window)
-					(*window)->SetVisible(false);
+// tabmanager.cpp:43
+sTabElement* CTabManager::Find(int id) {
+	for (unsigned int i = 0; i < m_tabs.size(); i++) {
+		if (m_tabs[i].m_id == id) {
+			return &m_tabs[i];
+		}
+	}
+	return NULL;
+}
+
+// tabmanager.cpp:54
+void CTabManager::Open(int id) {
+	for (unsigned int i = 0; i < m_tabs.size(); i++) {
+		if (m_tabs[i].m_id != id) {
+			for (unsigned int j = 0; j < m_tabs[i].m_wnds.size(); j++) {
+				FrWnd** ppWnd = m_tabs[i].m_wnds[j];
+				if (ppWnd != NULL && *ppWnd != NULL) {
+					(*ppWnd)->SetVisible(false);
+				}
 			}
 		}
 	}
 
-	sTabElement* tab = Find(id);
-	if (tab)
-	{
-		for (unsigned int i = 0; i < tab->windows.size(); ++i)
-		{
-			FrWnd** window = tab->windows[i];
-			if (window && *window)
-				(*window)->SetVisible(true);
+	sTabElement* pElement = Find(id);
+	if (pElement != NULL) {
+		for (unsigned int j = 0; j < pElement->m_wnds.size(); j++) {
+			FrWnd** ppWnd = pElement->m_wnds[j];
+			if (ppWnd != NULL && *ppWnd != NULL) {
+				(*ppWnd)->SetVisible(true);
+			}
 		}
 	}
 }

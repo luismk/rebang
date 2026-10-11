@@ -1,201 +1,225 @@
-#include "minatl.h"
-#include "socket.h"
-#include "exception.h"
+// Original: d:\build\custom\temp\code\client\projectg\socket.cpp
+#include "Socket.h"
 
+#include "Exception.h"
+
+int WSocket::ms_bInit;
 sockaddr_in WSocket::ms_addrEmpty;
-int WSocket::ms_bInit = FALSE;
 
-WSocket::WSocket(SOCKET sock, sockaddr_in addr)
-	: m_socket(INVALID_SOCKET), m_bConnected(FALSE)
+// socket.cpp:22
+WSocket::WSocket(unsigned int socket, sockaddr_in address)
+	: m_socket(INVALID_SOCKET), m_bConnected(0)
 {
-	if (!ms_bInit)
-		Startup();
+	if (!ms_bInit) Startup();
 
-	if (sock == INVALID_SOCKET)
-	{
-		CreateSocket();
+	if (socket == INVALID_SOCKET) {
+		m_socket = ::socket(AF_INET, SOCK_STREAM, 0);
+		m_bConnected = 0;
 	}
-	else
-	{
-		m_socket = sock;
-		m_addr = addr;
-		m_bConnected = TRUE;
+	else {
+		m_socket = socket;
+		m_address = address;
+		m_bConnected = 1;
 	}
 }
 
-WSocket::~WSocket()
+// socket.cpp:42
+WSocket::~WSocket(void)
 {
 	Close();
 }
 
-void WSocket::Startup()
+// socket.cpp:47
+void WSocket::Startup(void)
 {
-	ms_bInit = TRUE;
-
 	WSADATA wsaData;
-	if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0)
-		throw WSysException("! Socket initialization failed");
 
-	if (LOBYTE(wsaData.wVersion) != 1 || HIBYTE(wsaData.wVersion) != 1)
-	{
+	ms_bInit = 1;
+	if (WSAStartup(0x101, &wsaData) != 0) {
+		throw WSysException("! Socket initialization failed");
+	}
+	if (LOBYTE(wsaData.wVersion) != 1 || HIBYTE(wsaData.wVersion) != 1) {
 		WSACleanup();
 		throw WSysException("! Cannot find usable winsock version");
 	}
-
 	memset(&ms_addrEmpty, 0, sizeof(ms_addrEmpty));
 }
 
-void WSocket::Cleanup()
+// socket.cpp:73
+void WSocket::Cleanup(void)
 {
 	WSACleanup();
 }
 
-void WSocket::CreateSocket()
+// socket.cpp:82
+void WSocket::CreateSocket(void)
 {
 	m_socket = socket(AF_INET, SOCK_STREAM, 0);
-	m_bConnected = FALSE;
+	m_bConnected = 0;
 }
 
-void WSocket::Close()
+// socket.cpp:97
+void WSocket::Close(void)
 {
-	if (m_bConnected || m_socket != INVALID_SOCKET)
-	{
-		if (closesocket(m_socket) != 0)
-		{
-			int err = GetLastError();
-			LogOut(0, "! Socket close error %d\n", err);
-			if (err == WSAEWOULDBLOCK)
-			{
-				LINGER lingerOld;
-				LINGER linger;
-				linger.l_onoff = 1;
-				linger.l_linger = 0;
-				int len = sizeof(lingerOld);
-				getsockopt(m_socket, SOL_SOCKET, SO_LINGER, (char*)&lingerOld,
-					&len);
-				setsockopt(m_socket, SOL_SOCKET, SO_LINGER,
-					(const char*)&linger, sizeof(linger));
+	if (m_bConnected || m_socket != INVALID_SOCKET) {
+		if (closesocket(m_socket) != 0) {
+			int error = GetLastError();
+			if (error == WSAEWOULDBLOCK) {
+				linger lingerNew;
+				linger lingerOld;
+				int length;
+
+				lingerNew.l_onoff = 1;
+				lingerNew.l_linger = 0;
+				length = sizeof(lingerOld);
+				getsockopt(m_socket, SOL_SOCKET, SO_LINGER, (char*)&lingerOld, &length);
+				setsockopt(m_socket, SOL_SOCKET, SO_LINGER, (char*)&lingerNew, sizeof(lingerNew));
 				closesocket(m_socket);
-				setsockopt(m_socket, SOL_SOCKET, SO_LINGER,
-					(const char*)&lingerOld, sizeof(lingerOld));
-				m_bConnected = FALSE;
+				setsockopt(m_socket, SOL_SOCKET, SO_LINGER, (char*)&lingerOld, sizeof(lingerOld));
+				m_bConnected = 0;
 				m_socket = INVALID_SOCKET;
 			}
 		}
 	}
+	m_bConnected = 0;
 	m_socket = INVALID_SOCKET;
-	m_bConnected = FALSE;
 }
 
+// socket.cpp:145
 int WSocket::Poll(int timeout)
 {
-	timeval tv = { timeout / 1000, (timeout % 1000) * 1000 };
+	timeval time;
+	fd_set readSet;
+	fd_set exceptSet;
+	fd_set writeSet;
 
-	fd_set writefds;
-	fd_set exceptfds;
-	fd_set readfds;
-	FD_ZERO(&readfds);
-	FD_ZERO(&writefds);
-	FD_ZERO(&exceptfds);
-	FD_SET(m_socket, &readfds);
+	time.tv_sec = timeout / 1000;
+	time.tv_usec = timeout % 1000 * 1000;
+	readSet.fd_count = 1;
+	writeSet.fd_count = 0;
+	exceptSet.fd_count = 0;
+	readSet.fd_array[0] = m_socket;
 
-	return select(m_socket + 1, &readfds, &writefds, &exceptfds, &tv) != 0;
+	int result = select(m_socket + 1, &readSet, &writeSet, &exceptSet, &time);
+
+	return result != 0;
 }
 
+// socket.cpp:160
 std::string& WSocket::GetAddressString(std::string& str)
 {
-	return GetAddressString(str, GetPeerAddress());
+	return str;
 }
 
-void WSocket::Listen()
+// socket.cpp:166
+void WSocket::Listen(void)
 {
-	if (listen(m_socket, 5) != 0)
+	if (listen(m_socket, 5) != 0) {
 		throw WSysException("! Socket listen error");
-	m_bConnected = TRUE;
-}
-
-WSocket* WSocket::Accept()
-{
-	sockaddr addr;
-	int addrlen = sizeof(addr);
-	if (accept(m_socket, &addr, &addrlen) == INVALID_SOCKET)
-	{
-		std::string msg;
 	}
-	return NULL;
+	m_bConnected = 1;
 }
 
-int WSocket::Accept(WSocket& sock, sockaddr* addr, int* addrlen)
+// socket.cpp:177
+WSocket* WSocket::Accept(void)
 {
-	sockaddr_in sa;
-	int len = sizeof(sa);
-	SOCKET s = accept(m_socket, (sockaddr*)&sa, &len);
-	if (s != INVALID_SOCKET)
-	{
-		sock.m_socket = s;
-		sock.m_addr = sa;
-		sock.m_bConnected = TRUE;
-		m_bConnected = TRUE;
-		if (addr)
-			*(sockaddr_in*)addr = sa;
-		if (addrlen)
-			*addrlen = len;
-		return TRUE;
+	sockaddr_in address;
+	int length = sizeof(address);
+
+	unsigned int socket = accept(m_socket, (sockaddr*)&address, &length);
+
+	if (socket == INVALID_SOCKET) {
+		std::string message;
 	}
-
-	std::string msg;
-	return FALSE;
+	return 0;
 }
 
-void WSocket::Bind(unsigned long addr, unsigned short port)
+// socket.cpp:203
+int WSocket::Accept(WSocket& socket, sockaddr* address, int* length)
 {
-	m_addr.sin_family = AF_INET;
-	m_addr.sin_addr.s_addr = addr;
-	m_addr.sin_port = port;
-	if (bind(m_socket, (sockaddr*)&m_addr, sizeof(m_addr)) != 0)
+	sockaddr_in addressIn;
+	int lengthIn = sizeof(addressIn);
+
+	unsigned int newSocket = accept(m_socket, (sockaddr*)&addressIn, &lengthIn);
+	if (newSocket != INVALID_SOCKET) {
+		socket.m_socket = newSocket;
+		socket.m_address = addressIn;
+		socket.m_bConnected = 1;
+		m_bConnected = 1;
+		if (address) *(sockaddr_in*)address = addressIn;
+		if (length) *length = lengthIn;
+		return 1;
+	}
+	else {
+		std::string message;
+	}
+	return 0;
+}
+
+// socket.cpp:233
+void WSocket::Bind(unsigned long address, unsigned short port)
+{
+	m_address.sin_family = AF_INET;
+	m_address.sin_addr.s_addr = address;
+	m_address.sin_port = port;
+	if (bind(m_socket, (sockaddr*)&m_address, sizeof(m_address)) != 0) {
 		throw WSysException("! Socket bind error");
+	}
 }
 
+// socket.cpp:243
 std::string& WSocket::GetInfo(std::string& str)
 {
-	std::string tmp;
+	std::string info;
+
 	return str;
 }
 
-std::string& WSocket::GetAddressString(std::string& str, unsigned long addr)
+// socket.cpp:251
+// The body between the braces (lines 252-257) was compiled out in the
+// original: only the return of the caller's string remains.
+std::string& WSocket::GetAddressString(std::string& str, unsigned long address)
 {
 	return str;
 }
 
-int WSocket::Connect(unsigned long addr, unsigned short port)
+// socket.cpp:261
+int WSocket::Connect(unsigned long address, unsigned short port)
 {
-	m_addr.sin_family = AF_INET;
-	m_addr.sin_addr.s_addr = addr;
-	m_addr.sin_port = port;
-	if (connect(m_socket, (sockaddr*)&m_addr, sizeof(m_addr)) == 0)
-		m_bConnected = TRUE;
-	else
+	m_address.sin_family = AF_INET;
+	m_address.sin_addr.s_addr = address;
+	m_address.sin_port = port;
+
+	int result = connect(m_socket, (sockaddr*)&m_address, sizeof(m_address));
+	if (result == 0) {
+		m_bConnected = 1;
+	}
+	else {
 		GetLastError();
+	}
 	return m_bConnected;
 }
 
-int WSocket::Read(unsigned char* buf, int len)
+// socket.cpp:279
+int WSocket::Read(unsigned char* buffer, int length)
 {
-	return recv(m_socket, (char*)buf, len, 0);
+	return recv(m_socket, (char*)buffer, length, 0);
 }
 
-int WSocket::Write(const unsigned char* buf, int len)
+// socket.cpp:284
+int WSocket::Write(const unsigned char* buffer, int length)
 {
-	return send(m_socket, (const char*)buf, len, 0);
+	return send(m_socket, (const char*)buffer, length, 0);
 }
 
-int WSocket::SetSocketOpt(int level, int optname, const char* optval,
-	int optlen)
+// socket.cpp:289
+int WSocket::SetSocketOpt(int level, int name, const char* value, int length)
 {
-	return setsockopt(m_socket, level, optname, optval, optlen);
+	return setsockopt(m_socket, level, name, value, length);
 }
 
-int WSocket::GetSocketOpt(int level, int optname, char* optval, int* optlen)
+// socket.cpp:294
+int WSocket::GetSocketOpt(int level, int name, char* value, int* length)
 {
-	return getsockopt(m_socket, level, optname, optval, optlen);
+	return getsockopt(m_socket, level, name, value, length);
 }

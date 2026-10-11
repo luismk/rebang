@@ -1,52 +1,58 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\wangreal\include\bitmap.h
+#ifndef PG_CLIENT_WANGREAL_INCLUDE_BITMAP_H
+#define PG_CLIENT_WANGREAL_INCLUDE_BITMAP_H
 
 #include <windows.h>
 
-class Bitmap
-{
+#include "..\..\defines.h"
+
+// A DIB in system memory (PDB layout, size 0x14). The bodies live in
+// bitmap.cpp (Wangreal) except the inline accessors.
+class Bitmap {
+	LAYOUT_CHECK_FRIEND;
 public:
-	Bitmap();
-	Bitmap(int w, int h, int bpp);
-	virtual ~Bitmap();
-	Bitmap& operator=(Bitmap& bitmap);
+	Bitmap(void);
+	Bitmap(int width, int height, int bpp);
+	virtual ~Bitmap(void);
+	virtual void Update(void) {}                                                     // bitmap.h:64
 
-	void Create(int w, int h, int bpp);
-	void SetBITMAPINFO(BITMAPINFO* _bi, BYTE* _vram);
-	void SetPalette(BYTE* pal);
-	void SetGrayPalette(BYTE* pal = 0);
-	virtual void Update() { }
-	void GetPixel(int x, int y, BYTE& r, BYTE& g, BYTE& b, BYTE& a) const;
-	void GetPixel(int x, int y, BYTE& r, BYTE& g, BYTE& b) const;
-	void SetPixel(int x, int y, BYTE r, BYTE g, BYTE b, BYTE a);
-	BYTE GetAlpha(int x, int y);
-	void SetAlpha(int x, int y, BYTE a);
-	BYTE* GetVram(int y) { return vram + pitch * y; }
+	Bitmap& operator=(Bitmap& src);
+	void Create(int width, int height, int bpp);
+	void SetBITMAPINFO(tagBITMAPINFO* info, unsigned char* bits);
+	void SetPalette(unsigned char* palette);
+	void SetGrayPalette(unsigned char* palette);
+	void GetPixel(int x, int y, unsigned char& r, unsigned char& g, unsigned char& b, unsigned char& a) const;
+	void GetPixel(int x, int y, unsigned char& r, unsigned char& g, unsigned char& b) const;
+	void SetPixel(int x, int y, unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+	unsigned char GetAlpha(int x, int y);
+	void SetAlpha(int x, int y, unsigned char a);
+	unsigned char* GetVram(int y) { return vram + pitch * y; }                       // bitmap.h:72
 	void Save(const char* filename) const;
-	void PaintStretch(HWND hwnd, RECT* rect);
-	void Paint(HWND hwnd, POINT* p = 0);
-	unsigned Width() const { return bi->bmiHeader.biWidth; }
-	unsigned Height() const { return bi->bmiHeader.biHeight; }
-	unsigned BitsPerPixel() const { return bi->bmiHeader.biBitCount; }
-	unsigned Size() const { return pitch * bi->bmiHeader.biHeight; }
+	void PaintStretch(HWND__* hwnd, tagRECT* rect);
+	void Paint(HWND__* hwnd, tagPOINT* pt);
+	unsigned int Width(void) const { return bi->bmiHeader.biWidth; }                 // bitmap.h:80
+	unsigned int Height(void) const { return bi->bmiHeader.biHeight; }               // bitmap.h:81
+	unsigned int BitsPerPixel(void) const { return bi->bmiHeader.biBitCount; }       // bitmap.h:82
+	unsigned int Size(void) const { return bi->bmiHeader.biHeight * pitch; }         // bitmap.h:83
 
-	BITMAPINFO* bi;
-	int pitch;
-	BYTE* vram;
+	tagBITMAPINFO* bi;       // 0x4
+	int pitch;               // 0x8
+	unsigned char* vram;     // 0xc
 
 private:
-	BYTE* VMem(BITMAPINFO* bi)
-	{
-		unsigned size;
-		if (bi->bmiHeader.biBitCount > 8)
-			size = 0;
-		else
-		{
-			unsigned count = bi->bmiHeader.biClrUsed;
-			if (!count)
-				count = 256;
-			size = count * sizeof(RGBQUAD);
-		}
-		return reinterpret_cast<BYTE*>(bi) + sizeof(BITMAPINFOHEADER) + size;
+	unsigned char* VMem(tagBITMAPINFO* info) {                                        // bitmap.h:93
+		return (unsigned char*)info + sizeof(BITMAPINFOHEADER) + (info->bmiHeader.biBitCount > 8 ? 0 : (info->bmiHeader.biClrUsed ? info->bmiHeader.biClrUsed : 256) * sizeof(RGBQUAD));
 	}
-	bool m_lock;
+
+	bool m_lock;             // 0x10
 };
+
+CHECK_SIZE(Bitmap, 0x14);
+BEGIN_LAYOUT_CHECK(Bitmap)
+	CHECK_FIELD(Bitmap, bi, 0x4);
+	CHECK_FIELD(Bitmap, pitch, 0x8);
+	CHECK_FIELD(Bitmap, vram, 0xc);
+	CHECK_FIELD(Bitmap, m_lock, 0x10);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_WANGREAL_INCLUDE_BITMAP_H

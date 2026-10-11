@@ -1,214 +1,227 @@
-#include "minatl.h"
-#include "caddiewarningdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\caddiewarningdlg.cpp
+#include <string.h>
+
+#include "CaddieWarningDlg.h"
+#include "ObjectFactory.h"
+#include "SharedDoc.h"
+#include "Packet.h"
 #include "frarea.h"
-#include "fredit.h"
 #include "frbutton.h"
+#include "fredit.h"
 #include "frstatic.h"
+#include "commonutil.h"
+#include "../shared/ItemManager.h"
+#include "../shared/classdefine.h"
+#include <stdio.h>
 
-IMPLEMENT_OBJECT(FrCaddieWarningDlg, FrForm)
+// caddiewarningdlg.cpp:19 (run-time type and factory registration of FrCaddieWarningDlg)
+const WRTTI FrCaddieWarningDlg::m_RTTI("FrCaddieWarningDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrCaddieWarningDlg, FrForm)
-
-ON_FRESH_VI("portrait", FRCMD_INIT, FrCaddieWarningDlg::OnPortraitInit)
-ON_FRESH_VI("vacation", FRCMD_INIT, FrCaddieWarningDlg::OnVacationInit)
-ON_FRESH_VI("limit", FRCMD_INIT, FrCaddieWarningDlg::OnLimitInit)
-ON_FRESH_VI("name", FRCMD_INIT, FrCaddieWarningDlg::OnNameInit)
-ON_FRESH_VI("message", FRCMD_INIT, FrCaddieWarningDlg::OnMessageInit)
-ON_FRESH_VI("ok", FRCMD_INIT, FrCaddieWarningDlg::OnOkInit)
-ON_FRESH_VV("ok", FRCMD_LBUTTONUP, FrCaddieWarningDlg::OnOkBtnUp)
-ON_FRESH_VI("warning_button", FRCMD_INIT,
-	FrCaddieWarningDlg::OnWarningButtonInit)
-ON_FRESH_VI("warning_text", FRCMD_INIT, FrCaddieWarningDlg::OnWarningTextInit)
-
-END_FRESH_MSGMAP()
-
-FrCaddieWarningDlg::FrCaddieWarningDlg()
-{
-	memset(&m_caddieInfo, 0, sizeof(m_caddieInfo));
-
-	m_pPortrait = NULL;
-	m_pVacation = NULL;
-	m_pLimit = NULL;
-	m_pName = NULL;
-	m_pMessage = NULL;
-	m_pOk = NULL;
-	m_pWarningButton = NULL;
-	m_pWarningText = NULL;
+IObject* FrCaddieWarningDlgMakeInstance(void) {
+	return new FrCaddieWarningDlg;
 }
 
-void FrCaddieWarningDlg::SetCaddieInfo(const sCaddieInfo& info)
-{
+struct __sFrCaddieWarningDlg {
+	__sFrCaddieWarningDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrCaddieWarningDlgMakeInstance, "FrCaddieWarningDlg");
+	}
+};
+static __sFrCaddieWarningDlg s_registerFrCaddieWarningDlg;
+
+// caddiewarningdlg.cpp:21
+const sFRESH_MSGMAP* FrCaddieWarningDlg::GetMessageMap(void) const {
+	return &FrCaddieWarningDlg::_MsgMap;
+}
+
+sFRESH_MSGMAP FrCaddieWarningDlg::_MsgMap = { &FrForm::_MsgMap, &FrCaddieWarningDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrCaddieWarningDlg::_MsgEntries[] = {
+	// caddiewarningdlg.cpp:23
+	{ "portrait", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnPortraitInit },
+	// caddiewarningdlg.cpp:24
+	{ "vacation", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnVacationInit },
+	// caddiewarningdlg.cpp:25
+	{ "limit", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnLimitInit },
+	// caddiewarningdlg.cpp:26
+	{ "name", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnNameInit },
+	// caddiewarningdlg.cpp:27
+	{ "message", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnMessageInit },
+	// caddiewarningdlg.cpp:28
+	{ "ok", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnOkInit },
+	// caddiewarningdlg.cpp:29
+	{ "ok", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrCaddieWarningDlg::OnOkBtnUp },
+	// caddiewarningdlg.cpp:30
+	{ "warning_button", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnWarningButtonInit },
+	// caddiewarningdlg.cpp:31
+	{ "warning_text", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrCaddieWarningDlg::OnWarningTextInit },
+
+	// caddiewarningdlg.cpp:33
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// caddiewarningdlg.cpp:36
+FrCaddieWarningDlg::FrCaddieWarningDlg(void) {
+	memset(&m_caddieInfo, 0, sizeof(sCaddieInfo));
+
+	m_pPortrait = 0;
+	m_pVacation = 0;
+	m_pLimit = 0;
+	m_pName = 0;
+	m_pMessage = 0;
+	m_pOk = 0;
+	m_pWarningButton = 0;
+	m_pWarningText = 0;
+}
+
+// caddiewarningdlg.cpp:59
+void FrCaddieWarningDlg::SetCaddieInfo(const sCaddieInfo& info) {
+
+
 	m_caddieInfo = info;
-	m_caddieInfo.byCheckCaddieWarning = 1;
+	m_caddieInfo.contract = 1;
 }
 
-void FrCaddieWarningDlg::OnPortraitInit(int param)
-{
+// caddiewarningdlg.cpp:67
+void FrCaddieWarningDlg::OnPortraitInit(intptr_t param) {
 	m_pPortrait = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrCaddieWarningDlg::OnVacationInit(int param)
-{
+// caddiewarningdlg.cpp:72
+void FrCaddieWarningDlg::OnVacationInit(intptr_t param) {
 	m_pVacation = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrCaddieWarningDlg::OnLimitInit(int param)
-{
+// caddiewarningdlg.cpp:77
+void FrCaddieWarningDlg::OnLimitInit(intptr_t param) {
 	m_pLimit = DYNAMIC_CAST(FrArea, param);
 
-	if (m_pLimit)
+	if (m_pLimit) {
 		m_pLimit->SetVisible(false);
+	}
 }
 
-void FrCaddieWarningDlg::OnNameInit(int param)
-{
+// caddiewarningdlg.cpp:85
+void FrCaddieWarningDlg::OnNameInit(intptr_t param) {
 	m_pName = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrCaddieWarningDlg::OnMessageInit(int param)
-{
+// caddiewarningdlg.cpp:90
+void FrCaddieWarningDlg::OnMessageInit(intptr_t param) {
 	m_pMessage = DYNAMIC_CAST(FrEdit, param);
 }
 
-void FrCaddieWarningDlg::OnOkInit(int param)
-{
+// caddiewarningdlg.cpp:95
+void FrCaddieWarningDlg::OnOkInit(intptr_t param) {
 	m_pOk = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrCaddieWarningDlg::OnWarningButtonInit(int param)
-{
+// caddiewarningdlg.cpp:100
+void FrCaddieWarningDlg::OnWarningButtonInit(intptr_t param) {
 	m_pWarningButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrCaddieWarningDlg::OnWarningTextInit(int param)
-{
+// caddiewarningdlg.cpp:105
+void FrCaddieWarningDlg::OnWarningTextInit(intptr_t param) {
 	m_pWarningText = DYNAMIC_CAST(FrStatic, param);
 }
 
-void FrCaddieWarningDlg::OnOkBtnUp()
-{
-	if (m_pOk)
+// caddiewarningdlg.cpp:119
+void FrCaddieWarningDlg::OnOkBtnUp(void) {
+	if (m_pOk) {
 		m_pOk->Enable(false);
+	}
 
-	IFF_STRUCT::sCaddie* pCaddie = ItemManager()->FindCaddie(m_caddieInfo.tid);
+	IFF_STRUCT::sCaddie* pCaddie = ItemManager()->FindCaddie(m_caddieInfo.typeId);
 
-	if (pCaddie == NULL)
-	{
+	if (!pCaddie) {
+
 		Close(FrOK, true);
 		return;
 	}
 
-	if (m_pWarningButton->GetStatus() == FrButton::PRESSED)
-	{
-		Doc()->m_caddieMap[m_caddieInfo.guid].byCheckCaddieWarning = 1;
-		m_caddieInfo.byCheckCaddieWarning = 1;
-	}
-	else
-	{
-		Doc()->m_caddieMap[m_caddieInfo.guid].byCheckCaddieWarning = 0;
-		m_caddieInfo.byCheckCaddieWarning = 0;
+	if (m_pWarningButton->GetStatus() == FrButton::PRESSED) {
+
+		WSingleton<CSharedDoc>::Instance()->m_caddieMap[(unsigned long)m_caddieInfo.id].contract = 1;
+		m_caddieInfo.contract = 1;
+
+	} else {
+
+		WSingleton<CSharedDoc>::Instance()->m_caddieMap[(unsigned long)m_caddieInfo.id].contract = 0;
+		m_caddieInfo.contract = 0;
 	}
 
-	WSendPacket send((enumClientPacket)0x6b);
+	WSendPacket packet((enumClientPacket)0x6B);
 
-	send.Encode4(m_caddieInfo.guid);
-	send.Encode1(m_caddieInfo.byCheckCaddieWarning);
-	send.Send(TO_GAME);
+	packet.Encode4(m_caddieInfo.id);
+	packet.Encode1(m_caddieInfo.contract);
+	packet.Send(SEND_TO_DEFAULT);
 
 	Close(FrOK, true);
 }
 
-bool FrCaddieWarningDlg::OnInit()
-{
-	if (m_caddieInfo.tid == 0)
+// caddiewarningdlg.cpp:161
+bool FrCaddieWarningDlg::OnInit(void) {
+	if (m_caddieInfo.typeId == 0) {
 		return false;
+	}
 
-	IFF_STRUCT::sCaddie* pCaddie = ItemManager()->FindCaddie(m_caddieInfo.tid);
-	bool bInfo = false;
+	IFF_STRUCT::sCaddie* pCaddie = ItemManager()->FindCaddie(m_caddieInfo.typeId);
+	bool shown = false;
 
-	if (m_pPortrait)
-	{
-		if (pCaddie)
-		{
-			bInfo = true;
-			m_pPortrait->SetBgImg(pCaddie->c.Icon);
-		}
-		else
-		{
+	if (m_pPortrait) {
+		if (pCaddie) {
+			m_pPortrait->SetBgImg(pCaddie->m_icon);
+
+			if (m_pName) {
+				char text[256] = { 0 };
+
+				sprintf(text, "\xC0\xCC  \xB8\xA7: %s", pCaddie->m_name);
+
+				unsigned char level = m_caddieInfo.level;
+				if (level < 3 && (pCaddie->flags & 0xE0) != 0xA0) {
+					unsigned long levelExp = CSharedDoc::Instance()->m_caddieLevelExp[level].m_exp;
+					unsigned long exp = m_caddieInfo.experience;
+
+					strcat(text, MakeStr("\n\xB7\xB9  \xBA\xA7: %d / %d ( %d / %d )", level + 1, 3, exp, levelExp));
+				}
+
+				if ((m_caddieInfo.flags & 2) && pCaddie->fee > 0) {
+					// "\nOn vacation"
+					strcat(text, "\n\xC8\xDE\xB0\xA1\xC1\xDF");
+				}
+
+				m_pName->AddText(text, false, true);
+
+				SetMessage("\\cT\\c\\c0xffff0000\\c\xC7\xF6\xC0\xE7 \xC4\xB3\xB5\xF0\xB0\xA1 \xC8\xDE\xB0\xA1\xC1\xDF\xC0\xD4\xB4\xCF\xB4\xD9.\n\xB0\xD4\xC0\xD3 \xBD\xC3\xC0\xDB \xC0\xFC\xBF\xA1 \xC0\xE7\xB0\xED\xBF\xEB\xC7\xCF\xBD\xC3\xB4\xC2 \xB0\xCD \xC0\xD8\xC1\xF6 \xB8\xB6\xBC\xBC\xBF\xE4!\\cN\\c\\c0xff000000\\c\n\n(\xBE\xCB\xB8\xB2\xC0\xBB \xB9\xDE\xC1\xF6 \xBE\xCA\xC0\xB8\xBD\xC3\xB7\xC1\xB8\xE9 \xBF\xF9\xB1\xDE \xB3\xAF\xC2\xA5 \xBE\xCB\xB8\xB2 \xB1\xE2\xB4\xC9 \xC3\xBC\xC5\xA9\xB8\xA6 \xB2\xF6 \xC8\xC4 \xC8\xAE\xC0\xCE \xB9\xF6\xC6\xB0\xC0\xBB \xB4\xAD\xB7\xAF\xC1\xD6\xBC\xBC\xBF\xE4)", false);
+				shown = true;
+			}
+		} else {
 			m_pPortrait->SetBgImg("hide");
 		}
 	}
 
-	if (bInfo && m_pName)
-	{
-		char szText[256] = {
-			0,
-		};
-
-		sprintf(szText, "\xc0\xcc  \xb8\xa7: %s", pCaddie->c.Name);
-		unsigned char level;
-		if ((level = m_caddieInfo.Level) < 3 && pCaddie->c.InStock != 5)
-		{
-			unsigned long exp = Doc()->m_bonusPangTable[level].exp;
-			unsigned long curExp = m_caddieInfo.Exp;
-
-			strcat(szText,
-				MakeStr("\x0a\xb7\xb9  \xba\xa7: %d / %d ( %d / %d )",
-					level + 1, 3, curExp, exp));
+	if (!shown) {
+		if (m_pName) {
+			// "Name: unknown\n\nLevel: unknown"
+			m_pName->AddText("\xC0\xCC\xB8\xA7: \xBA\xD2\xB8\xED\n\n\xB7\xB9\xBA\xA7: \xBA\xD2\xB8\xED", false, true);
 		}
-
-		if (m_caddieInfo.Rent_flag && pCaddie->MonthlyFee > 0)
-		{
-			strcat(szText, "\x0a\xc8\xde\xb0\xa1\xc1\xdf");
-		}
-
-		m_pName->AddText(szText, false, true);
-
-		SetMessage(
-			"\x5c"
-			"cT\x5c"
-			"c\x5c"
-			"c0xffff0000\x5c"
-			"c\xc7\xf6\xc0\xe7 \xc4\xb3\xb5\xf0\xb0\xa1 \xc8\xde\xb0\xa1\xc1\xdf\xc0\xd4\xb4\xcf\xb4\xd9.\x0a\xb0\xd4\xc0\xd3 \xbd\xc3\xc0\xdb \xc0\xfc\xbf\xa1 \xc0\xe7\xb0\xed\xbf\xeb\xc7\xcf\xbd\xc3\xb4\xc2 \xb0\xcd \xc0\xd8\xc1\xf6 \xb8\xb6\xbc\xbc\xbf\xe4!\x5c"
-			"cN\x5c"
-			"c\x5c"
-			"c0xff000000\x5c"
-			"c\x0a\x0a(\xbe\xcb\xb8\xb2\xc0\xbb \xb9\xde\xc1\xf6 \xbe\xca\xc0\xb8\xbd\xc3\xb7\xc1\xb8\xe9 \xbf\xf9\xb1\xde \xb3\xaf\xc2\xa5 \xbe\xcb\xb8\xb2 \xb1\xe2\xb4\xc9 \xc3\xbc\xc5\xa9\xb8\xa6 \xb2\xf6 \xc8\xc4 \xc8\xae\xc0\xce \xb9\xf6\xc6\xb0\xc0\xbb \xb4\xad\xb7\xaf\xc1\xd6\xbc\xbc\xbf\xe4)",
-			false);
-	}
-	else
-	{
-		if (m_pName)
-			m_pName->AddText(
-				"\xc0\xcc\xb8\xa7: \xba\xd2\xb8\xed\x0a\x0a\xb7\xb9\xba\xa7: \xba\xd2\xb8\xed",
-				false, true);
-
-		SetMessage(
-			"\xba\xa3\xc0\xcf\xbf\xa1 \xbd\xce\xc0\xce \xc1\xa4\xc3\xbc\xba\xd2\xb8\xed\xc0\xc7 \xc1\xb8\xc0\xe7",
-			false);
+		SetMessage("\xBA\xA3\xC0\xCF\xBF\xA1 \xBD\xCE\xC0\xCE \xC1\xA4\xC3\xBC\xBA\xD2\xB8\xED\xC0\xC7 \xC1\xB8\xC0\xE7", false);
 	}
 
-	if (pCaddie)
-	{
-		if (m_pWarningButton)
-		{
-			if (m_caddieInfo.byCheckCaddieWarning == 1)
-			{
+	if (pCaddie) {
+		if (m_pWarningButton) {
+			if (m_caddieInfo.contract == 1)
 				m_pWarningButton->SetStatus(FrButton::PRESSED);
-			}
 			else
-			{
 				m_pWarningButton->SetStatus(FrButton::NORMAL);
-			}
 		}
 
-		if (Doc()->m_myInfo.stat.Level < pCaddie->c.Level)
-		{
-			if (m_pLimit)
+		if (CSharedDoc::Instance()->m_myLevel < (pCaddie->m_level & 0x7F)) {
+			if (m_pLimit) {
 				m_pLimit->SetVisible(true);
-
-			SetDesc(
-				"\xb7\xb9\xba\xa7 \xc1\xa6\xc7\xd1\xc0\xb8\xb7\xce \xbb\xe7\xbf\xeb\xc7\xd2 \xbc\xf6 \xbe\xf8\xb4\xc2 \xc4\xb3\xb5\xf0\xc0\xd4\xb4\xcf\xb4\xd9.");
+			}
+			// "A caddie you cannot use because of the level limit."
+			SetDesc("\xB7\xB9\xBA\xA7 \xC1\xA6\xC7\xD1\xC0\xB8\xB7\xCE \xBB\xE7\xBF\xEB\xC7\xD2 \xBC\xF6 \xBE\xF8\xB4\xC2 \xC4\xB3\xB5\xF0\xC0\xD4\xB4\xCF\xB4\xD9.");
 		}
 	}
 

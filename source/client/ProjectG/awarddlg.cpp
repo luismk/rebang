@@ -1,858 +1,744 @@
-#include "minatl.h"
-#include "awarddlg.h"
-#include "projectg.h"
-#include "netresourcemanager.h"
-#include "intrusion.h"
-#include "../../shared/localize.h"
+// Original: d:\build\custom\temp\code\client\projectg\awarddlg.cpp
+#include "AwardDlg.h"
+#include "ObjectFactory.h"
+#include "frarea.h"
+#include "frstatic.h"
+#include "fresh.h"
+#include "frwndmanager.h"
+#include "frgraphicinterface.h"
+#include "bitmap.h"
+#include "SharedDoc.h"
+#include "NetResourceManager.h"
+#include "ProjectG.h"
+#include "Intrusion.h"
 
-extern Fresh* g_pFresh;
+// awarddlg.cpp:17 (run-time type and factory registration of FrAwardDlg)
+const WRTTI FrAwardDlg::m_RTTI("FrAwardDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrAwardDlg, FrForm)
+IObject* FrAwardDlgMakeInstance(void) {
+	return new FrAwardDlg;
+}
 
-BEGIN_FRESH_MSGMAP(FrAwardDlg, FrForm)
+struct __sFrAwardDlg {
+	__sFrAwardDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrAwardDlgMakeInstance, "FrAwardDlg");
+	}
+};
+static __sFrAwardDlg s_registerFrAwardDlg;
 
-ON_FRESH_VI("sgold", FRCMD_INIT, FrAwardDlg::OnGoldStaticInit)
-ON_FRESH_VI("ssilver", FRCMD_INIT, FrAwardDlg::OnSilverStaticInit)
-ON_FRESH_VI("sbronze", FRCMD_INIT, FrAwardDlg::OnBronzeStaticInit)
-ON_FRESH_VI("winner1", FRCMD_INIT, FrAwardDlg::OnWinner1Init)
-ON_FRESH_VI("winner1", FRCMD_OWNERDRAW, FrAwardDlg::OnWinner1OwnerDraw)
-ON_FRESH_VI("winner2", FRCMD_INIT, FrAwardDlg::OnWinner2Init)
-ON_FRESH_VI("winner2", FRCMD_OWNERDRAW, FrAwardDlg::OnWinner2OwnerDraw)
-ON_FRESH_VI("winner3", FRCMD_INIT, FrAwardDlg::OnWinner3Init)
-ON_FRESH_VI("winner3", FRCMD_OWNERDRAW, FrAwardDlg::OnWinner3OwnerDraw)
-ON_FRESH_VI("winner4", FRCMD_INIT, FrAwardDlg::OnWinner4Init)
-ON_FRESH_VI("winner4", FRCMD_OWNERDRAW, FrAwardDlg::OnWinner4OwnerDraw)
-ON_FRESH_VI("winner5", FRCMD_INIT, FrAwardDlg::OnWinner5Init)
-ON_FRESH_VI("winner5", FRCMD_OWNERDRAW, FrAwardDlg::OnWinner5OwnerDraw)
-ON_FRESH_VI("winner6", FRCMD_INIT, FrAwardDlg::OnWinner6Init)
-ON_FRESH_VI("winner6", FRCMD_OWNERDRAW, FrAwardDlg::OnWinner6OwnerDraw)
-ON_FRESH_VI("luck", FRCMD_INIT, FrAwardDlg::OnLuckInit)
-ON_FRESH_VI("luck", FRCMD_OWNERDRAW, FrAwardDlg::OnLuckOwnerDraw)
-ON_FRESH_VI("speeder", FRCMD_INIT, FrAwardDlg::OnSpeederInit)
-ON_FRESH_VI("speeder", FRCMD_OWNERDRAW, FrAwardDlg::OnSpeederOwnerDraw)
-ON_FRESH_VI("runner", FRCMD_INIT, FrAwardDlg::OnRunnerInit)
-ON_FRESH_VI("runner", FRCMD_OWNERDRAW, FrAwardDlg::OnRunnerOwnerDraw)
-ON_FRESH_VI("chipin", FRCMD_INIT, FrAwardDlg::OnChipInInit)
-ON_FRESH_VI("chipin", FRCMD_OWNERDRAW, FrAwardDlg::OnChipInOwnerDraw)
-ON_FRESH_VI("longputt", FRCMD_INIT, FrAwardDlg::OnLongPuttInit)
-ON_FRESH_VI("longputt", FRCMD_OWNERDRAW, FrAwardDlg::OnLongPuttOwnerDraw)
-ON_FRESH_VI("recovery", FRCMD_INIT, FrAwardDlg::OnRecoveryInit)
-ON_FRESH_VI("recovery", FRCMD_OWNERDRAW, FrAwardDlg::OnRecoveryOwnerDraw)
+// awarddlg.cpp:19
+const sFRESH_MSGMAP* FrAwardDlg::GetMessageMap(void) const {
+	return &FrAwardDlg::_MsgMap;
+}
 
-END_FRESH_MSGMAP()
+// Define the message entries and message map for FrAwardDlg so the linker
+// can resolve the static symbols referenced by callers. Follow the pattern
+// used by other dialogs: an array of sFRESH_ENTRY terminated with a zero
+// entry and a sFRESH_MSGMAP pointing to the parent form's map and entries.
+// These are minimal stubs; actual message bindings should be filled in
+// later if runtime handlers are needed.
+// Note: FrForm::_MsgMap is defined elsewhere.
 
-void FrAwardDlg::OnGoldStaticInit(int param)
-{
-	FrStatic* text = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-	if (text)
-	{
+sFRESH_ENTRY FrAwardDlg::_MsgEntries[] = {
+	// Minimal terminator entry: name=null, command=FRCMD_NONE, handler type=FrFuncNone
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+sFRESH_MSGMAP FrAwardDlg::_MsgMap = { &FrForm::_MsgMap, &FrAwardDlg::_MsgEntries[0] };
+
+// awarddlg.cpp:55
+void FrAwardDlg::OnGoldStaticInit(int param) {
+	FrStatic* pStatic = DYNAMIC_CAST(FrStatic, param);
+
+	if (pStatic) {
 		int count = 0;
-		for (int i = 0; i < 6; ++i)
-		{
-			if (Doc()->m_awardItem[6 + i].uid != 0xffffffff)
-			{
-				if (GetMedalIndex(Doc()->m_awardItem[6 + i].uid) == 0)
-					++count;
+
+		for (int i = 0; i < 6; i++) {
+			unsigned long uid = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[i].m_uid;
+
+			if (uid != 0xFFFFFFFF) {
+				if (GetMedalIndex(uid) == 0)
+					count++;
 			}
 		}
+
 		if (count == 0)
-			text->SetVisible(false);
-		if (Doc()->m_golfGame.gameType == 6)
-			text->SetCaption(
-				"\261\346\265\345\261\342\277\251\265\265 1\300\247 :");
-		else if (Doc()->m_golfGame.gameType == 10)
-			text->SetCaption("1\300\247 :");
+			pStatic->SetVisible(false);
+
+		if (WSingleton<CSharedDoc>::Instance()->m_roomType == 6) {
+			pStatic->SetCaption("\xB1\xE6\xB5\xE5\xB1\xE2\xBF\xA9\xB5\xB5 1\xC0\xA7 :");
+		} else if (WSingleton<CSharedDoc>::Instance()->m_roomType == 10) {
+			pStatic->SetCaption("1\xC0\xA7 :");
+		}
 	}
 }
 
-void FrAwardDlg::OnSilverStaticInit(int param)
-{
-	FrStatic* text = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-	if (text)
-	{
+// awarddlg.cpp:84
+void FrAwardDlg::OnSilverStaticInit(int param) {
+	FrStatic* pStatic = DYNAMIC_CAST(FrStatic, param);
+
+	if (pStatic) {
 		int count = 0;
-		for (int i = 0; i < 6; ++i)
-		{
-			if (Doc()->m_awardItem[6 + i].uid != 0xffffffff)
-			{
-				int medal = GetMedalIndex(Doc()->m_awardItem[6 + i].uid);
+
+		for (int i = 0; i < 6; i++) {
+			unsigned long uid = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[i].m_uid;
+
+			if (uid != 0xFFFFFFFF) {
+				int medal = GetMedalIndex(uid);
+
 				if (medal == 0)
-					++count;
+					count++;
 				else if (medal == 1)
 					count += 10;
 			}
 		}
-		if (count > 10)
-		{
+
+		if (count > 10) {
 			WRect rect;
-			text->GetClientRect(rect);
-			rect.y += (count % 10) * 25.0f;
-			text->SetClientRect(rect);
+			pStatic->GetClientRect(rect);
+
+			int line = count % 10;
+			rect.y += line * 25.0f;
+			pStatic->SetClientRect(rect);
+		} else {
+			pStatic->SetVisible(false);
 		}
-		else
-			text->SetVisible(false);
-		if (Doc()->m_golfGame.gameType == 6)
-			text->SetCaption(
-				"\261\346\265\345\261\342\277\251\265\265 2\300\247 :");
-		else if (Doc()->m_golfGame.gameType == 10)
-			text->SetCaption("2\300\247 :");
+
+		if (WSingleton<CSharedDoc>::Instance()->m_roomType == 6) {
+			pStatic->SetCaption("\xB1\xE6\xB5\xE5\xB1\xE2\xBF\xA9\xB5\xB5 2\xC0\xA7 :");
+		} else if (WSingleton<CSharedDoc>::Instance()->m_roomType == 10) {
+			pStatic->SetCaption("2\xC0\xA7 :");
+		}
 	}
 }
 
-void FrAwardDlg::OnBronzeStaticInit(int param)
-{
-	FrStatic* text = DYNAMIC_CAST(FrStatic, (FrWnd*)param);
-	if (text)
-	{
+// awarddlg.cpp:128
+void FrAwardDlg::OnBronzeStaticInit(int param) {
+	FrStatic* pStatic = DYNAMIC_CAST(FrStatic, param);
+
+	if (pStatic) {
 		int count = 0;
-		for (int i = 0; i < 6; ++i)
-		{
-			if (Doc()->m_awardItem[6 + i].uid != 0xffffffff)
-			{
-				int medal = GetMedalIndex(Doc()->m_awardItem[6 + i].uid);
+
+		for (int i = 0; i < 6; i++) {
+			unsigned long uid = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[i].m_uid;
+
+			if (uid != 0xFFFFFFFF) {
+				int medal = GetMedalIndex(uid);
+
 				if (medal == 2)
-					++count;
+					count++;
 				else if (medal <= 1)
 					count += 10;
 			}
 		}
-		if (count > 10)
-		{
+
+		if (count > 10) {
 			WRect rect;
-			text->GetClientRect(rect);
-			rect.y += (count % 10) * 25.0f;
-			text->SetClientRect(rect);
+			pStatic->GetClientRect(rect);
+
+			int line = count % 10;
+			rect.y += line * 25.0f;
+			pStatic->SetClientRect(rect);
+		} else {
+			pStatic->SetVisible(false);
 		}
-		else
-			text->SetVisible(false);
-		if (Doc()->m_golfGame.gameType == 6)
-			text->SetCaption(
-				"\261\346\265\345\261\342\277\251\265\265 3\300\247 :");
-		else if (Doc()->m_golfGame.gameType == 10)
-			text->SetCaption("3\300\247 :");
+
+		if (WSingleton<CSharedDoc>::Instance()->m_roomType == 6) {
+			pStatic->SetCaption("\xB1\xE6\xB5\xE5\xB1\xE2\xBF\xA9\xB5\xB5 3\xC0\xA7 :");
+		} else if (WSingleton<CSharedDoc>::Instance()->m_roomType == 10) {
+			pStatic->SetCaption("3\xC0\xA7 :");
+		}
 	}
 }
 
-int FrAwardDlg::GetMedalIndex(unsigned long uid)
-{
-	if (Doc()->m_golfGame.gameType == 10)
-	{
-		unsigned char index = Doc()->GetIndex(uid);
-		if (index == 0xff)
+// awarddlg.cpp:186
+int FrAwardDlg::GetMedalIndex(unsigned long uid) {
+	if (WSingleton<CSharedDoc>::Instance()->m_roomType == 10) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(uid);
+
+		if (index == 0xFF)
 			return 3;
 
-		for (int i = 0; i < 6; ++i)
-			if (*(unsigned long*)((char*)&Doc()->m_awardItem[6] + i * 12) ==
-				Doc()->m_rivalList[index].oid)
-				return Doc()->m_rivalList[index].rank;
-	}
-	else if (Doc()->m_golfGame.gameType == 6)
-	{
-		if (Doc()->m_rivalList.size() < 6)
-			return 3;
-		unsigned char index = Doc()->GetIndex(uid);
-		if (index == 0xff)
+		sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+		for (int i = 0; i < 6; i++) {
+			if (WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[i].m_uid == info.m_uid)
+				return info.m_rank;
+		}
+	} else if (WSingleton<CSharedDoc>::Instance()->m_roomType == 6) {
+		if (WSingleton<CSharedDoc>::Instance()->m_gameResultList.size() < 6)
 			return 3;
 
-		if (Doc()->m_rivalList[index].flag > 3)
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(uid);
+
+		if (index == 0xFF || WSingleton<CSharedDoc>::Instance()->m_gameResultList[index].m_characterType > 3)
 			return 3;
 
-		for (int i = 0; i < 6; ++i)
-		{
-			if (*(unsigned long*)((char*)&Doc()->m_awardItem[6] + i * 12) ==
-				Doc()->m_rivalList[index].oid)
-			{
+		unsigned long playerUID = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index].m_uid;
+
+		for (int i = 0; i < 6; i++) {
+			if (WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[i].m_uid == playerUID) {
 				if (i <= 0)
 					return 0;
-				if (i < 3)
+				else if (i < 3)
 					return 1;
-				if (i < 6)
-					return 2;
-				return 3;
+
+				return i < 6 ? 2 : 3;
 			}
 		}
-	}
-	else
-	{
-		unsigned char members = 0;
-		if (IsLocalContent((localContentType_t)46))
-		{
-			if (Doc()->m_golfGame.gameType == 4)
-				members = CIntrusion::Instance()->GetCalcExpMemberSize();
+	} else {
+		unsigned char memberSize = 0;
+
+		if (IsLocalContent((localContentType_t)0x2E)) {
+			if (WSingleton<CSharedDoc>::Instance()->m_roomType == 4)
+				memberSize = WSingleton<CIntrusion>::Instance()->GetCalcExpMemberSize();
 			else
-				members = 0;
+				memberSize = 0;
 		}
-		if (!members)
-		{
-			if (Doc()->m_rivalList.size() < 10)
+
+		if (memberSize == 0) {
+			if (WSingleton<CSharedDoc>::Instance()->m_gameResultList.size() < 10)
+				return 3;
+		} else {
+			if (memberSize < 10)
 				return 3;
 		}
-		else if (members < 10)
-			return 3;
-		unsigned char index = Doc()->GetIndex(uid);
-		if (index == 0xff)
+
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(uid);
+
+		if (index == 0xFF || WSingleton<CSharedDoc>::Instance()->m_gameResultList[index].m_characterType > 3)
 			return 3;
 
-		if (Doc()->m_rivalList[index].flag > 3)
-			return 3;
-		unsigned char rank = Doc()->m_rivalList[index].rank;
-		unsigned char count = 0;
-		unsigned char excluded = 0;
-		if (!members)
-		{
-			std::vector<sRivalData>::iterator it = Doc()->m_rivalList.begin();
-			std::vector<sRivalData>::iterator end = Doc()->m_rivalList.end();
-			for (; it != end; ++it)
-			{
-				unsigned char state = (*it).state;
-				if ((state == 3 && GetHoleIndex((*it).hole) >= 4) ||
-					(*it).state != 3)
-					++count;
-				if (state != 3 && (*it).rank < rank && (*it).flag > 3)
-					++excluded;
+		unsigned char rank = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index].m_rank;
+		unsigned char playerCount = 0;
+		unsigned char skipped = 0;
+		std::vector<sRivalData>::iterator it;
+
+		if (memberSize == 0) {
+			for (it = WSingleton<CSharedDoc>::Instance()->m_gameResultList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_gameResultList.end(); ++it) {
+				if (it->m_state == 3 && GetHoleIndex(it->m_hole) < 4)
+					continue;
+
+				playerCount++;
+
+				if (it->m_state != 3 && it->m_rank < rank && it->m_characterType > 3)
+					skipped++;
+			}
+		} else {
+			playerCount = memberSize;
+
+			for (it = WSingleton<CSharedDoc>::Instance()->m_gameResultList.begin(); it != WSingleton<CSharedDoc>::Instance()->m_gameResultList.end(); ++it) {
+				if (it->m_state != 3 && it->m_rank < rank && it->m_characterType > 3)
+					skipped++;
 			}
 		}
-		else
-		{
-			std::vector<sRivalData>::iterator it = Doc()->m_rivalList.begin();
-			std::vector<sRivalData>::iterator end = Doc()->m_rivalList.end();
-			count = members;
-			for (; it != end; ++it)
-				if ((*it).state != 3 && (*it).rank < rank && (*it).flag > 3)
-					++excluded;
-		}
-		rank -= excluded;
-		if (Doc()->m_golfGame.holes == 9)
-		{
-			if (count <= 14)
+
+		rank -= skipped;
+
+		if (WSingleton<CSharedDoc>::Instance()->m_holes == 9) {
+			if (playerCount <= 14) {
 				return 3;
-			if (count <= 18)
-			{
+			} else if (playerCount <= 18) {
 				if (rank == 1)
 					return 2;
-			}
-			else if (count <= 22)
-			{
+			} else if (playerCount <= 22) {
 				if (rank == 1)
 					return 1;
-			}
-			else if (count <= 26)
-			{
+			} else if (playerCount <= 26) {
 				if (rank == 1)
 					return 1;
-				if (rank == 2)
+				else if (rank == 2)
 					return 2;
-			}
-			else
-			{
+			} else {
 				if (rank == 1)
 					return 0;
-				if (rank == 2)
+				else if (rank == 2)
 					return 1;
 			}
-		}
-		else if (Doc()->m_golfGame.holes == 18)
-		{
-			if (count <= 14)
-			{
+		} else if (WSingleton<CSharedDoc>::Instance()->m_holes == 18) {
+			if (playerCount <= 14) {
 				if (rank == 1)
 					return 2;
-			}
-			else if (count <= 18)
-			{
+			} else if (playerCount <= 18) {
 				if (rank == 1)
 					return 1;
-				if (rank == 2)
+				else if (rank == 2)
 					return 2;
-			}
-			else if (count <= 22)
-			{
+			} else if (playerCount <= 22) {
 				if (rank == 1)
 					return 0;
-				if (rank == 2)
+				else if (rank == 2)
 					return 1;
-				if (rank == 3)
+				else if (rank == 3)
 					return 2;
-			}
-			else if (count <= 26)
-			{
+			} else if (playerCount <= 26) {
 				if (rank == 1)
 					return 0;
-				if (rank == 2)
+				else if (rank == 2)
 					return 1;
-				if (rank <= 4)
+				else if (rank <= 4)
 					return 2;
-			}
-			else
-			{
+			} else {
 				if (rank == 1)
 					return 0;
-				if (rank <= 3)
+				else if (rank <= 3)
 					return 1;
-				if (rank <= 6)
+				else if (rank <= 6)
 					return 2;
 			}
 		}
 	}
+
 	return 3;
 }
 
-void FrAwardDlg::OnWinner1Init(int param)
-{
-	m_pWinner1 = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pWinner1->HidePrivacy(true);
+// awarddlg.cpp:395
+void FrAwardDlg::OnWinner1Init(int param) {
+	m_pWinnerArea[0] = DYNAMIC_CAST(FrArea, param);
+	m_pWinnerArea[0]->m_nFlags.Enable(0x1000);
 }
 
-void FrAwardDlg::OnWinner1OwnerDraw(int param)
-{
+// awarddlg.cpp:401
+void FrAwardDlg::OnWinner1OwnerDraw(int param) {
 	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[6].uid);
-		if (index != 0xff)
-		{
-			unsigned long color = Doc()->m_awardItem[6].uid == MyGuid(false)
-				? 0xffff0000
-				: 0xff000000;
-			sRivalData& rival = Doc()->m_rivalList[index];
-			float offset = 0.0f;
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pWinner1->GetRect().x,
-							m_pWinner1->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
-			}
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pWinner1->GetRect().x + offset,
-					m_pWinner1->GetRect().y),
-				0, rival.nickname, -1.0f, 0xffffffff);
-		}
-	}
-}
 
-void FrAwardDlg::OnWinner2Init(int param)
-{
-	m_pWinner2 = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pWinner2->HidePrivacy(true);
-}
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[0].m_uid);
 
-void FrAwardDlg::OnWinner2OwnerDraw(int param)
-{
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[7].uid);
-		if (index != 0xff)
-		{
-			unsigned long color = Doc()->m_awardItem[7].uid == MyGuid(false)
-				? 0xffff0000
-				: 0xff000000;
-			sRivalData& rival = Doc()->m_rivalList[index];
-			float offset = 0.0f;
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pWinner2->GetRect().x,
-							m_pWinner2->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
-			}
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pWinner2->GetRect().x + offset,
-					m_pWinner2->GetRect().y),
-				0, rival.nickname, -1.0f, 0xffffffff);
-		}
-	}
-}
+		if (index == 0xFF)
+			return;
 
-void FrAwardDlg::OnWinner3Init(int param)
-{
-	m_pWinner3 = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pWinner3->HidePrivacy(true);
-}
-
-void FrAwardDlg::OnWinner3OwnerDraw(int param)
-{
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[8].uid);
-		if (index != 0xff)
-		{
-			unsigned long color = Doc()->m_awardItem[8].uid == MyGuid(false)
-				? 0xffff0000
-				: 0xff000000;
-			sRivalData& rival = Doc()->m_rivalList[index];
-			float offset = 0.0f;
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pWinner3->GetRect().x,
-							m_pWinner3->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
-			}
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pWinner3->GetRect().x + offset,
-					m_pWinner3->GetRect().y),
-				0, rival.nickname, -1.0f, 0xffffffff);
-		}
-	}
-}
-
-void FrAwardDlg::OnWinner4Init(int param)
-{
-	m_pWinner4 = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pWinner4->HidePrivacy(true);
-}
-
-void FrAwardDlg::OnWinner4OwnerDraw(int param)
-{
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[9].uid);
-		if (index != 0xff)
-		{
-			unsigned long color = Doc()->m_awardItem[9].uid == MyGuid(false)
-				? 0xffff0000
-				: 0xff000000;
-			sRivalData& rival = Doc()->m_rivalList[index];
-			float offset = 0.0f;
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pWinner4->GetRect().x,
-							m_pWinner4->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
-			}
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pWinner4->GetRect().x + offset,
-					m_pWinner4->GetRect().y),
-				0, rival.nickname, -1.0f, 0xffffffff);
-		}
-	}
-}
-
-void FrAwardDlg::OnWinner5Init(int param)
-{
-	m_pWinner5 = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pWinner5->HidePrivacy(true);
-}
-
-void FrAwardDlg::OnWinner5OwnerDraw(int param)
-{
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[10].uid);
-		if (index != 0xff)
-		{
-			unsigned long color = Doc()->m_awardItem[10].uid == MyGuid(false)
-				? 0xffff0000
-				: 0xff000000;
-			sRivalData& rival = Doc()->m_rivalList[index];
-			float offset = 0.0f;
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pWinner5->GetRect().x,
-							m_pWinner5->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
-			}
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pWinner5->GetRect().x + offset,
-					m_pWinner5->GetRect().y),
-				0, rival.nickname, -1.0f, 0xffffffff);
-		}
-	}
-}
-
-void FrAwardDlg::OnWinner6Init(int param)
-{
-	m_pWinner6 = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pWinner6->HidePrivacy(true);
-}
-
-void FrAwardDlg::OnWinner6OwnerDraw(int param)
-{
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[11].uid);
-		if (index != 0xff)
-		{
-			unsigned long color = Doc()->m_awardItem[11].uid == MyGuid(false)
-				? 0xffff0000
-				: 0xff000000;
-			sRivalData& rival = Doc()->m_rivalList[index];
-			float offset = 0.0f;
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pWinner6->GetRect().x,
-							m_pWinner6->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
-			}
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pWinner6->GetRect().x + offset,
-					m_pWinner6->GetRect().y),
-				0, rival.nickname, -1.0f, 0xffffffff);
-		}
-	}
-}
-
-void FrAwardDlg::OnLuckInit(int param)
-{
-	m_pLuck = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-}
-
-void FrAwardDlg::OnLuckOwnerDraw(int param)
-{
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[0].uid);
-		unsigned long color = Doc()->m_awardItem[0].uid == MyGuid(false)
-			? 0xffff0000
-			: 0xff000000;
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[0].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
 		float offset = 0.0f;
-		const char* nick;
-		if (index == 0xff)
-			nick = "    -    ";
-		else
-		{
-			sRivalData& rival = Doc()->m_rivalList[index];
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pLuck->GetRect().x, m_pLuck->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
+		sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+		if (info.m_hasEmblem) {
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+			if (emblem) {
+				gdi->DrawTexture(emblem, WRect(m_pWinnerArea[0]->GetRect().x, m_pWinnerArea[0]->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 27.0f;
 			}
-			nick = rival.nickname;
 		}
-		if (CProjectG::Instance()->HidePrivacy() == false)
-		{
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pLuck->GetRect().x + offset, m_pLuck->GetRect().y), 0,
-				nick, -1.0f, 0xffffffff);
-		}
+
+		gdi->SetTextColor(color, 0xFFFFFFFF);
+		gdi->SetTextStyle(0);
+		g_pFresh->GetManager()->PrintText(WPoint(m_pWinnerArea[0]->GetRect().x + offset, m_pWinnerArea[0]->GetRect().y), 0, info.m_nickname, -1.0f, 0xFFFFFFFF);
 	}
 }
 
-void FrAwardDlg::OnSpeederInit(int param)
-{
-	m_pSpeeder = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// awarddlg.cpp:441
+void FrAwardDlg::OnWinner2Init(int param) {
+	m_pWinnerArea[1] = DYNAMIC_CAST(FrArea, param);
+	m_pWinnerArea[1]->m_nFlags.Enable(0x1000);
 }
 
-void FrAwardDlg::OnSpeederOwnerDraw(int param)
-{
+// awarddlg.cpp:447
+void FrAwardDlg::OnWinner2OwnerDraw(int param) {
 	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[1].uid);
-		unsigned long color = Doc()->m_awardItem[1].uid == MyGuid(false)
-			? 0xffff0000
-			: 0xff000000;
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[1].m_uid);
+
+		if (index == 0xFF)
+			return;
+
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[1].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
 		float offset = 0.0f;
-		const char* nick;
-		if (index == 0xff)
-			nick = "    -    ";
-		else
-		{
-			sRivalData& rival = Doc()->m_rivalList[index];
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pSpeeder->GetRect().x,
-							m_pSpeeder->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
+		sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+		if (info.m_hasEmblem) {
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+			if (emblem) {
+				gdi->DrawTexture(emblem, WRect(m_pWinnerArea[1]->GetRect().x, m_pWinnerArea[1]->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 27.0f;
 			}
-			nick = rival.nickname;
 		}
-		if (CProjectG::Instance()->HidePrivacy() == false)
-		{
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pSpeeder->GetRect().x + offset,
-					m_pSpeeder->GetRect().y),
-				0, nick, -1.0f, 0xffffffff);
-		}
+
+		gdi->SetTextColor(color, 0xFFFFFFFF);
+		gdi->SetTextStyle(0);
+		g_pFresh->GetManager()->PrintText(WPoint(m_pWinnerArea[1]->GetRect().x + offset, m_pWinnerArea[1]->GetRect().y), 0, info.m_nickname, -1.0f, 0xFFFFFFFF);
 	}
 }
 
-void FrAwardDlg::OnRunnerInit(int param)
-{
-	m_pRunner = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// awarddlg.cpp:485
+void FrAwardDlg::OnWinner3Init(int param) {
+	m_pWinnerArea[2] = DYNAMIC_CAST(FrArea, param);
+	m_pWinnerArea[2]->m_nFlags.Enable(0x1000);
 }
 
-void FrAwardDlg::OnRunnerOwnerDraw(int param)
-{
+// awarddlg.cpp:491
+void FrAwardDlg::OnWinner3OwnerDraw(int param) {
 	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[2].uid);
-		unsigned long color = Doc()->m_awardItem[2].uid == MyGuid(false)
-			? 0xffff0000
-			: 0xff000000;
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[2].m_uid);
+
+		if (index == 0xFF)
+			return;
+
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[2].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
 		float offset = 0.0f;
-		const char* nick;
-		if (index == 0xff)
-			nick = "    -    ";
-		else
-		{
-			sRivalData& rival = Doc()->m_rivalList[index];
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pRunner->GetRect().x,
-							m_pRunner->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
+		sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+		if (info.m_hasEmblem) {
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+			if (emblem) {
+				gdi->DrawTexture(emblem, WRect(m_pWinnerArea[2]->GetRect().x, m_pWinnerArea[2]->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 27.0f;
 			}
-			nick = rival.nickname;
 		}
-		if (CProjectG::Instance()->HidePrivacy() == false)
-		{
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pRunner->GetRect().x + offset, m_pRunner->GetRect().y),
-				0, nick, -1.0f, 0xffffffff);
-		}
+
+		gdi->SetTextColor(color, 0xFFFFFFFF);
+		gdi->SetTextStyle(0);
+		g_pFresh->GetManager()->PrintText(WPoint(m_pWinnerArea[2]->GetRect().x + offset, m_pWinnerArea[2]->GetRect().y), 0, info.m_nickname, -1.0f, 0xFFFFFFFF);
 	}
 }
 
-void FrAwardDlg::OnChipInInit(int param)
-{
-	m_pChipIn = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// awarddlg.cpp:529
+void FrAwardDlg::OnWinner4Init(int param) {
+	m_pWinnerArea[3] = DYNAMIC_CAST(FrArea, param);
+	m_pWinnerArea[3]->m_nFlags.Enable(0x1000);
 }
 
-void FrAwardDlg::OnChipInOwnerDraw(int param)
-{
+// awarddlg.cpp:535
+void FrAwardDlg::OnWinner4OwnerDraw(int param) {
 	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[3].uid);
-		unsigned long color = Doc()->m_awardItem[3].uid == MyGuid(false)
-			? 0xffff0000
-			: 0xff000000;
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[3].m_uid);
+
+		if (index == 0xFF)
+			return;
+
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[3].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
 		float offset = 0.0f;
-		const char* nick;
-		if (index == 0xff)
-			nick = "    -    ";
-		else
-		{
-			sRivalData& rival = Doc()->m_rivalList[index];
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pChipIn->GetRect().x,
-							m_pChipIn->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
+		sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+		if (info.m_hasEmblem) {
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+			if (emblem) {
+				gdi->DrawTexture(emblem, WRect(m_pWinnerArea[3]->GetRect().x, m_pWinnerArea[3]->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 27.0f;
 			}
-			nick = rival.nickname;
 		}
-		if (CProjectG::Instance()->HidePrivacy() == false)
-		{
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pChipIn->GetRect().x + offset, m_pChipIn->GetRect().y),
-				0, nick, -1.0f, 0xffffffff);
-		}
+
+		gdi->SetTextColor(color, 0xFFFFFFFF);
+		gdi->SetTextStyle(0);
+		g_pFresh->GetManager()->PrintText(WPoint(m_pWinnerArea[3]->GetRect().x + offset, m_pWinnerArea[3]->GetRect().y), 0, info.m_nickname, -1.0f, 0xFFFFFFFF);
 	}
 }
 
-void FrAwardDlg::OnLongPuttInit(int param)
-{
-	m_pLongPutt = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// awarddlg.cpp:573
+void FrAwardDlg::OnWinner5Init(int param) {
+	m_pWinnerArea[4] = DYNAMIC_CAST(FrArea, param);
+	m_pWinnerArea[4]->m_nFlags.Enable(0x1000);
 }
 
-void FrAwardDlg::OnLongPuttOwnerDraw(int param)
-{
+// awarddlg.cpp:579
+void FrAwardDlg::OnWinner5OwnerDraw(int param) {
 	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[4].uid);
-		unsigned long color = Doc()->m_awardItem[4].uid == MyGuid(false)
-			? 0xffff0000
-			: 0xff000000;
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[4].m_uid);
+
+		if (index == 0xFF)
+			return;
+
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[4].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
 		float offset = 0.0f;
-		const char* nick;
-		if (index == 0xff)
-			nick = "    -    ";
-		else
-		{
-			sRivalData& rival = Doc()->m_rivalList[index];
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pLongPutt->GetRect().x,
-							m_pLongPutt->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
-					offset = 27.0f;
-				}
+		sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+		if (info.m_hasEmblem) {
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+			if (emblem) {
+				gdi->DrawTexture(emblem, WRect(m_pWinnerArea[4]->GetRect().x, m_pWinnerArea[4]->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 27.0f;
 			}
-			nick = rival.nickname;
 		}
-		if (CProjectG::Instance()->HidePrivacy() == false)
-		{
-			gdi->SetTextColor(color, 0xffffffff);
-			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pLongPutt->GetRect().x + offset,
-					m_pLongPutt->GetRect().y),
-				0, nick, -1.0f, 0xffffffff);
-		}
+
+		gdi->SetTextColor(color, 0xFFFFFFFF);
+		gdi->SetTextStyle(0);
+		g_pFresh->GetManager()->PrintText(WPoint(m_pWinnerArea[4]->GetRect().x + offset, m_pWinnerArea[4]->GetRect().y), 0, info.m_nickname, -1.0f, 0xFFFFFFFF);
 	}
 }
 
-void FrAwardDlg::OnRecoveryInit(int param)
-{
-	m_pRecovery = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// awarddlg.cpp:617
+void FrAwardDlg::OnWinner6Init(int param) {
+	m_pWinnerArea[5] = DYNAMIC_CAST(FrArea, param);
+	m_pWinnerArea[5]->m_nFlags.Enable(0x1000);
 }
 
-void FrAwardDlg::OnRecoveryOwnerDraw(int param)
-{
+// awarddlg.cpp:623
+void FrAwardDlg::OnWinner6OwnerDraw(int param) {
 	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		unsigned char index = Doc()->GetIndex(Doc()->m_awardItem[5].uid);
-		unsigned long color = Doc()->m_awardItem[5].uid == MyGuid(false)
-			? 0xffff0000
-			: 0xff000000;
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[5].m_uid);
+
+		if (index == 0xFF)
+			return;
+
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_winnerPlayers[5].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
 		float offset = 0.0f;
-		const char* nick;
-		if (index == 0xff)
-			nick = "    -    ";
-		else
-		{
-			sRivalData& rival = Doc()->m_rivalList[index];
-			if (rival.guildUID)
-			{
-				const Bitmap* emblem =
-					NetResourceManager::Instance()->GetEmblemByName(
-						rival.guildMark);
-				if (emblem)
-				{
-					gdi->DrawTexture(emblem,
-						WRect(m_pRecovery->GetRect().x,
-							m_pRecovery->GetRect().y - 6.0f,
-							(float)emblem->Width(), (float)emblem->Height()),
-						0xffffffff, 0);
+		sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+		if (info.m_hasEmblem) {
+			const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+			if (emblem) {
+				gdi->DrawTexture(emblem, WRect(m_pWinnerArea[5]->GetRect().x, m_pWinnerArea[5]->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+				offset = 27.0f;
+			}
+		}
+
+		gdi->SetTextColor(color, 0xFFFFFFFF);
+		gdi->SetTextStyle(0);
+		g_pFresh->GetManager()->PrintText(WPoint(m_pWinnerArea[5]->GetRect().x + offset, m_pWinnerArea[5]->GetRect().y), 0, info.m_nickname, -1.0f, 0xFFFFFFFF);
+	}
+}
+
+// awarddlg.cpp:661
+void FrAwardDlg::OnLuckInit(int param) {
+	m_pLuckArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// awarddlg.cpp:666
+void FrAwardDlg::OnLuckOwnerDraw(int param) {
+	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_awardPlayers[0].m_uid);
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_awardPlayers[0].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
+		float offset = 0.0f;
+		const char* name;
+
+		if (index == 0xFF) {
+			name = "    -    ";
+		} else {
+			sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+			if (info.m_hasEmblem) {
+				const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+				if (emblem) {
+					gdi->DrawTexture(emblem, WRect(m_pLuckArea->GetRect().x, m_pLuckArea->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
 					offset = 27.0f;
 				}
 			}
-			nick = rival.nickname;
+
+			name = info.m_nickname;
 		}
-		if (CProjectG::Instance()->HidePrivacy() == false)
-		{
-			gdi->SetTextColor(color, 0xffffffff);
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy()) {
+			gdi->SetTextColor(color, 0xFFFFFFFF);
 			gdi->SetTextStyle(0);
-			g_pFresh->GetManager()->PrintText(
-				WPoint(m_pRecovery->GetRect().x + offset,
-					m_pRecovery->GetRect().y),
-				0, nick, -1.0f, 0xffffffff);
+			g_pFresh->GetManager()->PrintText(WPoint(m_pLuckArea->GetRect().x + offset, m_pLuckArea->GetRect().y), 0, name, -1.0f, 0xFFFFFFFF);
 		}
 	}
 }
+
+// awarddlg.cpp:725
+void FrAwardDlg::OnSpeederInit(int param) {
+	m_pSpeederArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// awarddlg.cpp:730
+void FrAwardDlg::OnSpeederOwnerDraw(int param) {
+	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_awardPlayers[1].m_uid);
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_awardPlayers[1].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
+		float offset = 0.0f;
+		const char* name;
+
+		if (index == 0xFF) {
+			name = "    -    ";
+		} else {
+			sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+			if (info.m_hasEmblem) {
+				const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+				if (emblem) {
+					gdi->DrawTexture(emblem, WRect(m_pSpeederArea->GetRect().x, m_pSpeederArea->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+					offset = 27.0f;
+				}
+			}
+
+			name = info.m_nickname;
+		}
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy()) {
+			gdi->SetTextColor(color, 0xFFFFFFFF);
+			gdi->SetTextStyle(0);
+			g_pFresh->GetManager()->PrintText(WPoint(m_pSpeederArea->GetRect().x + offset, m_pSpeederArea->GetRect().y), 0, name, -1.0f, 0xFFFFFFFF);
+		}
+	}
+}
+
+// awarddlg.cpp:789
+void FrAwardDlg::OnRunnerInit(int param) {
+	m_pRunnerArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// awarddlg.cpp:794
+void FrAwardDlg::OnRunnerOwnerDraw(int param) {
+	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_awardPlayers[2].m_uid);
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_awardPlayers[2].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
+		float offset = 0.0f;
+		const char* name;
+
+		if (index == 0xFF) {
+			name = "    -    ";
+		} else {
+			sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+			if (info.m_hasEmblem) {
+				const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+				if (emblem) {
+					gdi->DrawTexture(emblem, WRect(m_pRunnerArea->GetRect().x, m_pRunnerArea->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+					offset = 27.0f;
+				}
+			}
+
+			name = info.m_nickname;
+		}
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy()) {
+			gdi->SetTextColor(color, 0xFFFFFFFF);
+			gdi->SetTextStyle(0);
+			g_pFresh->GetManager()->PrintText(WPoint(m_pRunnerArea->GetRect().x + offset, m_pRunnerArea->GetRect().y), 0, name, -1.0f, 0xFFFFFFFF);
+		}
+	}
+}
+
+// awarddlg.cpp:854
+void FrAwardDlg::OnChipInInit(int param) {
+	m_pChipInArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// awarddlg.cpp:859
+void FrAwardDlg::OnChipInOwnerDraw(int param) {
+	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_awardPlayers[3].m_uid);
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_awardPlayers[3].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
+		float offset = 0.0f;
+		const char* name;
+
+		if (index == 0xFF) {
+			name = "    -    ";
+		} else {
+			sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+			if (info.m_hasEmblem) {
+				const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+				if (emblem) {
+					gdi->DrawTexture(emblem, WRect(m_pChipInArea->GetRect().x, m_pChipInArea->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+					offset = 27.0f;
+				}
+			}
+
+			name = info.m_nickname;
+		}
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy()) {
+			gdi->SetTextColor(color, 0xFFFFFFFF);
+			gdi->SetTextStyle(0);
+			g_pFresh->GetManager()->PrintText(WPoint(m_pChipInArea->GetRect().x + offset, m_pChipInArea->GetRect().y), 0, name, -1.0f, 0xFFFFFFFF);
+		}
+	}
+}
+
+// awarddlg.cpp:918
+void FrAwardDlg::OnLongPuttInit(int param) {
+	m_pLongPuttArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// awarddlg.cpp:923
+void FrAwardDlg::OnLongPuttOwnerDraw(int param) {
+	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_awardPlayers[4].m_uid);
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_awardPlayers[4].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
+		float offset = 0.0f;
+		const char* name;
+
+		if (index == 0xFF) {
+			name = "    -    ";
+		} else {
+			sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+			if (info.m_hasEmblem) {
+				const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+				if (emblem) {
+					gdi->DrawTexture(emblem, WRect(m_pLongPuttArea->GetRect().x, m_pLongPuttArea->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+					offset = 27.0f;
+				}
+			}
+
+			name = info.m_nickname;
+		}
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy()) {
+			gdi->SetTextColor(color, 0xFFFFFFFF);
+			gdi->SetTextStyle(0);
+			g_pFresh->GetManager()->PrintText(WPoint(m_pLongPuttArea->GetRect().x + offset, m_pLongPuttArea->GetRect().y), 0, name, -1.0f, 0xFFFFFFFF);
+		}
+	}
+}
+
+// awarddlg.cpp:983
+void FrAwardDlg::OnRecoveryInit(int param) {
+	m_pRecoveryArea = DYNAMIC_CAST(FrArea, param);
+}
+
+// awarddlg.cpp:988
+void FrAwardDlg::OnRecoveryOwnerDraw(int param) {
+	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
+
+	if (gdi) {
+		unsigned char index = WSingleton<CSharedDoc>::Instance()->GetIndex(WSingleton<CSharedDoc>::Instance()->m_awardPlayers[5].m_uid);
+		unsigned long color = WSingleton<CSharedDoc>::Instance()->m_awardPlayers[5].m_uid == WSingleton<CSharedDoc>::Instance()->m_userInfo.guid ? 0xFFFF0000 : 0xFF000000;
+		float offset = 0.0f;
+		const char* name;
+
+		if (index == 0xFF) {
+			name = "    -    ";
+		} else {
+			sRivalData& info = WSingleton<CSharedDoc>::Instance()->m_gameResultList[index];
+
+			if (info.m_hasEmblem) {
+				const Bitmap* emblem = WSingleton<NetResourceManager>::Instance()->GetEmblemByName(info.m_emblemName);
+
+				if (emblem) {
+					gdi->DrawTexture(emblem, WRect(m_pRecoveryArea->GetRect().x, m_pRecoveryArea->GetRect().y - 6.0f, (float)emblem->Width(), (float)emblem->Height()), 0xFFFFFFFF, 0);
+					offset = 27.0f;
+				}
+			}
+
+			name = info.m_nickname;
+		}
+
+		if (!WSingleton<CProjectG>::Instance()->HidePrivacy()) {
+			gdi->SetTextColor(color, 0xFFFFFFFF);
+			gdi->SetTextStyle(0);
+			g_pFresh->GetManager()->PrintText(WPoint(m_pRecoveryArea->GetRect().x + offset, m_pRecoveryArea->GetRect().y), 0, name, -1.0f, 0xFFFFFFFF);
+		}
+	}
+}
+

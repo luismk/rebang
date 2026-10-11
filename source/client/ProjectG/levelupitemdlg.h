@@ -1,183 +1,105 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\levelupitemdlg.h
+#ifndef PG_CLIENT_PROJECTG_LEVELUPITEMDLG_H
+#define PG_CLIENT_PROJECTG_LEVELUPITEMDLG_H
 
+#include "..\..\defines.h"
+#include "..\..\padding.h"
 #include "frform.h"
-#include "../../shared/globalgamedefine.h"
-#include "wlocalize.h"
+#include "../shared/globalgamedefine.h"
 
+class Bitmap;
 class FrArea;
 class FrEdit;
 class FrListBox;
 class WTitleFont;
 
-static const char*
-	s_levelUpText[]
-				 [3] = {
-					 { "",																																																					 "",
-                      K2L_Compatibility(
-							 "\267\347\305\260E\267\316 \275\302\261\336\307\317\275\303\270\351 \275\305\260\346 \276\310\301\244 \272\270\301\266\301\246 10\260\263, \267\260\305\260 \306\316\276\337 \272\270\301\266\301\246 10\260\263\270\246 \265\345\267\301\277\344!")																																																																																					   },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \306\316\276\337\274\246\300\273 \275\261\260\324 \304\245 \274\366 \300\326\264\302\n\276\306\300\314\305\333\265\351\300\273 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\306\316\276\337\274\246\300\314 \276\356\267\301\277\357 \266\247\n\273\347\277\353\307\317\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\267\347\305\260D\267\316 \275\302\261\336\307\317\275\303\270\351 \271\314\266\363\305\254 \273\347\300\316 10\260\263\270\246 \265\345\267\301\277\344!")																																																																																																											   },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \271\314\266\363\305\254 \273\347\300\316 10\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\276\356\267\301\277\356 \306\333\306\303\277\241 \273\347\277\353\307\317\270\351\n\301\301\276\306\277\344!"),
-                      K2L_Compatibility(
-							 "\267\347\305\260C\267\316 \275\302\261\336\307\317\275\303\270\351 \303\274\267\302\272\270\301\266\301\246 10\260\263\270\246 \265\345\267\301\277\344!")																																																																																																												},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \305\270\300\323\272\316\275\272\305\315 20\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\272\374\270\245 \301\370\307\340\300\273 \277\370\307\317\275\305\264\331\270\351 \307\312\274\366 \276\306\300\314\305\333\300\314\301\322!"),
-                      K2L_Compatibility(
-							 "\267\347\305\260B\267\316 \275\302\261\336\307\317\275\303\270\351 \303\274\267\302\272\270\301\266\301\246 10\260\263\270\246 \265\345\267\301\277\344!")																																																																																																												},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \303\274\267\302 \272\270\301\266\301\246 10\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility("\306\257\274\366\274\246 \277\254\275\300\277\241 \265\265\277\362\300\314\n\265\307\261\346 \272\364\276\356\277\344!"),																																																																		   K2L_Compatibility("\267\347\305\260A\267\316 \275\302\261\336\307\317\275\303\270\351 \303\265\273\347\300\307\273\347\305\301 5\260\263\270\246 \265\345\267\301\277\344!")               },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \303\265\273\347\300\307 \273\347\305\301 5\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\272\361\261\342\263\312\261\356\301\366\n\276\363\270\266 \276\310 \263\262\276\322\276\356\277\344!"),
-                      K2L_Compatibility(
-							 "\272\361\261\342\263\312E\267\316 \275\302\261\336\307\317\275\303\270\351 3,000\306\316\300\273 \265\345\267\301\277\344!")																																																																																																																			  },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 3,000\306\316\300\273 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\272\361\261\342\263\312 \265\356\261\336\300\307 \273\365\267\316\277\356\n\276\306\300\314\305\333\265\351\300\273 \303\274\307\350\307\330 \272\270\274\274\277\344"),
-                      K2L_Compatibility(
-							 "\272\361\261\342\263\312D\267\316 \275\302\261\336\307\317\275\303\270\351 \303\274\267\302\276\310\301\244\301\246 5\260\263\270\246 \265\345\267\301\277\344!")																																																																																																										 },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \303\274\267\302\276\310\301\244\301\246 5\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\265\316\260\241\301\366 \264\311\267\302\300\314 \307\325\301\256\301\370 \276\306\300\314\305\333\300\273 \273\347\277\353\307\330 \272\270\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\272\361\261\342\263\312C\267\316 \275\302\261\336\307\317\275\303\270\351 \301\244\310\256\265\265\300\307 \271\335\301\366\270\246 \265\345\267\301\277\344!")																																																																																																										  },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \301\244\310\256\265\265 \271\335\301\366\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\306\316\276\337\274\246\300\273 \275\307\306\320\307\330\265\265 \271\256\301\246\276\370\276\356\277\344!"),
-                      K2L_Compatibility(
-							 "\272\361\261\342\263\312B\267\316 \275\302\261\336\307\317\275\303\270\351 \272\300\264\331\270\256\274\245\300\314\277\353\261\307 5\300\345\300\273 \265\345\267\301\277\344!")																																																																																																						 },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \272\300\264\331\270\256\274\245 \300\314\277\353\261\307\300\273\n5\300\345 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\267\271\276\356 \276\306\300\314\305\333\300\273\n\276\362\300\273 \274\366 \300\326\264\302 \261\342\310\270!"),
-                      K2L_Compatibility(
-							 "\272\361\261\342\263\312A\267\316 \275\302\261\336\307\317\275\303\270\351 \306\316 \270\266\275\272\305\315\270\256 5\260\263\270\246 \265\345\267\301\277\344!")																																																																																																										},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \306\316 \270\266\275\272\305\315\270\256 5\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\301\326\264\317\276\356\261\356\301\366 \310\373 \263\273\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\301\326\264\317\276\356E\267\316 \275\302\261\336\307\317\275\303\270\351 5,000\306\316\300\273 \265\345\267\301\277\344!")																																																																																																																			  },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 5,000\306\316\300\273 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\301\326\264\317\276\356 \265\356\261\336\300\307 \273\365\267\316\277\356\n\276\306\300\314\305\333\265\351\300\273 \303\274\307\350\307\330 \272\270\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\301\326\264\317\276\356D\267\316 \275\302\261\336\307\317\275\303\270\351 \275\272\307\311\276\310\301\244\301\246 10\260\263\270\246 \265\345\267\301\277\344!")																																																																																																										},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \275\272\307\311\276\310\301\244\301\246 10\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\265\316\260\241\301\366 \264\311\267\302\300\314 \307\325\301\256\301\370 \276\306\300\314\305\333\300\273 \273\347\277\353\307\330 \272\270\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\301\326\264\317\276\356C\267\316 \275\302\261\336\307\317\275\303\270\351 \275\272\307\311\300\307 \271\335\301\366\270\246 \265\345\267\301\277\344!")																																																																																																												  },
-					 { K2L_Compatibility("\274\261\271\260\267\316 \275\272\307\311\300\307 \271\335\301\366\270\246 \265\345\270\263\264\317\264\331."),                                                                                      K2L_Compatibility("\264\365\277\355 \261\344 \306\304\277\366 \275\272\307\311\274\246\300\273\n\304\245 \274\366 \300\326\276\356\277\344!"),                                                K2L_Compatibility("\301\326\264\317\276\356B\267\316 \275\302\261\336\307\317\275\303\270\351 \303\274\267\302\272\270\303\346\301\246 10\260\263\270\246 \265\345\267\301\277\344!")      },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \303\274\267\302 \272\270\303\346\301\246 10\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\306\304\277\366 \306\257\274\366\274\246\300\273\n\275\261\260\324 \273\347\277\353\307\330 \272\270\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\301\326\264\317\276\356A\267\316 \275\302\261\336\307\317\275\303\270\351 \306\316 \270\266\275\272\305\315\270\256 5\260\263\270\246 \265\345\267\301\277\344!")																																																																																																										},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \306\316 \270\266\275\272\305\315\270\256 5\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\270\326\260\355\265\265 \307\350\307\321 \275\303\264\317\276\356\300\307\n\261\346\267\316 \300\374\301\370!"),
-                      K2L_Compatibility(
-							 "\275\303\264\317\276\356E\267\316 \275\302\261\336\307\317\275\303\270\351 10,000\306\316\300\273 \265\345\267\301\277\344!")																																																																																																																			 },
-					 { K2L_Compatibility("\274\261\271\260\267\316 10,000\306\316\300\273 \265\345\267\301\277\344!"),																														 K2L_Compatibility("\275\303\264\317\276\356 \265\356\261\336\300\307 \273\365\267\316\277\356\n\276\306\300\314\305\333\265\351\300\273 \303\274\307\350\307\330 \272\270\274\274\277\344!"), K2L_Compatibility("\275\303\264\317\276\356D\267\316 \275\302\261\336\307\317\275\303\270\351 \272\352\267\320\301\356\304\253\265\345\306\274\304\317\300\273 \265\345\267\301\277\344!") },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \272\352\267\320\301\356\304\253\265\345\306\274\304\317\300\273 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\304\253\265\345\310\246\270\257 \275\303\275\272\305\333\300\273 \303\274\307\350\307\330 \272\270\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\275\303\264\317\276\356C\267\316 \275\302\261\336\307\317\275\303\270\351 \275\272\305\251\267\241\304\241 \272\270\301\266\261\307 3\260\263\270\246 \265\345\267\301\277\344!")																																																																																																						},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \275\272\305\251\267\241\304\241 \272\270\301\266\261\307\n3\300\345\300\273 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility("10\300\345\300\273 \270\360\300\270\270\351 \275\272\305\251\267\241\304\241 \304\253\265\345\270\246 \270\270\265\351 \274\366 \300\326\276\356\277\344"),																																																										 K2L_Compatibility("\275\303\264\317\276\356B\267\316 \275\302\261\336\307\317\275\303\270\351 \303\274\267\302\272\270\303\346\301\246 20\260\263\270\246 \265\345\267\301\277\344!")      },
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \303\274\267\302 \272\270\303\346\301\246 20\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\306\304\277\366 \306\257\274\366\274\246\300\273\n\273\347\277\353\307\330 \272\270\274\274\277\344!"),
-                      K2L_Compatibility(
-							 "\275\303\264\317\276\356A\267\316 \275\302\261\336\307\317\275\303\270\351 \306\316 \270\266\275\272\305\315\270\256 5\260\263\270\246 \265\345\267\301\277\344!")																																																																																																										},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \306\316 \270\266\275\272\305\315\270\256 5\260\263\270\246 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\260\355\274\366\300\307 \261\346\300\314 \264\253\276\325\277\241!"),
-                      K2L_Compatibility(
-							 "\276\306\270\266\303\337\276\356E\267\316 \275\302\261\336\307\317\275\303\270\351 \275\272\305\251\267\241\304\241 \304\253\265\345\270\246 1\300\345 \265\345\267\301\277\344!")																																																																																																						},
-					 { K2L_Compatibility(
-						   "\274\261\271\260\267\316 \275\272\305\251\267\241\304\241 \304\253\265\345\270\246\n1\300\345 \265\345\270\263\264\317\264\331."),
-                      K2L_Compatibility(
-							 "\267\271\276\356 \276\306\300\314\305\333\300\314\n\263\252\277\300\261\346 \272\364\276\356\277\344!"),
-                      K2L_Compatibility(
-							 "\267\316 \275\302\261\336\307\317\275\303\270\351 \275\272\305\251\267\241\304\241 \304\253\265\345\270\246 1\300\345 \265\345\267\301\277\344!")																																																																																																														 },
-};
-
-class FrLevelupItemForm : public FrForm
-{
+// Level-up reward dialog; its size (0x200) is the `new` of
+// FrLevelupItemFormMakeInstance.
+class FrLevelupItemForm : public FrForm {
+	LAYOUT_CHECK_FRIEND;
 public:
-	DECLARE_OBJECT(FrLevelupItemForm)
+	// A small icon drawn over a reward item (OnItemListInit).
+	class MiniBtn {
+	public:
+		MiniBtn(void);
 
-	FrLevelupItemForm();
-	virtual ~FrLevelupItemForm();
-
-	struct MiniBtn
-	{
-		WRect rect;
-		const Bitmap* pBitmap;
-		int index;
+		WRect rect;               // 0x0
+		const Bitmap* pBitmap;    // 0x10
+		UNKNOWN(0x14, 0x18);
 	};
 
-	virtual bool Close(eFormRet ret, bool bSound);
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // levelupitemdlg.h:219
+
+	FrLevelupItemForm(void);
+	virtual ~FrLevelupItemForm(void);
+
+	virtual bool Close(eFormRet ret, bool bDestroy);
 	bool SetData(sLevelUpDone data);
 
+private:
+	static sFRESH_ENTRY _MsgEntries[];
+
 protected:
-	virtual bool OnInit();
-	virtual void OnProc(const float delta);
+	static sFRESH_MSGMAP _MsgMap;
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;
 
-	void OnLevelUpItemInit(int param);
-	void OnCloseUp();
-	void OnLevelIcon(int param);
-	void OnFrame2Init(int param);
-	void OnFrame3Init(int param);
-	void OnItemSendInit(int param);
-	void OnItemListInit(int param);
-	void OnItemListOwnerDraw(int param);
-	void OnItemExplaneInit(int param);
+	virtual bool OnInit(void);
+	virtual void OnProc(const float dt);
 
-	FrArea* m_pLevelIcon;
-	FrArea* m_pFrame2;
-	FrArea* m_pFrame3;
-	FrEdit* m_pItemSend;
-	FrListBox* m_pItemList;
-	FrEdit* m_pItemExplane;
-	WTitleFont* m_pFont;
-	MiniBtn m_unusedBtn[3];
-	MiniBtn m_deleteIcon;
-	MiniBtn m_clockIcon;
-	MiniBtn m_unusedBtn2[3];
-	unsigned char m_level;
-	unsigned char m_state;
-	unsigned long m_itemTypeId;
-	unsigned long m_itemTypeId2;
-	bool m_bResult;
+	void OnLevelUpItemInit(int);
+	void OnCloseUp(void);
+	void OnLevelIcon(intptr_t param);
+	void OnFrame2Init(intptr_t param);
+	void OnFrame3Init(intptr_t param);
+	void OnItemSendInit(intptr_t param);
+	void OnItemListInit(intptr_t param);
+	void OnItemListOwnerDraw(intptr_t param);
+	void OnItemExplaneInit(intptr_t param);
 
 private:
-	void SetItemInfo();
+	void SetItemInfo(void);
 
-	DECLARE_FRESH_MSGMAP()
+protected:
+	FrArea* m_pLevelIcon;           // 0x110, "level"
+	FrArea* m_pFrame2;              // 0x114, "frame2"
+	FrArea* m_pFrame3;              // 0x118, "frame3"
+	FrEdit* m_pItemSend;            // 0x11c, "itemsend"
+	FrListBox* m_pItemList;         // 0x120, "leveluplist"
+	FrEdit* m_pItemExplane;         // 0x124, "itemexplane"
+	WTitleFont* m_pTitleFont;       // 0x128
+	PADDING(0x12c, 0x174);          // FrLevelupItemForm members
+	MiniBtn m_deleteBtn;            // 0x174, "delete" icon of the reward items
+	MiniBtn m_clockBtn;             // 0x18c, "clock" icon of the reward items
+	PADDING(0x1a4, 0x1ec);          // FrLevelupItemForm members
+	unsigned char m_level;          // 0x1ec
+	unsigned char m_rewardReceived; // 0x1ed
+	PADDING(0x1ee, 0x1f0);
+	unsigned long m_rewardTypeId;   // 0x1f0, item data of the reward list
+	unsigned long m_bonusTypeId;    // 0x1f4, second reward item (level 1)
+	bool m_hasReward;               // 0x1f8
+	PADDING(0x1f9, 0x200);          // FrLevelupItemForm members
 };
+
+CHECK_SIZE(FrLevelupItemForm::MiniBtn, 0x18);
+CHECK_FIELD(FrLevelupItemForm::MiniBtn, rect, 0x0);
+CHECK_FIELD(FrLevelupItemForm::MiniBtn, pBitmap, 0x10);
+CHECK_SIZE(FrLevelupItemForm, 0x200);
+BEGIN_LAYOUT_CHECK(FrLevelupItemForm)
+	CHECK_FIELD(FrLevelupItemForm, m_pLevelIcon, 0x110);
+	CHECK_FIELD(FrLevelupItemForm, m_pFrame2, 0x114);
+	CHECK_FIELD(FrLevelupItemForm, m_pFrame3, 0x118);
+	CHECK_FIELD(FrLevelupItemForm, m_pItemSend, 0x11c);
+	CHECK_FIELD(FrLevelupItemForm, m_pItemList, 0x120);
+	CHECK_FIELD(FrLevelupItemForm, m_pItemExplane, 0x124);
+	CHECK_FIELD(FrLevelupItemForm, m_pTitleFont, 0x128);
+	CHECK_FIELD(FrLevelupItemForm, m_deleteBtn, 0x174);
+	CHECK_FIELD(FrLevelupItemForm, m_clockBtn, 0x18c);
+	CHECK_FIELD(FrLevelupItemForm, m_level, 0x1ec);
+	CHECK_FIELD(FrLevelupItemForm, m_rewardReceived, 0x1ed);
+	CHECK_FIELD(FrLevelupItemForm, m_rewardTypeId, 0x1f0);
+	CHECK_FIELD(FrLevelupItemForm, m_bonusTypeId, 0x1f4);
+	CHECK_FIELD(FrLevelupItemForm, m_hasReward, 0x1f8);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_LEVELUPITEMDLG_H

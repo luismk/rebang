@@ -1,160 +1,165 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\tooltip.cpp
+#include "ToolTip.h"
 #include "fresh.h"
 #include "frwndmanager.h"
 #include "frgraphicinterface.h"
-#include "inputmanager.h"
-#include "golfdoc.h"
-#include "tooltip.h"
+#include "bitmap.h"
+#include "InputManager.h"
+#include "GolfDoc.h"
+#include "SharedDoc.h"
+#include "../client/Wangreal/include/wview.h"
 
-extern Fresh* g_pFresh;
-
-struct sToolTip
-{
-	eBarButton id;
-	const char* name;
+// Tool tip bitmap of each bar button.
+struct sToolTip {
+	int button;              // 0x0, eBarButton
+	const char* bitmapName;  // 0x4
 };
+
+CHECK_SIZE(sToolTip, 0x8);
+CHECK_FIELD(sToolTip, button, 0x0);
+CHECK_FIELD(sToolTip, bitmapName, 0x4);
 
 sToolTip ToolTips[] = {
-	{ TOOLTIP_BACK,             "tooltip_back"             },
-	{ TOOLTIP_FRONT,            "tooltip_front"            },
-	{ TOOLTIP_SHOP,             "tooltip_shop"             },
-	{ TOOLTIP_MYROOM,           "tooltip_myroom"           },
-	{ TOOLTIP_DOL,              "tooltip_dol"              },
-	{ RMR_RM_POSTBOX,           "rmr_rm_postbox"           },
-	{ TOOLTIP_COOKIE,           "tooltip_cookie"           },
-	{ TOOLTIP_GAME,             "tooltip_game"             },
-	{ TOOLTIP_SERVER,           "tooltip_server"           },
-	{ TOOLTIP_EXIT,             "tooltip_exit"             },
-	{ TOOLTIP_SPECIAL_CARD,     "tooltip_special_card"     },
-	{ TOOLTIP_MSN,              "tooltip_msn"              },
-	{ TOOLTIP_MYINFO,           "tooltip_myinfo"           },
-	{ TOOLTIP_OPTION,           "tooltip_option"           },
-	{ TOOLTIP_MAGICBOX,         "tooltip_magicbox"         },
-	{ TOOLTIP_BONG,             "tooltip_bong"             },
-	{ TOOLTIP_RANKING,          "tooltip_ranking"          },
-	{ TOOLTIP_GUILD,            "tooltip_guild"            },
-	{ TOOLTIP_NOTICE,           "tooltip_notice"           },
-	{ RMR_TOOLTIP_MARKET,       "rmr_tooltip_market"       },
-	{ TOOLTIP_SCRATCH,          "tooltip_scratch"          },
-	{ TOOLTIP_PLAY,             "tooltip_play"             },
-	{ TOOLTIP_BUY,              "tooltip_buy"              },
-	{ TOOLTIP_GIFT,             "tooltip_gift"             },
-	{ TOOLTIP_BUYALL,           "tooltip_buyall"           },
-	{ TOOLTIP_BUYRESET,         "tooltip_buyreset"         },
-	{ TOOLTIP_EQUIP,            "tooltip_equip"            },
-	{ TOOLTIP_MOVEGIFT,         "tooltip_movegift"         },
-	{ TOOLTIP_DELETE,           "tooltip_delete"           },
-	{ TOOLTIP_RESET,            "tooltip_reset"            },
-	{ TOOLTIP_REEMPLOY,         "tooltip_reemploy"         },
-	{ TOOLTIP_REPLY,            "tooltip_reply"            },
-	{ TOOLTIP_HANDSEL,          "tooltip_handsel"          },
-	{ TOOLTIP_OPENGIFT,         "tooltip_opengift"         },
-	{ TOOLTIP_REPORT,           "tooltip_report"           },
-	{ TOOLTIP_UPGRADE,          "tooltip_upgrade"          },
-	{ TOOLTIP_DOWNGRADE,        "tooltip_downgrade"        },
-	{ TOOLTIP_EQUIPCANCEL,      "tooltip_equipcancel"      },
-	{ TOOLTIP_EQUIPRESET,       "tooltip_equipreset"       },
-	{ TOOLTIP_CARD,             "tooltip_card"             },
-	{ TOOLTIP_CHARACTER,        "tooltip_character"        },
-	{ TOOLTIP_CADDIE,           "tooltip_caddie"           },
-	{ TOOLTIP_CLUB,             "tooltip_club"             },
-	{ TOOLTIP_AZTEC,            "tooltip_aztec"            },
-	{ TOOLTIP_MASCOT,           "tooltip_mascot"           },
-	{ UCC_TOOLTIP_DRAW,         "ucc_tooltip_draw"         },
-	{ UCC_TOOLTIP_COPY,         "ucc_tooltip_copy"         },
-	{ UCC_TOOLTIP_DRAG,         "ucc_tooltip_drag"         },
-	{ UCC_TOOLTIP_GRID,         "ucc_tooltip_grid"         },
-	{ UCC_TOOLTIP_PAINT,        "ucc_tooltip_paint"        },
-	{ UCC_TOOLTIP_REDO,         "ucc_tooltip_redo"         },
-	{ UCC_TOOLTIP_UNDO,         "ucc_tooltip_undo"         },
-	{ UCC_TOOLTIP_RESET,        "ucc_tooltip_reset"        },
-	{ UCC_TOOLTIP_ZOOMIN,       "ucc_tooltip_zoomin"       },
-	{ UCC_TOOLTIP_ZOOMOUT,      "ucc_tooltip_zoomout"      },
-	{ UCC_TOOLTIP_SPOID,        "ucc_tooltip_spoid"        },
-	{ UCC_TOOLTIP_TAB_DRAW,     "ucc_tooltip_tab_draw"     },
-	{ UCC_TOOLTIP_TAB_PATTERN,  "ucc_tooltip_tab_pattern"  },
-	{ UCC_TOOLTIP_TAB_EMOTICON, "ucc_tooltip_tab_emoticon" },
-	{ UCC_TOOLTIP_TAB_TEXT,     "ucc_tooltip_tab_text"     },
-	{ UCC_TOOLTIP_REDRAW,       "ucc_tooltip_redraw"       },
-	{ UCC_TOOLTIP_TEMPSAVE,     "ucc_tooltip_tempsave"     },
-	{ RMR_RM_DECO,              "rmr_rm_deco"              },
-	{ RMR_RM_LETTER,            "rmr_rm_letter"            },
-	{ RMR_DELETE,               "rmr_delete"               },
-	{ RMR_RM_WITHDRAWAL,        "rmr_rm_withdrawal"        },
-	{ RMR_TOOLTIP_CANCEL,       "rmr_tooltip_cancel"       },
-	{ RMR_TOOLTIP_EXTEND,       "rmr_tooltip_extend"       },
-	{ RMR_ITEM_UPLOAD,          "rmr_item_upload"          },
-	{ RMR_TOOLTIP_RETURN,       "rmr_tooltip_return"       },
-	{ TOOLTIP_USE,              "tooltip_use"              },
-	{ TOOLTIP_PACKAGE,          "tooltip_package"          },
+	{ 0, "tooltip_back" },
+	{ 1, "tooltip_front" },
+	{ 2, "tooltip_shop" },
+	{ 3, "tooltip_myroom" },
+	{ 4, "tooltip_dol" },
+	{ 5, "rmr_rm_postbox" },
+	{ 6, "tooltip_cookie" },
+	{ 7, "tooltip_game" },
+	{ 8, "tooltip_server" },
+	{ 9, "tooltip_exit" },
+	{ 10, "tooltip_special_card" },
+	{ 11, "tooltip_msn" },
+	{ 12, "tooltip_myinfo" },
+	{ 13, "tooltip_option" },
+	{ 14, "tooltip_magicbox" },
+	{ 15, "tooltip_bong" },
+	{ 16, "tooltip_ranking" },
+	{ 17, "tooltip_guild" },
+	{ 18, "tooltip_notice" },
+	{ 19, "rmr_tooltip_market" },
+	{ 20, "tooltip_scratch" },
+	{ 21, "tooltip_play" },
+	{ 22, "tooltip_buy" },
+	{ 23, "tooltip_gift" },
+	{ 24, "tooltip_buyall" },
+	{ 25, "tooltip_buyreset" },
+	{ 26, "tooltip_equip" },
+	{ 27, "tooltip_movegift" },
+	{ 28, "tooltip_delete" },
+	{ 29, "tooltip_reset" },
+	{ 30, "tooltip_reemploy" },
+	{ 31, "tooltip_reply" },
+	{ 32, "tooltip_handsel" },
+	{ 33, "tooltip_opengift" },
+	{ 34, "tooltip_report" },
+	{ 35, "tooltip_upgrade" },
+	{ 36, "tooltip_downgrade" },
+	{ 37, "tooltip_equipcancel" },
+	{ 38, "tooltip_equipreset" },
+	{ 39, "tooltip_card" },
+	{ 40, "tooltip_character" },
+	{ 41, "tooltip_caddie" },
+	{ 42, "tooltip_club" },
+	{ 43, "tooltip_aztec" },
+	{ 44, "tooltip_mascot" },
+	{ 45, "ucc_tooltip_draw" },
+	{ 46, "ucc_tooltip_copy" },
+	{ 47, "ucc_tooltip_drag" },
+	{ 48, "ucc_tooltip_grid" },
+	{ 49, "ucc_tooltip_paint" },
+	{ 50, "ucc_tooltip_redo" },
+	{ 51, "ucc_tooltip_undo" },
+	{ 52, "ucc_tooltip_reset" },
+	{ 53, "ucc_tooltip_zoomin" },
+	{ 54, "ucc_tooltip_zoomout" },
+	{ 55, "ucc_tooltip_spoid" },
+	{ 56, "ucc_tooltip_tab_draw" },
+	{ 57, "ucc_tooltip_tab_pattern" },
+	{ 58, "ucc_tooltip_tab_emoticon" },
+	{ 59, "ucc_tooltip_tab_text" },
+	{ 60, "ucc_tooltip_redraw" },
+	{ 61, "ucc_tooltip_tempsave" },
+	{ 62, "rmr_rm_deco" },
+	{ 63, "rmr_rm_letter" },
+	{ 64, "rmr_delete" },
+	{ 65, "rmr_rm_withdrawal" },
+	{ 66, "rmr_tooltip_cancel" },
+	{ 67, "rmr_tooltip_extend" },
+	{ 68, "rmr_item_upload" },
+	{ 69, "rmr_tooltip_return" },
+	{ 70, "tooltip_use" },
+	{ 71, "tooltip_package" }
 };
-CIconToolTip::CIconToolTip()
-{
+
+// tooltip.cpp:126
+CIconToolTip::CIconToolTip(void) {
 	m_curTipIndex = -1;
-	m_pCurToolTip = NULL;
+	m_curTipBitmap = 0;
 
-	for (int i = 0; i < MAX_BARBUTTON; ++i)
+	for (int i = 0; i < (int)(sizeof(ToolTips) / sizeof(ToolTips[0])); ++i)
 	{
-		m_pToolTip[i] = g_pFresh->GetBitmap(ToolTips[i].name);
+		m_tipBitmaps[i] = g_pFresh->GetBitmap(ToolTips[i].bitmapName);
 	}
 }
 
-CIconToolTip::~CIconToolTip()
-{
-	for (int i = 0; i < MAX_BARBUTTON; ++i)
+// tooltip.cpp:138
+CIconToolTip::~CIconToolTip(void) {
+	for (int i = 0; i < sizeof(m_tipBitmaps) / sizeof(m_tipBitmaps[0]); ++i)
 	{
-		m_pToolTip[i] = NULL;
+		m_tipBitmaps[i] = 0;
 	}
 }
 
-void CIconToolTip::Render()
-{
+// tooltip.cpp:146
+void CIconToolTip::Render(void) {
 	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
 
-	if (m_pCurToolTip && pGDI)
-	{
-		if (GOLFDOC() && GOLFDOC()->m_gameMode == 0x200)
-		{
-			ClearToolTip();
-			return;
-		}
-		float x = g_input->GetMousePoint().x;
-		float y = g_input->GetMousePoint().y;
-		float width = (float)m_pCurToolTip->Width();
-		float height = (float)m_pCurToolTip->Height();
+	if (m_curTipBitmap == 0 || pGDI == 0)
+		return;
 
-		WRect dest(x + 12.0f, y + 23.0f, width, height);
-
-		if (dest.x >= g_view->GetWidth() - width)
-			dest.x = g_view->GetWidth() - width;
-
-		if (dest.y >= g_view->GetHeight() - height)
-			dest.y = g_view->GetHeight() - height;
-
-		pGDI->DrawTexture(m_pCurToolTip, dest, 0xffffffff, 0);
-	}
-}
-
-void CIconToolTip::SetToolTip(eBarButton tip)
-{
-	if (!m_pToolTip[tip])
-	{
-		m_pToolTip[tip] = g_pFresh->GetBitmap(ToolTips[tip].name);
+	if (GOLFDOC() && GOLFDOC()->GameMode() == 0x200) {
+		ClearToolTip();
+		return;
 	}
 
-	m_pCurToolTip = m_pToolTip[tip];
-	m_curTipIndex = tip;
+	float x = g_input->GetMousePoint().x;
+	float y = g_input->GetMousePoint().y;
+	float width = (float)m_curTipBitmap->Width();
+	float height = (float)m_curTipBitmap->Height();
+
+	WRect rect(x + 12.0f, y + 23.0f, width, height);
+
+	if (rect.x >= g_view->GetWidth() - width)
+		rect.x = g_view->GetWidth() - width;
+
+	if (rect.y >= g_view->GetHeight() - height)
+		rect.y = g_view->GetHeight() - height;
+
+	pGDI->DrawTexture(m_curTipBitmap, rect, 0xFFFFFFFF, 0);
 }
 
-void CIconToolTip::ClearToolTip()
-{
-	m_pCurToolTip = NULL;
+// tooltip.cpp:174
+void CIconToolTip::SetToolTip(eBarButton button) {
+	if (m_tipBitmaps[button] == 0) {
+		m_tipBitmaps[button] = g_pFresh->GetBitmap(ToolTips[button].bitmapName);
+	}
+
+	m_curTipBitmap = m_tipBitmaps[button];
+	m_curTipIndex = button;
+}
+
+// tooltip.cpp:187
+void CIconToolTip::ClearToolTip(void) {
+	m_curTipBitmap = 0;
 	m_curTipIndex = -1;
 }
 
-bool CIconToolTip::IsCurToolTip(eBarButton tip)
-{
-	if (m_pCurToolTip == m_pToolTip[tip])
+// tooltip.cpp:193
+bool CIconToolTip::IsCurToolTip(eBarButton button) {
+	if (m_curTipBitmap == m_tipBitmaps[button])
 		return true;
 
 	return false;

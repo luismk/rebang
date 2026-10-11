@@ -1,461 +1,580 @@
-#include "minatl.h"
-#include "worldtoureventdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\worldtoureventdlg.cpp
+#include "WorldTourEventDlg.h"
+#include "ObjectFactory.h"
+#include "fresh.h"
+#include "frarea.h"
+#include "frbutton.h"
+#include "frviewer.h"
+#include "frwndmanager.h"
+#include "frgraphicinterface.h"
+#include "bitmap.h"
 #include "contentsdoc.h"
+#include "Packet.h"
+#include "SharedDoc.h"
+#include <string.h>
 
-extern Fresh* g_pFresh;
+// worldtoureventdlg.cpp:11 (run-time type and factory registration of FrWorldTourEventDlg)
+const WRTTI FrWorldTourEventDlg::m_RTTI("FrWorldTourEventDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrWorldTourEventDlg, FrForm)
+IObject* FrWorldTourEventDlgMakeInstance(void) {
+	return new FrWorldTourEventDlg;
+}
 
-BEGIN_FRESH_MSGMAP(FrWorldTourEventDlg, FrForm)
+struct __sFrWorldTourEventDlg {
+	__sFrWorldTourEventDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrWorldTourEventDlgMakeInstance, "FrWorldTourEventDlg");
+	}
+};
+static __sFrWorldTourEventDlg s_registerFrWorldTourEventDlg;
 
-ON_FRESH_VV("map_icon_area", FRCMD_OWNERDRAW,
-	FrWorldTourEventDlg::OnMapIconOwnerDraw)
-ON_FRESH_VI("show_desc_left_top", FRCMD_INIT,
-	FrWorldTourEventDlg::OnInitGiftImageLeftTop)
-ON_FRESH_VI("show_desc_right_top", FRCMD_INIT,
-	FrWorldTourEventDlg::OnInitGiftImageRightTop)
-ON_FRESH_VI("show_desc_left_bottom", FRCMD_INIT,
-	FrWorldTourEventDlg::OnInitGiftImageLeftBottom)
-ON_FRESH_VI("show_desc_right_bottom", FRCMD_INIT,
-	FrWorldTourEventDlg::OnInitGiftImageRightBottom)
-ON_FRESH_VI("desc_button", FRCMD_INIT, FrWorldTourEventDlg::OnInitDescButton)
-ON_FRESH_VV("desc_button", FRCMD_LBUTTONUP,
-	FrWorldTourEventDlg::OnLBDownDescButton)
-ON_FRESH_VI("gift_button_cover", FRCMD_INIT,
-	FrWorldTourEventDlg::OnInitGiftButtonCover)
-ON_FRESH_VI("gift_button", FRCMD_INIT, FrWorldTourEventDlg::OnInitGiftButton)
-ON_FRESH_VV("gift_button", FRCMD_LBUTTONUP,
-	FrWorldTourEventDlg::OnLBDownGiftButton)
-ON_FRESH_VI("course_button", FRCMD_INIT,
-	FrWorldTourEventDlg::OnInitCourseButton)
-ON_FRESH_VV("course_button", FRCMD_LBUTTONUP,
-	FrWorldTourEventDlg::OnLBDownCourseButton)
+// worldtoureventdlg.cpp:13
+const sFRESH_MSGMAP* FrWorldTourEventDlg::GetMessageMap(void) const {
+	return &FrWorldTourEventDlg::_MsgMap;
+}
 
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrWorldTourEventDlg::_MsgMap = { &FrForm::_MsgMap, &FrWorldTourEventDlg::_MsgEntries[0] };
 
-FrWorldTourEventDlg::FrWorldTourEventDlg()
-{
+sFRESH_ENTRY FrWorldTourEventDlg::_MsgEntries[] = {
+	// worldtoureventdlg.cpp:15
+	{ "map_icon_area", FRCMD_OWNERDRAW, FrFuncVV, (FRESH_PMSG)&FrWorldTourEventDlg::OnMapIconOwnerDraw },
+
+	// worldtoureventdlg.cpp:17
+	{ "show_desc_left_top", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitGiftImageLeftTop },
+	// worldtoureventdlg.cpp:18
+	{ "show_desc_right_top", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitGiftImageRightTop },
+	// worldtoureventdlg.cpp:19
+	{ "show_desc_left_bottom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitGiftImageLeftBottom },
+	// worldtoureventdlg.cpp:20
+	{ "show_desc_right_bottom", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitGiftImageRightBottom },
+
+	// worldtoureventdlg.cpp:22
+	{ "desc_button", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitDescButton },
+	// worldtoureventdlg.cpp:23
+	{ "desc_button", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrWorldTourEventDlg::OnLBDownDescButton },
+	// worldtoureventdlg.cpp:24
+	{ "gift_button_cover", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitGiftButtonCover },
+	// worldtoureventdlg.cpp:25
+	{ "gift_button", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitGiftButton },
+	// worldtoureventdlg.cpp:26
+	{ "gift_button", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrWorldTourEventDlg::OnLBDownGiftButton },
+	// worldtoureventdlg.cpp:27
+	{ "course_button", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDlg::OnInitCourseButton },
+	// worldtoureventdlg.cpp:28
+	{ "course_button", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrWorldTourEventDlg::OnLBDownCourseButton },
+
+	// worldtoureventdlg.cpp:30
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// worldtoureventdlg.cpp:38
+FrWorldTourEventDlg::FrWorldTourEventDlg(void) {
 	ClearVariables();
 }
 
-FrWorldTourEventDlg::~FrWorldTourEventDlg()
-{
-	// HACK
-	(void)&g_EPSILON;
+// worldtoureventdlg.cpp:44
+FrWorldTourEventDlg::~FrWorldTourEventDlg(void) {
 }
 
-void FrWorldTourEventDlg::ClearVariables()
-{
-	m_fElapsed = 0.0f;
-	m_reserved = 0;
+// worldtoureventdlg.cpp:49
+void FrWorldTourEventDlg::ClearVariables(void) {
+	m_time = 0;
+
+	m_bInit = false;
 	m_mapFlag = 0;
-	memset(m_mapFlagList, 0, sizeof(m_mapFlagList));
-	memset(m_mapRect, 0, sizeof(m_mapRect));
+
+	memset(m_mapFlagVector, 0, sizeof(m_mapFlagVector));
+	memset(m_mapImageRect, 0, sizeof(m_mapImageRect));
 	memset(m_mapImage, 0, sizeof(m_mapImage));
-	m_pMarkImage = NULL;
-	m_pDescButton = NULL;
-	m_pCourseButton = NULL;
-	m_pGiftButton = NULL;
-	m_pGiftImage[0] = NULL;
-	m_pGiftImage[1] = NULL;
-	m_pGiftImage[2] = NULL;
-	m_pGiftImage[3] = NULL;
-	m_pGiftDlg = NULL;
-	m_pDescDlg = NULL;
+
+	m_pStampImage = 0;
+
+	m_pDescButton = 0;
+	m_pCourseButton = 0;
+	m_pGiftButton = 0;
+
+	m_pGiftImageLeftTop = 0;
+	m_pGiftImageRightTop = 0;
+	m_pGiftImageLeftBottom = 0;
+	m_pGiftImageRightBottom = 0;
+
+	m_pGiftDlg = 0;
+	m_pDescDlg = 0;
 }
 
-void FrWorldTourEventDlg::SetMapFlag(unsigned long flag)
-{
-	m_mapFlag = flag;
+// worldtoureventdlg.cpp:76
+void FrWorldTourEventDlg::SetMapFlag(unsigned long mapFlag) {
+	m_mapFlag = mapFlag;
 }
 
-void FrWorldTourEventDlg::SetMapFlagVector(eMapType type)
-{
-	unsigned long flag = CMapTypeAdapter::GetMapFlag(type);
-	m_mapFlagList[CMapTypeAdapter::GetMapIndex(type)] = flag;
+// worldtoureventdlg.cpp:88
+void FrWorldTourEventDlg::SetMapFlagVector(eMapType type) {
+	m_mapFlagVector[CMapTypeAdapter::GetMapIndex(type)] = CMapTypeAdapter::GetMapFlag(type);
 }
 
-void FrWorldTourEventDlg::SetMapImageRect(eMapType type, WRect& rect)
-{
-	m_mapRect[CMapTypeAdapter::GetMapIndex(type)] = rect;
+// worldtoureventdlg.cpp:93
+void FrWorldTourEventDlg::SetMapImageRect(eMapType type, WRect& rect) {
+	m_mapImageRect[CMapTypeAdapter::GetMapIndex(type)] = rect;
 }
 
-void FrWorldTourEventDlg::SetMapImage(eMapType type, const char* on,
-	const char* off)
-{
-	int index = CMapTypeAdapter::GetMapIndex(type);
-	m_mapImage[index][0] = g_pFresh->GetBitmap(on);
-	m_mapImage[index][1] = g_pFresh->GetBitmap(off);
+// worldtoureventdlg.cpp:99
+void FrWorldTourEventDlg::SetMapImage(eMapType type, const char* image, const char* imageOver) {
+	CMapTypeAdapter::eMapIndex index = CMapTypeAdapter::GetMapIndex(type);
+	m_mapImage[index].m_pImage = g_pFresh->GetBitmap(image);
+	m_mapImage[index].m_pImageOver = g_pFresh->GetBitmap(imageOver);
 }
 
-bool FrWorldTourEventDlg::OnInit()
-{
-	SetMapFlagVector(MAP_BLUE_LAGOON);
-	SetMapFlagVector(MAP_BLUE_WATER);
-	SetMapFlagVector(MAP_SEPIA_WIND);
-	SetMapFlagVector(MAP_WIND_HILL);
-	SetMapFlagVector(MAP_WIZ_WIZ);
-	SetMapFlagVector(MAP_WEST_WIZ);
-	SetMapFlagVector(MAP_BLUE_MOON);
-	SetMapFlagVector(MAP_SILVIA_CANNON);
-	SetMapFlagVector(MAP_ICE_CANNON);
-	SetMapFlagVector(MAP_WHITE_WIZ);
-	SetMapFlagVector(MAP_SHINING_SAND);
-	SetMapFlagVector(MAP_PINK_WIND);
-	SetMapFlagVector(MAP_DEEP_INFERNO);
-	SetMapFlagVector(MAP_ICE_SPA);
-	SetMapFlagVector(MAP_LOST_SEAWAY);
-	SetMapFlagVector(MAP_EASTERN_VALLEY);
-	SetMapFlagVector(MAP_WIZ_CITY);
-	SetMapImageRect(MAP_BLUE_LAGOON, WRect(296.0f, 410.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_BLUE_WATER, WRect(218.0f, 424.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_SEPIA_WIND, WRect(139.0f, 310.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_WIND_HILL, WRect(214.0f, 272.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_WIZ_WIZ, WRect(229.0f, 216.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_WEST_WIZ, WRect(173.0f, 222.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_BLUE_MOON, WRect(116.0f, 385.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_SILVIA_CANNON, WRect(223.0f, 470.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_ICE_CANNON, WRect(51.0f, 257.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_WHITE_WIZ, WRect(275.0f, 210.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_SHINING_SAND, WRect(490.0f, 293.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_PINK_WIND, WRect(206.0f, 353.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_DEEP_INFERNO, WRect(354.0f, 263.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_ICE_SPA, WRect(94.0f, 205.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_LOST_SEAWAY, WRect(440.0f, 375.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_EASTERN_VALLEY, WRect(359.0f, 349.0f, 0.0f, 0.0f));
-	SetMapImageRect(MAP_WIZ_CITY, WRect(0.0f, 0.0f, 0.0f, 0.0f));
-	SetMapImage(MAP_BLUE_LAGOON, "map_bluelagoon_on", "map_bluelagoon_off");
-	SetMapImage(MAP_BLUE_WATER, "map_bluewater_on", "map_bluewater_off");
-	SetMapImage(MAP_SEPIA_WIND, "map_sepiawind_on", "map_sepiawind_off");
-	SetMapImage(MAP_WIND_HILL, "map_windhill_on", "map_windhill_off");
-	SetMapImage(MAP_WIZ_WIZ, "map_wizwiz_on", "map_wizwiz_off");
-	SetMapImage(MAP_WEST_WIZ, "map_westwiz_on", "map_westwiz_off");
-	SetMapImage(MAP_BLUE_MOON, "map_bluemoon_on", "map_bluemoon_off");
-	SetMapImage(MAP_SILVIA_CANNON, "map_silviacannon_on",
-		"map_silviacannon_off");
-	SetMapImage(MAP_ICE_CANNON, "map_icecannon_on", "map_icecannon_off");
-	SetMapImage(MAP_WHITE_WIZ, "map_whitewiz_on", "map_whitewiz_off");
-	SetMapImage(MAP_SHINING_SAND, "map_shining_on", "map_shining_off");
-	SetMapImage(MAP_PINK_WIND, "map_pinkwind_on", "map_pinkwind_off");
-	SetMapImage(MAP_DEEP_INFERNO, "map_deepinferno_on", "map_deepinferno_off");
-	SetMapImage(MAP_ICE_SPA, "map_icespa_on", "map_icespa_off");
-	SetMapImage(MAP_LOST_SEAWAY, "map_lostseaway_on", "map_lostseaway_off");
-	SetMapImage(MAP_EASTERN_VALLEY, "map_esternvalley_on",
-		"map_esternvalley_off");
-	SetMapImage(MAP_WIZ_CITY, "map_lostseaway_on", "map_lostseaway_off");
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_BLUE_LAGOON)] =
-		WRect(293.0f, 418.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_BLUE_WATER)] =
-		WRect(200.0f, 427.0f, 0.0f, 0.0f);
-	eMapType sepia = MAP_SEPIA_WIND;
-	m_markRect[CMapTypeAdapter::GetMapIndex(sepia)] =
-		WRect(159.0f, 316.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_WIND_HILL)] =
-		WRect(217.0f, 283.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_WIZ_WIZ)] =
-		WRect(230.0f, 229.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_WEST_WIZ)] =
-		WRect(175.0f, 241.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_BLUE_MOON)] =
-		WRect(120.0f, 393.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_SILVIA_CANNON)] =
-		WRect(242.0f, 488.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_ICE_CANNON)] =
-		WRect(65.0f, 266.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_WHITE_WIZ)] =
-		WRect(281.0f, 215.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_SHINING_SAND)] =
-		WRect(502.0f, 319.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_PINK_WIND)] =
-		WRect(212.0f, 366.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_DEEP_INFERNO)] =
-		WRect(368.0f, 288.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_ICE_SPA)] =
-		WRect(105.0f, 221.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_LOST_SEAWAY)] =
-		WRect(450.0f, 385.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_EASTERN_VALLEY)] =
-		WRect(359.0f, 349.0f, 0.0f, 0.0f);
-	m_markRect[CMapTypeAdapter::GetMapIndex(MAP_WIZ_CITY)] =
-		WRect(0.0f, 385.0f, 0.0f, 0.0f);
-	m_pMarkImage = g_pFresh->GetBitmap("wte_mark");
+// worldtoureventdlg.cpp:106
+bool FrWorldTourEventDlg::OnInit(void) {
+	// Course bits, image rectangles, images and stamp rectangles, indexed by
+	// course id (MAP_WIZ_CITY, 19, writes past the 17-slot tables).
+	m_mapFlagVector[MAP_BLUE_LAGOON] = CMapTypeAdapter::MAP_FLAG_BLUE_LAGOON;
+	m_mapFlagVector[MAP_BLUE_WATER] = CMapTypeAdapter::MAP_FLAG_BLUE_WATER;
+	m_mapFlagVector[MAP_SEPIA_WIND] = CMapTypeAdapter::MAP_FLAG_SEPIA_WIND;
+	m_mapFlagVector[MAP_WIND_HILL] = CMapTypeAdapter::MAP_FLAG_WIND_HILL;
+	m_mapFlagVector[MAP_WIZ_WIZ] = CMapTypeAdapter::MAP_FLAG_WIZ_WIZ;
+	m_mapFlagVector[MAP_WEST_WIZ] = CMapTypeAdapter::MAP_FLAG_WEST_WIZ;
+	m_mapFlagVector[MAP_BLUE_MOON] = CMapTypeAdapter::MAP_FLAG_BLUE_MOON;
+	m_mapFlagVector[MAP_SILVIA_CANNON] = CMapTypeAdapter::MAP_FLAG_SILVIA_CANNON;
+	m_mapFlagVector[MAP_ICE_CANNON] = CMapTypeAdapter::MAP_FLAG_ICE_CANNON;
+	m_mapFlagVector[MAP_WHITE_WIZ] = CMapTypeAdapter::MAP_FLAG_WHITE_WIZ;
+	m_mapFlagVector[MAP_SHINING_SAND] = CMapTypeAdapter::MAP_FLAG_SHINING_SAND;
+	m_mapFlagVector[MAP_PINK_WIND] = CMapTypeAdapter::MAP_FLAG_PINK_WIND;
+	m_mapFlagVector[MAP_DEEP_INFERNO] = CMapTypeAdapter::MAP_FLAG_DEEP_INFERNO;
+	m_mapFlagVector[MAP_ICE_SPA] = CMapTypeAdapter::MAP_FLAG_ICE_SPA;
+	m_mapFlagVector[MAP_LOST_SEAWAY] = CMapTypeAdapter::MAP_FLAG_LOST_SEAWAY;
+	m_mapFlagVector[MAP_EASTERN_VALLEY] = CMapTypeAdapter::MAP_FLAG_EASTERN_VALLEY;
+	m_mapFlagVector[MAP_WIZ_CITY] = CMapTypeAdapter::MAP_FLAG_WIZ_CITY;
+	m_mapImageRect[MAP_BLUE_LAGOON] = WRect(296.0f, 410.0f, 0, 0);
+	m_mapImageRect[MAP_BLUE_WATER] = WRect(218.0f, 424.0f, 0, 0);
+	m_mapImageRect[MAP_SEPIA_WIND] = WRect(139.0f, 310.0f, 0, 0);
+	m_mapImageRect[MAP_WIND_HILL] = WRect(214.0f, 272.0f, 0, 0);
+	m_mapImageRect[MAP_WIZ_WIZ] = WRect(229.0f, 216.0f, 0, 0);
+	m_mapImageRect[MAP_WEST_WIZ] = WRect(173.0f, 222.0f, 0, 0);
+	m_mapImageRect[MAP_BLUE_MOON] = WRect(116.0f, 385.0f, 0, 0);
+	m_mapImageRect[MAP_SILVIA_CANNON] = WRect(223.0f, 470.0f, 0, 0);
+	m_mapImageRect[MAP_ICE_CANNON] = WRect(51.0f, 257.0f, 0, 0);
+	m_mapImageRect[MAP_WHITE_WIZ] = WRect(275.0f, 210.0f, 0, 0);
+	m_mapImageRect[MAP_SHINING_SAND] = WRect(490.0f, 293.0f, 0, 0);
+	m_mapImageRect[MAP_PINK_WIND] = WRect(206.0f, 353.0f, 0, 0);
+	m_mapImageRect[MAP_DEEP_INFERNO] = WRect(354.0f, 263.0f, 0, 0);
+	m_mapImageRect[MAP_ICE_SPA] = WRect(94.0f, 205.0f, 0, 0);
+	m_mapImageRect[MAP_LOST_SEAWAY] = WRect(440.0f, 375.0f, 0, 0);
+	m_mapImageRect[MAP_EASTERN_VALLEY] = WRect(359.0f, 349.0f, 0, 0);
+	m_mapImageRect[MAP_WIZ_CITY] = WRect(0.0f, 0.0f, 0, 0);
+	m_mapImage[MAP_BLUE_LAGOON].m_pImage = g_pFresh->GetBitmap("map_bluelagoon_on");
+	m_mapImage[MAP_BLUE_LAGOON].m_pImageOver = g_pFresh->GetBitmap("map_bluelagoon_off");
+	m_mapImage[MAP_BLUE_WATER].m_pImage = g_pFresh->GetBitmap("map_bluewater_on");
+	m_mapImage[MAP_BLUE_WATER].m_pImageOver = g_pFresh->GetBitmap("map_bluewater_off");
+	m_mapImage[MAP_SEPIA_WIND].m_pImage = g_pFresh->GetBitmap("map_sepiawind_on");
+	m_mapImage[MAP_SEPIA_WIND].m_pImageOver = g_pFresh->GetBitmap("map_sepiawind_off");
+	m_mapImage[MAP_WIND_HILL].m_pImage = g_pFresh->GetBitmap("map_windhill_on");
+	m_mapImage[MAP_WIND_HILL].m_pImageOver = g_pFresh->GetBitmap("map_windhill_off");
+	m_mapImage[MAP_WIZ_WIZ].m_pImage = g_pFresh->GetBitmap("map_wizwiz_on");
+	m_mapImage[MAP_WIZ_WIZ].m_pImageOver = g_pFresh->GetBitmap("map_wizwiz_off");
+	m_mapImage[MAP_WEST_WIZ].m_pImage = g_pFresh->GetBitmap("map_westwiz_on");
+	m_mapImage[MAP_WEST_WIZ].m_pImageOver = g_pFresh->GetBitmap("map_westwiz_off");
+	m_mapImage[MAP_BLUE_MOON].m_pImage = g_pFresh->GetBitmap("map_bluemoon_on");
+	m_mapImage[MAP_BLUE_MOON].m_pImageOver = g_pFresh->GetBitmap("map_bluemoon_off");
+	m_mapImage[MAP_SILVIA_CANNON].m_pImage = g_pFresh->GetBitmap("map_silviacannon_on");
+	m_mapImage[MAP_SILVIA_CANNON].m_pImageOver = g_pFresh->GetBitmap("map_silviacannon_off");
+	m_mapImage[MAP_ICE_CANNON].m_pImage = g_pFresh->GetBitmap("map_icecannon_on");
+	m_mapImage[MAP_ICE_CANNON].m_pImageOver = g_pFresh->GetBitmap("map_icecannon_off");
+	m_mapImage[MAP_WHITE_WIZ].m_pImage = g_pFresh->GetBitmap("map_whitewiz_on");
+	m_mapImage[MAP_WHITE_WIZ].m_pImageOver = g_pFresh->GetBitmap("map_whitewiz_off");
+	m_mapImage[MAP_SHINING_SAND].m_pImage = g_pFresh->GetBitmap("map_shining_on");
+	m_mapImage[MAP_SHINING_SAND].m_pImageOver = g_pFresh->GetBitmap("map_shining_off");
+	m_mapImage[MAP_PINK_WIND].m_pImage = g_pFresh->GetBitmap("map_pinkwind_on");
+	m_mapImage[MAP_PINK_WIND].m_pImageOver = g_pFresh->GetBitmap("map_pinkwind_off");
+	m_mapImage[MAP_DEEP_INFERNO].m_pImage = g_pFresh->GetBitmap("map_deepinferno_on");
+	m_mapImage[MAP_DEEP_INFERNO].m_pImageOver = g_pFresh->GetBitmap("map_deepinferno_off");
+	m_mapImage[MAP_ICE_SPA].m_pImage = g_pFresh->GetBitmap("map_icespa_on");
+	m_mapImage[MAP_ICE_SPA].m_pImageOver = g_pFresh->GetBitmap("map_icespa_off");
+	m_mapImage[MAP_LOST_SEAWAY].m_pImage = g_pFresh->GetBitmap("map_lostseaway_on");
+	m_mapImage[MAP_LOST_SEAWAY].m_pImageOver = g_pFresh->GetBitmap("map_lostseaway_off");
+	m_mapImage[MAP_EASTERN_VALLEY].m_pImage = g_pFresh->GetBitmap("map_esternvalley_on");
+	m_mapImage[MAP_EASTERN_VALLEY].m_pImageOver = g_pFresh->GetBitmap("map_esternvalley_off");
+	m_mapImage[MAP_WIZ_CITY].m_pImage = g_pFresh->GetBitmap("map_lostseaway_on");
+	m_mapImage[MAP_WIZ_CITY].m_pImageOver = g_pFresh->GetBitmap("map_lostseaway_off");
+	m_stampRect[MAP_BLUE_LAGOON] = WRect(293.0f, 418.0f, 0, 0);
+	m_stampRect[MAP_BLUE_WATER] = WRect(200.0f, 427.0f, 0, 0);
+	m_stampRect[CMapTypeAdapter::GetMapIndex(MAP_SEPIA_WIND)] = WRect(159.0f, 316.0f, 0, 0);
+	m_stampRect[MAP_WIND_HILL] = WRect(217.0f, 283.0f, 0, 0);
+	m_stampRect[MAP_WIZ_WIZ] = WRect(230.0f, 229.0f, 0, 0);
+	m_stampRect[MAP_WEST_WIZ] = WRect(175.0f, 241.0f, 0, 0);
+	m_stampRect[MAP_BLUE_MOON] = WRect(120.0f, 393.0f, 0, 0);
+	m_stampRect[MAP_SILVIA_CANNON] = WRect(242.0f, 488.0f, 0, 0);
+	m_stampRect[MAP_ICE_CANNON] = WRect(65.0f, 266.0f, 0, 0);
+	m_stampRect[MAP_WHITE_WIZ] = WRect(281.0f, 215.0f, 0, 0);
+	m_stampRect[MAP_SHINING_SAND] = WRect(502.0f, 319.0f, 0, 0);
+	m_stampRect[MAP_PINK_WIND] = WRect(212.0f, 366.0f, 0, 0);
+	m_stampRect[MAP_DEEP_INFERNO] = WRect(368.0f, 288.0f, 0, 0);
+	m_stampRect[MAP_ICE_SPA] = WRect(105.0f, 221.0f, 0, 0);
+	m_stampRect[MAP_LOST_SEAWAY] = WRect(450.0f, 385.0f, 0, 0);
+	m_stampRect[MAP_EASTERN_VALLEY] = WRect(359.0f, 349.0f, 0, 0);
+	m_stampRect[MAP_WIZ_CITY] = WRect(0.0f, 385.0f, 0, 0);
+
+	m_pStampImage = g_pFresh->GetBitmap("wte_mark");
+
 	return true;
 }
 
-void FrWorldTourEventDlg::OnProc(const float dt)
-{
-	m_fElapsed += dt;
+// worldtoureventdlg.cpp:216
+void FrWorldTourEventDlg::OnProc(const float dt) {
+	m_time += dt;
 }
 
-void FrWorldTourEventDlg::DrawMapImage()
-{
-	FrGraphicInterface* gdi = g_pFresh->GetManager()->GetGDI();
-	if (gdi)
-	{
-		WRect origin = m_rect;
-		for (int i = 0; i < 17; ++i)
-		{
-			const Bitmap* bitmap;
-			if (m_mapFlagList[i] & m_mapFlag)
-				bitmap = m_mapImage[i][0];
-			else
-				bitmap = m_mapImage[i][1];
-			if (bitmap)
-				gdi->DrawTexture(bitmap,
-					WRect(origin.x + m_mapRect[i].x, origin.y + m_mapRect[i].y,
-						(float)bitmap->Width(), (float)bitmap->Height()),
-					0xffffffff, 0);
-			if (m_mapFlagList[i] & m_mapFlag)
-			{
-				if (m_pMarkImage)
-					gdi->DrawTexture(m_pMarkImage,
-						WRect(origin.x + m_markRect[i].x,
-							origin.y + m_markRect[i].y,
-							(float)m_pMarkImage->Width(),
-							(float)m_pMarkImage->Height()),
-						0xffffffff, 0);
+// worldtoureventdlg.cpp:221
+void FrWorldTourEventDlg::DrawMapImage(void) {
+
+
+	FrGraphicInterface* pDevice = g_pFresh->GetManager()->GetGDI();
+	if (pDevice) {
+
+		WRect rect = m_rect;
+
+		for (int i = 0; i < MAP_SLOT_COUNT; i++) {
+
+
+
+
+
+
+
+
+			const Bitmap* pImage;
+			if (m_mapFlagVector[i] & m_mapFlag) {
+
+				pImage = m_mapImage[i].m_pImage;
+
+			} else {
+
+				pImage = m_mapImage[i].m_pImageOver;
+			}
+
+			if (pImage) {
+
+
+
+
+
+				pDevice->DrawTexture(pImage, WRect(rect.x + m_mapImageRect[i].x, rect.y + m_mapImageRect[i].y, pImage->Width(), pImage->Height()), 0xffffffff, 0);
+			}
+
+			if (m_mapFlagVector[i] & m_mapFlag) {
+
+
+				if (m_pStampImage) {
+
+
+
+
+
+					pDevice->DrawTexture(m_pStampImage, WRect(rect.x + m_stampRect[i].x, rect.y + m_stampRect[i].y, m_pStampImage->Width(), m_pStampImage->Height()), 0xffffffff, 0);
+				}
 			}
 		}
 	}
 }
 
-void FrWorldTourEventDlg::OnMapIconOwnerDraw()
-{
+// worldtoureventdlg.cpp:270
+void FrWorldTourEventDlg::OnMapIconOwnerDraw(void) {
 	DrawMapImage();
-	if (m_mapFlag == 0xffff)
-	{
-		const Bitmap* bitmap = g_pFresh->GetBitmap("stamp_good_big");
-		if (bitmap)
-		{
-			WRect origin = m_rect;
-			WRect rect(origin.x + 217.0f, origin.y + 122.0f,
-				(float)bitmap->Width(), (float)bitmap->Height());
-			g_pFresh->GetManager()->GetGDI()->DrawTexture(bitmap, rect,
-				0xffffffff, 0);
+
+	if (m_mapFlag == 0xffff) {
+
+		const Bitmap* pStamp = g_pFresh->GetBitmap("stamp_good_big");
+		if (pStamp) {
+
+			WRect rect(m_rect.x + 217.0f, m_rect.y + 122.0f, pStamp->Width(), pStamp->Height());
+
+
+			g_pFresh->GetManager()->GetGDI()->DrawTexture(pStamp, rect, 0xffffffff, 0);
 		}
 	}
 }
 
-void FrWorldTourEventDlg::OnInitGiftImageLeftTop(int param)
-{
-	m_pGiftImage[0] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pGiftImage[0]->SetVisible(false);
+// worldtoureventdlg.cpp:288
+void FrWorldTourEventDlg::OnInitGiftImageLeftTop(intptr_t param) {
+	m_pGiftImageLeftTop = DYNAMIC_CAST(FrArea, param);
+	m_pGiftImageLeftTop->SetVisible(false);
 }
 
-void FrWorldTourEventDlg::OnInitGiftImageRightTop(int param)
-{
-	m_pGiftImage[1] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pGiftImage[1]->SetVisible(false);
+// worldtoureventdlg.cpp:294
+void FrWorldTourEventDlg::OnInitGiftImageRightTop(intptr_t param) {
+	m_pGiftImageRightTop = DYNAMIC_CAST(FrArea, param);
+	m_pGiftImageRightTop->SetVisible(false);
 }
 
-void FrWorldTourEventDlg::OnInitGiftImageLeftBottom(int param)
-{
-	m_pGiftImage[2] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pGiftImage[2]->SetVisible(false);
+// worldtoureventdlg.cpp:300
+void FrWorldTourEventDlg::OnInitGiftImageLeftBottom(intptr_t param) {
+	m_pGiftImageLeftBottom = DYNAMIC_CAST(FrArea, param);
+	m_pGiftImageLeftBottom->SetVisible(false);
 }
 
-void FrWorldTourEventDlg::OnInitGiftImageRightBottom(int param)
-{
-	m_pGiftImage[3] = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	m_pGiftImage[3]->SetVisible(false);
+// worldtoureventdlg.cpp:306
+void FrWorldTourEventDlg::OnInitGiftImageRightBottom(intptr_t param) {
+	m_pGiftImageRightBottom = DYNAMIC_CAST(FrArea, param);
+	m_pGiftImageRightBottom->SetVisible(false);
 }
 
-void FrWorldTourEventDlg::OnInitDescButton(int param)
-{
-	m_pDescButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// worldtoureventdlg.cpp:312
+void FrWorldTourEventDlg::OnInitDescButton(intptr_t param) {
+	m_pDescButton = DYNAMIC_CAST(FrButton, param);
+
+
 	m_pDescButton->SetPushDelay(0.0f);
 }
 
-void FrWorldTourEventDlg::OnLBDownDescButton()
-{
-	if (!m_pDescDlg)
-	{
-		m_pDescDlg = CreateForm<FrWorldTourEventDescDlg>(g_pFresh->GetManager(),
-			this, "world_tour_event_desc_dlg", NULL);
-		if (m_pDescDlg)
-		{
+// worldtoureventdlg.cpp:320
+void FrWorldTourEventDlg::OnLBDownDescButton(void) {
+
+	if (m_pDescDlg == 0) {
+
+		m_pDescDlg = CreateForm<FrWorldTourEventDescDlg>(g_pFresh->GetManager(), this, "world_tour_event_desc_dlg", 0);
+
+		if (m_pDescDlg) {
+
 			WRect rect = m_pDescButton->GetRect();
+
 			m_pDescDlg->SetIconRect(rect);
-			m_pDescDlg->Open(
-				(FRESH_PFN_RESULT)&FrWorldTourEventDlg::OnDescDlgResult, 17);
+			m_pDescDlg->Open((FRESH_RESULT_CALLBACK)&FrWorldTourEventDlg::OnDescDlgResult, 0x11);
 		}
 	}
 }
 
-void FrWorldTourEventDlg::OnInitCourseButton(int param)
-{
-	m_pCourseButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// worldtoureventdlg.cpp:350
+void FrWorldTourEventDlg::OnInitCourseButton(intptr_t param) {
+	m_pCourseButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrWorldTourEventDlg::OnLBDownCourseButton()
-{
-	if (!m_pDescDlg)
-	{
-		if (m_pGiftImage[0])
-			m_pGiftImage[0]->SetVisible(false);
-		if (m_pGiftImage[1])
-			m_pGiftImage[1]->SetVisible(false);
-		if (m_pGiftImage[2])
-			m_pGiftImage[2]->SetVisible(false);
-		if (m_pGiftImage[3])
-			m_pGiftImage[3]->SetVisible(false);
+// worldtoureventdlg.cpp:355
+void FrWorldTourEventDlg::OnLBDownCourseButton(void) {
+
+	if (m_pDescDlg == 0) {
+
+		if (m_pGiftImageLeftTop) m_pGiftImageLeftTop->SetVisible(false);
+		if (m_pGiftImageRightTop) m_pGiftImageRightTop->SetVisible(false);
+		if (m_pGiftImageLeftBottom) m_pGiftImageLeftBottom->SetVisible(false);
+		if (m_pGiftImageRightBottom) m_pGiftImageRightBottom->SetVisible(false);
 	}
 }
 
-void FrWorldTourEventDlg::OnInitGiftButtonCover(int param)
-{
-	m_pGiftButtonCover = DYNAMIC_CAST(FrArea, (FrWnd*)param);
-	if (m_pGiftButtonCover)
+// worldtoureventdlg.cpp:367
+void FrWorldTourEventDlg::OnInitGiftButtonCover(intptr_t param) {
+	m_pGiftButtonCover = DYNAMIC_CAST(FrArea, param);
+	if (m_pGiftButtonCover) {
+
 		m_pGiftButtonCover->SetVisible(false);
+	}
 }
 
-void FrWorldTourEventDlg::OnInitGiftButton(int param)
-{
-	m_pGiftButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// worldtoureventdlg.cpp:376
+void FrWorldTourEventDlg::OnInitGiftButton(intptr_t param) {
+	m_pGiftButton = DYNAMIC_CAST(FrButton, param);
+
+
 	m_pGiftButton->SetPushDelay(0.0f);
-	CWorldTourEvent* event =
-		(CWorldTourEvent*)CContentsDoc::Instance()->GetContainer(
-			(localContentType_t)30);
-	if (event && !event->GetCanGift())
-	{
-		m_pGiftButton->Enable(false);
-		m_pGiftButton->SetVisible(false);
+
+
+	CWorldTourEvent* pEvent = (CWorldTourEvent*)WSingleton<CContentsDoc>::Instance()->GetContainer((localContentType_t)0x1e);
+	if (pEvent) {
+
+
+
+		if (!pEvent->GetCanGift()) {
+
+			m_pGiftButton->Enable(false);
+			m_pGiftButton->SetVisible(false);
+		}
 	}
-	if (m_pGiftButton && m_pGiftButtonCover)
-	{
-		if (!m_pGiftButton->IsEnabled() || !m_pGiftButton->IsVisible())
-		{
+
+	if (m_pGiftButton && m_pGiftButtonCover) {
+
+		if (!m_pGiftButton->IsEnabled() || !m_pGiftButton->IsVisible()) {
+
 			m_pGiftButtonCover->Enable(false);
 			m_pGiftButtonCover->SetVisible(false);
 		}
 	}
 }
 
-void FrWorldTourEventDlg::OnLBDownGiftButton()
-{
-	if (!m_pGiftDlg)
-	{
-		m_pGiftDlg = CreateForm<FrWorldTourEventGiftDlg>(g_pFresh->GetManager(),
-			this, "world_tour_event_gift_dlg", NULL);
-		if (m_pGiftDlg)
-		{
+// worldtoureventdlg.cpp:412
+void FrWorldTourEventDlg::OnLBDownGiftButton(void) {
+	if (m_pGiftDlg == 0) {
+
+		m_pGiftDlg = CreateForm<FrWorldTourEventGiftDlg>(g_pFresh->GetManager(), this, "world_tour_event_gift_dlg", 0);
+
+		if (m_pGiftDlg) {
+
 			m_pGiftButtonCover->Enable(true);
 			m_pGiftButtonCover->SetVisible(true);
+
 			WRect rect = m_pGiftButton->GetRect();
+
 			m_pGiftDlg->SetIconRect(rect);
-			m_pGiftDlg->Open(
-				(FRESH_PFN_RESULT)&FrWorldTourEventDlg::OnGiftDlgResult, 17);
+			m_pGiftDlg->Open((FRESH_RESULT_CALLBACK)&FrWorldTourEventDlg::OnGiftDlgResult, 0x11);
 		}
 	}
 }
 
-bool FrWorldTourEventDlg::OnDescDlgResult(int result, FrForm* form)
-{
-	m_pDescDlg = NULL;
+// worldtoureventdlg.cpp:432
+bool FrWorldTourEventDlg::OnDescDlgResult(int result, FrForm* pForm) {
+	m_pDescDlg = 0;
 	return true;
 }
 
-bool FrWorldTourEventDlg::OnGiftDlgResult(int result, FrForm* form)
-{
-	if (result == 1)
-	{
-		CWorldTourEvent* event =
-			(CWorldTourEvent*)CContentsDoc::Instance()->GetContainer(
-				(localContentType_t)30);
-		if (event)
-		{
-			event->SetCanGift(false);
-			event->SetGotGift(true);
+// worldtoureventdlg.cpp:438
+bool FrWorldTourEventDlg::OnGiftDlgResult(int result, FrForm* pForm) {
+	if (result == FrOK) {
+
+
+
+		CWorldTourEvent* pEvent = (CWorldTourEvent*)WSingleton<CContentsDoc>::Instance()->GetContainer((localContentType_t)0x1e);
+		if (pEvent) {
+
+
+			pEvent->SetCanGift(false);
+			pEvent->SetGotGift(true);
 		}
+
+
 		m_pGiftButton->Enable(false);
 		m_pGiftButton->SetVisible(false);
 		m_pGiftButtonCover->Enable(false);
 		m_pGiftButtonCover->SetVisible(false);
-		FrForm* notify =
-			CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify", NULL);
-		WRect origin = notify->GetRect();
-		notify->SetRect(WRect(origin.x, origin.y, origin.w, origin.h));
-		notify->SetTimeLimit(12.0f);
-		notify->SetMessage(
-			"-\306\316\276\337\274\266 \305\365\276\356\270\246 \270\266\304\241\260\355 \274\366\277\265\272\271\300\273 \301\366\261\336\271\336\276\322\275\300\264\317\264\331.\012\012 -\\c0xffff0000\\c\260\346\307\260 \300\314\272\245\306\256\\c0xff000000\\c\277\241 \300\332\265\277\300\270\267\316 \300\300\270\360\265\307\276\372\275\300\264\317\264\331",
-			false);
-		notify->Open(NULL, 0);
+
+		FrForm* pNotify = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify", 0);
+		WRect rect = pNotify->GetRect();
+		pNotify->SetRect(WRect(rect.x, rect.y, rect.w, rect.h));
+		pNotify->SetTimeLimit(12.0f);
+
+
+
+		// "- Finished the Pangya island tour and received a swimsuit.\n\n - Automatically entered into the prize event"
+		pNotify->SetMessage("-\xc6\xce\xbe\xdf\xbc\xb6 \xc5\xf5\xbe\xee\xb8\xa6 \xb8\xb6\xc4\xa1\xb0\xed \xbc\xf6\xbf\xb5\xba\xb9\xc0\xbb \xc1\xf6\xb1\xde\xb9\xde\xbe\xd2\xbd\xc0\xb4\xcf\xb4\xd9.\n\n -\\c0xffff0000\\c\xb0\xe6\xc7\xb0 \xc0\xcc\xba\xa5\xc6\xae\\c0xff000000\\c\xbf\xa1 \xc0\xda\xb5\xbf\xc0\xb8\xb7\xce \xc0\xc0\xb8\xf0\xb5\xc7\xbe\xfa\xbd\xc0\xb4\xcf\xb4\xd9", false);
+
+		pNotify->Open((FRESH_RESULT_CALLBACK)0, 0);
 	}
-	m_pGiftDlg = NULL;
+
+	m_pGiftDlg = 0;
+
 	return true;
 }
 
-IMPLEMENT_OBJECT(FrWorldTourEventDescDlg, FrForm)
+// worldtoureventdlg.cpp:475 (run-time type and factory registration of FrWorldTourEventDescDlg)
+const WRTTI FrWorldTourEventDescDlg::m_RTTI("FrWorldTourEventDescDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrWorldTourEventDescDlg, FrForm)
-
-ON_FRESH_VI("desc_view", FRCMD_INIT, FrWorldTourEventDescDlg::OnInitDescView)
-
-END_FRESH_MSGMAP()
-
-FrWorldTourEventDescDlg::FrWorldTourEventDescDlg()
-	: m_pDescView(NULL)
-{
+IObject* FrWorldTourEventDescDlgMakeInstance(void) {
+	return new FrWorldTourEventDescDlg;
 }
 
-FrWorldTourEventDescDlg::~FrWorldTourEventDescDlg()
-{
+struct __sFrWorldTourEventDescDlg {
+	__sFrWorldTourEventDescDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrWorldTourEventDescDlgMakeInstance, "FrWorldTourEventDescDlg");
+	}
+};
+static __sFrWorldTourEventDescDlg s_registerFrWorldTourEventDescDlg;
+
+// worldtoureventdlg.cpp:477
+const sFRESH_MSGMAP* FrWorldTourEventDescDlg::GetMessageMap(void) const {
+	return &FrWorldTourEventDescDlg::_MsgMap;
 }
 
-void FrWorldTourEventDescDlg::OnInitDescView(int param)
-{
-	m_pDescView = DYNAMIC_CAST(FrViewer, (FrWnd*)param);
-	if (m_pDescView)
-	{
+sFRESH_MSGMAP FrWorldTourEventDescDlg::_MsgMap = { &FrForm::_MsgMap, &FrWorldTourEventDescDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrWorldTourEventDescDlg::_MsgEntries[] = {
+	// worldtoureventdlg.cpp:479
+	{ "desc_view", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventDescDlg::OnInitDescView },
+
+	// worldtoureventdlg.cpp:481
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// worldtoureventdlg.cpp:484
+FrWorldTourEventDescDlg::FrWorldTourEventDescDlg(void) {
+	m_pDescView = 0;
+}
+
+// worldtoureventdlg.cpp:489
+FrWorldTourEventDescDlg::~FrWorldTourEventDescDlg(void) {
+}
+
+// worldtoureventdlg.cpp:493
+void FrWorldTourEventDescDlg::OnInitDescView(intptr_t param) {
+	m_pDescView = DYNAMIC_CAST(FrViewer, param);
+
+	if (m_pDescView) {
+
 		m_pDescView->ShowScrollBar(false);
 		m_pDescView->Open("wte_explanation.jpg");
 	}
 }
 
-IMPLEMENT_OBJECT(FrWorldTourEventGiftDlg, FrForm)
+// worldtoureventdlg.cpp:505 (run-time type and factory registration of FrWorldTourEventGiftDlg)
+const WRTTI FrWorldTourEventGiftDlg::m_RTTI("FrWorldTourEventGiftDlg", &FrForm::m_RTTI);
 
-BEGIN_FRESH_MSGMAP(FrWorldTourEventGiftDlg, FrForm)
-
-ON_FRESH_VI("yes_button", FRCMD_INIT, FrWorldTourEventGiftDlg::OnInitYesButton)
-ON_FRESH_VV("yes_button", FRCMD_LBUTTONUP,
-	FrWorldTourEventGiftDlg::OnLBDownYesButton)
-ON_FRESH_VI("no_button", FRCMD_INIT, FrWorldTourEventGiftDlg::OnInitNoButton)
-ON_FRESH_VV("no_button", FRCMD_LBUTTONUP,
-	FrWorldTourEventGiftDlg::OnLBDownNoButton)
-
-END_FRESH_MSGMAP()
-
-FrWorldTourEventGiftDlg::FrWorldTourEventGiftDlg()
-	: m_pYesButton(NULL), m_pNoButton(NULL)
-{
+IObject* FrWorldTourEventGiftDlgMakeInstance(void) {
+	return new FrWorldTourEventGiftDlg;
 }
 
-FrWorldTourEventGiftDlg::~FrWorldTourEventGiftDlg()
-{
+struct __sFrWorldTourEventGiftDlg {
+	__sFrWorldTourEventGiftDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrWorldTourEventGiftDlgMakeInstance, "FrWorldTourEventGiftDlg");
+	}
+};
+static __sFrWorldTourEventGiftDlg s_registerFrWorldTourEventGiftDlg;
+
+// worldtoureventdlg.cpp:507
+const sFRESH_MSGMAP* FrWorldTourEventGiftDlg::GetMessageMap(void) const {
+	return &FrWorldTourEventGiftDlg::_MsgMap;
 }
 
-void FrWorldTourEventGiftDlg::OnInitYesButton(int param)
-{
-	m_pYesButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+sFRESH_MSGMAP FrWorldTourEventGiftDlg::_MsgMap = { &FrForm::_MsgMap, &FrWorldTourEventGiftDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrWorldTourEventGiftDlg::_MsgEntries[] = {
+	// worldtoureventdlg.cpp:509
+	{ "yes_button", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventGiftDlg::OnInitYesButton },
+	// worldtoureventdlg.cpp:510
+	{ "yes_button", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrWorldTourEventGiftDlg::OnLBDownYesButton },
+
+	// worldtoureventdlg.cpp:512
+	{ "no_button", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrWorldTourEventGiftDlg::OnInitNoButton },
+	// worldtoureventdlg.cpp:513
+	{ "no_button", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrWorldTourEventGiftDlg::OnLBDownNoButton },
+
+	// worldtoureventdlg.cpp:515
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// worldtoureventdlg.cpp:518
+FrWorldTourEventGiftDlg::FrWorldTourEventGiftDlg(void) {
+	m_pYesButton = 0;
+	m_pNoButton = 0;
 }
 
-void FrWorldTourEventGiftDlg::OnLBDownYesButton()
-{
-	// HACK
-	if (0)
-		((FrWorldTourEventDlg*)0)->OnLBDownGiftButton();
-	WSendPacket packet((enumClientPacket)165);
-	packet.Encode4(MyGuid(false));
-	packet.Send(TO_GAME);
-	Close((eFormRet)1, true);
+// worldtoureventdlg.cpp:524
+FrWorldTourEventGiftDlg::~FrWorldTourEventGiftDlg(void) {
 }
 
-void FrWorldTourEventGiftDlg::OnInitNoButton(int param)
-{
-	m_pNoButton = DYNAMIC_CAST(FrButton, (FrWnd*)param);
+// worldtoureventdlg.cpp:529
+void FrWorldTourEventGiftDlg::OnInitYesButton(intptr_t param) {
+	m_pYesButton = DYNAMIC_CAST(FrButton, param);
 }
 
-void FrWorldTourEventGiftDlg::OnLBDownNoButton()
-{
-	Close((eFormRet)2, true);
+// worldtoureventdlg.cpp:534
+void FrWorldTourEventGiftDlg::OnLBDownYesButton(void) {
+	WSendPacket packet((enumClientPacket)0xa5);
+	packet.Encode4(WSingleton<CSharedDoc>::Instance()->GetPangyaUserInfo().guid);
+	packet.Send(SEND_TO_DEFAULT);
+	Close(FrOK, true);
+}
+
+// worldtoureventdlg.cpp:542
+void FrWorldTourEventGiftDlg::OnInitNoButton(intptr_t param) {
+	m_pNoButton = DYNAMIC_CAST(FrButton, param);
+}
+
+// worldtoureventdlg.cpp:547
+void FrWorldTourEventGiftDlg::OnLBDownNoButton(void) {
+	Close(FrCANCEL, true);
 }

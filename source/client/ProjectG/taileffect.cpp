@@ -1,203 +1,188 @@
-#include "minatl.h"
-#include "projectg.h"
-#include "taileffect.h"
+// Original: d:\build\custom\temp\code\client\projectg\taileffect.cpp
+#include "scenemanager.h"
+#include "TailEffect.h"
+#include "wresrcmng.h"
+#include "wview.h"
+#include "wvideo.h"
 
-int index = 0;
+extern int index;
+extern "C" int data_af23f0;
 
-CTailEffect::CTailEffect(const std::string& texture)
-{
-	m_texHandle = 0;
+// scenemanager.h:67
+void CRenderFuncPtr::DisplayShadow(void) {
+}
+
+// scenemanager.h:71
+void CRenderFuncPtr::DebugDisplay(void) {
+}
+
+// taileffect.cpp:17
+CTailEffect::CTailEffect(const std::string &name) {
+	m_texture = 0;
 	m_head = 0;
 	m_tail = 0;
-	m_bReserved = false;
-	m_reserved = 0;
-
-	Init(texture);
+	m_clearedFlag = false;
+	m_clearedCount = 0;
+	Init(name);
 }
 
-CTailEffect::~CTailEffect()
-{
-	for (std::map<std::string, int>::iterator it = m_texMap.begin();
-		it != m_texMap.end(); ++it)
-	{
-		if ((*it).second)
-			g_resrcmng->Release((*it).second);
+// taileffect.cpp:27
+CTailEffect::~CTailEffect(void) {
+	for (std::map<std::string, int>::iterator it = m_textures.begin(); it != m_textures.end(); ++it) {
+		if (it->second != 0) {
+			g_resrcmng->Release(it->second);
+		}
 	}
 
-	m_texMap.clear();
+	m_textures.clear();
 }
 
-void CTailEffect::Init(const std::string& texture)
-{
-	m_maxEdge = 30;
+// taileffect.cpp:40
+void CTailEffect::Init(const std::string &name) {
+	m_maxEdges = 30;
 	m_life = 0.3f;
+	m_edges.reserve(m_maxEdges);
+	m_spots.reserve(m_maxEdges);
 
-	m_edge.reserve(30);
-	m_spot.reserve(m_maxEdge);
-
-	ChangeTexture(texture.c_str());
+	ChangeTexture(std::string(name.c_str()));
 }
 
-void CTailEffect::Reset()
-{
-	for (int i = 0; i < m_maxEdge; i++)
-		m_edge[i].bActive = false;
+// taileffect.cpp:61
+void CTailEffect::Reset(void) {
+	for (int i = 0; i < m_maxEdges; ++i) {
+		m_edges[i].bUse = false;
+	}
 
-	m_edge.clear();
-	m_edge.reserve(m_maxEdge);
+	m_edges.clear();
+
+	m_edges.reserve(m_maxEdges);
 
 	m_tail = 0;
 	m_head = 0;
 	index = 0;
 }
 
-void CTailEffect::PutSpot(const WVector& nearPos, const WVector& farPos)
-{
-	static int s_skipCount = 0;
-
-	if (WisEqual(m_lastNear, nearPos, g_EPSILON) &&
-		WisEqual(m_lastFar, farPos, g_EPSILON))
-	{
-		s_skipCount++;
+// taileffect.cpp:82
+void CTailEffect::PutSpot(const WVector &spot1, const WVector &spot2) {
+	if (WisEqual(m_lastSpot1, spot1, 0.00001f) && WisEqual(m_lastSpot2, spot2, 0.00001f)) {
+		data_af23f0++;
 		return;
 	}
 
-	if (index >= m_maxEdge)
+	if (index >= m_maxEdges) {
 		return;
+	}
 
-	TAILEDGE spot;
-	spot.bActive = true;
-	spot.life = m_life;
-	spot.nearPos = nearPos;
-	spot.farPos = farPos;
-	m_spot[index++] = spot;
+	TAILEDGE edge;
+	edge.bUse = true;
+	edge.fLife = m_life;
+	edge.v1 = spot1;
+	edge.v2 = spot2;
+	m_spots[index++] = edge;
 
-	m_lastNear = nearPos;
-	m_lastFar = farPos;
+	m_lastSpot1 = spot1;
+	m_lastSpot2 = spot2;
 
-	int num = index;
-	m_head = m_tail = 0;
+	m_tail = 0;
+	m_head = 0;
 
-	if (num <= 3)
-		return;
-
-	int count = num - 3;
-	for (int i = 0; i < count; i++)
-	{
-		for (int j = 0; j < 5; j++)
-		{
-			float t = j * 0.2f;
-			float t2 = t * t;
-			float t3 = t2 * t;
-			float b0 = -t3 + 3.0f * t2 - 3.0f * t + 1.0f;
-			float b1 = 3.0f * t3 - 6.0f * t2 + 0.0f * t + 4.0f;
-			float b2 = -3.0f * t3 + 3.0f * t2 + 3.0f * t + 1.0f;
-			float b3 = t3 + 0.0f * t2 + 0.0f * t;
-
-			const TAILEDGE& p0 = m_spot[i];
-			const TAILEDGE& p1 = m_spot[i + 1];
-			const TAILEDGE& p2 = m_spot[i + 2];
-			const TAILEDGE& p3 = m_spot[i + 3];
-			WVector nearPos;
-			nearPos.x = (b0 * p0.nearPos.x + b1 * p1.nearPos.x +
-							b2 * p2.nearPos.x + b3 * p3.nearPos.x) /
-				6.0f;
-			nearPos.y = (b0 * p0.nearPos.y + b1 * p1.nearPos.y +
-							b2 * p2.nearPos.y + b3 * p3.nearPos.y) /
-				6.0f;
-			nearPos.z = (b0 * p0.nearPos.z + b1 * p1.nearPos.z +
-							b2 * p2.nearPos.z + b3 * p3.nearPos.z) /
-				6.0f;
-
-			WVector farPos;
-			farPos.x = (b0 * p0.farPos.x + b1 * p1.farPos.x + b2 * p2.farPos.x +
-						   b3 * p3.farPos.x) /
-				6.0f;
-			farPos.y = (b0 * p0.farPos.y + b1 * p1.farPos.y + b2 * p2.farPos.y +
-						   b3 * p3.farPos.y) /
-				6.0f;
-			farPos.z = (b0 * p0.farPos.z + b1 * p1.farPos.z + b2 * p2.farPos.z +
-						   b3 * p3.farPos.z) /
-				6.0f;
-
-			TAILEDGE edge;
-			edge.bActive = true;
-			edge.life = m_life;
-			edge.nearPos = nearPos;
-			edge.farPos = farPos;
-			m_edge[m_head] = edge;
-
-			m_head = (m_head + 1) % m_maxEdge;
-			if (m_head == m_tail)
-				m_tail = (m_tail + 1) % m_maxEdge;
+	if (index > 3) {
+		for (int i = 0; i < index - 3; i++) {
+			for (int j = 0; j < 5; j++) {
+				float t = j * 0.2f;
+				float t2 = t * t;
+				float t3 = t2 * t;
+				float b0 = -t3 + 3 * t2 - 3 * t + 1;
+				float b1 = 3 * t3 - 6 * t2 + 0 * t + 4;
+				float b2 = -3 * t3 + 3 * t2 + 3 * t + 1;
+				float b3 = t3 + 0 * t2 + 0 * t;
+				WVector v1;
+				v1.x = (b3 * m_spots[i + 3].v1.x + b2 * m_spots[i + 2].v1.x + b1 * m_spots[i + 1].v1.x + b0 * m_spots[i].v1.x) / 6;
+				v1.y = (b3 * m_spots[i + 3].v1.y + b2 * m_spots[i + 2].v1.y + b1 * m_spots[i + 1].v1.y + b0 * m_spots[i].v1.y) / 6;
+				v1.z = (b3 * m_spots[i + 3].v1.z + b2 * m_spots[i + 2].v1.z + b1 * m_spots[i + 1].v1.z + b0 * m_spots[i].v1.z) / 6;
+				WVector v2;
+				v2.x = (b3 * m_spots[i + 3].v2.x + b2 * m_spots[i + 2].v2.x + b1 * m_spots[i + 1].v2.x + b0 * m_spots[i].v2.x) / 6;
+				v2.y = (b3 * m_spots[i + 3].v2.y + b2 * m_spots[i + 2].v2.y + b1 * m_spots[i + 1].v2.y + b0 * m_spots[i].v2.y) / 6;
+				v2.z = (b3 * m_spots[i + 3].v2.z + b2 * m_spots[i + 2].v2.z + b1 * m_spots[i + 1].v2.z + b0 * m_spots[i].v2.z) / 6;
+				edge.bUse = true;
+				edge.fLife = m_life;
+				edge.v1 = v1;
+				edge.v2 = v2;
+				m_edges[m_head] = edge;
+				m_head = (m_head + 1) % m_maxEdges;
+				if (m_head == m_tail) {
+					m_tail = (m_tail + 1) % m_maxEdges;
+				}
+			}
 		}
 	}
 }
 
-void CTailEffect::Process(float elapsed)
-{
-	int length = GetLength();
-	if (!length)
+// taileffect.cpp:159
+void CTailEffect::Process(float dt) {
+	int tail = m_tail, length = GetLength();
+	if (length == 0) {
 		return;
+	}
 
-	int tail = m_tail;
-	for (int i = 0; i < length; i++)
-	{
-		int idx = (tail + i) % m_maxEdge;
-		if (m_edge[idx].bActive)
-		{
-			m_edge[idx].life -= elapsed;
-			if (m_edge[idx].life <= 0.0f)
-				m_tail = (m_tail + 1) % m_maxEdge;
+	for (int i = 0; i < length; ++i) {
+		int at = (tail + i) % m_maxEdges;
+		if (m_edges[at].bUse) {
+			m_edges[at].fLife -= dt;
+			if (m_edges[at].fLife <= 0.0f) {
+				m_tail = (m_tail + 1) % m_maxEdges;
+			}
 		}
 	}
 
-	if (!GetLength())
+	if (GetLength() == 0) {
 		Reset();
+	}
 }
 
-void CTailEffect::Display()
-{
+// taileffect.cpp:184
+void CTailEffect::Display(void) {
 	int length = GetLength();
-	if (!length)
+	if (length == 0) {
 		return;
+	}
 
-	WTVertex vtx[4];
-	WTVertex* pVtx[5] = { &vtx[0], &vtx[1], &vtx[3], &vtx[2], NULL };
+	// one quad per pair of consecutive edges, fading in from the tail
+	WTVertex v[4];
+	WTVertex* vl[4];
+	vl[0] = &v[0];
+	vl[1] = &v[1];
+	vl[2] = &v[3];
+	vl[3] = &v[2];
 
-	for (int i = 0; i < length - 1; i++)
-	{
+	for (int i = 0; i < length - 1; ++i) {
+		int at = (m_tail + i) % m_maxEdges;
 		float alpha = i / (float)length;
-		int idx = (m_tail + i) % m_maxEdge;
+		unsigned long color = ((int)(255.0f * alpha) << 24) | 0xffffff;
 
-		for (int j = 0; j < 4; j++)
-		{
-			int k = (j & 2) ? (idx + 1) % m_maxEdge : idx;
+		for (int j = 0; j < 4; ++j) {
+			int edge = (j & 2) ? (at + 1) % m_maxEdges : at;
+			WVector pos = (j & 1) ? m_edges[edge].v2 : m_edges[edge].v1;
 
-			WVector pos = (j & 1) ? m_edge[k].farPos : m_edge[k].nearPos;
-			vtx[j].SetPosition(pos);
-			vtx[j].tu = (j & 2) ? (i + 1) / (float)length : alpha;
-			vtx[j].tv = (j & 1) ? 0.0f : 1.0f;
-			vtx[j].diffuse = ((int)(255.0f * alpha) << 24) | 0xffffff;
+			v[j].SetPosition(pos);
+			v[j].tu = (j & 2) ? (i + 1) / (float)length : alpha;
+			v[j].tv = (j & 1) ? 0.0f : 1.0f;
+
+			v[j].diffuse = color;
 		}
 
-		g_view->DrawPolygonFan(pVtx, (m_texHandle & 0x7ff) | 0x20c00000, 0x400,
-			false);
+		g_view->DrawPolygonFan(vl, (m_texture & 0x7ff) | 0x20C00000, 0x400, false);
 	}
 }
 
-void CTailEffect::ChangeTexture(const std::string& texture)
-{
-	std::map<std::string, int>::iterator it;
-	it = m_texMap.find(texture);
+// taileffect.cpp:250
+void CTailEffect::ChangeTexture(const std::string &name) {
+	std::map<std::string, int>::iterator it = m_textures.find(name);
 
-	if (it != m_texMap.end())
-	{
-		m_texHandle = (*it).second;
-	}
-	else
-	{
-		m_texHandle = g_resrcmng->LoadTexture(texture.c_str(), 0, 0, 0);
-		m_texMap[texture] = m_texHandle;
+	if (it != m_textures.end()) {
+		m_texture = it->second;
+	} else {
+		m_texture = g_resrcmng->LoadTexture(name.c_str(), 0, 0, 0);
+		m_textures[name] = m_texture;
 	}
 }

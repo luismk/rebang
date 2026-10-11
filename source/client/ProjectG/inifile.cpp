@@ -1,122 +1,97 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\inifile.cpp
+#include "INIFile.h"
 #include "wresrcmng.h"
-#include "projectg.h"
-#include "inifile.h"
 
-static std::string m_FileName;
+#include <windows.h>
+#include <stdlib.h>
+#include <string.h>
+#include <string>
 
-CIniFile::CIniFile()
-{
+// westpak.cpp
+void __cdecl CloseCFile(cFile* file);
+
+extern char g_executeDirectory[];
+
+// Result of ReadString.
+static char s_readBuffer[1024];
+// Full path of the current .ini file.
+// inifile.cpp:15
+static std::string s_filePath;
+
+// inifile.cpp:19
+CIniFile::CIniFile(void) {
 }
 
-CIniFile::CIniFile(const char* path)
-{
-	Create(path, M_READ);
+// inifile.cpp:22
+CIniFile::CIniFile(const char* filename) {
+	Create(filename, IO_READ);
 }
 
-CIniFile::~CIniFile()
-{
+// inifile.cpp:28
+CIniFile::~CIniFile(void) {
 }
 
-bool CIniFile::Create(const char* path, IO_MODE mode)
-{
-	cFile* hdl = NULL;
-
-	if (mode == M_READ)
-	{
-		hdl = g_resrcmng->GetCFile(path, -1);
-
-		if (hdl == NULL)
+// inifile.cpp:34
+bool CIniFile::Create(const char* filename, IO_MODE mode) {
+	char path[MAX_PATH];
+	cFile* file = NULL;
+	if (mode == IO_READ) {
+		file = g_resrcmng->GetCFile(filename, -1);
+		if (file == NULL) {
 			return false;
+		}
 	}
-
-	if (mode == M_WRITE)
-	{
-		char szPath[MAX_PATH];
-		memcpy(szPath, path, strlen(path) + 1);
-
-		m_FileName = g_executeDirectory;
-		m_FileName += "\\";
-		m_FileName += path;
-
-		WritePrivateProfileString(NULL, NULL, NULL, m_FileName.c_str());
+	if (mode == IO_WRITE) {
+		s_filePath = g_executeDirectory;
+		s_filePath += "\\";
+		s_filePath += filename;
+		WritePrivateProfileStringA(NULL, NULL, NULL, s_filePath.c_str());
+	} else {
+		CloseCFile(file);
+		s_filePath = g_executeDirectory;
+		s_filePath += "\\";
+		s_filePath += filename;
 	}
-	else
-	{
-		CloseCFile(hdl);
-
-		m_FileName = g_executeDirectory;
-		m_FileName += "\\";
-		m_FileName += path;
-	}
-
 	return true;
 }
 
-const char* CIniFile::ReadString(const char* section_name, const char* key_name)
-{
-	static char Buffer[1024];
-
-	if (m_FileName.length() > 0)
-	{
-		memset(Buffer, 0, sizeof(Buffer));
-		GetPrivateProfileString(section_name, key_name, "OCCUR_ERROR", Buffer,
-			sizeof(Buffer), m_FileName.c_str());
-
-		if (strcmp(Buffer, "OCCUR_ERROR") != 0)
-		{
-			return Buffer;
+// inifile.cpp:72
+const char* CIniFile::ReadString(const char* section, const char* key) {
+	if (s_filePath.length() > 0) {
+		memset(s_readBuffer, 0, sizeof(s_readBuffer));
+		GetPrivateProfileStringA(section, key, "OCCUR_ERROR", s_readBuffer, sizeof(s_readBuffer), s_filePath.c_str());
+		if (memcmp(s_readBuffer, "OCCUR_ERROR", sizeof("OCCUR_ERROR")) != 0) {
+			return s_readBuffer;
 		}
 	}
-
 	return "";
 }
 
-int CIniFile::ReadInteger(const char* section_name, const char* key_name)
-{
-	if (m_FileName.length() > 0)
-	{
-		int value = GetPrivateProfileInt(section_name, key_name, -3432,
-			m_FileName.c_str());
-
-		if (value != -3432)
-		{
+// inifile.cpp:93
+int CIniFile::ReadInteger(const char* section, const char* key) {
+	if (s_filePath.length() > 0) {
+		int value = GetPrivateProfileIntA(section, key, -3432, s_filePath.c_str());
+		if (value != -3432) {
 			return value;
 		}
 	}
-
-	return -12302323;
+	return INI_ERROR;
 }
 
-int CIniFile::WriteString(const char* section_name, const char* key_name,
-	const char* key_value)
-{
-	if (m_FileName.length() > 0)
-	{
-		return WritePrivateProfileString(section_name, key_name, key_value,
-				   m_FileName.c_str())
-			? 1
-			: -12302323;
+// inifile.cpp:114
+int CIniFile::WriteString(const char* section, const char* key, const char* value) {
+	if (s_filePath.length() > 0) {
+		return WritePrivateProfileStringA(section, key, value, s_filePath.c_str()) ? 1 : INI_ERROR;
 	}
-
-	return -12302323;
+	return INI_ERROR;
 }
 
-int CIniFile::WriteInteger(const char* section_name, const char* key_name,
-	int key_value)
-{
-	if (m_FileName.length() > 0)
-	{
-		char buffer[20] = {
-			0,
-		};
-		itoa(key_value, buffer, 10);
-
-		return WritePrivateProfileString(section_name, key_name, buffer,
-				   m_FileName.c_str())
-			? 1
-			: -12302323;
+// inifile.cpp:137
+int CIniFile::WriteInteger(const char* section, const char* key, int value) {
+	if (s_filePath.length() > 0) {
+		char text[20] = { 0 };
+		itoa(value, text, 10);
+		return WritePrivateProfileStringA(section, key, text, s_filePath.c_str()) ? 1 : INI_ERROR;
 	}
-
-	return -12302323;
+	return INI_ERROR;
 }

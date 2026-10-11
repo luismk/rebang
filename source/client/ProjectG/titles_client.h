@@ -1,44 +1,20 @@
-#pragma once
-#include "../../shared/titlemanager.h"
+// Original: d:\build\custom\temp\code\client\projectg\titles_client.h
+#ifndef PG_CLIENT_PROJECTG_TITLES_CLIENT_H
+#define PG_CLIENT_PROJECTG_TITLES_CLIENT_H
 
-class Title
-{
+#include "..\..\defines.h"
+
+// Base of the client's equippable titles; each TitleNN overrides CanEquip.
+class Title {
 public:
-	Title() { }
-	virtual ~Title() { }
+	Title() {}
+	virtual ~Title() {}
 	virtual bool CanEquip() { return false; }
 };
+CHECK_SIZE(Title, 0x4);
 
-#define DECLARE_TITLE(num) \
-	class Title##num : public Title \
-	{ \
-	public: \
-		Title##num(); \
-		virtual ~Title##num(); \
-		virtual bool CanEquip(); \
-	};
+class TitleManager;
 
-#define IMPLEMENT_TITLE(num) \
-	Title##num::Title##num() \
-	{ \
-	} \
-	Title##num::~Title##num() \
-	{ \
-	} \
-	bool Title##num::CanEquip()
+void RegisterTitles(TitleManager *manager);
 
-DECLARE_TITLE(21)
-DECLARE_TITLE(22)
-DECLARE_TITLE(23)
-DECLARE_TITLE(24)
-DECLARE_TITLE(25)
-DECLARE_TITLE(26)
-DECLARE_TITLE(27)
-DECLARE_TITLE(28)
-DECLARE_TITLE(357)
-DECLARE_TITLE(358)
-DECLARE_TITLE(359)
-DECLARE_TITLE(360)
-DECLARE_TITLE(361)
-
-void RegisterTitles(TitleManager* titlemanager);
+#endif // PG_CLIENT_PROJECTG_TITLES_CLIENT_H

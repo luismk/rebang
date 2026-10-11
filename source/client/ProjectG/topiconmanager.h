@@ -1,97 +1,97 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\topiconmanager.h
+#ifndef PG_CLIENT_PROJECTG_TOPICONMANAGER_H
+#define PG_CLIENT_PROJECTG_TOPICONMANAGER_H
 
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include "topiconinterface.h"
 
-class TiXmlNode;
+#include "..\..\defines.h"
+#include "..\..\padding.h"
+#include "singleton.h"
+
+class CIconInterface;
 class TiXmlDocument;
+class TiXmlNode;
 
-typedef CIconInterface* (*CreateTopIconInstanceFunc)();
-typedef void (*DestoryTopIconInstanceFunc)(CIconInterface*);
-
-struct sTopIcon
-{
-	std::string name;
-	CIconInterface* pInstance;
-
-	sTopIcon(std::string& _name, CIconInterface* _pInstance)
-		: name(_name)
-	{
-		pInstance = _pInstance;
+// One icon slot of the top page: its key and its instance.
+struct sTopIcon {
+	// topiconmanager.h:22
+	sTopIcon(std::string& name, CIconInterface* icon) : m_name(name) {
+		m_icon = icon;
 	}
+	// topiconmanager.h:27
+	~sTopIcon(void) {}
 
-	~sTopIcon() { }
+	std::string m_name;                 // 0x00
+	CIconInterface* m_icon;             // 0x1c
 };
 
-struct sInstanceFunctions
-{
-	CreateTopIconInstanceFunc pCreateInstance;
-	DestoryTopIconInstanceFunc pDestoryInstance;
+CHECK_SIZE(sTopIcon, 0x20);
+BEGIN_LAYOUT_CHECK(sTopIcon)
+	CHECK_FIELD(sTopIcon, m_name, 0x00);
+	CHECK_FIELD(sTopIcon, m_icon, 0x1c);
+END_LAYOUT_CHECK
 
-	sInstanceFunctions()
-	{
-		pCreateInstance = NULL;
-		pDestoryInstance = NULL;
+// The factory pair an icon class registers under its key.
+struct sInstanceFunctions {
+	// topiconmanager.h:40
+	sInstanceFunctions(void) {
+		m_create = 0;
+		m_destroy = 0;
 	}
-	sInstanceFunctions(CreateTopIconInstanceFunc _pCreate,
-		DestoryTopIconInstanceFunc _pDestory)
-	{
-		pCreateInstance = _pCreate;
-		pDestoryInstance = _pDestory;
+	// topiconmanager.h:45
+	sInstanceFunctions(CIconInterface* (*create)(void), void (*destroy)(CIconInterface*)) {
+
+		m_create = create; m_destroy = destroy;
 	}
-	~sInstanceFunctions() { }
+	// topiconmanager.h:50
+	~sInstanceFunctions(void) {}
+
+	CIconInterface* (*m_create)(void);          // 0x00
+	void (*m_destroy)(CIconInterface*);         // 0x04
 };
 
-class CIconManager : public WSingleton<CIconManager>
-{
+CHECK_SIZE(sInstanceFunctions, 0x8);
+BEGIN_LAYOUT_CHECK(sInstanceFunctions)
+	CHECK_FIELD(sInstanceFunctions, m_create, 0x00);
+	CHECK_FIELD(sInstanceFunctions, m_destroy, 0x04);
+END_LAYOUT_CHECK
+
+// Manager of the lobby's top-page icons (the WSingleton<CIconManager>
+// instance). The two inline counters of topiconmanager.h:77-78 are
+// emitted by lobbymain.cpp and defined out of line there.
+class CIconManager : public WSingleton<CIconManager> {
+	LAYOUT_CHECK_FRIEND;
 public:
-	CIconManager();
-	virtual ~CIconManager();
+	CIconManager(void);
+	virtual ~CIconManager(void);
 
-	void RegisterInstanceFunction(std::string name,
-		CreateTopIconInstanceFunc pCreate, DestoryTopIconInstanceFunc pDestory);
-	void InitalizeTopIcon(unsigned long index, int wnd);
-	void OnButtonDown(unsigned long index);
 	bool IsIncludedIcon(std::string name);
+	void InitalizeTopIcon(unsigned long slot, int param);
+	void OnButtonDown(unsigned long slot);
+	void RegisterInstanceFunction(std::string name, CIconInterface* (*create)(void), void (*destroy)(CIconInterface*));
+	void AddTopIconFromOutSide(void);   // topiconmanager.h:77
+	void ClearInformation(void);        // topiconmanager.h:78
 
 private:
-	void LoadGameData(const char* filename);
-	void ParseTopIconData(TiXmlDocument& doc);
-	void ParseEventIconData(TiXmlNode* pNode);
-	void ParseWebIconData(TiXmlNode* pNode);
-	void RegisterInstances();
-	void Destory();
+	void ParseEventIconData(TiXmlNode* node);
+	void ParseWebIconData(TiXmlNode* node);
+	void RegisterInstances(void);
+	void Destory(void);
+	void ParseTopIconData(TiXmlDocument& document);
+	void LoadGameData(const char* fileName);
 
-	std::vector<sTopIcon*> m_topIcons;
-	std::map<std::string, sInstanceFunctions> m_instanceFunctions;
-	int m_outSideIconCount;
-
-public:
-	void AddTopIconFromOutSide() { m_outSideIconCount++; }
-	void ClearInformation() { m_outSideIconCount = 0; }
+	std::vector<sTopIcon*> m_icons;                             // 0x28
+	std::map<std::string, sInstanceFunctions> m_instanceFunctions; // 0x38
+	int m_outSideIconCount;                                     // 0x44
 };
 
-#define DECLARE_TOPICON(className, iconName) \
-public: \
-	className() \
-	{ \
-	} \
-	virtual ~className() \
-	{ \
-	} \
-	static CIconInterface* CreateTopIconInstance() \
-	{ \
-		return new className; \
-	} \
-	static void DestoryTopIconInstance(CIconInterface* pInstance) \
-	{ \
-		if (pInstance) \
-			delete pInstance; \
-	} \
-	static void RegisterToTopIconDB() \
-	{ \
-		CIconManager::Instance()->RegisterInstanceFunction(iconName, \
-			CreateTopIconInstance, DestoryTopIconInstance); \
-	}
+CHECK_SIZE(CIconManager, 0x48);
+BEGIN_LAYOUT_CHECK(CIconManager)
+	CHECK_FIELD(CIconManager, m_icons, 0x28);
+	CHECK_FIELD(CIconManager, m_instanceFunctions, 0x38);
+	CHECK_FIELD(CIconManager, m_outSideIconCount, 0x44);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_TOPICONMANAGER_H

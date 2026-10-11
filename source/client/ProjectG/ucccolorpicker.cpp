@@ -1,161 +1,163 @@
-#include "minatl.h"
-#include "ucccolorpicker.h"
-#include "frarea.h"
-#include "wresrcmng.h"
+// Original: d:\build\custom\temp\code\client\projectg\ucccolorpicker.cpp
+#include <windows.h>
 
-CUccColorPicker::CUccColorPicker()
-{
+#include "ucccolorpicker.h"
+#include "UccLibrary.h"
+#include "bitmap.h"
+#include "wresrcmng.h"
+#include "frarea.h"
+
+// ucccolorpicker.cpp:13
+CUccColorPicker::CUccColorPicker(void) {
+	m_red = m_green = m_blue = 0;
 }
 
-CUccColorPicker::~CUccColorPicker()
-{
+// ucccolorpicker.cpp:17
+CUccColorPicker::~CUccColorPicker(void) {
 	DestroyVariables();
 }
 
-void CUccColorPicker::DestroyVariables()
-{
-	m_color.r = 0;
-	m_color.g = 0;
-	m_color.b = 0;
+// ucccolorpicker.cpp:22
+void CUccColorPicker::DestroyVariables(void) {
+	m_red = 0;
+	m_green = 0;
+	m_blue = 0;
 }
 
-void CUccColorPicker::Initialize(FrArea* area)
-{
-	CUccBase::Initialize(area, NULL, NULL);
+// ucccolorpicker.cpp:31
+void CUccColorPicker::Initialize(FrArea* pArea) {
+	CUccBase::Initialize(pArea, NULL, NULL);
 
 	GenerateColorMap();
 }
 
-void CUccColorPicker::GetColor(const WPoint& pos, unsigned char& r,
-	unsigned char& g, unsigned char& b)
-{
-	WRect rect = m_pArea->GetRect();
+// ucccolorpicker.cpp:38
+void CUccColorPicker::GetColor(const WPoint& point, unsigned char& red, unsigned char& green, unsigned char& blue) {
+	WPoint pos(m_pArea->GetRect().x, m_pArea->GetRect().y);
 
-	GetColor((int)(pos.x - rect.x), (int)(pos.y - rect.y), r, g, b);
+	GetColor((int)(point.x - pos.x), (int)(point.y - pos.y), red, green, blue);
 }
 
-void CUccColorPicker::GetColor(int x, int y, unsigned char& r, unsigned char& g,
-	unsigned char& b)
-{
-	if (x < 0 || y < 0 || x >= m_pTexture32->Width() ||
-		y >= m_pTexture32->Height())
-		return;
-	m_pTexture32->GetPixel(x, y, r, g, b);
-	m_color.r = r;
-	m_color.g = g;
-	m_color.b = b;
+// ucccolorpicker.cpp:45
+void CUccColorPicker::GetColor(int x, int y, unsigned char& red, unsigned char& green, unsigned char& blue) {
+	if (x >= 0 && y >= 0 && (unsigned int)x < m_pTexture32->Width() && (unsigned int)y < m_pTexture32->Height()) {
+		m_pTexture32->GetPixel(x, y, red, green, blue);
+		m_red = red;
+		m_green = green;
+		m_blue = blue;
+	}
 }
 
-void CUccColorPicker::GenerateColorMap()
-{
+// ucccolorpicker.cpp:60
+void CUccColorPicker::GenerateColorMap(void) {
 	ClearTexCache(m_pTexture32);
-	if (m_pTexture32)
-		delete m_pTexture32;
+	delete m_pTexture32;
 	m_pTexture32 = NULL;
 	m_pTexture32 = g_resrcmng->LoadBitmap("ucc_color_map.tga", 0, false);
-	if (m_pTexture32)
-
+	if (m_pTexture32 != NULL) {
 		RefreshTexCache(m_pTexture32);
+	}
 }
 
-CUccColorBrightness::CUccColorBrightness()
-{
+// ucccolorpicker.cpp:78
+CUccColorBrightness::CUccColorBrightness(void) {
 }
 
-CUccColorBrightness::~CUccColorBrightness()
-{
+// ucccolorpicker.cpp:82
+CUccColorBrightness::~CUccColorBrightness(void) {
 }
 
-void CUccColorBrightness::Initialize(FrArea* area)
-{
-	CUccBase::Initialize(area, NULL, NULL);
+// ucccolorpicker.cpp:86
+void CUccColorBrightness::Initialize(FrArea* pArea) {
+	CUccBase::Initialize(pArea, NULL, NULL);
 
-	WRect rect = m_pArea->GetRect();
+	int width = (int)m_pArea->GetRect().w, height = (int)m_pArea->GetRect().h;
 
-	int width = (int)rect.w;
-	int height = (int)rect.h;
-
-	ClearTexCache(m_pTexture32);
-	if (m_pTexture32)
-		delete m_pTexture32;
-	m_pTexture32 = NULL;
+	ClearTexCache(m_pTexture32); delete m_pTexture32; m_pTexture32 = NULL;
 	m_pTexture32 = new Bitmap(width, height, 32);
 }
 
-void CUccColorBrightness::GenerateBrightnessMap(unsigned char r,
-	unsigned char g, unsigned char b)
-{
-	unsigned char h, l, s;
+// ucccolorpicker.cpp:99
+void CUccColorBrightness::GenerateBrightnessMap(unsigned char red, unsigned char green, unsigned char blue) {
+	unsigned char hue, lightness, saturation;
+	RGBToHLS(red, green, blue, hue, lightness, saturation);
+	lightness = 128;
+	HLSToRGB(hue, lightness, saturation, red, green, blue);
 
-	RGBToHLS(r, g, b, h, l, s);
-	l = 128;
-	HLSToRGB(h, l, s, r, g, b);
+	const WRect& rect = m_pArea->GetRect();
+	int width = (int)rect.w, height = (int)rect.h;
 
-	WRect rect = m_pArea->GetRect();
-	int width = (int)rect.w;
-	int height = (int)rect.h;
-
+	// upper half: from white down to the colour
 	int y = 0;
 	int lastY = 0;
 
 	int half = height / 2;
+	int rowsPerStep = 1; if (half / 11 >= 1) rowsPerStep = half / 11;
+	double stepRows = rowsPerStep;
 
-	double step = Max(half / 11, 1);
+	double r = 255.0, g = 255.0, b = 255.0;
+	double dr = (255.0 - red) * (-1.0 / 11.0);
+	double dg = (255.0 - green) * (-1.0 / 11.0);
+	double db = (255.0 - blue) * (-1.0 / 11.0);
 
-	double fr = 255.0;
-	double fg = 255.0;
-	double fb = 255.0;
-	double dr = (255.0 - r) * (-1.0 / 11.0);
-	double dg = (255.0 - g) * (-1.0 / 11.0);
-	double db = (255.0 - b) * (-1.0 / 11.0);
-
-	do
-	{
-		for (int i = 0; i < step; i++, y++)
-		{
-			if (y > half)
+	do {
+		for (int i = 0; i < stepRows; ++i, ++y) {
+			if (y > half) {
 				break;
+			}
 
-			for (int x = 0; x < width; x++)
-			{
-				m_pTexture32->SetPixel(x, y, (unsigned char)fr,
-					(unsigned char)fg, (unsigned char)fb, 0xff);
+			for (int x = 0; x < width; ++x) {
+				m_pTexture32->SetPixel(x, y, (unsigned char)r, (unsigned char)g, (unsigned char)b, 0xff);
 				lastY = y;
 			}
 		}
-		fr += dr;
-		fg += dg;
-		fb += db;
+
+		r += dr; g += dg; b += db;
 	} while (y <= half);
 
-	fr = r;
-	fg = g;
-	fb = b;
+	// lower half: from the colour down to black
+	r = red; g = green; b = blue;
 	dr = r * (-1.0 / 11.0);
 	dg = g * (-1.0 / 11.0);
 	db = b * (-1.0 / 11.0);
 
 	y = lastY;
 
-	do
-	{
-		for (int i = 0; i < step; i++, y++)
-		{
-			if (y >= height)
+	do {
+		for (int i = 0; i < stepRows; ++i, ++y) {
+			if (y >= height) {
 				break;
+			}
 
-			for (int x = 0; x < width; x++)
-			{
-				m_pTexture32->SetPixel(x, y, (unsigned char)fr,
-					(unsigned char)fg, (unsigned char)fb, 0xff);
+			for (int x = 0; x < width; ++x) {
+				m_pTexture32->SetPixel(x, y, (unsigned char)r, (unsigned char)g, (unsigned char)b, 0xff);
 			}
 		}
-		fr += dr;
-		fg += dg;
-		fb += db;
+
+		r += dr; g += dg; b += db;
 	} while (y < height);
 
 	RefreshTexCache(m_pTexture32);
 
 	m_pArea->SetBgImg(m_pTexture32);
+}
+
+// ucccolorpicker.h:18
+void CUccColorPicker::Process(void) {
+}
+
+// ucccolorpicker.h:20
+void CUccColorPicker::MouseEventHandler(eButton button, int state, const WPoint &point) {
+}
+
+// ucccolorpicker.h:27
+void CUccColorPicker::Refresh2D(void) {
+}
+
+// ucccolorpicker.h:28
+void CUccColorPicker::Refresh3D(void) {
+}
+
+// ucccolorpicker.h:48
+void CUccColorBrightness::GenerateColorMap(void) {
 }

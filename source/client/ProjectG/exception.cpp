@@ -1,7 +1,9 @@
-#include "minatl.h"
-#include "exception.h"
+// Original: d:\build\custom\temp\code\client\projectg\exception.cpp
+#include <windows.h>
 
-void WException::Handle()
-{
-	FatalAppExitA(0, m_msg.c_str());
+#include "Exception.h"
+
+// exception.cpp:18
+void WException::Handle(void) {
+	FatalAppExitA(0, m_message.c_str());
 }

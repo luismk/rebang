@@ -1,38 +1,34 @@
-#pragma once
-#include <vector>
-#include "monitor.h"
+// Original: d:\build\custom\temp\code\client\projectg\fpsmonitor.h
+#ifndef PG_CLIENT_PROJECTG_FPSMONITOR_H
+#define PG_CLIENT_PROJECTG_FPSMONITOR_H
 
-class CFpsMonitor : public CMonitor
-{
+#include "..\..\defines.h"
+#include "../client/ProjectG/monitor.h"
+#include "../client/Wangreal/include/wview.h"
+
+// The frame-rate graph: draws the samples as a line, oldest first.
+class CFpsMonitor : public CMonitor {
 public:
-	CFpsMonitor() { }
-	virtual ~CFpsMonitor() { }
+	CFpsMonitor(void) {}            // fpsmonitor.h:19
+	virtual ~CFpsMonitor(void) {}   // fpsmonitor.h:20
 
-	virtual bool Render(WView* view) const
-	{
+	// fpsmonitor.h:24
+	virtual bool Render(WView* view) const {
 		if (!CMonitor::Render(view))
 			return false;
 
-		const WRect& rect = m_rect;
 		int prev = -1;
-		for (int i = 0; i < m_sampleNum; i++)
-		{
-			int index = (m_current + i - 1) % m_sampleNum;
-			int value = m_samples[index];
-			int last = (prev == -1) ? value : prev;
-			prev = value;
-			float y = rect.y + rect.h -
-				(float)(value < m_maxValue ? value : m_maxValue) / m_maxValue *
-					rect.h;
-			float ly = rect.y + rect.h -
-				(float)(last < m_maxValue ? last : m_maxValue) / m_maxValue *
-					rect.h;
-			float x = rect.x + i;
-			_WPOINT to = { x, y };
-			_WPOINT from = { x - 1.0f, ly };
-			view->DrawLine2D(from, to, m_lineColor, 0);
+		for (int i = 0; i < m_nCount; i++) {
+			int cur = m_samples[(m_nCur + i - 1) % m_nCount];
+			int last = (prev == -1) ? cur : prev;
+			prev = cur;
+			float yCur = m_rect.y + m_rect.h - (float)(cur < m_nScale ? cur : m_nScale) / m_nScale * m_rect.h;
+			float yLast = m_rect.y + m_rect.h - (float)(last < m_nScale ? last : m_nScale) / m_nScale * m_rect.h;
+			view->DrawLine2D(WPoint(m_rect.x + i - 1.0f, yLast), WPoint(m_rect.x + i, yCur), m_graphColor, 0);
 		}
-
 		return true;
 	}
 };
+CHECK_SIZE(CFpsMonitor, 0x3c);
+
+#endif // PG_CLIENT_PROJECTG_FPSMONITOR_H

@@ -1,204 +1,216 @@
-#include "minatl.h"
-#include "rssmanager.h"
+// Original: d:\build\custom\temp\code\client\projectg\rssmanager.cpp
+#include <windows.h>
 #include <process.h>
-#include <WinInet.h>
 
-bool LoadXMLVer(const char* filename, char* ver, int len)
+#include <stdio.h>
+#include <string.h>
+
+#include "RSSManager.h"
+#include "tinyxml.h"
+
+// wininet.h is not in the toolchain's Platform SDK: the imports used here,
+// with their SDK signatures (the same block as cHttp.h).
+#ifndef INTERNET_FLAG_NO_CACHE_WRITE
+typedef LPVOID HINTERNET;
+#define INTERNET_FLAG_RELOAD 0x80000000
+#define INTERNET_FLAG_NO_CACHE_WRITE 0x04000000
+extern "C" {
+__declspec(dllimport) HINTERNET WINAPI InternetOpenA(LPCSTR agent, DWORD accessType, LPCSTR proxy, LPCSTR proxyBypass, DWORD flags);
+__declspec(dllimport) HINTERNET WINAPI InternetOpenUrlA(HINTERNET internet, LPCSTR url, LPCSTR headers, DWORD headersLength, DWORD flags, DWORD_PTR context);
+__declspec(dllimport) BOOL WINAPI InternetQueryDataAvailable(HINTERNET file, LPDWORD bytesAvailable, DWORD flags, DWORD_PTR context);
+__declspec(dllimport) BOOL WINAPI InternetReadFile(HINTERNET file, LPVOID buffer, DWORD bytesToRead, LPDWORD bytesRead);
+__declspec(dllimport) BOOL WINAPI InternetCloseHandle(HINTERNET internet);
+}
+#endif
+
+unsigned __stdcall RSSThreadFunc(void *param);
+
+// rssmanager.cpp:17
+bool LoadXMLVer(const char *fileName, char *ver, int size)
 {
 	TiXmlDocument doc;
-	if (doc.LoadFile(filename))
-	{
-		TiXmlNode* rss = doc.FirstChild("rss");
+	if (doc.LoadFile(fileName)) {
+		TiXmlNode *pRss = doc.FirstChild("rss");
+		if (pRss) {
+			TiXmlNode *pNode = pRss->FirstChild("ver");
+			if (pNode)
+				pNode = pNode->FirstChild();
 
-		if (rss == NULL)
-			return false;
+			if (pNode == 0)
+				return false;
 
-		TiXmlNode* node = rss->FirstChild("ver");
+			const char *text = pNode->Value();
+			strncpy(ver, text, strlen(text));
 
-		if (node == NULL)
-			return false;
-
-		node = node->FirstChild();
-
-		if (node == NULL)
-			return false;
-
-		const char* value = node->Value();
-
-		strncpy(ver, value, strlen(value));
-
-		return true;
+			return true;
+		}
 	}
 
 	return false;
 }
 
-bool GetUrlFile(const char* url, const char* filename)
+// rssmanager.cpp:54
+bool GetUrlFile(const char *url, const char *fileName)
 {
-	char buffer[10240];
-	HINTERNET hSession = InternetOpenA("Daemon", 0, NULL, NULL, 0);
-	if (hSession == NULL)
+	HINTERNET hInternet = InternetOpenA("Daemon", 0, NULL, NULL, 0);
+	if (hInternet == NULL)
 		return false;
 
-	HINTERNET hUrl =
-		InternetOpenUrlA(hSession, url, NULL, 0, INTERNET_FLAG_DONT_CACHE, 0);
-	if (hUrl == NULL)
-	{
-		InternetCloseHandle(hSession);
+	HINTERNET hUrl = InternetOpenUrlA(hInternet, url, NULL, 0, INTERNET_FLAG_NO_CACHE_WRITE, 0);
+	if (hUrl == NULL) {
+		InternetCloseHandle(hInternet);
 		return false;
 	}
 
-	HANDLE hFile = CreateFile(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS,
-		FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
-	{
-		InternetCloseHandle(hSession);
+	HANDLE hFile = CreateFileA(fileName, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE) {
+		InternetCloseHandle(hInternet);
 		InternetCloseHandle(hUrl);
 		return false;
 	}
 
-	unsigned long dwSize = 0;
-	unsigned long dwRead = 0;
-	unsigned long dwWritten = 0;
-	do
-	{
-		InternetQueryDataAvailable(hUrl, &dwSize, 0, 0);
-		InternetReadFile(hUrl, buffer, dwSize, &dwRead);
-		WriteFile(hFile, buffer, dwRead, &dwWritten, NULL);
-	} while (dwRead != 0);
+	DWORD available = 0;
+	DWORD read = 0;
+	DWORD written = 0;
+	char buffer[0x2800];
+
+	do {
+		InternetQueryDataAvailable(hUrl, &available, 0, 0);
+		InternetReadFile(hUrl, buffer, available, &read);
+		WriteFile(hFile, buffer, read, &written, NULL);
+	} while (read != 0);
 
 	CloseHandle(hFile);
-	InternetCloseHandle(hSession);
+
+	InternetCloseHandle(hInternet);
 	InternetCloseHandle(hUrl);
+
 	return true;
 }
 
-unsigned int __stdcall RSSThreadFunc(void* pParam)
+// rssmanager.cpp:107
+unsigned __stdcall RSSThreadFunc(void *param)
 {
-	RSSManager* pManager = (RSSManager*)pParam;
-	char szUrl[256] = { 0 };
-	sprintf(szUrl, "%s/NoticeRSS.aspx?gIdx=%d\n",
-		"http://qa.club.pangya.gametree.co.kr/InGame", pManager->m_guildIdx);
-	if (GetUrlFile(szUrl, "guildlast.xml"))
-	{
-		pManager->CallBackFunction(0);
+	RSSManager *pThis = (RSSManager *)param;
+	char url[256] = { 0 };
+
+	sprintf(url, "%s/NoticeRSS.aspx?gIdx=%d\n", "http://qa.club.pangya.gametree.co.kr/InGame", pThis->m_guildIdx);
+
+	if (GetUrlFile(url, "guildlast.xml")) {
+		pThis->CallBackFunction(0);
+	} else {
+		pThis->m_bNewRss = false;
+		pThis->m_bComplete = false;
 	}
-	else
-	{
-		pManager->m_bNewRss = false;
-		pManager->m_bComplete = false;
-	}
+
 	return 0;
 }
 
-RSSManager::RSSManager()
+// rssmanager.cpp:135
+RSSManager::RSSManager(void)
 {
 	m_bNewRss = false;
 	m_bComplete = false;
 }
 
-RSSManager::~RSSManager()
+// rssmanager.cpp:141
+RSSManager::~RSSManager(void)
 {
 }
 
-void RSSManager::GetRSSFile(unsigned long guildIdx, void (*pfnCallback)(int))
+// rssmanager.cpp:150
+void RSSManager::GetRSSFile(unsigned long guildIdx, void (__fastcall *callBack)(int))
 {
-	if (guildIdx > 0)
-	{
+	if (guildIdx > 0) {
+		unsigned threadId;
 		m_guildIdx = guildIdx;
-		m_pfnCallback = pfnCallback;
-		HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, RSSThreadFunc, this, 0,
-			(unsigned int*)&guildIdx);
-		if (hThread != INVALID_HANDLE_VALUE)
-			CloseHandle(hThread);
+		m_pfnCallBack = callBack;
+		uintptr_t thread = _beginthreadex(NULL, 0, RSSThreadFunc, this, 0, &threadId);
+		if (thread != (uintptr_t)-1) {
+			CloseHandle((HANDLE)thread);
+		}
 	}
 }
 
-void RSSManager::GetRSSFile_JP(unsigned long guildIdx, void (*pfnCallback)(int),
-	const char* address, const char* path)
+// rssmanager.cpp:174
+void RSSManager::GetRSSFile_JP(unsigned long guildIdx, void (__fastcall *callBack)(int), const char *param1, const char *param2)
 {
-	if (guildIdx > 0)
-	{
+	if (guildIdx > 0) {
+		unsigned threadId;
 		m_guildIdx = guildIdx;
-		m_pfnCallback = pfnCallback;
-		m_address = address;
-		m_path = path;
-		HANDLE hThread = (HANDLE)_beginthreadex(NULL, 0, RSSThreadFunc, this, 0,
-			(unsigned int*)&guildIdx);
-		if (hThread != INVALID_HANDLE_VALUE)
-			CloseHandle(hThread);
+		m_pfnCallBack = callBack;
+		m_strJpParam1 = param1;
+		m_strJpParam2 = param2;
+		uintptr_t thread = _beginthreadex(NULL, 0, RSSThreadFunc, this, 0, &threadId);
+		if (thread != (uintptr_t)-1) {
+			CloseHandle((HANDLE)thread);
+		}
 	}
 }
 
+// rssmanager.cpp:203
 void RSSManager::CallBackFunction(int result)
 {
 	m_bNewRss = false;
 	m_bComplete = false;
-	if (result != 0)
-		return;
 
-	char szLast[100] = { 0 };
-	char szNews[100] = { 0 };
-	if (!LoadXMLVer("guildlast.xml", szLast, 100))
-		return;
+	if (result == 0) {
+		char lastVer[100] = { 0 };
+		char newsVer[100] = { 0 };
 
-	if (!LoadXMLVer("guildnews.xml", szNews, 100))
-	{
-		DeleteFile("guildnews.xml");
-		rename("guildlast.xml", "guildnews.xml");
-	}
-	else
-	{
-		if (stricmp(szLast, szNews) == 0)
-		{
-			DeleteFile("guildnews.xml");
-			rename("guildlast.xml", "guildnews.xml");
+		if (LoadXMLVer("guildlast.xml", lastVer, 100)) {
+			if (!LoadXMLVer("guildnews.xml", newsVer, 100)) {
+				DeleteFileA("guildnews.xml");
+				rename("guildlast.xml", "guildnews.xml");
+			} else if (stricmp(lastVer, newsVer) == 0) {
+				DeleteFileA("guildnews.xml");
+				rename("guildlast.xml", "guildnews.xml");
+				m_bComplete = true;
+				m_pfnCallBack(4);
+				return;
+			} else {
+				DeleteFileA("guildnews.xml");
+				rename("guildlast.xml", "guildnews.xml");
+				m_pfnCallBack(3);
+			}
+
 			m_bComplete = true;
-			m_pfnCallback(4);
-			return;
+			m_bNewRss = true;
 		}
-		DeleteFile("guildnews.xml");
-		rename("guildlast.xml", "guildnews.xml");
-		m_pfnCallback(3);
 	}
-	m_bComplete = true;
-	m_bNewRss = true;
 }
 
-bool RSSManager::IsNewRss()
+// rssmanager.cpp:274
+bool RSSManager::IsNewRss(void)
 {
 	return m_bNewRss;
 }
 
-const char* RSSManager::LoadFirstId(const char* filename)
+// rssmanager.cpp:281
+const char *RSSManager::LoadFirstId(const char *fileName)
 {
 	TiXmlDocument doc;
-	if (doc.LoadFile(filename))
-	{
-		TiXmlNode* rss = doc.FirstChild("rss");
+	if (doc.LoadFile(fileName)) {
+		TiXmlNode *pRss = doc.FirstChild("rss");
+		if (pRss) {
+			TiXmlNode *pNode = pRss->FirstChild("notice");
+			if (pNode)
+				pNode = pNode->FirstChild();
 
-		if (rss == NULL)
-			return NULL;
+			if (pNode == 0)
+				return 0;
 
-		TiXmlNode* node = rss->FirstChild("notice");
+			const char *id = pNode->Value();
 
-		if (node == NULL)
-			return NULL;
-
-		node = node->FirstChild();
-
-		if (node == NULL)
-			return NULL;
-
-		const char* value = node->Value();
-
-		return value;
+			return id;
+		}
 	}
 
-	return NULL;
+	return 0;
 }
 
-void RSSManager::ResetVars()
+// rssmanager.cpp:318
+void RSSManager::ResetVars(void)
 {
 	m_bNewRss = false;
 	m_bComplete = false;

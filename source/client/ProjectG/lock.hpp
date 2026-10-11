@@ -1,43 +1,56 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\lock.hpp
+#ifndef PG_CLIENT_PROJECTG_LOCK_HPP
+#define PG_CLIENT_PROJECTG_LOCK_HPP
 
 #include <windows.h>
 
-namespace _client
-{
-	namespace _private
-	{
-		template <class T>
-		class CLock
-		{
-		public:
-			CLock(T& cs) : m_cs(cs)
-			{
-				m_cs.lock();
-			}
-			~CLock()
-			{
-				m_cs.unlock();
-			}
+#include "..\..\defines.h"
 
-		private:
-			T& m_cs;
-		};
+namespace _client {
+
+namespace _private {
+
+// Holds a lock for its lifetime.
+template <class T>
+class CLock {
+public:
+	CLock(T &lock) : m_lock(lock) {   // lock.hpp:14
+		m_lock.lock();
+	}
+	~CLock(void) {   // lock.hpp:18
+		m_lock.unlock();
 	}
 
+private:
+	T &m_lock;   // 0x0
+};
 
+} // namespace _private
 
+// A Win32 critical section.
+class CCriticalSection {
+public:
+	CCriticalSection(void) {   // lock.hpp:35
+		InitializeCriticalSection(&m_cs);
+	}
+	virtual ~CCriticalSection(void) {   // lock.hpp:37
+		DeleteCriticalSection(&m_cs);
+	}
+	void lock(void) { EnterCriticalSection(&m_cs); }     // lock.hpp:39
+	void unlock(void) { LeaveCriticalSection(&m_cs); }   // lock.hpp:40
 
-	class CCriticalSection
-	{
-	public:
-		CCriticalSection() { InitializeCriticalSection(&m_cs); }
+private:
+	LAYOUT_CHECK_FRIEND;
 
-		virtual ~CCriticalSection() { DeleteCriticalSection(&m_cs); }
+	// 0x0: vftable
+	CRITICAL_SECTION m_cs;   // 0x4
+};
 
-		void lock() { EnterCriticalSection(&m_cs); }
-		void unlock() { LeaveCriticalSection(&m_cs); }
+} // namespace _client
 
-	private:
-		CRITICAL_SECTION m_cs;
-	};
-}
+CHECK_SIZE(_client::CCriticalSection, 0x1C);
+BEGIN_LAYOUT_CHECK(_client::CCriticalSection)
+	CHECK_FIELD(_client::CCriticalSection, m_cs, 0x4);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_LOCK_HPP

@@ -1,213 +1,213 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\frticketexchangedlg.h
+#ifndef PG_CLIENT_PROJECTG_FRTICKETEXCHANGEDLG_H
+#define PG_CLIENT_PROJECTG_FRTICKETEXCHANGEDLG_H
 
-#include "frform.h"
+#include "..\..\defines.h"
+#include "..\..\padding.h"
 #include <map>
 
-class FrTicketExchangeDescDlg;
-// HACK
-#define FR_DYNAMIC_CAST(T, p) \
-	((__rtti_obj = (void*)(p)) \
-			? (T*)((IObject*)__rtti_obj)->DynamicCast(&T::m_RTTI) \
-			: (T*)NULL)
+#include "frform.h"
+#include "singleton.h"
 
-class TicketInfo : public WSingleton<TicketInfo>
-{
+class FrButton;
+class FrEdit;
+class FrViewer;
+
+// Ticket id helpers: a TID is a 16-bit group (high word) and index (low word).
+namespace nsTicketHelper {
+	unsigned long Combine(unsigned long group, unsigned long index);
+	void Analyze(unsigned long& tid, unsigned long& group, unsigned long& index);
+}
+
+// Exchange counts received from the server (size 0x3c, the `new` of the
+// FrTicketExchangeDlg constructor), a singleton.
+class TicketInfo : public WSingleton<TicketInfo> {
+	LAYOUT_CHECK_FRIEND;
 public:
-	struct sTicketItem
-	{
-		unsigned long count;
-		unsigned long remain;
+	// Exchange count of one ticket (the value type of the map, 8 bytes).
+	struct sTicketItem {
+		unsigned long m_count;      // 0x0
+		unsigned long m_maxCount;   // 0x4
 	};
 
-	TicketInfo()
-	{
-		m_ticketCount = 0;
-		m_state = 0xff;
-	}
-	virtual ~TicketInfo() { m_itemMap.clear(); }
+	TicketInfo(void);
+	virtual ~TicketInfo(void);
 
-	unsigned long m_ticketCount;
-	unsigned char m_state;
-	std::map<unsigned long, sTicketItem> m_itemMap;
+	sTicketItem FindCount(unsigned long tid);
 
-	sTicketItem FindCount(unsigned long tid)
-	{
-		sTicketItem item;
-		memset(&item, 0, sizeof(item));
-
-		std::map<unsigned long, sTicketItem>::iterator it = m_itemMap.find(tid);
-		if (it != m_itemMap.end())
-		{
-			item = it->second;
-		}
-		return item;
-	}
+	unsigned long m_ticketCount;                        // 0x28
+	char m_groupGState;                                 // 0x2c, -1 until the server answers
+	std::map<unsigned long, sTicketItem> m_counts;      // 0x30, by TID
 };
 
-class TicketItemObject
-{
-public:
-	TicketItemObject()
-	{
-		m_tid = 0;
-		m_quantity = 0;
-		m_pButton = NULL;
-		m_pViewer = NULL;
-		m_pFrameViewer = NULL;
+CHECK_SIZE(TicketInfo, 0x3c);
+BEGIN_LAYOUT_CHECK(TicketInfo)
+	CHECK_FIELD(TicketInfo, m_ticketCount, 0x28);
+	CHECK_FIELD(TicketInfo, m_groupGState, 0x2c);
+	CHECK_FIELD(TicketInfo, m_counts, 0x30);
+END_LAYOUT_CHECK
 
-		m_pEdit[0] = NULL;
-		m_pEdit[1] = NULL;
-	}
-	~TicketItemObject() { }
+// frticketexchangedlg.h:21
+inline TicketInfo::TicketInfo(void) {
+	m_ticketCount = 0;
+	m_groupGState = -1;
+}
+
+// frticketexchangedlg.h:27
+inline TicketInfo::~TicketInfo(void) {
+	m_counts.clear();
+}
+
+// One exchangeable item of the dialog with its controls (0x1c bytes).
+class TicketItemObject {
+	LAYOUT_CHECK_FRIEND;
+public:
+	TicketItemObject(void);
+	~TicketItemObject(void);
+
+	void set_TID(unsigned long tid);
+	unsigned long get_TID(void);
+	void set_Quantity(unsigned long quantity);
+	unsigned long get_Quantity(void);
+	FrButton* get_Button(int wnd);
+	FrEdit* get_Edit(unsigned int index, int wnd);
+	FrViewer* get_Viewer(int wnd, bool over);
 
 private:
-	unsigned long m_tid;
-	unsigned long m_quantity;
-	FrButton* m_pButton;
-	FrEdit* m_pEdit[2];
-	FrViewer* m_pViewer;
-	FrViewer* m_pFrameViewer;
+	unsigned long m_TID;          // 0x0
+	unsigned long m_Quantity;     // 0x4
+	FrButton* m_pButton;          // 0x8
+	FrEdit* m_pEdit[2];           // 0xc
+	FrViewer* m_pViewer;          // 0x14
+	FrViewer* m_pViewerOver;      // 0x18
+};
 
+CHECK_SIZE(TicketItemObject, 0x1c);
+BEGIN_LAYOUT_CHECK(TicketItemObject)
+	CHECK_FIELD(TicketItemObject, m_Quantity, 0x4);
+	CHECK_FIELD(TicketItemObject, m_pButton, 0x8);
+	CHECK_FIELD(TicketItemObject, m_pEdit, 0xc);
+	CHECK_FIELD(TicketItemObject, m_pViewer, 0x14);
+	CHECK_FIELD(TicketItemObject, m_pViewerOver, 0x18);
+END_LAYOUT_CHECK
+
+// Description pop-up of the ticket exchange dialog (size 0x158, the `new` of
+// FrTicketExchangeDescDlgMakeInstance).
+class FrTicketExchangeDescDlg : public FrForm {
+	LAYOUT_CHECK_FRIEND;
 public:
-	void set_TID(unsigned long tid) { m_tid = tid; }
-	unsigned long get_TID() { return m_tid; }
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // frticketexchangedlg.h:126
 
-	void set_Quantity(unsigned long quantity) { m_quantity = quantity; }
-	unsigned long get_Quantity() { return m_quantity; }
+	FrTicketExchangeDescDlg(void);
+	virtual ~FrTicketExchangeDescDlg(void);
 
-	FrButton* get_Button(int obj)
-	{
-		if (m_pButton == NULL)
-			m_pButton = FR_DYNAMIC_CAST(FrButton, obj);
-
-		return m_pButton;
-	}
-
-	FrEdit* get_Edit(unsigned int index, int obj)
-	{
-		if (index > 2)
-			return NULL;
-
-		if (m_pEdit[index] == NULL)
-			m_pEdit[index] = FR_DYNAMIC_CAST(FrEdit, obj);
-
-		return m_pEdit[index];
-	}
-
-	FrViewer* get_Viewer(int obj, bool bFrame)
-	{
-		FrViewer* pViewer = m_pViewer;
-		if (bFrame)
-			pViewer = m_pFrameViewer;
-
-		if (pViewer == NULL)
-			pViewer = FR_DYNAMIC_CAST(FrViewer, obj);
-
-		if (bFrame)
-			m_pFrameViewer = pViewer;
-		else
-			m_pViewer = pViewer;
-
-		return pViewer;
-	}
-};
-
-class FrTicketExchangeDescDlg : public FrForm
-{
-	DECLARE_OBJECT(FrTicketExchangeDescDlg)
-
-	FrTicketExchangeDescDlg();
-	virtual ~FrTicketExchangeDescDlg();
-
-	void SetDescImage(const char* image);
-
-protected:
-	void OnInitDescViewer(int);
-
-	FrViewer* m_pDescViewer;
-	char m_descImage[64];
-
-	DECLARE_FRESH_MSGMAP()
-};
-
-class FrTicketExchangeDlg : public FrForm
-{
-	DECLARE_OBJECT(FrTicketExchangeDlg)
-
-	FrTicketExchangeDlg();
-	virtual ~FrTicketExchangeDlg();
-
-	virtual bool OnInit();
-	virtual void OnProc(const float dt);
-
-	void Reponse(unsigned long type, unsigned char result);
-	bool OnTicketExchangeDescResult(int result, FrForm* form);
-
-protected:
-	void onInit_Icon_0(int);
-	void onInit_Icon_1(int);
-	void onInit_Icon_2(int);
-	void onInit_Icon_3(int);
-	void onInit_Icon_4(int);
-	void onInit_Icon_5(int);
-	void onInit_Icon_6(int);
-	void onInit_Icon_7(int);
-
-	void onInit_ItemE0(int);
-	void onLBtnUp_ItemE0();
-	void onInit_Edit0E0(int);
-	void onInit_Edit1E0(int);
-	void onInit_ItemE1(int);
-	void onLBtnUp_ItemE1();
-	void onInit_Edit0E1(int);
-	void onInit_Edit1E1(int);
-
-	void onInit_ItemG0(int);
-	void onLBtnUp_ItemG0();
-	void onInit_Edit0G0(int);
-	void onInit_ItemG1(int);
-	void onLBtnUp_ItemG1();
-	void onInit_Edit0G1(int);
-	void onInit_ItemG2(int);
-	void onLBtnUp_ItemG2();
-	void onInit_Edit0G2(int);
-	void onInit_ItemG3(int);
-	void onLBtnUp_ItemG3();
-	void onInit_Edit0G3(int);
-
-	void onInit_ItemI0(int);
-	void onLBtnUp_ItemI0();
-	void onInit_Item_I1(int);
-	void onLBtnUp_ItemI1();
-
-	void onInit_View0(int);
-	void onInit_View1(int);
-	void onInit_View2(int);
-	void onInit_View3(int);
-
-	void onInit_Number_0(int);
-	void onInit_Number_1(int);
-	void onInit_Number_2(int);
-	void onInit_Number_3(int);
-
-	void onLBtnUp_Help();
+	void SetDescImage(const char* name);
 
 private:
-	TicketItemObject* FindItem(unsigned long id);
-	void Auto_Initialize(unsigned int kind, unsigned int index, int obj,
-		unsigned long id);
-	void ChangeItemState(TicketItemObject* item, int state);
-	void SetCountImage(unsigned int count);
-	bool Request(unsigned int type, unsigned long tid, unsigned int quantity);
-	void ApplyInformation();
-
-	std::map<unsigned long, TicketItemObject*> m_itemMap;
-	FrTicketExchangeDescDlg* m_pDescDlg;
-	FrViewer* m_pNumber[4];
-
 	static sFRESH_ENTRY _MsgEntries[];
 
 protected:
 	static sFRESH_MSGMAP _MsgMap;
-	virtual const sFRESH_MSGMAP* GetMessageMap() const;
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;
+
+	void OnInitDescViewer(intptr_t wnd);
+
+	FrViewer* m_pDescViewer;          // 0x110
+	char m_descImage[0x40];           // 0x114
+	PADDING(0x154, 0x158);            // FrTicketExchangeDescDlg members
 };
+
+CHECK_SIZE(FrTicketExchangeDescDlg, 0x158);
+BEGIN_LAYOUT_CHECK(FrTicketExchangeDescDlg)
+	CHECK_FIELD(FrTicketExchangeDescDlg, m_pDescViewer, 0x110);
+	CHECK_FIELD(FrTicketExchangeDescDlg, m_descImage, 0x114);
+END_LAYOUT_CHECK
+
+// Ticket exchange dialog (size 0x130, the `new` of
+// FrTicketExchangeDlgMakeInstance). Only the members the written functions
+// use are named.
+class FrTicketExchangeDlg : public FrForm {
+	LAYOUT_CHECK_FRIEND;
+public:
+	static const WRTTI m_RTTI;
+	virtual const WRTTI* GetRTTI(void) const { return &m_RTTI; }   // frticketexchangedlg.h:147
+
+	FrTicketExchangeDlg(void);
+	virtual ~FrTicketExchangeDlg(void);
+
+	bool OnTicketExchangeDescResult(int ret, FrForm* pForm);
+	virtual bool OnInit(void);
+	void Reponse(unsigned long group, unsigned char result);
+	virtual void OnProc(const float dt);
+
+private:
+	static sFRESH_ENTRY _MsgEntries[];
+
+protected:
+	static sFRESH_MSGMAP _MsgMap;
+	virtual const sFRESH_MSGMAP* GetMessageMap(void) const;
+
+	void onInit_ItemE0(int wnd);
+	void onLBtnUp_ItemE0(void);
+	void onInit_Edit0E0(int wnd);
+	void onInit_Edit1E0(int wnd);
+	void onInit_ItemE1(int wnd);
+	void onLBtnUp_ItemE1(void);
+	void onInit_Edit0E1(int wnd);
+	void onInit_Edit1E1(int wnd);
+	void onInit_ItemG0(int wnd);
+	void onLBtnUp_ItemG0(void);
+	void onInit_Edit0G0(int wnd);
+	void onInit_ItemG1(int wnd);
+	void onLBtnUp_ItemG1(void);
+	void onInit_Edit0G1(int wnd);
+	void onInit_ItemG2(int wnd);
+	void onLBtnUp_ItemG2(void);
+	void onInit_Edit0G2(int wnd);
+	void onInit_ItemG3(int wnd);
+	void onLBtnUp_ItemG3(void);
+	void onInit_Edit0G3(int wnd);
+	void onInit_ItemI0(int wnd);
+	void onLBtnUp_ItemI0(void);
+	void onInit_Item_I1(int wnd);
+	void onLBtnUp_ItemI1(void);
+	void onInit_Number_0(int wnd);
+	void onInit_Number_1(int wnd);
+	void onInit_Number_2(int wnd);
+	void onInit_Number_3(int wnd);
+	void onLBtnUp_Help(void);
+	void onInit_Icon_0(int wnd);
+	void onInit_Icon_1(int wnd);
+	void onInit_Icon_2(int wnd);
+	void onInit_Icon_3(int wnd);
+	void onInit_Icon_4(int wnd);
+	void onInit_Icon_5(int wnd);
+	void onInit_Icon_6(int wnd);
+	void onInit_Icon_7(int wnd);
+	void onInit_View0(int wnd);
+	void onInit_View1(int wnd);
+	void onInit_View2(int wnd);
+	void onInit_View3(int wnd);
+
+private:
+	bool Request(unsigned int group, unsigned long tid, unsigned int quantity);
+	TicketItemObject* FindItem(unsigned long tid);
+	void ChangeItemState(TicketItemObject* pItem, int state);
+	void SetCountImage(unsigned int count);
+	void ApplyInformation(void);
+
+protected:
+	std::map<unsigned long, TicketItemObject*> m_items;   // 0x110, by TID
+	FrTicketExchangeDescDlg* m_pDescDlg;   // 0x11c, open description pop-up
+	FrViewer* m_pNumber[4];           // 0x120
+};
+
+CHECK_SIZE(FrTicketExchangeDlg, 0x130);
+BEGIN_LAYOUT_CHECK(FrTicketExchangeDlg)
+	CHECK_FIELD(FrTicketExchangeDlg, m_items, 0x110);
+	CHECK_FIELD(FrTicketExchangeDlg, m_pDescDlg, 0x11c);
+	CHECK_FIELD(FrTicketExchangeDlg, m_pNumber, 0x120);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_PROJECTG_FRTICKETEXCHANGEDLG_H

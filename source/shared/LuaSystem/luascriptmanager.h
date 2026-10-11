@@ -1,32 +1,49 @@
-#pragma once
+#ifndef PG_SHARED_LUASYSTEM_LUASCRIPTMANAGER_H
+#define PG_SHARED_LUASYSTEM_LUASCRIPTMANAGER_H
 
 #include <list>
-#include "lua_tinker/lua_tinker.h"
+ 
+#include "..\..\..\defines.h"
+struct lua_State;
 
-namespace lua_system
-{
-	class lua_script;
-	class lua_table_helper;
+namespace lua_system {
 
-	class lua_script_manger
-	{
-	public:
-		lua_script_manger();
-		~lua_script_manger();
+class lua_script;
+class lua_table_helper;
 
-		static lua_script_manger* GetInstance();
-		lua_script* CreateScript(bool option);
-		void ReleaseScript(lua_script* value);
-		void Update(float delta);
-		void ReloadAll();
-		bool RunString(const char* text);
-		lua_table_helper GetTable(const char* name);
-		lua_State* GetMasterLuaState() { return master; }
+class lua_script_manger {
+	LAYOUT_CHECK_FRIEND;
+public:
+	lua_script_manger();
+	~lua_script_manger();
 
-	private:
-		void DeleteScript(lua_script* value);
+	static lua_script_manger *GetInstance();
 
-		std::list<lua_script*> scripts;
-		lua_State* master;
-	};
+	lua_script *CreateScript(bool master);
+	void ReleaseScript(lua_script *script);
+	void ReloadAll();
+	void Update(float elapsed);
+	bool RunString(const char *str);
+	lua_table_helper GetTable(const char *name);
+
+	// luascriptmanager.h:30
+	lua_State *GetMasterLuaState() {
+		return m_masterLuaState;
+	}
+
+private:
+	void DeleteScript(lua_script *script);
+
+	std::list<lua_script *> m_scripts; // 0x00
+	lua_State *m_masterLuaState;       // 0x0C
+};
+
 }
+
+CHECK_SIZE(lua_system::lua_script_manger, 0x10);
+BEGIN_LAYOUT_CHECK(lua_system::lua_script_manger)
+	CHECK_FIELD(lua_system::lua_script_manger, m_scripts, 0x00);
+	CHECK_FIELD(lua_system::lua_script_manger, m_masterLuaState, 0x0C);
+END_LAYOUT_CHECK
+
+#endif

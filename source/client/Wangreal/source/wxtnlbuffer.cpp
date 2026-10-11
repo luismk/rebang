@@ -1,146 +1,115 @@
-#include "wmemblock.inl"
-#include "wxtnlbuffer.h"
-#include "wmath.h"
-#include "wview.h"
-#include "wpuppet.h"
-#include "wbone.h"
-#include "wmesh.h"
-#include <new>
+// Original: d:\build\custom\temp\code\client\wangreal\source\wxtnlbuffer.cpp
+#include "../include/wxtnlbuffer.h"
+#include "../include/wbone.h"
+#include "../include/wpuppet.h"
+#include "../include/wvideo.h"
+#include "../include/wview.h"
 
+#include <string.h>
+
+// wxtnlbuffer.cpp:23
 WxVb::WxVb(unsigned long dwFVF, unsigned long dwUsage)
-{
-	xReset(dwFVF, dwUsage);
+	: xhVb(0), xnVtxs(0), xdwFVF(dwFVF), xdwUsage(dwUsage), xpNext(NULL) {
 }
 
-WxVb::~WxVb()
-{
-	xReset(0, 0);
+// wxtnlbuffer.cpp:28
+WxVb::~WxVb() {
+	xhVb = 0; xnVtxs = 0; xdwFVF = 0; xdwUsage = 0; xpNext = NULL;
 }
 
-void WxVb::xReset(unsigned long dwFVF, unsigned long dwUsage)
-{
+// wxtnlbuffer.cpp:33
+void WxVb::xReset(unsigned long dwFVF, unsigned long dwUsage) {
 	xhVb = 0;
 	xnVtxs = 0;
 	xdwFVF = dwFVF;
 	xdwUsage = dwUsage;
-	xpNext = 0;
+	xpNext = NULL;
 }
 
-void WxVb::xClear(WVideoDev* pVideo)
-{
-	if (xpNext)
-	{
+// wxtnlbuffer.cpp:42
+void WxVb::xClear(WVideoDev* pVideo) {
+	if (xpNext) {
 		xpNext->xClear(pVideo);
 		delete xpNext;
-		xpNext = 0;
+		xpNext = NULL;
 	}
+
 	pVideo->xReleaseVertexBuffer(xhVb);
 }
 
-WxIb::WxIb()
-{
-	xhIb = 0;
-	xnIdxs = 0;
-	xdwUsage = 0;
+// wxtnlbuffer.cpp:56
+WxIb::WxIb() : xhIb(0), xnIdxs(0), xdwUsage(0) {
 }
 
-WxBatch::WxBatch(WBone* pBone, w_mesh* pMesh, unsigned long dwFVF,
-	int iBaseVtxIdx, int nVtxs, int iBaseIdxIdx, int nIdxs)
-	: xpBone(pBone),
-	  xpMesh(pMesh),
-	  xiBaseVtxIdx(iBaseVtxIdx),
-	  xnVtxs(nVtxs),
-	  xiBaseIdxIdx(iBaseIdxIdx),
-	  xnIdxs(nIdxs),
-	  xdwFVF(dwFVF),
-	  xpNext(0)
-{
+// wxtnlbuffer.cpp:64
+WxBatch::WxBatch(WBone* pBone, w_mesh* pMesh, unsigned long dwFVF, int iBaseVtxIdx, int nVtxs, int iBaseIdxIdx, int nIdxs) : xpBone(pBone), xpMesh(pMesh), xiBaseVtxIdx(iBaseVtxIdx), xnVtxs(nVtxs), xiBaseIdxIdx(iBaseIdxIdx), xnIdxs(nIdxs), xdwFVF(dwFVF), xpNext(NULL) {
 }
 
-void WxBatch::xClear()
-{
-	if (xpNext)
-	{
+// wxtnlbuffer.cpp:68
+void WxBatch::xClear() {
+	if (xpNext) {
 		xpNext->xClear();
 		delete xpNext;
-		xpNext = 0;
+		xpNext = NULL;
 	}
 }
 
-void WxBatch::xCopy(WxBatch** ppOut)
-{
-	*ppOut = new WxBatch(xpBone, xpMesh, xdwFVF, xiBaseVtxIdx, xnVtxs,
-		xiBaseIdxIdx, xnIdxs);
+// wxtnlbuffer.cpp:78
+void WxBatch::xCopy(WxBatch** ppBatch) {
+	*ppBatch = new WxBatch(xpBone, xpMesh, xdwFVF, xiBaseVtxIdx, xnVtxs, xiBaseIdxIdx, xnIdxs);
 }
 
-void WxBatch::xProcessShader(WView* pView)
-{
-	if (!xpMesh->bSpec)
+// wxtnlbuffer.cpp:83
+void WxBatch::xProcessShader(WView* pView) {
+	if (!xpMesh->bSpec) {
 		return;
+	}
 
 	WVideoDev* pVideo = pView->GetVideoDevice();
-	if (!pVideo)
+
+	if (pVideo == NULL) {
 		return;
+	}
 
 	int i;
 	int iOffset = pVideo->xGetVertexElemOffset(xdwFVF, WX_VELEM_TEX2);
-	if (iOffset < 0)
-		return;
 
-	BYTE nStride =
-		pVideo->xGetStride((int)((unsigned int)xpMesh->xiDrawFlag2 >> 22));
-	unsigned char* pData = pVideo->xLockVertexBuffer(
-		(int)((unsigned int)xpMesh->xiDrawFlag2 >> 22), xiBaseVtxIdx * nStride,
-		xnVtxs * nStride);
+	if (iOffset < 0) {
+		return;
+	}
+
+	unsigned char stride = pVideo->xGetStride((unsigned int)xpMesh->xiDrawFlag2 >> 22);
+	unsigned char* pData = pVideo->xLockVertexBuffer((unsigned int)xpMesh->xiDrawFlag2 >> 22, xiBaseVtxIdx * stride, xnVtxs * stride);
 
 	WBone* pBone = xpBone;
-	WMatrix mInv = ~pBone->m_matrix;
-	if (pBone->m_light.type == 1)
-	{
-	}
-	else if (pBone->m_light.type == 2)
-	{
+	WMatrix mInv = ~pBone->GetMatrix();
+
+	if (pBone->GetLight().type == LightSet::W_LIGHT_POINT) {
+	} else if (pBone->GetLight().type == LightSet::W_LIGHT_DIRECTIONAL) {
 		WVector vLocalE;
 		WVector vLocalL;
 		WVector vXA;
 		WVector vYA;
 		WVector vZA;
-		WVector* normList =
-			xpMesh->myNormalList ? xpMesh->myNormalList : xpMesh->normList;
+		WVector* normList = xpMesh->myNormalList ? xpMesh->myNormalList : xpMesh->normList;
 
-		vLocalE = pView->GetCamera().pivot * mInv;
-		vLocalL = RotVec(pBone->m_light.nearOne, mInv).Normalize();
+		vLocalE = pView->camera.pivot * mInv;
+		vLocalL = RotVec(pBone->GetLight().nearone, mInv).Normalize();
 
-		for (i = 0; i < xnVtxs; i++, pData += nStride)
-		{
-			if (vLocalL * normList[i] >= 0.0f)
-			{
-				*(float*)(pData + iOffset) = *(float*)(pData + iOffset + 4) =
-					0.75f;
-			}
-			else
-			{
-				vZA = ((xpMesh->vecList[i] - vLocalE).Normalize() + vLocalL)
-						  .Normalize();
+		for (i = 0; i < xnVtxs; i++, pData += stride) {
+			if (vLocalL * normList[i] >= 0.0f) {
+				*(float*)(pData + iOffset) = *(float*)(pData + iOffset + 4) = 0.75f;
+			} else {
+				vZA = ((xpMesh->vecList[i] - vLocalE).Normalize() + vLocalL).Normalize();
 
-				if (vZA * normList[i] >= 0.0f)
-				{
-					*(float*)(pData + iOffset) =
-						*(float*)(pData + iOffset + 4) = 0.75f;
-				}
-				else
-				{
-					if (WisEqual(vZA.y, -1.0f, g_EPSILON) ||
-						WisEqual(vZA.y, 1.0f, g_EPSILON))
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
+				if (vZA * normList[i] >= 0.0f) {
+					*(float*)(pData + iOffset) = *(float*)(pData + iOffset + 4) = 0.75f;
+				} else {
+					if (WisEqual(vZA.y, -1.0f, 1e-5f) || WisEqual(vZA.y, 1.0f, 1e-5f)) {
+						vXA = WCrossProduct(WVector::UNIT_POS_X, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
-					}
-					else
-					{
-						vXA =
-							WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
+					} else {
+						vXA = WCrossProduct(WVector::UNIT_POS_Y, vZA).Normalize();
 						vYA = WCrossProduct(vZA, vXA).Normalize();
 					}
 
@@ -151,356 +120,286 @@ void WxBatch::xProcessShader(WView* pView)
 		}
 	}
 
-	pVideo->xUnlockVertexBuffer((int)((unsigned int)xpMesh->xiDrawFlag2 >> 22));
+	pVideo->xUnlockVertexBuffer((unsigned int)xpMesh->xiDrawFlag2 >> 22);
 }
 
-WxBatchGrp::WxBatchGrp(WxVb* pVb, WxIb* pIb, int iFlag0, int iFlag1,
-	int iBaseVtxIdx, int nVtxs, int iBaseIdxIdx, int nIdxs)
-	: xpVb(pVb),
-	  xpIb(pIb),
-	  xiFlag0(iFlag0),
-	  xiFlag1(iFlag1),
-	  xiBaseVtxIdx(iBaseVtxIdx),
-	  xnVtxs(nVtxs),
-	  xiBaseIdxIdx(iBaseIdxIdx),
-	  xnIdxs(nIdxs),
-	  xpaBatches(0),
-	  xpNext(0)
-{
+// wxtnlbuffer.cpp:169
+WxBatchGrp::WxBatchGrp(WxVb* pVb, WxIb* pIb, int iFlag0, int iFlag1, int iBaseVtxIdx, int nVtxs, int iBaseIdxIdx, int nIdxs) : xpVb(pVb), xpIb(pIb), xiFlag0(iFlag0), xiFlag1(iFlag1), xiBaseVtxIdx(iBaseVtxIdx), xnVtxs(nVtxs), xiBaseIdxIdx(iBaseIdxIdx), xnIdxs(nIdxs), xpaBatches(NULL), xpNext(NULL) {
 }
 
-__forceinline void WxBatchGrp::xClear()
-{
-	if (xpNext)
-	{
+// wxtnlbuffer.cpp:173
+void WxBatchGrp::xClear() {
+	if (xpNext) {
 		xpNext->xClear();
 		delete xpNext;
-		xpNext = 0;
+		xpNext = NULL;
 	}
-	if (xpaBatches)
-	{
+
+	if (xpaBatches) {
 		xpaBatches->xClear();
 		delete xpaBatches;
-		xpaBatches = 0;
+		xpaBatches = NULL;
 	}
 }
 
-void WxBatchGrp::xCopy(WxBatchGrp** ppOut)
-{
-	*ppOut = new WxBatchGrp(xpVb, xpIb, xiFlag0, xiFlag1, xiBaseVtxIdx, xnVtxs,
-		xiBaseIdxIdx, xnIdxs);
+// wxtnlbuffer.cpp:190
+void WxBatchGrp::xCopy(WxBatchGrp** ppGrp) {
+	*ppGrp = new WxBatchGrp(xpVb, xpIb, xiFlag0, xiFlag1, xiBaseVtxIdx, xnVtxs, xiBaseIdxIdx, xnIdxs);
 }
 
-void WxBatchGrp::xRenderByBatch(WView* pView, WxBatchState* pState)
-{
-	for (WxBatch* pBatch = xpaBatches; pBatch; pBatch = pBatch->xpNext)
-	{
-		if (WBone::IsMeshVisible(pBatch->xpBone, pBatch->xpMesh) &&
-			(!pView->IsShadowView() ||
-				(pBatch->xpMesh->drawFlag & 0x300000) != 0x100000))
-		{
-			WBone* pBone = pBatch->xpBone;
-			pState->xmW = pBone->m_matrix;
-			pState->xnmTransfs = 0;
-			xRenderSubset(pView, pState, pBatch, 1);
+// wxtnlbuffer.cpp:196
+void WxBatchGrp::xRenderByBatch(WView* pView, WxBatchState* pBState) {
+	for (WxBatch* pBatch = xpaBatches; pBatch; pBatch = pBatch->xpNext) {
+		if (!WBone::IsMeshVisible(pBatch->xpBone, pBatch->xpMesh) || (pView->IsShadowView() && (pBatch->xpMesh->drawFlag & 0x300000) == 0x100000)) {
+			continue;
 		}
+
+		pBState->xmW = pBatch->xpBone->GetMatrix();
+
+		pBState->xnmTransfs = 0;
+		xRenderSubset(pView, pBState, pBatch, 1);
 	}
 }
 
-void WxBatchGrp::xRenderAtOnce(WView* pView, WxBatchState* pState, bool bEffect,
-	int* pOrder, int nOrder)
-{
-	if (pOrder == 0)
-	{
-		WxBatch* pBatch;
-		WxBatch* pStart = 0;
-		int nRun = 0;
-		{
-			for (pBatch = xpaBatches; pBatch; pBatch = pBatch->xpNext)
-			{
-				if (!pBatch->xpBone || !pBatch->xpMesh ||
-					!WBone::IsMeshVisible(pBatch->xpBone, pBatch->xpMesh) ||
-					(pView->IsShadowView() &&
-						(pBatch->xpMesh->drawFlag & 0x300000) == 0x100000))
-				{
-					if (pStart)
-					{
-						xRenderSubset(pView, pState, pStart, nRun);
-						pStart = 0;
-						nRun = 0;
-					}
+// wxtnlbuffer.cpp:220
+void WxBatchGrp::xRenderAtOnce(WView* pView, WxBatchState* pBState, bool bPerTranspMesh, int* paiBatchIdxs, int nIdxs) {
+	if (paiBatchIdxs == NULL) {
+		WxBatch* pFirst = NULL;
+		int nBatches = 0;
+		for (WxBatch* pBatch = xpaBatches; pBatch; pBatch = pBatch->xpNext) {
+			if (!pBatch->xpBone || !pBatch->xpMesh || !WBone::IsMeshVisible(pBatch->xpBone, pBatch->xpMesh) || (pView->IsShadowView() && (pBatch->xpMesh->drawFlag & 0x300000) == 0x100000)) {
+				if (pFirst) {
+					xRenderSubset(pView, pBState, pFirst, nBatches);
+					pFirst = NULL;
+					nBatches = 0;
 				}
-				else if (bEffect && (pBatch->xpMesh->drawFlag & 0x400000))
-				{
-					if (pStart)
-						xRenderSubset(pView, pState, pStart, nRun);
-					pStart = pBatch;
-					nRun = 1;
+			} else if (bPerTranspMesh && (pBatch->xpMesh->drawFlag & 0x400000)) {
+				if (pFirst) {
+					xRenderSubset(pView, pBState, pFirst, nBatches);
 				}
-				else if (pStart)
-				{
-					if (pBatch->xpBone->m_alpha == pStart->xpBone->m_alpha &&
-						pBatch->xpMesh->drawFlag == pStart->xpMesh->drawFlag &&
-						pBatch->xpMesh->xiDrawFlag2 ==
-							pStart->xpMesh->xiDrawFlag2 &&
-						stricmp(pBatch->xpMesh->mpetName,
-							pStart->xpMesh->mpetName) == 0)
-					{
-						++nRun;
-					}
-					else
-					{
-						xRenderSubset(pView, pState, pStart, nRun);
-						pStart = pBatch;
-						nRun = 1;
-					}
+				pFirst = pBatch;
+				nBatches = 1;
+			} else if (pFirst) {
+				if (pBatch->xpBone->GetAlpha() != pFirst->xpBone->GetAlpha() || pBatch->xpMesh->drawFlag != pFirst->xpMesh->drawFlag || pBatch->xpMesh->xiDrawFlag2 != pFirst->xpMesh->xiDrawFlag2 || stricmp(pBatch->xpMesh->mpetName, pFirst->xpMesh->mpetName) != 0) {
+					xRenderSubset(pView, pBState, pFirst, nBatches);
+					pFirst = pBatch;
+					nBatches = 1;
+				} else {
+					nBatches++;
 				}
-				else
-				{
-					pStart = pBatch;
-					nRun = 1;
-				}
+			} else {
+				pFirst = pBatch;
+				nBatches = 1;
 			}
-			if (pStart)
-				xRenderSubset(pView, pState, pStart, nRun);
+		}
+
+		if (pFirst) {
+			xRenderSubset(pView, pBState, pFirst, nBatches);
 		}
 	}
 }
 
-void WxBatchGrp::xRenderSubset(WView* pView, WxBatchState* pState,
-	WxBatch* pBatch, int nBatches)
-{
+// wxtnlbuffer.cpp:295
+void WxBatchGrp::xRenderSubset(WView* pView, WxBatchState* pBState, WxBatch* pBatch, int nBatches) {
 	int nVtxs = 0;
 	int nIdxs = 0;
 	WxBatch* p = pBatch;
-	if (nBatches > 0)
-	{
-		int k = nBatches;
-		do
-		{
-			nVtxs += p->xnVtxs;
-			nIdxs += p->xnIdxs;
-			--k;
-			p = p->xpNext;
-		} while (k);
+	int i;
+	for (i = 0; i < nBatches; i++) {
+		nVtxs += p->xnVtxs;
+		nIdxs += p->xnIdxs;
+		p = p->xpNext;
 	}
-	if (pView->ProcessEffect())
-	{
+
+	if (pView->ProcessEffect()) {
 		p = pBatch;
-		if (nBatches > 0)
-		{
-			int k = nBatches;
-			do
-			{
-				p->xProcessShader(pView);
-				--k;
-				p = p->xpNext;
-			} while (k);
+		for (i = 0; i < nBatches; i++) {
+			p->xProcessShader(pView);
+			p = p->xpNext;
 		}
 	}
-	pState->xiFlag0 = pBatch->xpMesh->drawFlag;
-	pState->xiFlag1 = pBatch->xpMesh->xiDrawFlag2;
-	pState->xiBaseVtxIdx = pBatch->xiBaseVtxIdx;
-	pState->xiBaseIdxIdx = pBatch->xiBaseIdxIdx;
-	pState->xnIdxs = nIdxs;
-	pState->xnVtxs = nVtxs;
-	::xRender(pView, pState, pBatch->xpBone, pBatch->xpMesh);
+
+	pBState->xiFlag0 = pBatch->xpMesh->drawFlag;
+	pBState->xiFlag1 = pBatch->xpMesh->xiDrawFlag2;
+	pBState->xiBaseVtxIdx = pBatch->xiBaseVtxIdx;
+	pBState->xiBaseIdxIdx = pBatch->xiBaseIdxIdx;
+	pBState->xnVtxs = nVtxs;
+	pBState->xnIdxs = nIdxs;
+
+	xRender(pView, pBState, pBatch->xpBone, pBatch->xpMesh);
 }
 
-WxTnLBuffer::WxTnLBuffer()
-	: m_xiFlag(0), m_xpaVbs(0)
-{
-	m_xpaBatchGrps = 0;
-	m_xpPet = 0;
-	m_xpVideo = 0;
+// wxtnlbuffer.cpp:361
+WxTnLBuffer::WxTnLBuffer() : m_xiFlag(0), m_xpaVbs(NULL), m_xpaBatchGrps(NULL), m_xpPet(NULL), m_xpVideo(NULL) {
 	memset(m_xaIbs, 0, sizeof(m_xaIbs));
 }
 
-WxTnLBuffer::~WxTnLBuffer()
-{
+// wxtnlbuffer.cpp:371
+WxTnLBuffer::~WxTnLBuffer() {
 	xClear();
 }
 
-void WxTnLBuffer::xClear()
-{
-	if ((m_xiFlag & 1) == 0 && m_xpaVbs)
-	{
+// wxtnlbuffer.cpp:376
+void WxTnLBuffer::xClear() {
+	if (!(m_xiFlag & WX_BUF_CLONE) && m_xpaVbs) {
 		m_xpaVbs->xClear(m_xpVideo);
-		if (m_xpaVbs)
-		{
-			delete m_xpaVbs;
-			m_xpaVbs = 0;
-		}
+		if (m_xpaVbs) { delete m_xpaVbs; m_xpaVbs = NULL; }
 	}
-	WxIb* pIb = m_xaIbs;
-	int n = 32;
-	do
-	{
-		if (pIb->xnIdxs != 0 && (m_xiFlag & 1) == 0)
-			m_xpVideo->xReleaseIndexBuffer(pIb->xhIb);
-		pIb->xnIdxs = 0;
-		pIb->xhIb = 0;
-		pIb->xdwUsage = 0;
-		++pIb;
-		--n;
-	} while (n);
-	if (m_xpaBatchGrps)
-	{
-		m_xpaBatchGrps->xClear();
-		if (m_xpaBatchGrps)
-		{
-			delete m_xpaBatchGrps;
-			m_xpaBatchGrps = 0;
+
+	for (int i = 0; i < 32; i++) {
+		if (m_xaIbs[i].xnIdxs && !(m_xiFlag & WX_BUF_CLONE)) {
+			m_xpVideo->xReleaseIndexBuffer(m_xaIbs[i].xhIb);
 		}
+		m_xaIbs[i].xnIdxs = 0;
+		m_xaIbs[i].xhIb = 0;
+		m_xaIbs[i].xdwUsage = 0;
+	}
+
+	if (m_xpaBatchGrps) {
+		m_xpaBatchGrps->xClear();
+		if (m_xpaBatchGrps) { delete m_xpaBatchGrps; m_xpaBatchGrps = NULL; }
 	}
 }
 
-void WxTnLBuffer::xCopy(WxTnLBuffer** ppOut, WVideoDev* pVideo)
-{
-	*ppOut = new WxTnLBuffer;
-	(*ppOut)->m_xiFlag |= m_xiFlag | 1;
-	(*ppOut)->m_xpVideo = pVideo;
-	(*ppOut)->m_xpaVbs = m_xpaVbs;
-	for (unsigned int i = 0; i < 32; ++i)
-		(*ppOut)->m_xaIbs[i] = m_xaIbs[i];
-	WxBatchGrp** ppGrp = &(*ppOut)->m_xpaBatchGrps;
-	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-	{
+// wxtnlbuffer.cpp:403
+void WxTnLBuffer::xCopy(WxTnLBuffer** ppBuffer, WVideoDev* pVideo) {
+	*ppBuffer = new WxTnLBuffer;
+
+	(*ppBuffer)->m_xiFlag |= m_xiFlag | WX_BUF_CLONE;
+	(*ppBuffer)->m_xpVideo = pVideo;
+	(*ppBuffer)->m_xpaVbs = m_xpaVbs;
+
+	for (int i = 0; i < sizeof(m_xaIbs) / sizeof(m_xaIbs[0]); i++) {
+		(*ppBuffer)->m_xaIbs[i] = m_xaIbs[i];
+	}
+
+	WxBatchGrp** ppGrp = &(*ppBuffer)->m_xpaBatchGrps;
+	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
 		pGrp->xCopy(ppGrp);
+
 		WxBatch** ppBatch = &(*ppGrp)->xpaBatches;
-		for (WxBatch* pBatch = pGrp->xpaBatches; pBatch;
-			pBatch = pBatch->xpNext)
-		{
+		for (WxBatch* pBatch = pGrp->xpaBatches; pBatch; pBatch = pBatch->xpNext) {
 			pBatch->xCopy(ppBatch);
 			ppBatch = &(*ppBatch)->xpNext;
 		}
+
 		ppGrp = &(*ppGrp)->xpNext;
 	}
 }
 
-void WxTnLBuffer::xSetRootBone(WPuppet* pPet)
-{
+// wxtnlbuffer.cpp:435
+void WxTnLBuffer::xSetRootBone(WPuppet* pPet) {
 	m_xpPet = pPet;
-	xUpdateBones(pPet->m_rootbone);
+
+	xUpdateBones(pPet->GetRootBone());
 }
 
-void WxTnLBuffer::xUpdateBones(WBone* pBone)
-{
-	do
-	{
-		for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-		{
-			for (WxBatch* pBatch = pGrp->xpaBatches; pBatch;
-				pBatch = pBatch->xpNext)
-			{
-				if (pBatch->xpBone->m_id == pBone->m_id)
-				{
-					w_mesh* pOld = pBatch->xpBone->m_mesh;
-					w_mesh* pNew = pBone->m_mesh;
-					if (pOld)
-					{
-						do
-						{
-							if (pOld == pBatch->xpMesh)
-							{
-								pBatch->xpMesh = pNew;
-								break;
-							}
-							pOld = pOld->next;
-							pNew = pNew->next;
-						} while (pOld);
+// wxtnlbuffer.cpp:442
+void WxTnLBuffer::xUpdateBones(WBone* pBone) {
+	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+		for (WxBatch* pBatch = pGrp->xpaBatches; pBatch; pBatch = pBatch->xpNext) {
+			if (pBatch->xpBone->m_id == pBone->m_id) {
+				w_mesh* pMesh = pBatch->xpBone->m_mesh;
+				w_mesh* pNewMesh = pBone->m_mesh;
+				for (; pMesh; pMesh = pMesh->next, pNewMesh = pNewMesh->next) {
+					if (pMesh == pBatch->xpMesh) {
+						pBatch->xpMesh = pNewMesh;
+						break;
 					}
-					pBatch->xpBone = pBone;
 				}
+				pBatch->xpBone = pBone;
 			}
 		}
-		if (pBone->m_next)
-			xUpdateBones(pBone->m_next);
-		pBone = pBone->m_child;
-	} while (pBone);
+	}
+
+	if (pBone->m_next) {
+		xUpdateBones(pBone->m_next);
+	}
+	if (pBone->m_child) {
+		xUpdateBones(pBone->m_child);
+	}
 }
 
-WxBatchGrp* WxTnLBuffer::xGetBatchGrps()
-{
+// wxtnlbuffer.cpp:477
+WxBatchGrp* WxTnLBuffer::xGetBatchGrps() {
 	return m_xpaBatchGrps;
 }
 
-int WxTnLBuffer::xCreateBuffers(WVideoDev* pVideo, WPuppet* pPet)
-{
+// wxtnlbuffer.cpp:482
+int WxTnLBuffer::xCreateBuffers(WVideoDev* pVideo, WPuppet* pPet) {
 	m_xpPet = pPet;
 	m_xpVideo = pVideo;
-	return xDetermineProperty(m_xpPet->GetRootBone(), 1, pPet->GetLightMode()) |
-		xAllocBuffers(1);
+	int ret = xDetermineProperty(pPet->GetRootBone(), 1, pPet->GetLightMode());
+	ret |= xAllocBuffers(1);
+	return ret;
 }
 
-int WxTnLBuffer::xCreateStaticBuffers(WVideoDev* pVideo, WPuppet** ppPets,
-	int nPets)
-{
-	m_xiFlag |= 2;
-	m_xpPet = ppPets[0];
-	m_xpVideo = pVideo;
-	return xDetermineProperty(m_xpPet->GetRootBone(), nPets,
-			   ppPets[0]->GetLightMode()) |
-		xAllocBuffers(nPets);
+// wxtnlbuffer.cpp:559
+int WxTnLBuffer::xCreateStaticBuffers(WVideoDev* pVideo, WPuppet** ppPets, int nPets) {
+	m_xiFlag |= WX_BUF_STATIC;
+	m_xpPet = ppPets[0]; m_xpVideo = pVideo;
+	int ret = xDetermineProperty(m_xpPet->GetRootBone(), nPets, ppPets[0]->GetLightMode());
+	ret |= xAllocBuffers(nPets);
+	return ret;
 }
 
-int WxTnLBuffer::xDetermineProperty(WBone* pBone, int nCopies, int iLightMode)
-{
-	w_mesh* pMesh = pBone->m_mesh;
-	if (pMesh)
-	{
-		unsigned int uShadow = ~((unsigned int)iLightMode >> 11) & 0x2000;
-		do
-		{
-			pMesh->xiDrawFlag2 = (pMesh->maxBoneNum > 0 ? 0x1000 : 0) |
-				(pMesh->xiDrawFlag2 & 0xc14) | uShadow;
-			if ((pMesh->xiDrawFlag2 & 0x2000) == 0)
-				pMesh->xiDrawFlag2 = pMesh->xiDrawFlag2 | 4;
-			WxVb* pVb = 0;
-			WxIb* pIb = 0;
-			WxBatchGrp* pGrp = 0;
-			WxBatch* pBatch = 0;
-			xGetMatchingBuffers(&pVb, &pIb, pMesh);
-			xGetMatchingBatches(&pGrp, &pBatch, pVb, pIb, pBone, pMesh,
-				nCopies);
-			pVb->xnVtxs += pMesh->vtxNum * nCopies;
-			pIb->xnIdxs += pMesh->indexNum * nCopies;
-			pMesh->xpBatchGrp = pGrp;
-			pMesh->xpBatch = pBatch;
-			pMesh = pMesh->next;
-		} while (pMesh);
+// wxtnlbuffer.cpp:573
+int WxTnLBuffer::xDetermineProperty(WBone* pBone, int nPets, int iLightMode) {
+	WxVb* pVb;
+	WxBatchGrp* pBatchGrp;
+	WxIb* pIb;
+	WxBatch* pBatch;
+
+	for (w_mesh* pMesh = pBone->m_mesh; pMesh; pMesh = pMesh->next) {
+		int iDrawFlag2 = pMesh->xiDrawFlag2;
+
+		pMesh->xiDrawFlag2 = (pMesh->maxBoneNum > 0 ? 0x1000 : 0) | (iDrawFlag2 & 0xc14) | ((iLightMode & 0x1000000) ? 0 : 0x2000);
+
+		if (!(pMesh->xiDrawFlag2 & 0x2000))
+			pMesh->xiDrawFlag2 |= 4;
+
+		pVb = NULL; pIb = NULL; pBatchGrp = NULL; pBatch = NULL;
+		xGetMatchingBuffers(&pVb, &pIb, pMesh);
+		xGetMatchingBatches(&pBatchGrp, &pBatch, pVb, pIb, pBone, pMesh, nPets);
+
+		pVb->xnVtxs += pMesh->vtxNum * nPets;
+		pIb->xnIdxs += pMesh->indexNum * nPets;
+
+		pMesh->xpBatchGrp = pBatchGrp;
+		pMesh->xpBatch = pBatch;
 	}
+
 	if (pBone->m_next)
-		xDetermineProperty(pBone->m_next, nCopies, iLightMode);
+		xDetermineProperty(pBone->m_next, nPets, iLightMode);
+
 	if (pBone->m_child)
-		xDetermineProperty(pBone->m_child, nCopies, iLightMode);
+		xDetermineProperty(pBone->m_child, nPets, iLightMode);
+
 	return 0;
 }
 
-void WxTnLBuffer::xGetMatchingBuffers(WxVb** ppVb, WxIb** ppIb, w_mesh* pMesh)
-{
-	WxVb* pPrevVb = 0;
-	WxIb* pIb = 0;
-	unsigned long dwFVF = m_xpVideo->xDetermineFVF(pMesh->drawFlag,
-		pMesh->xiDrawFlag2, pMesh->maxBoneNum);
+// wxtnlbuffer.cpp:625
+void WxTnLBuffer::xGetMatchingBuffers(WxVb** ppVb, WxIb** ppIb, w_mesh* pMesh) {
+	WxVb* pPrevVb = NULL;
+	WxIb* pIb = NULL;
+	unsigned long dwFVF = m_xpVideo->xDetermineFVF(pMesh->drawFlag, pMesh->xiDrawFlag2, pMesh->maxBoneNum);
 	unsigned long dwUsage = m_xpVideo->xDetermineBufferUsage(dwFVF) | 8;
 	unsigned long dwVbUsage = dwUsage;
 	if (pMesh->bSpec)
 		dwVbUsage |= 0x200;
-	WxVb* pVb = 0;
-	if (m_xpaVbs)
-	{
+
+	WxVb* pVb = NULL;
+	if (m_xpaVbs) {
 		pVb = m_xpaVbs;
-		do
-		{
+		do {
 			if (dwFVF == pVb->xdwFVF && dwVbUsage == pVb->xdwUsage)
 				break;
 			pPrevVb = pVb;
 			pVb = pVb->xpNext;
 		} while (pVb);
 	}
-	if (!pVb)
-	{
+
+	if (!pVb) {
 		pVb = new WxVb(dwFVF, dwVbUsage);
 		if (pPrevVb)
 			pPrevVb->xpNext = pVb;
@@ -508,61 +407,53 @@ void WxTnLBuffer::xGetMatchingBuffers(WxVb** ppVb, WxIb** ppIb, w_mesh* pMesh)
 			m_xpaVbs = pVb;
 	}
 
-	for (unsigned int i = 0; i < 32; ++i)
-	{
-		if (m_xaIbs[i].xnIdxs == 0)
-		{
+	for (unsigned int i = 0; i < 32; ++i) {
+		if (m_xaIbs[i].xnIdxs == 0) {
 			pIb = &m_xaIbs[i];
 			pIb->xdwUsage = dwUsage;
 			break;
 		}
-		if (dwUsage == m_xaIbs[i].xdwUsage &&
-			m_xaIbs[i].xnIdxs + pMesh->indexNum < 9000)
-		{
+		if (dwUsage == m_xaIbs[i].xdwUsage && m_xaIbs[i].xnIdxs + pMesh->indexNum < 9000) {
 			pIb = &m_xaIbs[i];
 			break;
 		}
 	}
+
 	*ppVb = pVb;
 	*ppIb = pIb;
 }
 
-void WxTnLBuffer::xGetMatchingBatches(WxBatchGrp** ppGrp, WxBatch** ppBatch,
-	WxVb* pVb, WxIb* pIb, WBone* pBone, w_mesh* pMesh, int nPets)
-{
-	WxBatch* pBatch = 0;
-	WxBatchGrp* pPrev = 0;
-	WxBatchGrp* pGrp = 0;
-	if (m_xpaBatchGrps)
-	{
+// wxtnlbuffer.cpp:682
+void WxTnLBuffer::xGetMatchingBatches(WxBatchGrp** ppBatchGrp, WxBatch** ppBatch, WxVb* pVb, WxIb* pIb, WBone* pBone, w_mesh* pMesh, int nPets) {
+	WxBatch* pBatch = NULL;
+	WxBatchGrp* pPrev = NULL;
+	WxBatchGrp* pGrp = NULL;
+	if (m_xpaBatchGrps) {
 		pGrp = m_xpaBatchGrps;
-		do
-		{
-			if (pGrp->xpVb == pVb && pGrp->xpIb == pIb &&
-				pGrp->xiFlag0 == pMesh->drawFlag &&
-				pGrp->xiFlag1 == pMesh->xiDrawFlag2)
+		do {
+			if (pGrp->xpVb == pVb && pGrp->xpIb == pIb && pGrp->xiFlag0 == pMesh->drawFlag && pGrp->xiFlag1 == pMesh->xiDrawFlag2)
 				break;
 			pPrev = pGrp;
 			pGrp = pGrp->xpNext;
 		} while (pGrp);
 	}
-	if (!pGrp)
-	{
-		pGrp = new WxBatchGrp(pVb, pIb, pMesh->drawFlag, pMesh->xiDrawFlag2, -1,
-			0, -1, 0);
+
+	if (!pGrp) {
+		pGrp = new WxBatchGrp(pVb, pIb, pMesh->drawFlag, pMesh->xiDrawFlag2, -1, 0, -1, 0);
 		if (pPrev)
 			pPrev->xpNext = pGrp;
 		else
 			m_xpaBatchGrps = pGrp;
 	}
+
 	WxBatch* pTail = pGrp->xpaBatches;
 	if (!pTail)
-		pTail = 0;
+		pTail = NULL;
 	else
 		while (pTail->xpNext)
 			pTail = pTail->xpNext;
-	for (int i = 0; i < nPets; i++)
-	{
+
+	for (int i = 0; i < nPets; i++) {
 		WxBatch* pNextBatch = pBatch;
 		pBatch = new WxBatch(pBone, pMesh, pVb->xdwFVF, -1, 0, -1, 0);
 		pBatch->xpNext = pNextBatch;
@@ -571,617 +462,570 @@ void WxTnLBuffer::xGetMatchingBatches(WxBatchGrp** ppGrp, WxBatch** ppBatch,
 		else
 			pTail->xpNext = pBatch;
 	}
-	*ppGrp = pGrp;
+
+	*ppBatchGrp = pGrp;
 	*ppBatch = pBatch;
 }
 
-void WxTnLBuffer::xSortBatches()
-{
+// wxtnlbuffer.cpp:743
+void WxTnLBuffer::xSortBatches() {
+	// The original's body (lines 744-783) compiles to nothing.
 }
 
-int WxTnLBuffer::xAllocBuffers(int nCopies)
-{
-	int iBase = 0;
-	for (WxVb* pVb = m_xpaVbs; pVb; pVb = pVb->xpNext)
-	{
-		pVb->xhVb = m_xpVideo->xCreateVertexBuffer(pVb->xnVtxs, pVb->xdwFVF,
-			pVb->xdwUsage);
-		for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-		{
-			if (pGrp->xpVb == pVb)
-			{
-				pGrp->xiFlag1 |= pVb->xhVb << 22;
-				WxBatch* pBatch = pGrp->xpaBatches;
-				pGrp->xiBaseVtxIdx = iBase;
-				for (; pBatch; pBatch = pBatch->xpNext)
-				{
-					pBatch->xiBaseVtxIdx = iBase;
-					xCount(true, pGrp, pBatch, m_xpPet->m_rootbone);
-					int nVtxs = pBatch->xnVtxs;
-					if (nCopies > 1)
-					{
-						int iOff = iBase + nVtxs;
-						int k = nCopies - 1;
-						do
-						{
-							pBatch = pBatch->xpNext;
-							pBatch->xiBaseVtxIdx = iOff;
-							iOff += nVtxs;
-							--k;
-							pBatch->xnVtxs = nVtxs;
+// wxtnlbuffer.cpp:787
+int WxTnLBuffer::xAllocBuffers(int nPets) {
+	WxBatchGrp* pGrp;
+	WxBatch* pBatch;
+	int nPetElems;
+	int i;
 
-						} while (k);
-					}
-					pGrp->xnVtxs += nVtxs * nCopies;
-					iBase += nVtxs * nCopies;
+	int nVtxs = 0;
+	for (WxVb* pVb = m_xpaVbs; pVb; pVb = pVb->xpNext) {
+		pVb->xhVb = m_xpVideo->xCreateVertexBuffer(pVb->xnVtxs, pVb->xdwFVF, pVb->xdwUsage);
+
+		for (pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+			if (pGrp->xpVb != pVb) {
+				continue;
+			}
+
+			pGrp->xiFlag1 |= pVb->xhVb << 22;
+			pGrp->xiBaseVtxIdx = nVtxs;
+
+			for (pBatch = pGrp->xpaBatches; pBatch; pBatch = pBatch->xpNext) {
+				pBatch->xiBaseVtxIdx = nVtxs;
+				xCount(true, pGrp, pBatch, m_xpPet->GetRootBone());
+
+				nPetElems = pBatch->xnVtxs;
+				for (i = 1; i < nPets; i++) {
+					pBatch = pBatch->xpNext;
+					pBatch->xiBaseVtxIdx = nVtxs + i * nPetElems;
+					pBatch->xnVtxs = nPetElems;
 				}
+
+				nPetElems *= nPets;
+				pGrp->xnVtxs += nPetElems;
+				nVtxs += nPetElems;
 			}
 		}
-		iBase = 0;
-	}
-	int iBaseIdx = 0;
-	for (int i = 0; i < 32; ++i)
-	{
-		WxIb* pIb = &m_xaIbs[i];
-		if (pIb->xnIdxs > 0)
-		{
-			pIb->xhIb =
-				m_xpVideo->xCreateIndexBuffer(pIb->xnIdxs, pIb->xdwUsage);
-			for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-			{
-				if (pGrp->xpIb == pIb)
-				{
-					pGrp->xiFlag1 |= (pIb->xhIb & 0xff) << 14;
-					WxBatch* pBatch = pGrp->xpaBatches;
-					pGrp->xiBaseIdxIdx = iBaseIdx;
-					for (; pBatch; pBatch = pBatch->xpNext)
-					{
-						pBatch->xiBaseIdxIdx = iBaseIdx;
-						xCount(false, pGrp, pBatch, m_xpPet->m_rootbone);
-						int nIdxs = pBatch->xnIdxs;
-						if (nCopies > 1)
-						{
-							int iOff = iBaseIdx + nIdxs;
-							int k = nCopies - 1;
-							do
-							{
-								pBatch = pBatch->xpNext;
-								pBatch->xiBaseIdxIdx = iOff;
-								iOff += nIdxs;
-								--k;
-								pBatch->xnIdxs = nIdxs;
 
-							} while (k);
-						}
-						pGrp->xnIdxs += nIdxs * nCopies;
-						iBaseIdx += nIdxs * nCopies;
-					}
-				}
-			}
-			iBaseIdx = 0;
-		}
+		nVtxs = 0;
 	}
+
+	int nIdxs = 0;
+	for (int iIb = 0; iIb < 32; iIb++) {
+		WxIb* pIb = &m_xaIbs[iIb];
+		if (pIb->xnIdxs <= 0) {
+			continue;
+		}
+
+		pIb->xhIb = m_xpVideo->xCreateIndexBuffer(pIb->xnIdxs, pIb->xdwUsage);
+
+		for (pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+			if (pGrp->xpIb != pIb) {
+				continue;
+			}
+
+			pGrp->xiFlag1 |= (pIb->xhIb & 0xff) << 14;
+			pGrp->xiBaseIdxIdx = nIdxs;
+
+			for (pBatch = pGrp->xpaBatches; pBatch; pBatch = pBatch->xpNext) {
+				pBatch->xiBaseIdxIdx = nIdxs;
+				xCount(false, pGrp, pBatch, m_xpPet->GetRootBone());
+
+				nPetElems = pBatch->xnIdxs;
+				for (i = 1; i < nPets; i++) {
+					pBatch = pBatch->xpNext;
+					pBatch->xiBaseIdxIdx = nIdxs + i * nPetElems;
+					pBatch->xnIdxs = nPetElems;
+				}
+
+				nPetElems *= nPets;
+				pGrp->xnIdxs += nPetElems;
+				nIdxs += nPetElems;
+			}
+		}
+
+		nIdxs = 0;
+	}
+
 	return 0;
 }
 
-void WxTnLBuffer::xCount(bool bVtxs, WxBatchGrp* pGrp, WxBatch* pBatch,
-	WBone* pBone)
-{
-	{
-		for (w_mesh* pMesh = pBone->m_mesh; pMesh; pMesh = pMesh->next)
-		{
-			if (pMesh->xpBatch == pBatch)
-			{
-				if (bVtxs)
-					pBatch->xnVtxs += pMesh->vtxNum;
-				else
-					pBatch->xnIdxs += pMesh->indexNum;
-				break;
+// wxtnlbuffer.cpp:870
+void WxTnLBuffer::xCount(bool b, WxBatchGrp* pGrp, WxBatch* pBatch, WBone* pBone) {
+	for (w_mesh* pMesh = pBone->m_mesh; pMesh; pMesh = pMesh->next) {
+		if (pMesh->xpBatch == pBatch) {
+			if (b) {
+				pBatch->xnVtxs += pMesh->vtxNum;
+			} else {
+				pBatch->xnIdxs += pMesh->indexNum;
 			}
+			break;
 		}
-		if (pBone->m_next)
-			xCount(bVtxs, pGrp, pBatch, pBone->m_next);
-		if (pBone->m_child)
-			xCount(bVtxs, pGrp, pBatch, pBone->m_child);
+	}
+
+	if (pBone->m_next) {
+		xCount(b, pGrp, pBatch, pBone->m_next);
+	}
+	if (pBone->m_child) {
+		xCount(b, pGrp, pBatch, pBone->m_child);
 	}
 }
 
-int WxTnLBuffer::xFillBuffers()
-{
-	for (WxVb* pVb = m_xpaVbs; pVb; pVb = pVb->xpNext)
+// wxtnlbuffer.cpp:894
+int WxTnLBuffer::xFillBuffers() {
+	for (WxVb* pVb = m_xpaVbs; pVb; pVb = pVb->xpNext) {
 		xFillVertexBuffer(*pVb);
-	WxIb* pIb = m_xaIbs;
-	int n = 32;
-	do
-	{
-		if (pIb->xnIdxs != 0)
-			xFillIndexBuffer(*pIb);
-		++pIb;
-		--n;
-	} while (n);
+	}
+
+	for (int i = 0; i < 32; i++) {
+		if (m_xaIbs[i].xnIdxs) {
+			xFillIndexBuffer(m_xaIbs[i]);
+		}
+	}
+
 	return 0;
 }
 
-void WxTnLBuffer::xFillVertexBuffer(const WxVb& vb)
-{
-	unsigned char* pBuf = m_xpVideo->xLockVertexBuffer(vb.xhVb, 0, 0);
-	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-	{
-		if (pGrp->xpVb == &vb)
-		{
-			int nStride = m_xpVideo->VertexSize(pGrp->xpVb->xdwFVF);
-			for (WxBatch* pBatch = pGrp->xpaBatches; pBatch;
-				pBatch = pBatch->xpNext)
-				xFillVertexBufferByBone(pBuf + pBatch->xiBaseVtxIdx * nStride,
-					pGrp, pBatch, pBatch->xpBone);
-		}
+// wxtnlbuffer.cpp:913
+void WxTnLBuffer::xFillVertexBuffer(const WxVb& vb) {
+	unsigned char* paData;
+	int iStride;
+
+	paData = m_xpVideo->xLockVertexBuffer(vb.xhVb, 0, 0);
+
+	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+		if (pGrp->xpVb != &vb)
+			continue;
+
+		iStride = m_xpVideo->VertexSize(pGrp->xpVb->xdwFVF);
+
+		for (WxBatch* pBatch = pGrp->xpaBatches; pBatch; pBatch = pBatch->xpNext)
+			xFillVertexBufferByBone(paData + pBatch->xiBaseVtxIdx * iStride, pGrp, pBatch, pBatch->xpBone);
 	}
+
 	m_xpVideo->xUnlockVertexBuffer(vb.xhVb);
 }
 
-void WxTnLBuffer::xFillVertexBufferByBone(unsigned char* pBuf, WxBatchGrp* pGrp,
-	WxBatch* pBatch, WBone* pBone)
-{
-	{
-		for (w_mesh* pMesh = pBone->m_mesh; pMesh; pMesh = pMesh->next)
-		{
-			if (pMesh->xpBatch == pBatch)
-			{
-				pMesh->xiDrawFlag2 |= pGrp->xpVb->xhVb << 22;
-				pMesh->xiBaseVtxIdx = pBatch->xiBaseVtxIdx;
-				xFillVertexBufferByMesh(pBuf, pGrp, pBatch, pMesh);
-				break;
-			}
+// wxtnlbuffer.cpp:935
+void WxTnLBuffer::xFillVertexBufferByBone(unsigned char* pData, WxBatchGrp* pGrp, WxBatch* pBatch, WBone* pBone) {
+	for (w_mesh* pMesh = pBone->m_mesh; pMesh; pMesh = pMesh->next) {
+		if (pMesh->xpBatch == pBatch) {
+			int hVb = pGrp->xpVb->xhVb;
+
+			pMesh->xiDrawFlag2 |= hVb << 22;
+			pMesh->xiBaseVtxIdx = pBatch->xiBaseVtxIdx;
+			xFillVertexBufferByMesh(pData, pGrp, pBatch, pMesh);
+			break;
 		}
-		if (pBone->m_next)
-			xFillVertexBufferByBone(pBuf, pGrp, pBatch, pBone->m_next);
-		if (pBone->m_child)
-			xFillVertexBufferByBone(pBuf, pGrp, pBatch, pBone->m_child);
+	}
+
+	if (pBone->m_next) {
+		xFillVertexBufferByBone(pData, pGrp, pBatch, pBone->m_next);
+	}
+	if (pBone->m_child) {
+		xFillVertexBufferByBone(pData, pGrp, pBatch, pBone->m_child);
 	}
 }
 
-void WxTnLBuffer::xFillVertexBufferByMesh(unsigned char* pBuf, WxBatchGrp* pGrp,
-	WxBatch* pBatch, w_mesh* pMesh)
-{
-	unsigned long dwFVF = pGrp->xpVb->xdwFVF;
-	int iOff = 0;
-	const WMatrixPtrList* pList = 0;
-	int nStride = m_xpVideo->VertexSize(dwFVF);
-	int nBlendSize = m_xpVideo->xGetBlendWeightSize(dwFVF);
-	bool bNormal = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_NORMAL);
-	bool bColor = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_DIFFUSE);
-	bool bTex0 = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_TEX1);
-	bool bTex1 = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_TEX2);
-	const WMatrix* pMat;
-	if ((m_xiFlag & 2) == 0)
-	{
+// wxtnlbuffer.cpp:959
+void WxTnLBuffer::xFillVertexBufferByMesh(unsigned char* pData, WxBatchGrp* pBatchGrp, WxBatch* pBatch, w_mesh* pMesh) {
+	unsigned long dwFVF = pBatchGrp->xpVb->xdwFVF;
+	int iOffs = 0;
+	const std::vector<const WMatrix*>* orgMatPtrList = 0;
+	int iStride = m_xpVideo->VertexSize(dwFVF);
+	int iWeightSize = m_xpVideo->xGetBlendWeightSize(dwFVF);
+	bool hasNormal = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_NORMAL);
+	bool hasDiffuse = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_DIFFUSE);
+	bool hasTex1 = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_TEX1);
+	bool hasTex2 = m_xpVideo->xHasVertexElem(dwFVF, WX_VELEM_TEX2);
+	const WMatrix* mTransf;
+
+	if ((m_xiFlag & 2) == 0) {
 		if (strlen(pMesh->mpetName) != 0)
-			pList = &WPuppet::GetOrginalMatrixPtrList(pMesh->mpetName);
+			orgMatPtrList = &WPuppet::GetOrginalMatrixPtrList(pMesh->mpetName);
 		else
-			pList = &m_xpPet->xGetTransfMatPtrList();
+			orgMatPtrList = &m_xpPet->xGetTransfMatPtrList();
+
 		int iId = pBatch->xpBone->m_id;
-		if (iId < (int)pList->size())
-			pMat = (*pList)[iId];
+		if (iId < (int)orgMatPtrList->size())
+			mTransf = (*orgMatPtrList)[iId];
 		else
-			pMat = &WMatrix::IDENTITY;
+			mTransf = &WMatrix::IDENTITY;
+	} else {
+		mTransf = &pBatch->xpBone->m_matrix;
 	}
-	else
-	{
-		pMat = &pBatch->xpBone->m_matrix;
-	}
+
 	WMatrix mRot;
-	pMat->GetRotMatrix(&mRot);
-	WVector* pNorm =
-		pMesh->myNormalList ? pMesh->myNormalList : pMesh->normList;
+	mTransf->GetRotMatrix(&mRot);
+
+	WVector* normList = pMesh->myNormalList ? pMesh->myNormalList : pMesh->normList;
+
 	int i = 0;
-	for (; i < pMesh->vtxNum; ++i)
-	{
-		if (!(pMesh->xiDrawFlag2 & 0x1000))
-		{
+	for (; i < pMesh->vtxNum; ++i) {
+		if (!(pMesh->xiDrawFlag2 & 0x1000)) {
 			if (!(m_xiFlag & 2))
-				memcpy(pBuf + iOff, &pMesh->vecList[i], sizeof(WVector));
+				memcpy(pData + iOffs, &pMesh->vecList[i], sizeof(WVector));
 			else
-				*(WVector*)(pBuf + iOff) = pMesh->vecList[i] * *pMat;
-			iOff += 12;
-		}
-		else
-		{
+				*(WVector*)(pData + iOffs) = pMesh->vecList[i] * *mTransf;
+			iOffs += 12;
+		} else {
 			if (i < pMesh->rigidNum)
-				*(WVector*)(pBuf + iOff) =
-					pMesh->vecList[i] * *(*pList)[pMesh->boneList[i]->m_id];
+				*(WVector*)(pData + iOffs) = pMesh->vecList[i] * *(*orgMatPtrList)[pMesh->boneList[i]->m_id];
 			else
-				*(WVector*)(pBuf + iOff) = pMesh->vecList[i] * *pMat;
-			iOff += 0x10 + nBlendSize;
+				*(WVector*)(pData + iOffs) = pMesh->vecList[i] * *mTransf;
+			iOffs += 0x10 + iWeightSize;
 		}
-		if (bNormal)
-		{
-			if (!(pMesh->xiDrawFlag2 & 0x1000))
-			{
+
+		if (hasNormal) {
+			if (!(pMesh->xiDrawFlag2 & 0x1000)) {
 				if (!(m_xiFlag & 2))
-					memcpy(pBuf + iOff, &pNorm[i], sizeof(WVector));
+					memcpy(pData + iOffs, &normList[i], sizeof(WVector));
 				else
-					*(WVector*)(pBuf + iOff) = pNorm[i] * mRot;
+					*(WVector*)(pData + iOffs) = normList[i] * mRot;
+			} else if (i < pMesh->rigidNum) {
+				WMatrix mBoneRot;
+				(*orgMatPtrList)[pMesh->boneList[i]->m_id]->GetRotMatrix(&mBoneRot);
+				*(WVector*)(pData + iOffs) = normList[i] * mBoneRot;
+			} else {
+				*(WVector*)(pData + iOffs) = normList[i] * mRot;
 			}
-			else if (i < pMesh->rigidNum)
-			{
-				WMatrix mBone;
-				(*pList)[pMesh->boneList[i]->m_id]->GetRotMatrix(&mBone);
-				*(WVector*)(pBuf + iOff) = pNorm[i] * mBone;
-			}
-			else
-				*(WVector*)(pBuf + iOff) = pNorm[i] * mRot;
-			iOff += 12;
+			iOffs += 12;
 		}
-		if (bColor)
-		{
+
+		if (hasDiffuse) {
 			if (pMesh->vtxColorPtrList)
-				*(unsigned long*)(pBuf + iOff) = *pMesh->vtxColorPtrList[i];
+				*(unsigned int*)(pData + iOffs) = *pMesh->vtxColorPtrList[i];
 			else
-				*(unsigned long*)(pBuf + iOff) = pMesh->vtxColorList[i];
-			iOff += 4;
+				*(unsigned int*)(pData + iOffs) = pMesh->vtxColorList[i];
+			iOffs += 4;
 		}
-		if (bTex0)
-		{
-			memcpy(pBuf + iOff, pMesh->uvData[i], sizeof(float) * 2);
-			iOff += 8;
+
+		if (hasTex1) {
+			memcpy(pData + iOffs, pMesh->uvData[i], sizeof(float) * 2);
+			iOffs += 8;
 		}
-		if (bTex1)
-		{
-			memcpy(pBuf + iOff, pMesh->uvBackup[i], sizeof(float) * 2);
-			iOff += 8;
+
+		if (hasTex2) {
+			memcpy(pData + iOffs, pMesh->uvBackup[i], sizeof(float) * 2);
+			iOffs += 8;
 		}
 	}
-	if (pMesh->xiDrawFlag2 & 0x1000)
-	{
-		int iVtx = 0;
-		int iDst = 12;
-		int iBone = 0;
+
+	if (pMesh->xiDrawFlag2 & 0x1000) {
+		int i = 0;
+		int iOffs = 12;
+		int nRigid = 0;
 		float afWeights[3];
-		if (pMesh->blendedRigidNum > 0)
-		{
-			do
-			{
-				unsigned long uIdx = 0;
+
+		if (pMesh->blendedRigidNum > 0) {
+			do {
+				unsigned long dwMatIdx = 0;
 				memset(afWeights, 0, sizeof(afWeights));
-				float fTotal = 0.0f;
+				float fTotalWeight = 0.0f;
 				int j = 0;
-				for (; fTotal < 0.999f && j < 3; ++j, ++iBone)
-				{
-					if (pMesh->blendedBoneList[iBone])
-					{
-						uIdx |= pMesh->blendedBoneList[iBone]->m_id << (j * 8);
-						afWeights[j] = pMesh->blendWeightList[iBone];
-						fTotal += pMesh->blendWeightList[iBone];
+				for (; fTotalWeight < 0.999f && j < 3; ++j, ++nRigid) {
+					if (pMesh->blendedBoneList[nRigid]) {
+						dwMatIdx |= pMesh->blendedBoneList[nRigid]->m_id << (j * 8);
+						afWeights[j] = pMesh->blendWeightList[nRigid];
+						fTotalWeight += pMesh->blendWeightList[nRigid];
 					}
 				}
-				if (j == 3 && fTotal < 0.999f && pMesh->blendedBoneList[iBone])
-				{
-					uIdx |= pMesh->blendedBoneList[iBone]->m_id << 24;
-					++iBone;
+				if (j == 3 && fTotalWeight < 0.999f && pMesh->blendedBoneList[nRigid]) {
+					dwMatIdx |= pMesh->blendedBoneList[nRigid]->m_id << 24;
+					++nRigid;
 				}
 
-				memcpy(&pBuf[iDst], afWeights, nBlendSize);
-				*(unsigned int*)(&pBuf[iDst] + nBlendSize) = uIdx;
-				iDst += nStride;
-				++iVtx;
-			} while (iVtx < pMesh->blendedRigidNum);
+				memcpy(&pData[iOffs], afWeights, iWeightSize);
+				*(unsigned int*)(&pData[iOffs] + iWeightSize) = dwMatIdx;
+				iOffs += iStride;
+				++i;
+			} while (i < pMesh->blendedRigidNum);
 		}
+
 		afWeights[0] = 1.0f;
 		afWeights[2] = 0.0f;
 		afWeights[1] = 0.0f;
-		if ((int)nBlendSize > 0)
-		{
-			if (iVtx < pMesh->rigidNum)
-			{
-				do
-				{
-					int iId = pMesh->boneList[iVtx]->m_id;
-					memcpy(&pBuf[iDst], afWeights, nBlendSize);
-					*(int*)(pBuf + nBlendSize + iDst) = iId;
-					++iVtx;
-					iDst += nStride;
-				} while (iVtx < pMesh->rigidNum);
+
+		if ((int)iWeightSize > 0) {
+			if (i < pMesh->rigidNum) {
+				do {
+					int iId = pMesh->boneList[i]->m_id;
+					memcpy(&pData[iOffs], afWeights, iWeightSize);
+					*(int*)(pData + iWeightSize + iOffs) = iId;
+					++i;
+					iOffs += iStride;
+				} while (i < pMesh->rigidNum);
 			}
 			int iId = pBatch->xpBone->m_id;
-			if (iVtx < pMesh->vtxNum)
-			{
-				do
-				{
-					memcpy(&pBuf[iDst], afWeights, nBlendSize);
-					*(int*)(pBuf + nBlendSize + iDst) = iId;
-					++iVtx;
-					iDst += nStride;
-				} while (iVtx < pMesh->vtxNum);
+			if (i < pMesh->vtxNum) {
+				do {
+					memcpy(&pData[iOffs], afWeights, iWeightSize);
+					*(int*)(pData + iWeightSize + iOffs) = iId;
+					++i;
+					iOffs += iStride;
+				} while (i < pMesh->vtxNum);
 			}
-		}
-		else
-		{
-			if (iVtx < pMesh->rigidNum)
-			{
-				do
-				{
-					*(int*)(pBuf + nBlendSize + iDst) =
-						pMesh->boneList[iVtx]->m_id;
-					++iVtx;
-					iDst += nStride;
-				} while (iVtx < pMesh->rigidNum);
+		} else {
+			if (i < pMesh->rigidNum) {
+				do {
+					*(int*)(pData + iWeightSize + iOffs) = pMesh->boneList[i]->m_id;
+					++i;
+					iOffs += iStride;
+				} while (i < pMesh->rigidNum);
 			}
 			int iId = pBatch->xpBone->m_id;
-			if (iVtx < pMesh->vtxNum)
-			{
-				do
-				{
-					*(int*)(pBuf + iDst + nBlendSize) = iId;
-					++iVtx;
-					iDst += nStride;
-				} while (iVtx < pMesh->vtxNum);
+			if (i < pMesh->vtxNum) {
+				do {
+					*(int*)(pData + iOffs + iWeightSize) = iId;
+					++i;
+					iOffs += iStride;
+				} while (i < pMesh->vtxNum);
 			}
 		}
 	}
 }
 
-void WxTnLBuffer::xFillIndexBuffer(const WxIb& ib)
-{
-	unsigned char* pBuf = m_xpVideo->xLockIndexBuffer(ib.xhIb, 0, 0);
-	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-	{
-		if (pGrp->xpIb == &ib)
-		{
-			for (WxBatch* pBatch = pGrp->xpaBatches; pBatch;
-				pBatch = pBatch->xpNext)
-				xFillIndexBufferByBone(pBuf + pBatch->xiBaseIdxIdx * 2, pGrp,
-					pBatch, pBatch->xpBone);
-		}
+// wxtnlbuffer.cpp:1146
+void WxTnLBuffer::xFillIndexBuffer(const WxIb& ib) {
+	unsigned char* paData;
+
+	paData = m_xpVideo->xLockIndexBuffer(ib.xhIb, 0, 0);
+
+	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+		if (pGrp->xpIb != &ib)
+			continue;
+
+		for (WxBatch* pBatch = pGrp->xpaBatches; pBatch; pBatch = pBatch->xpNext)
+			xFillIndexBufferByBone(paData + pBatch->xiBaseIdxIdx * 2, pGrp, pBatch, pBatch->xpBone);
 	}
+
 	m_xpVideo->xUnlockIndexBuffer(ib.xhIb);
 }
 
-void WxTnLBuffer::xFillIndexBufferByBone(unsigned char* pBuf, WxBatchGrp* pGrp,
-	WxBatch* pBatch, WBone* pBone)
-{
-	{
-		unsigned char* pDst = pBuf;
-		for (w_mesh* pMesh = pBone->m_mesh; pMesh; pMesh = pMesh->next)
-		{
-			if (pMesh->xpBatch == pBatch)
-			{
-				pMesh->xiDrawFlag2 |= (pGrp->xpIb->xhIb & 0xff) << 14;
-				pMesh->xiBaseIdxIdx = pBatch->xiBaseIdxIdx;
-				for (int i = 0; i < pMesh->indexNum; ++i, pDst += 2)
-					*(unsigned short*)pDst =
-						(unsigned short)(pMesh->indexList[i] +
-							pMesh->xiBaseVtxIdx);
-				break;
+// wxtnlbuffer.cpp:1166
+void WxTnLBuffer::xFillIndexBufferByBone(unsigned char* pData, WxBatchGrp* pGrp, WxBatch* pBatch, WBone* pBone) {
+	unsigned short* pIdx = (unsigned short*)pData;
+
+	for (w_mesh* pMesh = pBone->m_mesh; pMesh; pMesh = pMesh->next) {
+		if (pMesh->xpBatch == pBatch) {
+			pMesh->xiDrawFlag2 |= (pGrp->xpIb->xhIb & 0xff) << 14;
+			pMesh->xiBaseIdxIdx = pBatch->xiBaseIdxIdx;
+
+			for (int i = 0; i < pMesh->indexNum; i++) {
+				*pIdx = pMesh->indexList[i] + (unsigned short)pMesh->xiBaseVtxIdx;
+				pIdx++;
 			}
+			break;
 		}
-		if (pBone->m_next)
-			xFillIndexBufferByBone(pBuf, pGrp, pBatch, pBone->m_next);
-		if (pBone->m_child)
-			xFillIndexBufferByBone(pBuf, pGrp, pBatch, pBone->m_child);
+	}
+
+	if (pBone->m_next) {
+		xFillIndexBufferByBone(pData, pGrp, pBatch, pBone->m_next);
+	}
+	if (pBone->m_child) {
+		xFillIndexBufferByBone(pData, pGrp, pBatch, pBone->m_child);
 	}
 }
 
-void WxTnLBuffer::xUpdateStaticBufferInfo(WPuppet** ppPets, int nPets)
-{
-	WBone* pRoot = ppPets[0]->m_rootbone;
-	for (int i = 1; i < nPets; ++i)
-		xUpdateStaticBufferInfo(pRoot, ppPets[i]->m_rootbone, i);
-}
+// wxtnlbuffer.cpp:1196
+void WxTnLBuffer::xUpdateStaticBufferInfo(WPuppet** ppPets, int nPets) {
+	WBone* pRoot = ppPets[0]->GetRootBone();
 
-void WxTnLBuffer::xUpdateStaticBufferInfo(WBone* pSrc, WBone* pDst, int iIdx)
-{
-	{
-		WBone* pFound = pDst->FindBone(pSrc->m_name, 0);
-		if (pFound)
-		{
-			w_mesh* pMeshSrc = pSrc->m_mesh;
-			for (w_mesh* pMeshDst = pFound->m_mesh; pMeshSrc && pMeshDst;
-				pMeshDst = pMeshDst->next)
-			{
-				WxBatchGrp* pGrp = pMeshSrc->xpBatchGrp;
-				WxBatch* pBatch = pMeshSrc->xpBatch;
-				for (int i = 0; i < iIdx; ++i)
-					pBatch = pBatch->xpNext;
-				pMeshDst->xpBatchGrp = pGrp;
-				pMeshDst->xiDrawFlag2 = pGrp->xiFlag1;
-				pMeshDst->xpBatch = pBatch;
-				pMeshDst->xiBaseVtxIdx = pBatch->xiBaseVtxIdx;
-				pMeshDst->xiBaseIdxIdx = pBatch->xiBaseIdxIdx;
-				pBatch->xpBone = pFound;
-				pBatch->xpMesh = pMeshDst;
-				pMeshSrc = pMeshSrc->next;
-			}
-		}
-		if (pSrc->m_next)
-			xUpdateStaticBufferInfo(pSrc->m_next, pDst, iIdx);
-		if (pSrc->m_child)
-			xUpdateStaticBufferInfo(pSrc->m_child, pDst, iIdx);
+	for (int i = 1; i < nPets; i++) {
+		xUpdateStaticBufferInfo(pRoot, ppPets[i]->GetRootBone(), i);
 	}
 }
 
-void WxTnLBuffer::xUpdateMatrixIdx(WPuppet* pPet)
-{
-	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-	{
-		if (pGrp->xiFlag1 & 0x1000)
-		{
-			int nStride = m_xpVideo->VertexSize(pGrp->xpVb->xdwFVF);
-			unsigned char* pBuf =
-				m_xpVideo->xLockVertexBuffer(pGrp->xpVb->xhVb, 0, 0);
-			for (WxBatch* pBatch = pGrp->xpaBatches; pBatch;
-				pBatch = pBatch->xpNext)
-				xUpdateMatrixIdx(pBuf + pBatch->xiBaseVtxIdx * nStride, pGrp,
-					pBatch, m_xpPet->m_rootbone, pPet);
+// wxtnlbuffer.cpp:1207
+void WxTnLBuffer::xUpdateStaticBufferInfo(WBone* pBone, WBone* pRoot, int index) {
+	WBone* pFound = pRoot->FindBone(pBone->m_name, 0);
+
+	if (pFound) {
+		w_mesh* pSrc = pBone->m_mesh;
+		for (w_mesh* pDst = pFound->m_mesh; pSrc && pDst; pSrc = pSrc->next, pDst = pDst->next) {
+			WxBatchGrp* pGrp = pSrc->xpBatchGrp;
+			WxBatch* pBatch = pSrc->xpBatch;
+			for (int i = 0; i < index; i++) {
+				pBatch = pBatch->xpNext;
+			}
+
+			pDst->xpBatchGrp = pGrp;
+			pDst->xiDrawFlag2 = pGrp->xiFlag1;
+
+			pDst->xpBatch = pBatch;
+			pDst->xiBaseVtxIdx = pBatch->xiBaseVtxIdx;
+			pDst->xiBaseIdxIdx = pBatch->xiBaseIdxIdx;
+
+			pBatch->xpBone = pFound;
+			pBatch->xpMesh = pDst;
+		}
+	}
+
+	if (pBone->m_next) {
+		xUpdateStaticBufferInfo(pBone->m_next, pRoot, index);
+	}
+	if (pBone->m_child) {
+		xUpdateStaticBufferInfo(pBone->m_child, pRoot, index);
+	}
+}
+
+// wxtnlbuffer.cpp:1247
+void WxTnLBuffer::xUpdateMatrixIdx(WPuppet* pPet) {
+	for (WxBatchGrp* pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+		if (pGrp->xiFlag1 & 0x1000) {
+			unsigned long stride = m_xpVideo->VertexSize(pGrp->xpVb->xdwFVF);
+
+			unsigned char* pData = m_xpVideo->xLockVertexBuffer(pGrp->xpVb->xhVb, 0, 0);
+
+			for (WxBatch* pBatch = pGrp->xpaBatches; pBatch; pBatch = pBatch->xpNext) {
+				xUpdateMatrixIdx(pData + pBatch->xiBaseVtxIdx * stride, pGrp, pBatch, m_xpPet->GetRootBone(), pPet);
+			}
+
 			m_xpVideo->xUnlockVertexBuffer(pGrp->xpVb->xhVb);
 		}
 	}
 }
 
-void WxTnLBuffer::xUpdateMatrixIdx(unsigned char* pBuf, WxBatchGrp* pGrp,
-	WxBatch* pBatch, WBone* pBone, WPuppet* pPet)
-{
-	{
-		w_mesh* pMesh = pBone->m_mesh;
-		while (pMesh && pMesh->xpBatch != pBatch)
-			pMesh = pMesh->next;
-		if (pMesh)
-		{
-			unsigned long fvf = pGrp->xpVb->xdwFVF;
-			int nStride = m_xpVideo->VertexSize(fvf);
-			int iVtx;
-			int iBone = 0;
-			int iOff = 0x18;
-			for (iVtx = 0; iVtx < pMesh->blendedRigidNum; ++iVtx)
-			{
-				{
-					unsigned int uIdx = 0;
-					float fTotal = 0.0f;
-					int j = 0;
-					do
-					{
-						if (j >= 3)
-							break;
-						uIdx |= pMesh->blendedBoneList[iBone]->m_id << (j * 8);
-						fTotal += pMesh->blendWeightList[iBone];
-						++j;
-						++iBone;
-					} while (fTotal < 0.999f);
-					if (j == 3 && fTotal < 0.999f)
-					{
-						uIdx |= pMesh->blendedBoneList[iBone++]->m_id << 24;
-					}
-					*(unsigned int*)(pBuf + iOff) = uIdx;
-					iOff += nStride;
-				}
+// wxtnlbuffer.cpp:1275
+void WxTnLBuffer::xUpdateMatrixIdx(unsigned char* paData, WxBatchGrp* pBatchGrp, WxBatch* pBatch, WBone* pBone, WPuppet* pNewPet) {
+	w_mesh* pMesh = pBone->m_mesh;
+	while (pMesh && pMesh->xpBatch != pBatch)
+		pMesh = pMesh->next;
+
+	if (pMesh) {
+		unsigned long dwFVF = pBatchGrp->xpVb->xdwFVF;
+		int iStride = m_xpVideo->VertexSize(dwFVF);
+		int i;
+		int iBone = 0;
+		int iOffs = 0x18;
+
+		for (i = 0; i < pMesh->blendedRigidNum; ++i) {
+			unsigned int dwMatIdx = 0;
+			float fTotalWeight = 0.0f;
+			int j = 0;
+			do {
+				if (j >= 3)
+					break;
+				dwMatIdx |= pMesh->blendedBoneList[iBone]->m_id << (j * 8);
+				fTotalWeight += pMesh->blendWeightList[iBone];
+				++j;
+				++iBone;
+			} while (fTotalWeight < 0.999f);
+
+			if (j == 3 && fTotalWeight < 0.999f) {
+				dwMatIdx |= pMesh->blendedBoneList[iBone++]->m_id << 24;
 			}
-			if (iVtx < pMesh->rigidNum)
-			{
-				int* pIdx = (int*)(pBuf + iOff);
-				do
-				{
-					*pIdx = pMesh->boneList[iVtx]->m_id;
-					++iVtx;
-					pIdx = (int*)((char*)pIdx + nStride);
-				} while (iVtx < pMesh->rigidNum);
-			}
+			*(unsigned int*)(paData + iOffs) = dwMatIdx;
+			iOffs += iStride;
 		}
-		if (pBone->m_next)
-			xUpdateMatrixIdx(pBuf, pGrp, pBatch, pBone->m_next, pPet);
-		if (pBone->m_child)
-			xUpdateMatrixIdx(pBuf, pGrp, pBatch, pBone->m_child, pPet);
+
+		if (i < pMesh->rigidNum) {
+			int* pIdx = (int*)(paData + iOffs);
+			do {
+				*pIdx = pMesh->boneList[i]->m_id;
+				++i;
+				pIdx = (int*)((char*)pIdx + iStride);
+			} while (i < pMesh->rigidNum);
+		}
 	}
+
+	if (pBone->m_next)
+		xUpdateMatrixIdx(paData, pBatchGrp, pBatch, pBone->m_next, pNewPet);
+	if (pBone->m_child)
+		xUpdateMatrixIdx(paData, pBatchGrp, pBatch, pBone->m_child, pNewPet);
 }
 
-void WxTnLBuffer::xRender(WView* pView)
-{
-	WxBatchGrp* pGrp = m_xpaBatchGrps;
-	WxBatchState st;
-	if ((m_xiFlag & 2) != 0)
-	{
-		st.xmW.Reset();
-		st.xnmTransfs = 0;
-		if (pGrp)
-		{
-			do
-			{
-				pGrp->xRenderAtOnce(pView, &st, true, 0, 0);
-				pGrp = pGrp->xpNext;
-			} while (pGrp);
+// wxtnlbuffer.cpp:1327
+void WxTnLBuffer::xRender(WView* pView) {
+	WxBatchState BatchState;
+	WxBatchGrp* pGrp;
+
+	if (m_xiFlag & WX_BUF_STATIC) {
+		BatchState.xmW.Reset();
+		BatchState.xnmTransfs = 0;
+
+		for (pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+			pGrp->xRenderAtOnce(pView, &BatchState, true, NULL, 0);
 		}
-	}
-	else
-	{
-		bool bAtOnce = false;
-		if (pGrp)
-		{
-			do
-			{
-				if ((pGrp->xiFlag1 & 0x1000) == 0)
-					pGrp->xRenderByBatch(pView, &st);
-				else
-					bAtOnce = true;
-				pGrp = pGrp->xpNext;
-			} while (pGrp);
-			if (bAtOnce)
-			{
-				st.xnmTransfs = (int)m_xpPet->xGetTransfMatPtrList().size();
-				if (st.xnmTransfs > 0)
-				{
-					st.xpapmW = &m_xpPet->xGetTransfMatPtrList()[0];
-					st.xpapmO = &WPuppet::GetOrginalMatrixPtrList(
-						m_xpPet->GetPuppetName())[0];
-				}
-				for (pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext)
-				{
-					if (pGrp->xiFlag1 & 0x1000)
-						pGrp->xRenderAtOnce(pView, &st, false, 0, 0);
+	} else {
+		bool bMPS = false;
+
+		for (pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+			if (!(pGrp->xiFlag1 & 0x1000)) {
+				pGrp->xRenderByBatch(pView, &BatchState);
+			} else {
+				bMPS = true;
+			}
+		}
+
+		if (bMPS) {
+			BatchState.xnmTransfs = m_xpPet->xGetTransfMatPtrList().size();
+
+			if (BatchState.xnmTransfs > 0) {
+				BatchState.xpapmW = &m_xpPet->xGetTransfMatPtrList()[0];
+				BatchState.xpapmO = &WPuppet::GetOrginalMatrixPtrList(m_xpPet->GetPuppetName())[0];
+			}
+
+			for (pGrp = m_xpaBatchGrps; pGrp; pGrp = pGrp->xpNext) {
+				if (pGrp->xiFlag1 & 0x1000) {
+					pGrp->xRenderAtOnce(pView, &BatchState, false, NULL, 0);
 				}
 			}
 		}
 	}
 }
 
-void __fastcall xRender(WView* pView, WxBatchState* pState, WBone* pBone,
-	w_mesh* pMesh)
-{
-	const WMatrix* const* ppmOld = pState->xpapmO;
-	if (pBone && pMesh)
-	{
-		if (pState->xiFlag1 & 0x1000)
-		{
-			if (strlen(pMesh->mpetName) != 0)
-				pState->xpapmO =
-					&WPuppet::GetOrginalMatrixPtrList(pMesh->mpetName)[0];
+// wxtnlbuffer.cpp:1409
+void xRender(WView* pView, WxBatchState* pBState, WBone* pBone, w_mesh* pMesh) {
+	const WMatrix* const* orgMatBackup = pBState->xpapmO;
+
+	if (pBone && pMesh) {
+		if (pBState->xiFlag1 & 0x1000) {
+			if (strlen(pMesh->mpetName) != 0) {
+				pBState->xpapmO = &WPuppet::GetOrginalMatrixPtrList(pMesh->mpetName)[0];
+			}
 		}
-		if (pState->xiFlag1 & 4)
-		{
+
+		if (pBState->xiFlag1 & 0x4) {
 			LightSet* pLight = pView->xGetLight();
-			pState->xdwDiffuse =
-				((unsigned long)pBone->m_alpha << 24) | pLight->ambient2;
+			pBState->xdwDiffuse = (pBone->GetAlpha() << 24) | pLight->ambient2;
+		} else {
+			pBState->xdwDiffuse = (pBone->GetAlpha() << 24) | 0xffffff;
 		}
-		else
-		{
-			pState->xdwDiffuse =
-				((unsigned long)pBone->m_alpha << 24) | 0xffffff;
-		}
-		if (pState->xiFlag0 & 0x400000)
-		{
+
+		if (pBState->xiFlag0 & 0x400000) {
 			WVector v[8] = {
-				WVector(pMesh->localAabb.min.x, pMesh->localAabb.min.y,
-					pMesh->localAabb.min.z),
-				WVector(pMesh->localAabb.max.x, pMesh->localAabb.min.y,
-					pMesh->localAabb.min.z),
-				WVector(pMesh->localAabb.max.x, pMesh->localAabb.min.y,
-					pMesh->localAabb.max.z),
-				WVector(pMesh->localAabb.min.x, pMesh->localAabb.min.y,
-					pMesh->localAabb.max.z),
-				WVector(pMesh->localAabb.min.x, pMesh->localAabb.max.y,
-					pMesh->localAabb.min.z),
-				WVector(pMesh->localAabb.max.x, pMesh->localAabb.max.y,
-					pMesh->localAabb.min.z),
-				WVector(pMesh->localAabb.max.x, pMesh->localAabb.max.y,
-					pMesh->localAabb.max.z),
-				WVector(pMesh->localAabb.min.x, pMesh->localAabb.max.y,
-					pMesh->localAabb.max.z),
+				WVector(pMesh->localAabb.min.x, pMesh->localAabb.min.y, pMesh->localAabb.min.z),
+				WVector(pMesh->localAabb.max.x, pMesh->localAabb.min.y, pMesh->localAabb.min.z),
+				WVector(pMesh->localAabb.max.x, pMesh->localAabb.min.y, pMesh->localAabb.max.z),
+				WVector(pMesh->localAabb.min.x, pMesh->localAabb.min.y, pMesh->localAabb.max.z),
+				WVector(pMesh->localAabb.min.x, pMesh->localAabb.max.y, pMesh->localAabb.min.z),
+				WVector(pMesh->localAabb.max.x, pMesh->localAabb.max.y, pMesh->localAabb.min.z),
+				WVector(pMesh->localAabb.max.x, pMesh->localAabb.max.y, pMesh->localAabb.max.z),
+				WVector(pMesh->localAabb.min.x, pMesh->localAabb.max.y, pMesh->localAabb.max.z),
 			};
-			float fMin = g_HUGE;
-			float fMax = -g_HUGE;
-			WMatrix mWorld;
+			float minZ = 3.402823466e+38F;
+			float maxZ = -3.402823466e+38F;
+			WMatrix m;
+
 			if (pMesh->aabbBone)
-				mWorld = pMesh->aabbBone->m_matrix * pView->GetInvCamera();
+				m = pMesh->aabbBone->GetMatrix() * pView->GetInvCamera();
 			else
-				mWorld = pBone->m_matrix * pView->GetInvCamera();
-			for (int i = 0; i < 8; ++i)
-			{
-				v[i].z = TransformZ(v[i], mWorld);
-				if (v[i].z < fMin)
-					fMin = v[i].z;
-				if (v[i].z > fMax)
-					fMax = v[i].z;
+				m = pBone->GetMatrix() * pView->GetInvCamera();
+
+			for (int i = 0; i < 8; ++i) {
+				v[i].z = TransformZ(v[i], m);
+				if (v[i].z < minZ)
+					minZ = v[i].z;
+				if (v[i].z > maxZ)
+					maxZ = v[i].z;
 			}
-			pState->xfDepth = fMax * 0.3f + fMin * 0.7f;
+
+			pBState->xfDepth = maxZ * 0.3f + minZ * 0.7f;
 		}
 	}
-	pView->xDrawIndexedTriangles(*pState);
-	pState->xpapmO = ppmOld;
+
+	pView->xDrawIndexedTriangles(*pBState);
+	pBState->xpapmO = orgMatBackup;
 }

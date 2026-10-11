@@ -1,196 +1,194 @@
-#include "minatl.h"
-#include "mailboxdlg.h"
-#include "notedlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\mailboxdlg.cpp
+#include <string>
+
+#include "MailBoxDlg.h"
+#include "ObjectFactory.h"
+#include "NoteDlg.h"
+#include "Packet.h"
+#include "SharedDoc.h"
+#include "TaskManager.h"
+#include "commonutil.h"
+#include "fresh.h"
+#include "fremoticon.h"
+#include "frgraphicinterface.h"
 #include "frlistbox.h"
 #include "frwndmanager.h"
-#include "frgraphicinterface.h"
-#include "fremoticon.h"
-#include "fresh.h"
-#include "commonutil.h"
 
-extern Fresh* g_pFresh;
+// mailboxdlg.cpp:19 (run-time type and factory registration of FrMailBoxDlg)
+const WRTTI FrMailBoxDlg::m_RTTI("FrMailBoxDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrMailBoxDlg, FrForm)
+IObject* FrMailBoxDlgMakeInstance(void) {
+	return new FrMailBoxDlg;
+}
 
-BEGIN_FRESH_MSGMAP(FrMailBoxDlg, FrForm)
+struct __sFrMailBoxDlg {
+	__sFrMailBoxDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrMailBoxDlgMakeInstance, "FrMailBoxDlg");
+	}
+};
+static __sFrMailBoxDlg s_registerFrMailBoxDlg;
 
-ON_FRESH_VI("note", FRCMD_INIT, FrMailBoxDlg::OnNoteInit)
-ON_FRESH_VI("note", FRCMD_OWNERDRAW, FrMailBoxDlg::OnNoteOwnerDraw)
-ON_FRESH_VV("note", FRCMD_LBUTTONUP, FrMailBoxDlg::OnNoteLBtnUp)
-ON_FRESH_VV("note", FRCMD_RBUTTONUP, FrMailBoxDlg::OnNoteRBtnUp)
-ON_FRESH_VV("note", FRCMD_DBLCLICK, FrMailBoxDlg::OnNoteRBtnUp)
-ON_FRESH_VV("cancel", FRCMD_LBUTTONUP, FrMailBoxDlg::OnCancelBtnUp)
+// mailboxdlg.cpp:21
+const sFRESH_MSGMAP* FrMailBoxDlg::GetMessageMap(void) const {
+	return &FrMailBoxDlg::_MsgMap;
+}
 
-END_FRESH_MSGMAP()
+sFRESH_MSGMAP FrMailBoxDlg::_MsgMap = { &FrForm::_MsgMap, &FrMailBoxDlg::_MsgEntries[0] };
 
-void FrMailBoxDlg::OnNoteInit(int param)
-{
-	m_pNoteList = DYNAMIC_CAST(FrListBox, (FrWnd*)param);
-	if (m_pNoteList == NULL)
+sFRESH_ENTRY FrMailBoxDlg::_MsgEntries[] = {
+	// mailboxdlg.cpp:23
+	{ "note", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMailBoxDlg::OnNoteInit },
+	// mailboxdlg.cpp:24
+	{ "note", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrMailBoxDlg::OnNoteOwnerDraw },
+	// mailboxdlg.cpp:25
+	{ "note", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrMailBoxDlg::OnNoteLBtnUp },
+	// mailboxdlg.cpp:26
+	{ "note", FRCMD_RBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrMailBoxDlg::OnNoteRBtnUp },
+	// mailboxdlg.cpp:27
+	{ "note", FRCMD_DBLCLICK, FrFuncVV, (FRESH_PMSG)&FrMailBoxDlg::OnNoteRBtnUp },
+	// mailboxdlg.cpp:28
+	{ "cancel", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrMailBoxDlg::OnCancelBtnUp },
+
+	// mailboxdlg.cpp:30
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// mailboxdlg.cpp:33
+void FrMailBoxDlg::OnNoteInit(intptr_t param) {
+	m_noteList = DYNAMIC_CAST(FrListBox, param);
+	if (!m_noteList)
 		return;
 
-	m_pNoteList->UseRightButton(true);
+	m_noteList->UseRightButton(true);
 
-	for (std::list<sNoteInfo>::iterator it = Doc()->m_noteList.begin();
-		it != Doc()->m_noteList.end(); ++it)
-	{
-		m_pNoteList->AddItem(&(*it));
+	for (std::list<sNoteInfo>::iterator it = WSingleton<CSharedDoc>::Instance()->m_noteList.begin();
+		it != WSingleton<CSharedDoc>::Instance()->m_noteList.end(); ++it) {
+		m_noteList->AddItem(&*it);
 	}
 }
 
-void FrMailBoxDlg::OnNoteOwnerDraw(int param)
-{
-	if (m_pNoteList == NULL)
+// mailboxdlg.cpp:48
+void FrMailBoxDlg::OnNoteOwnerDraw(int param) {
+	if (!m_noteList)
 		return;
 
-	if (param == NULL)
+	FrListItem* pItem = (FrListItem*)param;
+	if (!pItem)
 		return;
 
-	sNoteInfo* pNote = (sNoteInfo*)((FrListItem*)param)->pData;
-	if (pNote == NULL)
+	sNoteInfo* pNote = (sNoteInfo*)pItem->pData;
+	if (!pNote)
 		return;
 
 	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
+	if (!pGDI)
 		return;
 
 	if (pNote == m_pSelNote)
-		pGDI->Box(WRect(((FrListItem*)param)->pos.x + 5.0f,
-					  ((FrListItem*)param)->pos.y, 560.0f, 20.0f),
-			0x999B9DFF, 0, 0.0f);
+		pGDI->Box(WRect(pItem->pos.x + 5.0f, pItem->pos.y, 560.0f, 20.0f), 0x999B9DFF, 0, 0.0f);
 
 	pGDI->SetTextStyle(0);
 
-	if (pNote->bReply)
+	if (pNote->read)
 		pGDI->SetTextColor(0xFF808080, 0xFFFFFFFF);
 	else
 		pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
 
 	FrEmoticon* pEmoticon = g_pFresh->GetManager()->GetEmoticon();
-
-	if (pEmoticon)
-	{
-		pEmoticon->PrintText(WPoint(((FrListItem*)param)->pos.x + 8.0f,
-								 ((FrListItem*)param)->pos.y + 3.0f),
-			0, pNote->sNick, 0xFFFFFFFF);
-		pEmoticon->PrintText(WPoint(((FrListItem*)param)->pos.x + 118.0f,
-								 ((FrListItem*)param)->pos.y + 3.0f),
-			0, pNote->sNote, 0xFFFFFFFF);
-		pEmoticon->PrintText(WPoint(((FrListItem*)param)->pos.x + 467.0f,
-								 ((FrListItem*)param)->pos.y + 3.0f),
-			0, pNote->sTime, 0xFFFFFFFF);
-	}
-	else
-	{
-		pGDI->PrintText(WPoint(((FrListItem*)param)->pos.x + 8.0f,
-							((FrListItem*)param)->pos.y + 3.0f),
-			0, pNote->sNick, 0);
-		pGDI->PrintText(WPoint(((FrListItem*)param)->pos.x + 118.0f,
-							((FrListItem*)param)->pos.y + 3.0f),
-			0, pNote->sNote, 0);
-		pGDI->PrintText(WPoint(((FrListItem*)param)->pos.x + 467.0f,
-							((FrListItem*)param)->pos.y + 3.0f),
-			0, pNote->sTime, 0);
+	if (pEmoticon) {
+		pEmoticon->PrintText(WPoint(pItem->pos.x + 8.0f, pItem->pos.y + 3.0f), 0, pNote->nick, 0xFFFFFFFF);
+		pEmoticon->PrintText(WPoint(pItem->pos.x + 118.0f, pItem->pos.y + 3.0f), 0, pNote->text, 0xFFFFFFFF);
+		pEmoticon->PrintText(WPoint(pItem->pos.x + 467.0f, pItem->pos.y + 3.0f), 0, pNote->date, 0xFFFFFFFF);
+	} else {
+		pGDI->PrintText(WPoint(pItem->pos.x + 8.0f, pItem->pos.y + 3.0f), 0, pNote->nick, 0);
+		pGDI->PrintText(WPoint(pItem->pos.x + 118.0f, pItem->pos.y + 3.0f), 0, pNote->text, 0);
+		pGDI->PrintText(WPoint(pItem->pos.x + 467.0f, pItem->pos.y + 3.0f), 0, pNote->date, 0);
 	}
 }
 
-void FrMailBoxDlg::OnNoteLBtnUp()
-{
-	if (m_pNoteList == NULL)
+// mailboxdlg.cpp:91
+void FrMailBoxDlg::OnNoteLBtnUp(void) {
+	if (!m_noteList)
 		return;
 
-	FrListItem* pItem = m_pNoteList->GetItemUnderCursor();
-	if (pItem == NULL)
+	FrListItem* pItem = m_noteList->GetItemUnderCursor();
+	if (!pItem)
 		return;
 
 	sNoteInfo* pNote = (sNoteInfo*)pItem->pData;
-	if (pNote == NULL)
+	if (!pNote)
 		return;
 
 	m_pSelNote = pNote;
 }
 
-void FrMailBoxDlg::OnNoteRBtnUp()
-{
-	if (m_pNoteList == NULL)
+// mailboxdlg.cpp:107
+void FrMailBoxDlg::OnNoteRBtnUp(void) {
+	if (!m_noteList)
 		return;
 
-	FrListItem* pItem = m_pNoteList->GetItemUnderCursor();
-	if (pItem == NULL)
+	FrListItem* pItem = m_noteList->GetItemUnderCursor();
+	if (!pItem)
 		return;
 
 	sNoteInfo* pNote = (sNoteInfo*)pItem->pData;
-	if (pNote == NULL)
+	if (!pNote)
 		return;
 
 	m_pSelNote = pNote;
 
-	if (m_pSelNote->bReply)
+	if (pNote->read)
 		return;
 
-	if (Doc()->m_myInfo.stat.i64Pang < 10)
-	{
-		AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-			(int)MakeStr(
-				"\xc2\xca\xc1\xf6\xb8\xa6 \xba\xb8\xb3\xbb\xb1\xe2 \xc0\xa7\xc7\xd8\xbc\xad\xb4\xc2 %d\xc6\xce\xc0\xcc \xc7\xca\xbf\xe4\xc7\xd5\xb4\xcf\xb4\xd9.",
-				10),
-			0, 0, 0, 0);
-		return;
-	}
-	const char* nick = m_pSelNote->sNick;
-	if (nick[0] == '@')
-	{
-		AfxGetTask()->GetActor("Lobby") << MsgObject(NULL, 35,
-			(int)MakeStr(
-				"\xbf\xee\xbf\xb5\xc0\xda\xbf\xa1\xb0\xd4\xb4\xc2 \xc2\xca\xc1\xf6\xb8\xa6 \xba\xb8\xb3\xbe \xbc\xf6 \xbe\xf8\xbd\xc0\xb4\xcf\xb4\xd9.",
-				10),
-			0, 0, 0, 0);
+	if (WSingleton<CSharedDoc>::Instance()->m_myPang < 10) {
+		// "You need %d pang to send a note."
+		AfxGetTask()->GetActor("Lobby") << MsgObject(0, 0x23, (intptr_t)MakeStr("\xC2\xCA\xC1\xF6\xB8\xA6 \xBA\xB8\xB3\xBB\xB1\xE2 \xC0\xA7\xC7\xD8\xBC\xAD\xB4\xC2 %d\xC6\xCE\xC0\xCC \xC7\xCA\xBF\xE4\xC7\xD5\xB4\xCF\xB4\xD9.", 10), 0, 0, 0, 0);
 		return;
 	}
 
-	if (m_pNoteDlg == NULL)
-	{
-		m_pNoteDlg =
-			CreateForm<FrNoteDlg>(g_pFresh->GetManager(), this, "note", NULL);
-		m_pNoteDlg->SetNick(nick, m_pSelNote->sNote);
-		m_pNoteDlg->Open((FRESH_PFN_RESULT)&FrMailBoxDlg::OnNoteDlgResult, 1);
+	if (pNote->nick[0] == '@') {
+		// "You cannot send a note to an operator."
+		AfxGetTask()->GetActor("Lobby") << MsgObject(0, 0x23, (intptr_t)MakeStr("\xBF\xEE\xBF\xB5\xC0\xDA\xBF\xA1\xB0\xD4\xB4\xC2 \xC2\xCA\xC1\xF6\xB8\xA6 \xBA\xB8\xB3\xBE \xBC\xF6 \xBE\xF8\xBD\xC0\xB4\xCF\xB4\xD9.", 10), 0, 0, 0, 0);
+		return;
+	}
+
+	if (!m_pNoteDlg) {
+		m_pNoteDlg = CreateForm<FrNoteDlg>(g_pFresh->GetManager(), this, "note", 0);
+		m_pNoteDlg->SetNick(pNote->nick, m_pSelNote->text);
+		m_pNoteDlg->Open((FRESH_RESULT_CALLBACK)&FrMailBoxDlg::OnNoteDlgResult, 1);
 	}
 }
 
-bool FrMailBoxDlg::OnNoteDlgResult(int result, FrForm* pForm)
-{
-	if (result == FrOK)
-	{
-		m_pSelNote->bReply = true;
+// mailboxdlg.cpp:145
+bool FrMailBoxDlg::OnNoteDlgResult(int result, FrForm*) {
+	if (result == 1) {
+		m_pSelNote->read = true;
 
-		WSendPacket send((enumClientPacket)0x3c);
-		send.Encode2(0x111);
+		WSendPacket packet((enumClientPacket)0x3C);
+		packet.Encode2(0x111);
 
-		send.Encode4(m_pSelNote->uid);
-		send.EncodeStr(std::string(m_pNoteDlg->GetNote()));
-		send.Encode1(0);
-		send.Send(TO_GAME);
+		packet.Encode4(m_pSelNote->id);
+		packet.EncodeStr(std::string(m_pNoteDlg->GetNote()));
+		packet.Encode1(0);
+		packet.Send(SEND_TO_DEFAULT);
 	}
 
 	m_pNoteDlg = NULL;
 	return true;
 }
 
-void FrMailBoxDlg::OnCancelBtnUp()
-{
-	FrForm* pForm =
-		CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_yesno", NULL);
-	pForm->SetMessage(
-		"\xc2\xca\xc1\xf6\xc7\xd4\xc0\xbb \xb4\xdd\xc0\xb8\xb8\xe9 \xc2\xca\xc1\xf6\xb0\xa1 \xb8\xf0\xb5\xce \xbb\xe7\xb6\xf3\xc1\xfd\xb4\xcf\xb4\xd9.\n\xc2\xca\xc1\xf6\xc7\xd4\xc0\xbb \xb4\xdd\xc0\xb8\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-		false);
-	pForm->Open((FRESH_PFN_RESULT)&FrMailBoxDlg::OnCloseDlgResult, 0);
+// mailboxdlg.cpp:165
+void FrMailBoxDlg::OnCancelBtnUp(void) {
+	FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_yesno", 0);
+	// "Closing the mail box deletes every note.\nClose the mail box?"
+	pForm->SetMessage("\xC2\xCA\xC1\xF6\xC7\xD4\xC0\xBB \xB4\xDD\xC0\xB8\xB8\xE9 \xC2\xCA\xC1\xF6\xB0\xA1 \xB8\xF0\xB5\xCE \xBB\xE7\xB6\xF3\xC1\xFD\xB4\xCF\xB4\xD9.\n\xC2\xCA\xC1\xF6\xC7\xD4\xC0\xBB \xB4\xDD\xC0\xB8\xBD\xC3\xB0\xDA\xBD\xC0\xB4\xCF\xB1\xEE?", false);
+	pForm->Open((FRESH_RESULT_CALLBACK)&FrMailBoxDlg::OnCloseDlgResult, 0);
 }
 
-bool FrMailBoxDlg::OnCloseDlgResult(int result, FrForm* pForm)
-{
-	if (result == FrOK)
-	{
-		Doc()->m_noteList.clear();
+// mailboxdlg.cpp:172
+bool FrMailBoxDlg::OnCloseDlgResult(int result, FrForm*) {
+	if (result == 1) {
+		WSingleton<CSharedDoc>::Instance()->m_noteList.clear();
 		Close(true);
 	}
 

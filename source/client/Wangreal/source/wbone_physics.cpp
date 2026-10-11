@@ -1,16 +1,15 @@
+// Original: d:\build\custom\temp\code\client\wangreal\source\wbone_physics.cpp
 #include <math.h>
-#include <new>
-#include "wbone.h"
 
-#include "wmesh.h"
+#include "../include/wbone.h"
 
-void WBone::SetPhysicsModel(int type)
-{
+// wbone_physics.cpp:16
+void WBone::SetPhysicsModel(int type) {
 	int cnt = 0;
 	int offset = 0;
 	w_mesh* mesh;
-	for (mesh = m_mesh; mesh; mesh = mesh->next)
-	{
+
+	for (mesh = m_mesh; mesh != 0; mesh = mesh->next) {
 		cnt += mesh->vtxNum;
 		++offset;
 	}
@@ -27,8 +26,7 @@ void WBone::SetPhysicsModel(int type)
 	offset = 0;
 	cnt = 0;
 	int meshIndex = 0;
-	for (; mesh; mesh = mesh->next, ++meshIndex)
-	{
+	for (; mesh != 0; mesh = mesh->next, ++meshIndex) {
 		for (int i = mesh->rigidNum; i < mesh->vtxNum; ++i)
 			cnt += FindLink(i, mesh, 0, offset);
 		m_physic->list[meshIndex] = m_physic->pos + offset;
@@ -39,13 +37,12 @@ void WBone::SetPhysicsModel(int type)
 	mesh = m_mesh;
 	offset = 0;
 	cnt = 0;
-	for (; mesh; mesh = mesh->next)
-	{
+	for (; mesh != 0; mesh = mesh->next) {
 		int i;
+
 		for (i = 0; i < mesh->rigidNum; ++i)
 			m_physic->linkoffset[offset + i] = -1;
-		for (i = mesh->rigidNum; i < mesh->vtxNum; ++i)
-		{
+		for (i = mesh->rigidNum; i < mesh->vtxNum; ++i) {
 			m_physic->linkoffset[offset + i] = cnt;
 			cnt += FindLink(i, mesh, m_physic->link + cnt, offset);
 		}
@@ -54,10 +51,9 @@ void WBone::SetPhysicsModel(int type)
 	ResetPhysicsModel();
 }
 
-void WBone::ReleasePhysicsModel()
-{
-	if (m_physic)
-	{
+// wbone_physics.cpp:63
+void WBone::ReleasePhysicsModel() {
+	if (m_physic != 0) {
 		delete m_physic->link;
 		delete m_physic->linkoffset;
 		delete m_physic->pos;
@@ -65,93 +61,86 @@ void WBone::ReleasePhysicsModel()
 	}
 }
 
-void WBone::UpdatePhysicsModel(float delta, const WVector& accel)
-{
+// wbone_physics.cpp:74
+void WBone::UpdatePhysicsModel(float delta, const WVector& accel) {
+	WVector pos;
+	WVector gap;
+	WVector total;
+	float ext;
+	float magnitude;
 	int i;
-	for (i = 0; i < m_physic->vtxnum; ++i)
-	{
+
+	for (i = 0; i < m_physic->vtxnum; i++) {
 		if (m_physic->linkoffset[i] >= 0)
 			m_physic->vel[i] += accel * delta;
 	}
 
-	for (i = 0; i < m_physic->vtxnum; ++i)
-	{
-		if (m_physic->linkoffset[i] >= 0)
-		{
-			w_bone_physic_link::w_bone_physic_link_element* link =
-				m_physic->link + m_physic->linkoffset[i];
-			WVector pos;
+	for (i = 0; i < m_physic->vtxnum; i++) {
+		if (m_physic->linkoffset[i] >= 0) {
+			w_bone_physic_link::w_bone_physic_link_element* link = &m_physic->link[m_physic->linkoffset[i]];
 			pos = m_physic->pos[i] + m_physic->vel[i] * delta;
-			WVector gap = WVector::ZERO;
-			for (int j = 0; link[j].offset >= 0; ++j)
-			{
-				WVector total;
-				total = m_physic->pos[link[j].offset] - pos;
-				float magnitude = total.Magnitude();
-				float ext = magnitude - link[j].length;
-				gap += total * (ext / magnitude);
+			total = WVector::ZERO;
+
+			for (int j = 0; link[j].offset >= 0; j++) {
+				gap = m_physic->pos[link[j].offset] - pos;
+				magnitude = gap.Magnitude();
+				ext = magnitude - link[j].length;
+				magnitude = ext / magnitude;
+				total += gap * magnitude;
 			}
-			m_physic->vel[i] += gap;
+
+			m_physic->vel[i] += total;
 		}
 	}
 
-	for (i = 0; i < m_physic->vtxnum; ++i)
+	for (i = 0; i < m_physic->vtxnum; i++)
 		m_physic->pos[i] += m_physic->vel[i] * delta;
 }
 
-int WBone::FindLink(int body, w_mesh* mesh,
-	w_bone_physic_link::w_bone_physic_link_element* out, int offset)
-{
+// wbone_physics.cpp:111
+int WBone::FindLink(int body, w_mesh* m_mesh, w_bone_physic_link::w_bone_physic_link_element* out, int offset) {
 	int temp[16];
-	int cnt = 0;
-	for (int i = 0; i < mesh->indexNum; i += 3)
-	{
-		for (int j = 0; j < 3; ++j)
-		{
-			if (mesh->indexList[i + j] == body)
-			{
-				for (int k = 0; k < 3; ++k)
-				{
-					if (j != k)
-					{
-						int index = mesh->indexList[i + k];
-						int n;
-						for (n = 0; n < cnt; ++n)
-						{
-							if (temp[n] == index)
-								break;
-						}
-						if (n == cnt)
-							temp[cnt++] = index;
+	int count = 0;
+	int i;
+	int j;
+	int k;
+	int n;
+
+	for (i = 0; i < m_mesh->indexNum; i += 3) {
+		for (j = 0; j < 3; j++) {
+			if (m_mesh->indexList[i + j] == body) {
+				for (k = 0; k < 3; k++) {
+					if (j != k) {
+						int index = m_mesh->indexList[i + k];
+
+						for (n = 0; n < count && temp[n] != index; n++);
+						if (n == count)
+							temp[count++] = index;
 					}
 				}
 			}
 		}
 	}
 
-	if (out)
-	{
-		int i;
-		for (i = 0; i < cnt; ++i)
-		{
-			out[i].offset = temp[i] + offset;
-			out[i].length =
-				(mesh->vecList[body] - mesh->vecList[temp[i]]).Magnitude();
+	if (out != 0) {
+		for (n = 0; n < count; n++) {
+			out[n].offset = temp[n] + offset;
+			out[n].length = (m_mesh->vecList[body] - m_mesh->vecList[temp[n]]).Magnitude();
 		}
-		out[i].offset = -1;
+		out[n].offset = -1;
 	}
-	return cnt + 1;
+
+	return count + 1;
 }
 
-void WBone::ResetPhysicsModel()
-{
-	int i = 0;
-	for (w_mesh* mesh = m_mesh; mesh; mesh = mesh->next)
-	{
-		for (int j = 0; j < mesh->vtxNum; ++j, ++i)
-		{
-			m_physic->pos[i] = mesh->vecList[j] * m_matrix;
-			m_physic->vel[i] = WVector::ZERO;
+// wbone_physics.cpp:152
+void WBone::ResetPhysicsModel() {
+	int j = 0;
+
+	for (w_mesh* mesh = m_mesh; mesh != 0; mesh = mesh->next) {
+		for (int i = 0; i < mesh->vtxNum; ++i, ++j) {
+			m_physic->pos[j] = mesh->vecList[i] * m_matrix;
+			m_physic->vel[j] = WVector::ZERO;
 		}
 	}
 }

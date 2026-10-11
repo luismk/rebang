@@ -1,136 +1,124 @@
-#include "minatl.h"
-#include "tutorialtask.h"
+// Original: d:\build\custom\temp\code\client\projectg\tutorialtask.cpp
+#include "TutorialTask.h"
+
+#include "ObjectFactory.h"
 #include "actor.h"
 #include "fresh.h"
-#include "frwndmanager.h"
 #include "frdesktop.h"
-#include "clientsetting.h"
+#include "wview.h"
+#include "ClientSetting.h"
 #include "mousecursor.h"
-#include "projectg.h"
+#include "SharedDoc.h"
+#include "Packet.h"
 
-extern Fresh* g_pFresh;
 extern int g_iRecvPacketType;
 
-class CCapturedBg;
-class CSceneManager;
+// tutorialtask.cpp:28 (run-time type and factory registration of CTutorialTask)
+const WRTTI CTutorialTask::m_RTTI("CTutorialTask", &CTask::m_RTTI);
 
-CGolfDoc* m_pGolfDoc;
-CSceneManager* m_pSceneManger;
-CCapturedBg* m_pCapturedBg;
+IObject* CTutorialTaskMakeInstance(void) {
+	return new CTutorialTask;
+}
 
-IMPLEMENT_OBJECT(CTutorialTask, CTask)
+struct __sCTutorialTask {
+	__sCTutorialTask(void) {
+		ObjectFactory().AddObjectFunctor(CTutorialTaskMakeInstance, "CTutorialTask");
+	}
+};
+static __sCTutorialTask s_registerCTutorialTask;
 
-CTutorialTask::CTutorialTask()
-{
+// tutorialtask.cpp:31
+CTutorialTask::CTutorialTask(void) {
 	IActor::m_defaultSkipLayer = 0;
-	IActor::m_pLayer = NULL;
+	IActor::m_pLayer = 0;
 }
 
-CTutorialTask::~CTutorialTask()
-{
-	Doc()->m_gameMode = 0;
+// tutorialtask.cpp:44
+CTutorialTask::~CTutorialTask(void) {
+	CSharedDoc::Instance()->m_gameMode = 0;
 }
 
-void CTutorialTask::Init(const char* wallPaper)
-{
+// tutorialtask.cpp:60
+void CTutorialTask::Init(const char *backGround) {
 	CTask::Init("tutorial_background.jpg");
-
 	SetWhisper(false);
 }
 
-void CTutorialTask::Register()
-{
+// tutorialtask.cpp:70
+void CTutorialTask::Register(void) {
 	SetMainActor(AddActor("CTutorialMain", "TutorialMain", 0, ""));
 }
 
-void CTutorialTask::Load()
-{
+// tutorialtask.cpp:75
+void CTutorialTask::Load(void) {
 	SetProgressBar(false);
 	SetTip(false);
-
 	CTask::Load();
 }
 
-void CTutorialTask::PreserveBack(const char* name)
-{
-	CTask::PreserveBack(name);
+// tutorialtask.cpp:87
+void CTutorialTask::PreserveBack(const char *pNextTask) {
+	CTask::PreserveBack(pNextTask);
 }
 
-void CTutorialTask::RestorePreserved()
-{
+// tutorialtask.cpp:92
+void CTutorialTask::RestorePreserved(void) {
 	CTask::RestorePreserved();
 
-	g_pFresh->GetManager()->GetDesktop()->SetViewFocus(true);
+	g_pFresh->GetDesktop()->SetViewFocus(true);
 
-	COption::Instance()->vApplyLobbyScreenSize();
-	CMouseCursor::Instance()->SetActive(true);
+	WSingleton<COption>::Instance()->vApplyLobbyScreenSize();
+	WSingleton<CMouseCursor>::Instance()->SetActive(true);
 
-	g_pFresh->GetManager()->GetDesktop()->Init(g_view->GetWidth(),
-		g_view->GetHeight());
-	g_pFresh->GetManager()->GetDesktop()->SetWallPaper(
-		"tutorial_background.jpg", true);
+	g_pFresh->GetDesktop()->Init(g_view->GetWidth(), g_view->GetHeight());
+	g_pFresh->GetDesktop()->SetWallPaper("tutorial_background.jpg", true);
 }
 
-void CTutorialTask::Destroy()
-{
+// tutorialtask.cpp:112
+void CTutorialTask::Destroy(void) {
 	CTask::Destroy();
 }
 
-void CTutorialTask::Process(float delta)
-{
-	CTask::Process(delta);
-	g_pFresh->OnProcess(delta);
+// tutorialtask.cpp:117
+void CTutorialTask::Process(float dt) {
+	CTask::Process(dt);
+	g_pFresh->OnProcess(dt);
 }
 
-void CTutorialTask::Display()
-{
-	if (!Doc()->m_bBackgroundVideo)
+// tutorialtask.cpp:123
+void CTutorialTask::Display(void) {
+	if (!CSharedDoc::Instance()->m_3DBackgroundOff) {
 		CTask::Display();
-
-	g_pFresh->OnDisplay(Doc()->m_bBackgroundVideo != 0);
+	}
+	g_pFresh->OnDisplay(CSharedDoc::Instance()->m_3DBackgroundOff != 0);
 }
 
-int CTutorialTask::OnPacket(WReceivedPacket& packet)
-{
+// tutorialtask.cpp:132
+int CTutorialTask::OnPacket(WReceivedPacket &packet) {
 	unsigned short type = packet.Decode2();
 
 	g_iRecvPacketType = type;
 
-	switch (type)
-	{
-	case 0x11b:
-	{
+	switch (g_iRecvPacketType) {
+	case 0x11B: {
 		unsigned char index = packet.Decode1();
-		unsigned char mode = packet.Decode1();
-
-		if (index < 3)
-		{
-			unsigned long complete = packet.Decode4();
-			Doc()->m_tutorialComplete[index] = complete;
+		unsigned char value = packet.Decode1();
+		if (index < 3) {
+			unsigned long data = packet.Decode4();
+			CSharedDoc::Instance()->m_tutorialData[index] = data;
+		} else {
+			packet.DecodeBuffer(CSharedDoc::Instance()->m_tutorialData, 12);
 		}
-		else
-		{
-			packet.DecodeBuffer(Doc()->m_tutorialComplete,
-				sizeof(Doc()->m_tutorialComplete));
-		}
-
-		CTaskManager::Instance()->PostMsg(NULL, "TutorialMain", 0x151, index,
-			mode, 0, 0);
+		CTaskManager::Instance()->PostMsg(NULL, "TutorialMain", 0x151, index, value, 0, 0);
 		break;
 	}
-
-	case 0x11c:
-	{
-		unsigned char step = packet.Decode1();
-		CTaskManager::Instance()->PostMsg(NULL, "TutorialMain", 0x153, step, 0,
-			0, 0);
+	case 0x11C: {
+		unsigned char value = packet.Decode1();
+		CTaskManager::Instance()->PostMsg(NULL, "TutorialMain", 0x153, value, 0, 0, 0);
 		break;
 	}
-
 	default:
-
 		return OnPacketCommon(packet);
 	}
-
 	return 1;
 }

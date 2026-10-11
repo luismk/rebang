@@ -1,395 +1,385 @@
-#pragma once
+// Original: d:\build\custom\temp\code\shared\itemmanager.h
+#ifndef PG_SHARED_ITEMMANAGER_H
+#define PG_SHARED_ITEMMANAGER_H
 
+#include <windows.h>
 #include <string.h>
-#include <string>
 #include <list>
 #include <map>
 #include <set>
 #include <vector>
 
+#include "..\..\defines.h"
+#include "..\..\padding.h"
+#include "../client/ProjectG/lock.hpp"
 #include "classdefine.h"
-#include "lock.hpp"
 
-enum eLvlType
-{
-	LVL_POWER,
-	LVL_CONTROL,
-	LVL_ACCURACY,
-	LVL_SPIN,
-	LVL_CURVE,
-	LVL_NUM_MAX
-};
-
-enum PANGYA_ITEM_GROUP
-{
-	PIG_CHAR = 1,
-	PIG_PART,
-	PIG_CLUB,
-	PIG_CLUBSET,
-	PIG_BALL,
-	PIG_ITEM,
-	PIG_CADDIE,
-	PIG_CADITEM,
-	PIG_SETITEM,
-	PIG_COURSE,
-	PIG_MATCH,
-	PIG_TITLE,
-	PIG_ENCHANT,
-	PIG_SKIN,
-	PIG_HAIR,
-	PIG_MASCOT,
-	PIG_CHILDITEM,
-	PIG_FURNITURE,
-	PIG_OFFLINESHOP,
-	PIG_AUXPART = 28,
-	PIG_QUESTDROP,
-	PIG_QUEST,
-	PIG_CARD,
-	PIG_MAX
-};
-
-enum specialcardavility
-{
-	SPECIAL_EXP_ADD,
-	SPECIAL_PANG_RATE_UP_TIME,
-	SPECIAL_EXP_REAE_UP_TIME,
-	SPECIAL_PANG_ADD,
-	SPECIAL_POWER_UP_TIME,
-	SPECIAL_CONTROL_UP_TIME,
-	SPECIAL_ACCCURACY_UP_TIME,
-	SPECIAL_SPIN_UP_TIME,
-	SPECIAL_CURVE_UP_TIME,
-	SPECIAL_START_COMBOGAUGE_UP_TIME,
-	SPECIAL_SLOT_UP_TIME,
-	SPECIAL_PANGYAZONE_UP,
-	SPECIAL_CLEARBONUS_UP_SEPIAWIND,
-	SPECIAL_CLEARBONUS_UP_WINDHILL,
-	SPECIAL_CLEARBONUS_UP_PINKWIND,
-	SPECIAL_CLEARBONUS_UP_BLUEMOON,
-	SPECIAL_RANDOMPANG_ADD,
-	SPECIAL_TREASUREPOINT_UP,
-	SPECIAL_RAINFALL_PROBABILITY_UP,
-	SPECIAL_AVILITY_MAX
-};
-
-enum COUNTING_TYPE;
-enum eSPAVILITYTYPE;
-
-struct status_t
-{
-	unsigned char level;
-	unsigned char penalty;
-};
-
-typedef std::map<unsigned int, IFF_STRUCT::sChar>::iterator CharIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sPart>::iterator PartIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sClub>::iterator ClubIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sClubSet>::iterator ClubSetIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sBall>::iterator BallIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sItem>::iterator ItemIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sCaddie>::iterator CaddieIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sCadItem>::iterator CadItemIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sSetItem>::iterator SetItemIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sCourse>::iterator CourseIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sMatch>::iterator MatchIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sTitle>::iterator TitleIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sEnchant>::iterator EnchantIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sDesc>::iterator DescIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sSkin>::iterator SkinIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sHairStyle>::iterator
-	HairStyleIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sChildItem>::iterator
-	ChildItemIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sMascot>::iterator MascotIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sAuxPart>::iterator AuxPartIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sQuestDrop>::iterator
-	QuestDropIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sQuest>::iterator QuestIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sFurniture>::iterator
-	FurnitureIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sCard>::iterator CardIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sOfflineShop>::iterator
-	OfflineShopIterator;
-typedef std::list<IFF_STRUCT::sCadieMagicBox>::iterator CadieMagicBoxIterator;
-typedef std::list<IFF_STRUCT::sTikiPointTable>::iterator TikiPointTableIterator;
-typedef std::list<IFF_STRUCT::sTikiSpecialRecipe>::iterator
-	TikiSpecialRecipeIterator;
-typedef std::map<unsigned int, IFF_STRUCT::S5::sCutinInformation>::iterator
-	CutinInformationIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sSpecialPrizeItem>::iterator
-	SpecialPrizeItemIterator;
-
-namespace _private
-{
-	struct sRandomBoxItem
-	{
-		IFF_STRUCT::sRandomBox box;
-		std::vector<IFF_STRUCT::sRandomBox> checkItems;
-
-		sRandomBoxItem()
-		{
-			memset(this, 0, sizeof(IFF_STRUCT::sRandomBox));
-			checkItems.clear();
-		}
-
-		~sRandomBoxItem() { checkItems.clear(); }
-	};
-
-	struct sRandomBoxStuff
-	{
-		IFF_STRUCT::sRandomBox box;
-
-		sRandomBoxStuff() { memset(this, 0, sizeof(sRandomBoxStuff)); }
-	};
-
-	struct sRandomBox
-	{
-		IFF_STRUCT::sRandomBox box;
-		std::map<unsigned long, sRandomBoxItem> items;
-		std::vector<sRandomBoxStuff> stuffs;
-
-		sRandomBox()
-		{
-			memset(this, 0, sizeof(IFF_STRUCT::sRandomBox));
-			items.clear();
-			stuffs.clear();
-		}
-
-		~sRandomBox()
-		{
-			items.clear();
-			stuffs.clear();
-		}
-	};
+// The IFF item records the manager returns. Their definitions live with
+// IFF_STRUCT (classdefine.h); only what the code built so far uses is
+// transcribed there.
+namespace IFF_STRUCT {
+struct sChar;
+struct sPart;
+struct sClub;
+struct sClubSet;
+struct sBall;
+struct sItem;
+struct sCaddie;
+struct sCadItem;
+struct sSetItem;
+struct sCourse;
+struct sMatch;
+struct sTitle;
+struct sEnchant;
+struct sSkin;
+struct sHairStyle;
+struct sChildItem;
+struct sAuxPart;
+struct sQuestDrop;
+struct sQuest;
+struct sMascot;
+struct sCard;
+struct sFurniture;
+struct sOfflineShop;
+struct sDesc;
+struct sRandomBox;
+struct sSpecialPrizeItem;
+struct sRandomRecycle;
+struct sCadieMagicBox;
+struct sFurnitureAbility;
+struct sTikiPointTable;
+struct sTikiSpecialRecipe;
+struct sNonVisibleItem;
+struct sSubscriptionItem;
+namespace S5 {
+struct sCutinInformation;
+}
 }
 
-typedef std::map<unsigned int, _private::sRandomBox>::iterator
-	RandomBoxIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sNonVisibleItem>::iterator
-	NonVisibleItemIterator;
-typedef std::map<unsigned int, IFF_STRUCT::sSubscriptionItem>::iterator
-	SubscriptionItemIterator;
+namespace _private {
 
-class CItemManager
-{
+// One item of a random box with the records that can replace it.
+struct sRandomBoxItem {
+	// itemmanager.h:145
+	sRandomBoxItem() {
+		memset(&m_box, 0, sizeof(IFF_STRUCT::sRandomBox));
+		m_items.clear();
+	}
+
+	// itemmanager.h:151
+	~sRandomBoxItem() {
+		m_items.clear();
+	}
+
+	IFF_STRUCT::sRandomBox m_box;               // 0x0
+	std::vector<IFF_STRUCT::sRandomBox> m_items; // 0xE4
+};
+CHECK_SIZE(sRandomBoxItem, 0xF4);
+CHECK_FIELD(sRandomBoxItem, m_box, 0x0);
+CHECK_FIELD(sRandomBoxItem, m_items, 0xE4);
+
+// A random box stuff entry: a random box record (GetEnumRandomBoxStuff
+// copies it out as one).
+struct sRandomBoxStuff : IFF_STRUCT::sRandomBox {
+	// itemmanager.h:160
+	sRandomBoxStuff() {
+		memset(this, 0, sizeof(sRandomBoxStuff));
+	}
+};
+CHECK_SIZE(sRandomBoxStuff, 0xE4);
+
+// A random box: its record, its items by type id and its stuff.
+struct sRandomBox {
+	// itemmanager.h:172
+	sRandomBox() {
+		memset(&m_box, 0, sizeof(IFF_STRUCT::sRandomBox));
+		m_items.clear();
+		m_stuffs.clear();
+	}
+
+	// itemmanager.h:179
+	~sRandomBox() {
+		m_items.clear();
+		m_stuffs.clear();
+	}
+
+	IFF_STRUCT::sRandomBox m_box;                           // 0x0
+	std::map<unsigned long, sRandomBoxItem> m_items;        // 0xE4
+	std::vector<sRandomBoxStuff> m_stuffs;                  // 0xF0
+};
+CHECK_SIZE(sRandomBox, 0x100);
+CHECK_FIELD(sRandomBox, m_box, 0x0);
+CHECK_FIELD(sRandomBox, m_items, 0xE4);
+CHECK_FIELD(sRandomBox, m_stuffs, 0xF0);
+
+} // namespace _private
+
+struct IFF_ITEM_COMMON;
+
+// The level GetLevelWithPenalty returns with the power penalty it took off.
+struct status_t {
+	unsigned char m_level;   // 0x0
+	unsigned char m_penalty; // 0x1
+};
+CHECK_SIZE(status_t, 0x2);
+CHECK_FIELD(status_t, m_level, 0x0);
+CHECK_FIELD(status_t, m_penalty, 0x1);
+
+enum COUNTING_TYPE;
+enum PANGYA_ITEM_GROUP;
+enum eLvlType;
+enum eSPAVILITYTYPE;
+enum specialcardavility;
+
+// The item database: the IFF tables loaded into maps keyed by type id.
+// Only the members the functions built so far use are named.
+class CItemManager {
 public:
-	CItemManager();
-	virtual ~CItemManager();
+	// The buff properties of an item (MakeItemBuffMap, GetBuffProperty).
+	struct sItemBuffHelper {
+		specialcardavility m_ability;       // 0x0, the GetBuffProperty values
+		int m_value0;                       // 0x4
+		int m_value1;                       // 0x8
+		int m_value2;                       // 0xC
+		std::set<unsigned long> m_compatible; // 0x10
+	};
 
-	void Reset();
-	bool Load();
-	void Reload();
+	CItemManager(void);
+	virtual ~CItemManager(void);
 
-	_client::CCriticalSection m_cs;
-	bool m_IsReloading;
-	std::map<unsigned int, IFF_STRUCT::sChar> m_CharMap;
-	std::map<unsigned int, IFF_STRUCT::sPart> m_PartMap;
-	std::map<unsigned int, IFF_STRUCT::sClub> m_ClubMap;
-	std::map<unsigned int, IFF_STRUCT::sClubSet> m_ClubSetMap;
-	std::map<unsigned int, IFF_STRUCT::sBall> m_BallMap;
-	std::map<unsigned int, IFF_STRUCT::sItem> m_ItemMap;
-	std::map<unsigned int, IFF_STRUCT::sCaddie> m_CaddieMap;
-	std::map<unsigned int, IFF_STRUCT::sCadItem> m_CadItemMap;
-	std::map<unsigned int, IFF_STRUCT::sSetItem> m_SetItemMap;
-	std::map<unsigned int, IFF_STRUCT::sCourse> m_CourseMap;
-	std::map<unsigned int, IFF_STRUCT::sMatch> m_MatchMap;
-	std::map<unsigned int, IFF_STRUCT::sTitle> m_TitleMap;
-	std::map<unsigned int, IFF_STRUCT::sEnchant> m_EnchantMap;
-	std::map<unsigned int, IFF_STRUCT::sDesc> m_DescMap;
-	std::map<unsigned int, IFF_STRUCT::sSkin> m_SkinMap;
-	std::map<unsigned int, IFF_STRUCT::sHairStyle> m_HairStyleMap;
-	std::map<unsigned int, IFF_STRUCT::sChildItem> m_ChildItemMap;
-	std::map<unsigned int, IFF_STRUCT::sMascot> m_MascotMap;
-	std::map<unsigned int, IFF_STRUCT::sAuxPart> m_AuxPartMap;
-	std::map<unsigned int, IFF_STRUCT::sQuestDrop> m_QuestDropMap;
-	std::map<unsigned int, IFF_STRUCT::sQuest> m_QuestMap;
-	std::map<unsigned int, IFF_STRUCT::sFurniture> m_FurnitureMap;
-	std::map<unsigned int, IFF_STRUCT::sCard> m_CardMap;
-	std::map<unsigned int, IFF_STRUCT::sOfflineShop> m_OfflineShopMap;
-	std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle> m_RandomRecycleMaps;
-	std::list<IFF_STRUCT::sCadieMagicBox> m_CadieMagicBox;
-	std::list<IFF_STRUCT::sFurnitureAbility> m_FurnitureAbility;
-	std::list<IFF_STRUCT::sTikiPointTable> m_TikiPointTable;
-	std::list<IFF_STRUCT::sTikiSpecialRecipe> m_TikiSpecialRecipe;
-	std::map<unsigned int, _private::sRandomBox> m_RandomBoxMap;
-	std::map<unsigned int, IFF_STRUCT::sNonVisibleItem> m_NonVisibleItemMap;
-	std::map<unsigned int, IFF_STRUCT::sSubscriptionItem> m_SubscriptionItemMap;
-	std::map<unsigned int, IFF_STRUCT::S5::sCutinInformation>
-		m_CutinInformationMap;
-	std::map<unsigned int, IFF_STRUCT::sSpecialPrizeItem> m_SPItemMap[5];
+	int CompareSystemTime(_SYSTEMTIME &a, _SYSTEMTIME &b);
+	int GetCouponKind(unsigned long typeId);
+	bool IsDisableDuplicateItem(unsigned long typeId);
+	unsigned long GetIndexAbilityItem(unsigned long typeId);
+	unsigned long GetMascotBonusPang(unsigned long typeId, bool flag);
+	bool IsBetween(_SYSTEMTIME *begin, _SYSTEMTIME *end, _SYSTEMTIME &time);
+	bool IsEquipCard(unsigned long typeId);
+	COUNTING_TYPE GetItemCountingType(unsigned long typeId, unsigned char kind);
+	int GetNumItems(PANGYA_ITEM_GROUP group);
+	int GetCourseNum(void);
+	void Reset(void);
+	IFF_STRUCT::sChar *FindChar(unsigned long typeId);
+	IFF_STRUCT::sPart *FindPart(unsigned long typeId);
+	IFF_STRUCT::sClub *FindClub(unsigned long typeId);
+	IFF_STRUCT::sClubSet *FindClubSet(unsigned long typeId);
+	IFF_STRUCT::sBall *FindBall(unsigned long typeId);
+	IFF_STRUCT::sItem *FindItem(unsigned long typeId);
+	IFF_STRUCT::sCaddie *FindCaddie(unsigned long typeId);
+	IFF_STRUCT::sCadItem *FindCadItem(unsigned long typeId);
+	IFF_STRUCT::sSetItem *FindSetItem(unsigned long typeId);
+	IFF_STRUCT::sSetItem *FindSetItemAtConstruct(unsigned long typeId);
+	IFF_STRUCT::sCourse *FindCourse(unsigned long typeId);
+	IFF_STRUCT::sMatch *FindMatch(unsigned long typeId);
+	IFF_STRUCT::sTitle *FindTitle(unsigned long typeId);
+	IFF_STRUCT::sEnchant *FindEnchant(unsigned long typeId);
+	IFF_STRUCT::sSkin *FindSkin(unsigned long typeId);
+	IFF_STRUCT::S5::sCutinInformation *FindCutinInformation(unsigned long typeId);
+	IFF_STRUCT::sHairStyle *FindHairStyle(unsigned long typeId);
+	IFF_STRUCT::sHairStyle *FindHairStyle(unsigned char style, unsigned char color);
+	IFF_STRUCT::sChildItem *FindChildItem(unsigned long typeId, int index);
+	int FindChildItemNumber(unsigned long typeId);
+	IFF_STRUCT::sAuxPart *FindAuxPart(unsigned long typeId);
+	IFF_STRUCT::sQuestDrop *FindQuestDrop(unsigned long typeId);
+	IFF_STRUCT::sQuest *FindQuest(unsigned long typeId);
+	IFF_STRUCT::sMascot *FindMascot(unsigned long typeId);
+	IFF_STRUCT::sCard *FindCard(unsigned long typeId);
+	IFF_STRUCT::sFurniture *FindFurniture(unsigned long typeId);
+	IFF_STRUCT::sOfflineShop *FindOfflineShop(unsigned long typeId);
+	IFF_STRUCT::sDesc *FindDesc(unsigned long typeId);
+	IFF_ITEM_COMMON *FindCommonItem(unsigned long typeId);
+	bool GetSetItemElem(IFF_STRUCT::sSetItem *setItem, int index, unsigned long &typeId, unsigned long &count, unsigned long &extra);
+	bool GetDefCombo(unsigned long typeId, unsigned long *combo);
+	unsigned int GetItemPrice(unsigned long typeId);
+	int CheckStockType(unsigned long typeId, unsigned int count);
+	bool IsValidBuyItemCount(unsigned long typeId, int count);
+	unsigned int GetItemSalePrice(unsigned long typeId, int count, unsigned long option);
+	unsigned int GetChildItemPrice(unsigned long typeId, int index);
+	bool IsCashItem(unsigned long typeId);
+	bool IsCashChildItem(unsigned long typeId, int index);
+	bool IsTimeLimit(unsigned long typeId);
+	const char *GetItemName(unsigned long typeId);
+	bool HasSalePeriod(unsigned long typeId, _SYSTEMTIME **begin, _SYSTEMTIME **end);
+	bool IsInSalePeriod(unsigned long typeId, _SYSTEMTIME &time);
+	unsigned char GetItemLevel(eLvlType type, const unsigned long *parts, const unsigned long *cards);
+	unsigned char GetCharCapacity(eLvlType type, unsigned long charTypeId, const unsigned long *parts, const unsigned long *cards, unsigned char extra);
+	unsigned char GetCharLevel(eLvlType type, unsigned long charTypeId, const char *levels);
+	unsigned char GetCapacity(eLvlType type, unsigned long charTypeId, const char *levels, const unsigned long *parts, unsigned long clubTypeId, const short *clubLevels, unsigned long ballTypeId, unsigned char extra);
+	unsigned char GetLevel(eLvlType type, unsigned long charTypeId, const char *levels, const unsigned long *parts, const unsigned long *cards, unsigned long clubTypeId, const short *clubLevels, unsigned long ballTypeId, unsigned char extra);
+	status_t GetLevelWithPenalty(eLvlType type, unsigned long charTypeId, const char *levels, const unsigned long *parts, const unsigned long *cards, unsigned long clubTypeId, const short *clubLevels, unsigned long ballTypeId, unsigned char extra);
+	bool isTrade(unsigned long typeId);
+	bool IsCanOverlapped(unsigned long typeId, unsigned char a, unsigned char b);
+	bool IsPartAttachCard(unsigned long partTypeId, unsigned long cardTypeId, int slot);
+	bool GetCardSlotNum(unsigned long typeId, unsigned short &first, unsigned short &count);
+	IFF_STRUCT::sSpecialPrizeItem *FindSPItem(unsigned long typeId, eSPAVILITYTYPE type);
+	bool IsItemBuff(unsigned long typeId);
+	bool IsCompatibleBuff(unsigned long typeId, unsigned long otherTypeId);
+	bool GetBuffProperty(unsigned long typeId, specialcardavility &ability, int &value0, int &value1, int &value2);
+	const char *GetIconName(unsigned long typeId);
+	bool IsUnlimitAztec(unsigned long typeId);
+	bool IsBasicAztecFamily(unsigned long typeId);
+	const char *ChangePartsPosmask(unsigned long typeId, unsigned long posmask);
+	const char *ChangePartsPetName(unsigned long typeId, const char *name);
+	const char *ChangePartsTexName(unsigned long typeId, unsigned long a, unsigned long b, const char *name);
+	bool IsSubScriptionCoupon(unsigned long typeId);
+	IFF_STRUCT::sRandomBox *FindRandomBox(unsigned long typeId);
+	unsigned int IsValidBuyItem(unsigned long typeId);
+	bool IsDisplayItemNumber(unsigned long typeId);
+	IFF_STRUCT::sRandomBox *GetRandomBoxInfo(unsigned long typeId, unsigned long kind, unsigned long itemTypeId);
+	bool IsNonVisibleItem(unsigned long typeId);
+	bool Load(void);
+	void Reload(void);
+	bool GetEnumRandomBoxStuff(unsigned long typeId, std::vector<IFF_STRUCT::sRandomBox> &stuffs);
 
 private:
-	void MakeItemBuffMap();
+	void MakeTikiRecipeMap(char *data, int count);
+	void MakeTikiPointTableMap(char *data, int count);
+	void MakeTikiSpecialTableMap(char *data, int count);
+	void CheckInvalidItemName(void);
+	_private::sRandomBox *findRandomBox(unsigned long typeId);
+	void MakeCharMap(char *data, int count);
+	void MakePartMap(char *data, int count);
+	void MakeClubMap(char *data, int count);
+	void MakeClubSetMap(char *data, int count);
+	void MakeBallMap(char *data, int count);
+	void MakeItemMap(char *data, int count);
+	void MakeCaddieMap(char *data, int count);
+	void MakeCadItemMap(char *data, int count);
+	void MakeSetItemMap(char *data, int count);
+	void MakeCourseMap(char *data, int count);
+	void MakeMatchMap(char *data, int count);
+	void MakeTitleMap(char *data, int count);
+	void MakeEnchantMap(char *data, int count);
+	void MakeSkinMap(char *data, int count);
+	void MakeCardMap(char *data, int count);
+	void MakeFurnitureMap(char *data, int count);
+	void MakeOfflineMap(char *data, int count);
+	void MakeCadieMagicBoxMap(char *data, int count);
+	void MakeNonVisibleItemMap(char *data, int count);
+	void MakeSubscriptionItemMap(char *data, int count);
+	void MakeHairStyleMap(char *data, int count);
+	void MakeChildItemMap(char *data, int count);
+	void MakeAuxPartMap(char *data, int count);
+	void MakeQuestDropMap(char *data, int count);
+	void MakeQuestMap(char *data, int count);
+	void MakeMascotMap(char *data, int count);
+	void MakeDescMap(char *data, int count);
+	void MakeFurnitureAbilityList(char *data, int count);
+	void MakeCutinInforMationTableMap(char *data, int count);
+	void MakeSpecialPrizeItemMap(char *data, int count);
+	void MakeRandomRecycleMap(char *data, int count);
+	void MakeItemBuffMap(void);
+	void MakeRandomBoxMap(char *data, int count);
 
-	struct sItemBuffHelper
-	{
-		specialcardavility BuffType;
-		int Value;
-		int Duration;
-		int Accum;
-		std::set<unsigned long> ExclusiveSet;
-	};
-	typedef std::map<unsigned long, sItemBuffHelper> BuffMap;
-	typedef BuffMap::iterator BuffMap_Itr;
+	LAYOUT_CHECK_FRIEND;
 
-	BuffMap m_ItemBuff;
-
-	void MakeCharMap(char* Buf, int len);
-	void MakePartMap(char* Buf, int len);
-	void MakeClubMap(char* Buf, int len);
-	void MakeClubSetMap(char* Buf, int len);
-	void MakeBallMap(char* Buf, int len);
-	void MakeItemMap(char* Buf, int len);
-	void MakeFurnitureMap(char* Buf, int len);
-	void MakeOfflineMap(char* Buf, int len);
-	void MakeCaddieMap(char* Buf, int len);
-	void MakeCadItemMap(char* Buf, int len);
-	void MakeSetItemMap(char* Buf, int len);
-	void MakeCourseMap(char* Buf, int len);
-	void MakeMatchMap(char* Buf, int len);
-	void MakeTitleMap(char* Buf, int len);
-	void MakeEnchantMap(char* Buf, int len);
-	void MakeSkinMap(char* Buf, int len);
-	void MakeHairStyleMap(char* Buf, int len);
-	void MakeChildItemMap(char* Buf, int len);
-	void MakeMascotMap(char* Buf, int len);
-	void MakeDescMap(char* Buf, int len);
-	void MakeAuxPartMap(char* Buf, int len);
-	void MakeQuestDropMap(char* Buf, int len);
-	void MakeQuestMap(char* Buf, int len);
-	void MakeCardMap(char* Buf, int len);
-	void MakeCadieMagicBoxMap(char* Buf, int len);
-	void MakeRandomRecycleMap(char* Buf, int len);
-	void MakeFurnitureAbilityList(char* Buf, int len);
-	void MakeTikiRecipeMap(char* Buf, int len);
-	void MakeTikiPointTableMap(char* Buf, int len);
-	void MakeTikiSpecialTableMap(char* Buf, int len);
-	void MakeRandomBoxMap(char* Buf, int len);
-	void MakeNonVisibleItemMap(char* Buf, int len);
-	void MakeSubscriptionItemMap(char* Buf, int len);
-	void MakeCutinInforMationTableMap(char* Buf, int len);
-	void MakeSpecialPrizeItemMap(char* Buf, int len);
-	_private::sRandomBox* findRandomBox(unsigned long boxTypeId);
-	void CheckInvalidItemName();
+	// 0x0: vftable
+	_client::CCriticalSection m_cs;                              // 0x4, guards the maps once loaded
+	bool m_loaded;                                               // 0x20, cleared by the constructor; the Find/Get functions lock m_cs when set
+	UNKNOWN(0x21, 0x24);
 
 public:
-	IFF_STRUCT::sChar* FindChar(unsigned long tid);
-	IFF_STRUCT::sPart* FindPart(unsigned long tid);
-	IFF_STRUCT::sClub* FindClub(unsigned long tid);
-	IFF_STRUCT::sClubSet* FindClubSet(unsigned long tid);
-	IFF_STRUCT::sBall* FindBall(unsigned long tid);
-	IFF_STRUCT::sItem* FindItem(unsigned long tid);
-	IFF_STRUCT::sCaddie* FindCaddie(unsigned long tid);
-	IFF_STRUCT::sCadItem* FindCadItem(unsigned long tid);
-	IFF_STRUCT::sSetItem* FindSetItem(unsigned long tid);
-	IFF_STRUCT::sSetItem* FindSetItemAtConstruct(unsigned long tid);
-	IFF_STRUCT::sCourse* FindCourse(unsigned long tid);
-	IFF_STRUCT::sMatch* FindMatch(unsigned long tid);
-	IFF_STRUCT::sTitle* FindTitle(unsigned long tid);
-	IFF_STRUCT::sEnchant* FindEnchant(unsigned long tid);
-	IFF_STRUCT::sSkin* FindSkin(unsigned long tid);
-	IFF_STRUCT::sRandomBox* FindRandomBox(unsigned long tid);
-	IFF_STRUCT::sHairStyle* FindHairStyle(unsigned long tid);
-	IFF_STRUCT::sHairStyle* FindHairStyle(unsigned char charID,
-		unsigned char hairID);
-	IFF_STRUCT::sChildItem* FindChildItem(unsigned long tid, int iIndex);
-	int FindChildItemNumber(unsigned long tid);
-	IFF_STRUCT::sMascot* FindMascot(unsigned long tid);
-	IFF_STRUCT::sAuxPart* FindAuxPart(unsigned long tid);
-	IFF_STRUCT::sQuestDrop* FindQuestDrop(unsigned long tid);
-	IFF_STRUCT::sQuest* FindQuest(unsigned long tid);
-	IFF_ITEM_COMMON* FindCommonItem(unsigned long tid);
-	IFF_STRUCT::sCard* FindCard(unsigned long tid);
-	IFF_STRUCT::sFurniture* FindFurniture(unsigned long tid);
-	IFF_STRUCT::sOfflineShop* FindOfflineShop(unsigned long tid);
-	IFF_STRUCT::sDesc* FindDesc(unsigned long tid);
-	IFF_STRUCT::S5::sCutinInformation* FindCutinInformation(unsigned long tid);
-	bool GetSetItemElem(IFF_STRUCT::sSetItem* pSetItem, int index,
-		unsigned long& typeId, unsigned long& count, unsigned long& type);
+	// The IFF tables by type id (Make*Map). The dialogs read some of them
+	// directly, without m_cs (MapSelectDlg, NewRecordDlg: m_courseMap;
+	// FrSPCardBuffDlg::OnInit: m_cardMap, public in place below).
+	std::map<unsigned int, IFF_STRUCT::sChar> m_charMap;         // 0x24
+	std::map<unsigned int, IFF_STRUCT::sPart> m_partMap;         // 0x30
+	std::map<unsigned int, IFF_STRUCT::sClub> m_clubMap;         // 0x3C
+	std::map<unsigned int, IFF_STRUCT::sClubSet> m_clubSetMap;   // 0x48
+	std::map<unsigned int, IFF_STRUCT::sBall> m_ballMap;         // 0x54
+	std::map<unsigned int, IFF_STRUCT::sItem> m_itemMap;         // 0x60
+	std::map<unsigned int, IFF_STRUCT::sCaddie> m_caddieMap;     // 0x6C
+	std::map<unsigned int, IFF_STRUCT::sCadItem> m_cadItemMap;   // 0x78
+	std::map<unsigned int, IFF_STRUCT::sSetItem> m_setItemMap;   // 0x84
+	std::map<unsigned int, IFF_STRUCT::sCourse> m_courseMap;     // 0x90
 
-	bool GetRecycleRandomMixOutItems(unsigned long randSeqNum,
-		std::list<const IFF_STRUCT::sRandomRecycle*>& ltMixOutList);
-	unsigned int GetItemPrice(unsigned long tid);
-	int CheckStockType(unsigned long typeId, unsigned int stock);
-	unsigned int GetItemSalePrice(unsigned long in_dwTid, int in_iCount,
-		unsigned long in_dwDayCount);
-	unsigned int GetChildItemPrice(unsigned long tid, int iIndex);
-	bool IsCashItem(unsigned long tid);
-	bool IsCashChildItem(unsigned long tid, int iIndex);
-	bool IsTimeLimit(unsigned long tid);
-	const char* GetItemName(unsigned long tid);
-	bool HasSalePeriod(unsigned long tid, _SYSTEMTIME** pSaleS,
-		_SYSTEMTIME** pSaleE);
-	bool IsInSalePeriod(unsigned long tid, _SYSTEMTIME& sysTime);
-	bool IsBetween(_SYSTEMTIME* pStart, _SYSTEMTIME* pEnd,
-		_SYSTEMTIME& sysTime);
-	int CompareSystemTime(_SYSTEMTIME& tm0, _SYSTEMTIME& tm1);
-	int GetCouponKind(unsigned long dwTid);
-	bool IsDisableDuplicateItem(unsigned long dwTid);
-	unsigned int IsValidBuyItem(unsigned long in_dwItemType);
-	bool IsValidBuyItemCount(unsigned long in_dwItemType, int in_iItemCount);
-	bool IsDisplayItemNumber(unsigned long dwTid);
-	unsigned long GetIndexAbilityItem(unsigned long dwTid);
-	unsigned long GetMascotBonusPang(unsigned long dwTid, bool bBestShot);
-	bool GetDefCombo(unsigned long tidChar, unsigned long* atidDefCombo);
-	int GetNumItems(PANGYA_ITEM_GROUP pig);
-	int GetCourseNum();
-	bool isTrade(unsigned long typeId);
-	bool IsCanOverlapped(unsigned long dwTID, unsigned char btCheckType,
-		unsigned char exceptGroup);
-	bool IsPartAttachCard(unsigned long dwCardTid, unsigned long dwPartTid,
-		int iSlotNum);
-	COUNTING_TYPE GetItemCountingType(unsigned long in_Tid,
-		unsigned char in_itemType);
-	IFF_STRUCT::sSpecialPrizeItem* FindSPItem(unsigned long typeId,
-		eSPAVILITYTYPE type);
-	bool GetCardSlotNum(unsigned long in_TID,
-		unsigned short& out_LimitCharacterSlot,
-		unsigned short& out_LimitCaddieSlot);
-	bool IsEquipCard(unsigned long in_CardTID);
-	bool IsItemBuff(unsigned long dwTID);
-	bool IsCompatibleBuff(unsigned long dwBuffTID, unsigned long dwWithTID);
-	bool GetBuffProperty(unsigned long dwTID, specialcardavility& eType,
-		int& Value, int& Duration, int& Accum);
-	unsigned char GetItemLevel(eLvlType eType, const unsigned long* patidParts,
-		const unsigned long* patidAuxParts);
-	unsigned char GetCharCapacity(eLvlType eType, unsigned long tidChar,
-		const unsigned long* patidParts, const unsigned long* patidAuxParts,
-		unsigned char level);
-	unsigned char GetCharLevel(eLvlType eType, unsigned long tidChar,
-		const char* pCharPCL);
-	unsigned char GetCapacity(eLvlType type, unsigned long charTypeId,
-		const char* pStat, const unsigned long* pParts,
-		unsigned long clubTypeId, const short* pClubStat,
-		unsigned long caddieTypeId, unsigned char upgrade);
-	unsigned char GetLevel(eLvlType type, unsigned long charTypeId,
-		const char* pStat, const unsigned long* pParts,
-		const unsigned long* pAuxParts, unsigned long clubTypeId,
-		const short* pClubStat, unsigned long caddieTypeId,
-		unsigned char upgrade);
-	status_t GetLevelWithPenalty(eLvlType type, unsigned long charTypeId,
-		const char* pStat, const unsigned long* pParts,
-		const unsigned long* pAuxParts, unsigned long clubTypeId,
-		const short* pClubStat, unsigned long caddieTypeId,
-		unsigned char upgrade);
-	const char* GetIconName(unsigned long typeId);
-	bool IsUnlimitAztec(unsigned long typeId);
-	bool IsBasicAztecFamily(unsigned long tid);
-	const char* ChangePartsPosmask(unsigned long dwTypeID,
-		unsigned long dwPosMask);
-	const char* ChangePartsTexName(unsigned long dwTypeID,
-		unsigned long dwTexType, unsigned long dwTexNum, const char* pTexName);
-	const char* ChangePartsPetName(unsigned long dwTypeID,
-		const char* pPetName);
-	IFF_STRUCT::sRandomBox* GetRandomBoxInfo(unsigned long boxTypeId,
-		unsigned long typeId, unsigned long itemIndex);
-	bool GetEnumRandomBoxStuff(unsigned long boxTypeId,
-		std::vector<IFF_STRUCT::sRandomBox>& out);
-	bool GetEnumRandomBoxItem(unsigned long boxTypeId,
-		std::vector<std::pair<unsigned long, IFF_STRUCT::sRandomBox> >& out);
-	bool GetEnumRandomBoxCheckItem(unsigned long boxTypeId,
-		unsigned long typeId, unsigned long itemIndex,
-		std::vector<IFF_STRUCT::sRandomBox>& out);
-	bool IsNonVisibleItem(unsigned long typeId);
-	bool IsSubScriptionCoupon(unsigned long typeId);
+private:
+	// The constructor builds every container below in this order (map
+	// key/value types from its _Buynode calls).
+	std::map<unsigned int, IFF_STRUCT::sMatch> m_matchMap;       // 0x9C
+	std::map<unsigned int, IFF_STRUCT::sTitle> m_titleMap;       // 0xA8
+	std::map<unsigned int, IFF_STRUCT::sEnchant> m_enchantMap;   // 0xB4 (MakeEnchantMap)
+	std::map<unsigned int, IFF_STRUCT::sDesc> m_descMap;         // 0xC0 (MakeDescMap)
+	std::map<unsigned int, IFF_STRUCT::sSkin> m_skinMap;         // 0xCC
+	std::map<unsigned int, IFF_STRUCT::sHairStyle> m_hairStyleMap; // 0xD8
+	std::map<unsigned int, IFF_STRUCT::sChildItem> m_childItemMap; // 0xE4
+
+public:
+	std::map<unsigned int, IFF_STRUCT::sMascot> m_mascotMap;     // 0xF0 (MakeMascotMap; CShopMain::Build_Mascot)
+
+private:
+	std::map<unsigned int, IFF_STRUCT::sAuxPart> m_auxPartMap;   // 0xFC
+	std::map<unsigned int, IFF_STRUCT::sQuestDrop> m_questDropMap; // 0x108 (MakeQuestDropMap)
+	std::map<unsigned int, IFF_STRUCT::sQuest> m_questMap;       // 0x114 (MakeQuestMap)
+	std::map<unsigned int, IFF_STRUCT::sFurniture> m_furnitureMap; // 0x120
+
+public:
+	std::map<unsigned int, IFF_STRUCT::sCard> m_cardMap;         // 0x12C (CSharedDoc+0x314; FrSPCardBuffDlg::OnInit: m_cardMap)
+
+private:
+	std::map<unsigned int, IFF_STRUCT::sOfflineShop> m_offlineShopMap; // 0x138
+	std::multimap<unsigned int, IFF_STRUCT::sRandomRecycle> m_randomRecycleMap; // 0x144
+	std::list<IFF_STRUCT::sCadieMagicBox> m_cadieMagicBoxList;   // 0x150
+	std::list<IFF_STRUCT::sFurnitureAbility> m_furnitureAbilityList; // 0x15C (MakeFurnitureAbilityList)
+	std::list<IFF_STRUCT::sTikiPointTable> m_tikiPointTableList; // 0x168
+	std::list<IFF_STRUCT::sTikiSpecialRecipe> m_tikiSpecialRecipeList; // 0x174
+	std::map<unsigned int, _private::sRandomBox> m_randomBoxMap; // 0x180 (findRandomBox)
+	std::map<unsigned int, IFF_STRUCT::sNonVisibleItem> m_nonVisibleItemMap; // 0x18C (IsNonVisibleItem)
+	std::map<unsigned int, IFF_STRUCT::sSubscriptionItem> m_subscriptionItemMap; // 0x198 (IsSubScriptionCoupon)
+	std::map<unsigned int, IFF_STRUCT::S5::sCutinInformation> m_cutinInformationMap; // 0x1A4
+	std::map<unsigned int, IFF_STRUCT::sSpecialPrizeItem> m_specialPrizeItemMap[5]; // 0x1B0 (FindSPItem, by eSPAVILITYTYPE)
+	std::map<unsigned long, sItemBuffHelper> m_itemBuffMap;      // 0x1EC
 };
+
+CHECK_SIZE(CItemManager::sItemBuffHelper, 0x1C);
+CHECK_FIELD(CItemManager::sItemBuffHelper, m_ability, 0x0);
+CHECK_FIELD(CItemManager::sItemBuffHelper, m_value0, 0x4);
+CHECK_FIELD(CItemManager::sItemBuffHelper, m_value1, 0x8);
+CHECK_FIELD(CItemManager::sItemBuffHelper, m_value2, 0xC);
+CHECK_FIELD(CItemManager::sItemBuffHelper, m_compatible, 0x10);
+// The constructor's last member is m_itemBuffMap (0x1EC + 0xC); trailing
+// members it leaves uninitialised are not excluded, so no CHECK_SIZE yet.
+BEGIN_LAYOUT_CHECK(CItemManager)
+	CHECK_FIELD(CItemManager, m_cs, 0x4);
+	CHECK_FIELD(CItemManager, m_loaded, 0x20);
+	CHECK_FIELD(CItemManager, m_charMap, 0x24);
+	CHECK_FIELD(CItemManager, m_partMap, 0x30);
+	CHECK_FIELD(CItemManager, m_clubMap, 0x3C);
+	CHECK_FIELD(CItemManager, m_clubSetMap, 0x48);
+	CHECK_FIELD(CItemManager, m_ballMap, 0x54);
+	CHECK_FIELD(CItemManager, m_itemMap, 0x60);
+	CHECK_FIELD(CItemManager, m_caddieMap, 0x6C);
+	CHECK_FIELD(CItemManager, m_cadItemMap, 0x78);
+	CHECK_FIELD(CItemManager, m_setItemMap, 0x84);
+	CHECK_FIELD(CItemManager, m_courseMap, 0x90);
+	CHECK_FIELD(CItemManager, m_matchMap, 0x9C);
+	CHECK_FIELD(CItemManager, m_titleMap, 0xA8);
+	CHECK_FIELD(CItemManager, m_enchantMap, 0xB4);
+	CHECK_FIELD(CItemManager, m_descMap, 0xC0);
+	CHECK_FIELD(CItemManager, m_skinMap, 0xCC);
+	CHECK_FIELD(CItemManager, m_hairStyleMap, 0xD8);
+	CHECK_FIELD(CItemManager, m_childItemMap, 0xE4);
+	CHECK_FIELD(CItemManager, m_mascotMap, 0xF0);
+	CHECK_FIELD(CItemManager, m_auxPartMap, 0xFC);
+	CHECK_FIELD(CItemManager, m_questDropMap, 0x108);
+	CHECK_FIELD(CItemManager, m_questMap, 0x114);
+	CHECK_FIELD(CItemManager, m_furnitureMap, 0x120);
+	CHECK_FIELD(CItemManager, m_cardMap, 0x12C);
+	CHECK_FIELD(CItemManager, m_offlineShopMap, 0x138);
+	CHECK_FIELD(CItemManager, m_randomRecycleMap, 0x144);
+	CHECK_FIELD(CItemManager, m_cadieMagicBoxList, 0x150);
+	CHECK_FIELD(CItemManager, m_furnitureAbilityList, 0x15C);
+	CHECK_FIELD(CItemManager, m_tikiPointTableList, 0x168);
+	CHECK_FIELD(CItemManager, m_tikiSpecialRecipeList, 0x174);
+	CHECK_FIELD(CItemManager, m_randomBoxMap, 0x180);
+	CHECK_FIELD(CItemManager, m_nonVisibleItemMap, 0x18C);
+	CHECK_FIELD(CItemManager, m_subscriptionItemMap, 0x198);
+	CHECK_FIELD(CItemManager, m_cutinInformationMap, 0x1A4);
+	CHECK_FIELD(CItemManager, m_specialPrizeItemMap, 0x1B0);
+	CHECK_FIELD(CItemManager, m_itemBuffMap, 0x1EC);
+END_LAYOUT_CHECK
+
+namespace S5 {
+bool ISCutinItem(unsigned long typeId);
+}
+
+#endif // PG_SHARED_ITEMMANAGER_H

@@ -1,30 +1,31 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\projectg\rtti.h
+#ifndef PG_CLIENT_PROJECTG_RTTI_H
+#define PG_CLIENT_PROJECTG_RTTI_H
 
-class WRTTI
-{
+#include "..\..\defines.h"
+
+// The game's own run-time type information: every polymorphic class keeps a
+// `static const WRTTI m_RTTI` naming itself and its base's m_RTTI, and returns
+// it from `virtual const WRTTI* GetRTTI(void) const`. Layout from the PDB.
+class WRTTI {
+	LAYOUT_CHECK_FRIEND;
 public:
-	WRTTI(const char* name, const WRTTI* baseRTTI);
-	const char* GetName() const { return m_pName; }
-	const WRTTI* GetBaseRTTI() const { return m_pBaseRTTI; }
+	WRTTI(const char* pName, const WRTTI* pBaseRTTI);
+
+	// rtti.h:18
+	const char* GetName(void) const { return m_pName; }
+	// rtti.h:19
+	const WRTTI* GetBaseRTTI(void) const { return m_pBaseRTTI; }
 
 protected:
-	const char* m_pName;
-	const WRTTI* m_pBaseRTTI;
+	const char* m_pName;        // 0x0
+	const WRTTI* m_pBaseRTTI;   // 0x4
 };
 
-static __declspec(thread) void* __rtti_obj;
+CHECK_SIZE(WRTTI, 0x8);
+BEGIN_LAYOUT_CHECK(WRTTI)
+	CHECK_FIELD(WRTTI, m_pName, 0x0);
+	CHECK_FIELD(WRTTI, m_pBaseRTTI, 0x4);
+END_LAYOUT_CHECK
 
-#define DYNAMIC_CAST(type, obj) \
-	((__rtti_obj = (void*)(obj)) \
-			? (type*)((IObject*)__rtti_obj)->DynamicCast(&type::m_RTTI) \
-			: NULL)
-
-#define IS_KINDOF(type, obj) \
-	((__rtti_obj = (void*)(obj)) \
-			? ((IObject*)__rtti_obj)->IsKindOf(&type::m_RTTI) \
-			: false)
-
-#define IS_EXACTKINDOF(type, obj) \
-	((__rtti_obj = (void*)(obj)) \
-			? ((IObject*)__rtti_obj)->IsExactKindOf(&type::m_RTTI) \
-			: false)
+#endif // PG_CLIENT_PROJECTG_RTTI_H

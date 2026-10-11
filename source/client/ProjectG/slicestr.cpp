@@ -1,12 +1,15 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\slicestr.cpp
 #include "slicestr.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 
+// Characters ending a value besides white space (0xa9e4d4).
 static char s_delimiter[] = "*";
 
+// slicestr.cpp:17
 bool WSliceStr::Get(const char* key, const char* format, ...)
 {
 	if (m_str == NULL)
@@ -20,16 +23,13 @@ bool WSliceStr::Get(const char* key, const char* format, ...)
 
 	p = strstr(m_str, key);
 
-	if (p != NULL)
-	{
+	if (p != NULL) {
 		p += strlen(key);
 
 		va_start(ap, format);
 
-		while (*format)
-		{
-			if (*format++ == '%')
-			{
+		while (*format) {
+			if (*format++ == '%') {
 				while (*p == ' ' || *p == '\t')
 					p++;
 
@@ -38,8 +38,7 @@ bool WSliceStr::Get(const char* key, const char* format, ...)
 						break;
 				buf[i] = '\0';
 
-				switch (*format++)
-				{
+				switch (*format++) {
 				case 'f':
 				case 'F':
 				case 'g':

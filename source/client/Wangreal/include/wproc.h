@@ -1,107 +1,81 @@
-#pragma once
+// Original: d:\build\custom\temp\code\client\wangreal\include\wproc.h
+#ifndef PG_CLIENT_WANGREAL_INCLUDE_WPROC_H
+#define PG_CLIENT_WANGREAL_INCLUDE_WPROC_H
+
 #include <windows.h>
+
+#include "..\..\defines.h"
 
 class WProc;
 
-class WProcManager
-{
+// Dispatches the window messages to up to 16 registered procedures (PDB
+// layout, size 0x84).
+class WProcManager {
+	LAYOUT_CHECK_FRIEND;
 public:
-	WProcManager() { procNum = 0; }
-	struct w_handle
-	{
-		HWND hWnd;
-		WProc* proc;
+	struct w_handle {
+		HWND__* hwnd;  // 0x0
+		WProc* proc;   // 0x4
 	};
 
-#ifdef WANGREAL_DEVICE
+	// wproc.h:23
+	WProcManager() { procNum = 0; }
+
+	void AddProc(WProc* proc, HWND__* hwnd);
 	void DelProc(WProc* proc);
-#else
-	void DelProc(WProc* proc)
-	{
-		int n = procNum;
-		int i;
-		for (i = 0; i < procNum; ++i)
-		{
-			if (procList[i].proc == proc)
-				break;
-		}
-		procList[i].hWnd = procList[n - 1].hWnd;
-		procList[i].proc = procList[n - 1].proc;
-		--procNum;
-	}
-#endif
-
-	void AddProc(WProc* proc, HWND hWnd);
-
-	long __stdcall WinProc(HWND hwnd, UINT message, UINT wParam, long lParam);
+	long __stdcall WinProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam);
 
 private:
-	w_handle procList[16];
-	int procNum;
+	w_handle procList[16];  // 0x0
+	int procNum;            // 0x80
 };
 
-class WProc
-{
+// A window-message procedure registered with a WProcManager (PDB layout,
+// size 0x8).
+class WProc {
+	LAYOUT_CHECK_FRIEND;
 public:
-	WProc() { this->include = NULL; }
+	virtual ~WProc() {}
+	virtual int WinProc(unsigned int msg, unsigned long wParam, unsigned long lParam) = 0;
 
-#ifdef WANGREAL_DEVICE
-	virtual ~WProc()
-	{
-		if (this->include)
-		{
-			this->include->DelProc(this);
-		}
-	}
-
-#else
-	virtual ~WProc();
-#endif
-
-	virtual int WinProc(UINT msg, unsigned long wParam,
-		unsigned long lParam) = 0;
-
-	void SetProc(WProcManager* procMan, HWND hWnd)
-	{
-		this->include = procMan;
-		procMan->AddProc(this, hWnd);
+	// wproc.h:44
+	void SetProc(WProcManager* manager, HWND__* hwnd) {
+		include = manager;
+		manager->AddProc(this, hwnd);
 	}
 
 private:
-	WProcManager* include;
+	WProcManager* include;  // 0x4
 };
 
-#ifdef WANGREAL_DEVICE
-inline void WProcManager::DelProc(WProc* proc)
-{
-	int n = procNum;
-	int i;
-	for (i = 0; i < procNum; ++i)
-	{
-		if (procList[i].proc == proc)
-			break;
-	}
-	procList[i].hWnd = procList[n - 1].hWnd;
-	procList[i].proc = procList[n - 1].proc;
-	--procNum;
+// wproc.h:64
+inline void WProcManager::AddProc(WProc* proc, HWND__* hwnd) {
+	procList[procNum].hwnd = hwnd;
+	procList[procNum].proc = proc;
+
+	procNum++;
 }
 
-#endif
-
-inline void WProcManager::AddProc(WProc* proc, HWND hWnd)
-{
-	this->procList[this->procNum].hWnd = hWnd;
-	this->procList[this->procNum].proc = proc;
-	++this->procNum;
-}
-
-inline long __stdcall WProcManager::WinProc(HWND hwnd, UINT message,
-	UINT wParam, long lParam)
-{
+// wproc.h:74
+inline long __stdcall WProcManager::WinProc(HWND__* hwnd, unsigned int msg, unsigned int wParam, long lParam) {
 	int result = 0;
-	for (int i = 0; i < procNum; ++i)
-		result |= procList[i].proc->WinProc(message, wParam, lParam);
-	if (result == 0 || result == -1)
-		return DefWindowProc(hwnd, message, wParam, lParam);
-	return 0;
+
+	for (int i = 0; i < procNum; i++) {
+		result |= procList[i].proc->WinProc(msg, wParam, lParam);
+	}
+
+	return (result == 0 || result == -1) ? DefWindowProcA(hwnd, msg, wParam, lParam) : 0;
 }
+
+CHECK_SIZE(WProcManager, 0x84);
+BEGIN_LAYOUT_CHECK(WProcManager)
+	CHECK_FIELD(WProcManager, procList, 0x0);
+	CHECK_FIELD(WProcManager, procNum, 0x80);
+END_LAYOUT_CHECK
+
+CHECK_SIZE(WProc, 0x8);
+BEGIN_LAYOUT_CHECK(WProc)
+	CHECK_FIELD(WProc, include, 0x4);
+END_LAYOUT_CHECK
+
+#endif // PG_CLIENT_WANGREAL_INCLUDE_WPROC_H

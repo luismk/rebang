@@ -1,213 +1,239 @@
-#include "minatl.h"
-#include "deleteitem.h"
-#include "fresh.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
+// Original: d:\build\custom\temp\code\client\projectg\deleteitem.cpp
+#include <stdlib.h>
+#include "DeleteItem.h"
+#include "ObjectFactory.h"
 #include "frarea.h"
+#include "frbutton.h"
 #include "fredit.h"
-#include "actor.h"
+#include "commonutil.h"
+#include "fresh.h"
+#include "Packet.h"
+#include "TaskManager.h"
+#include "SharedDoc.h"
+#include "../shared/ItemManager.h"
+#include "../shared/classdefine.h"
+#include "UccManager.h"
+#include "bitmap.h"
+#include "frgraphicinterface.h"
+#include "frwndmanager.h"
 
-extern Fresh* g_pFresh;
+// deleteitem.cpp:17 (run-time type and factory registration of FrDeleteItemDlg)
+const WRTTI FrDeleteItemDlg::m_RTTI("FrDeleteItemDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrDeleteItemDlg, FrForm)
-
-BEGIN_FRESH_MSGMAP(FrDeleteItemDlg, FrForm)
-
-ON_FRESH_VI("item", FRCMD_INIT, FrDeleteItemDlg::OnItemInit)
-ON_FRESH_VI("item", FRCMD_OWNERDRAW, FrDeleteItemDlg::OnItemOwnerDraw)
-ON_FRESH_VI("desc", FRCMD_INIT, FrDeleteItemDlg::OnDescInit)
-ON_FRESH_VI("warn", FRCMD_INIT, FrDeleteItemDlg::OnWarnInit)
-ON_FRESH_VI("item_num", FRCMD_INIT, FrDeleteItemDlg::OnItemNumInit)
-ON_FRESH_VI("num", FRCMD_INIT, FrDeleteItemDlg::OnNumInit)
-ON_FRESH_BI("num", FRCMD_ENTERKEY, FrDeleteItemDlg::OnNumEnterKey)
-ON_FRESH_VI("num_prev", FRCMD_INIT, FrDeleteItemDlg::OnNumPrevInit)
-ON_FRESH_VV("num_prev", FRCMD_LBUTTONUP, FrDeleteItemDlg::OnNumPrevBtnUp)
-ON_FRESH_VI("num_next", FRCMD_INIT, FrDeleteItemDlg::OnNumNextInit)
-ON_FRESH_VV("num_next", FRCMD_LBUTTONUP, FrDeleteItemDlg::OnNumNextBtnUp)
-ON_FRESH_VV("check", FRCMD_LBUTTONUP, FrDeleteItemDlg::OnCheckBtnUp)
-
-END_FRESH_MSGMAP()
-
-FrDeleteItemDlg::FrDeleteItemDlg()
-{
-	m_typeId = 0;
+IObject* FrDeleteItemDlgMakeInstance(void) {
+	return new FrDeleteItemDlg;
 }
 
-void FrDeleteItemDlg::SetDelItem(unsigned long typeId, unsigned long count)
-{
-	m_typeId = typeId;
-	m_count = count;
+struct __sFrDeleteItemDlg {
+	__sFrDeleteItemDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrDeleteItemDlgMakeInstance, "FrDeleteItemDlg");
+	}
+};
+static __sFrDeleteItemDlg s_registerFrDeleteItemDlg;
 
-	if (m_pItemNum)
-		m_pItemNum->SetLine(1, MakeStr("%d", count), 0, false, 0);
-
-	IFF_STRUCT::sDesc* pDesc = ItemManager()->FindDesc(m_typeId);
-
-	if (m_pDesc)
-		m_pDesc->AddText(pDesc ? pDesc->Desc : "", false, true);
+// deleteitem.cpp:19
+const sFRESH_MSGMAP* FrDeleteItemDlg::GetMessageMap(void) const {
+	return &FrDeleteItemDlg::_MsgMap;
 }
 
-void FrDeleteItemDlg::OnItemInit(int param)
-{
-	m_pItem = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+sFRESH_MSGMAP FrDeleteItemDlg::_MsgMap = { &FrForm::_MsgMap, &FrDeleteItemDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrDeleteItemDlg::_MsgEntries[] = {
+	// deleteitem.cpp:21
+	{ "item", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnItemInit },
+	// deleteitem.cpp:22
+	{ "item", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnItemOwnerDraw },
+	// deleteitem.cpp:23
+	{ "desc", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnDescInit },
+	// deleteitem.cpp:24
+	{ "warn", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnWarnInit },
+	// deleteitem.cpp:25
+	{ "item_num", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnItemNumInit },
+	// deleteitem.cpp:26
+	{ "num", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnNumInit },
+	// deleteitem.cpp:27
+	{ "num", FRCMD_ENTERKEY, FrFuncBI, (FRESH_PMSG)(FRESH_PMSGBI)&FrDeleteItemDlg::OnNumEnterKey },
+	// deleteitem.cpp:28
+	{ "num_prev", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnNumPrevInit },
+	// deleteitem.cpp:29
+	{ "num_prev", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrDeleteItemDlg::OnNumPrevBtnUp },
+	// deleteitem.cpp:30
+	{ "num_next", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrDeleteItemDlg::OnNumNextInit },
+	// deleteitem.cpp:31
+	{ "num_next", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrDeleteItemDlg::OnNumNextBtnUp },
+	// deleteitem.cpp:32
+	{ "check", FRCMD_LBUTTONUP, FrFuncVV, (FRESH_PMSG)&FrDeleteItemDlg::OnCheckBtnUp },
+
+	// deleteitem.cpp:34
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// deleteitem.cpp:37
+FrDeleteItemDlg::FrDeleteItemDlg(void) {
+	m_delItemTypeId = 0;
 }
 
-void FrDeleteItemDlg::OnItemOwnerDraw(int param)
-{
-	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (!pGDI)
-		return;
+// deleteitem.cpp:42
+void FrDeleteItemDlg::SetDelItem(unsigned long typeId, unsigned long count) {
+	m_delItemTypeId = typeId;
+	m_delItemCount = count;
 
-	WRect rect = m_pItem->GetRect();
+	if (m_pItemNum) {
+		m_pItemNum->SetLine(1, MakeStr("%d", m_delItemCount), 0, false, 0);
+	}
 
-	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(m_typeId);
-	if (!pItem)
-		return;
+	IFF_STRUCT::sDesc* pDesc = ItemManager()->FindDesc(m_delItemTypeId);
 
-	const Bitmap* pBmp =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", pItem->Icon);
-
-	if (!pBmp)
-		pBmp = g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pItem->Icon);
-
-	if (pBmp)
-		pGDI->DrawTexture(pBmp,
-			WRect(rect.x, rect.y, (float)pBmp->Width(), (float)pBmp->Height()),
-			0xffffffff, 0);
-
-	pGDI->Print(WPoint(rect.x + 100.0f, rect.y), 2, "\xc0\xcc\xb8\xa7:");
-	pGDI->Print(WPoint(rect.x + 110.0f, rect.y), 0, pItem->Name);
-
-	pGDI->Print(WPoint(rect.x + 100.0f, rect.y + 30.0f), 2,
-		"\xb7\xb9\xba\xa7:");
-
-	pBmp = g_pFresh->GetManager()->GetBitmap("LEVELS",
-		MakeStr("level_%03d", pItem->Level + 1));
-	if (pBmp)
-		pGDI->DrawTexture(pBmp,
-			WRect(rect.x + 110.0f, rect.y + 27.0f, (float)pBmp->Width(),
-				(float)pBmp->Height()),
-			0xffffffff, 0);
-
-	pGDI->Print(WPoint(rect.x + 170.0f, rect.y + 30.0f), 0, "\xc0\xcc\xbb\xf3");
-}
-
-void FrDeleteItemDlg::OnDescInit(int param)
-{
-	m_pDesc = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-}
-
-void FrDeleteItemDlg::OnWarnInit(int param)
-{
-	FrEdit* pWarn = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (pWarn)
-	{
-		pWarn->AddText(
-			"\xb3\xaa\xbf\xa1\xb0\xd4 \xc7\xca\xbf\xe4\xbe\xf8\xb4\xc2 \xbe\xc6\xc0\xcc\xc5\xdb\xb5\xe9\xc0\xbb \xbb\xe8\xc1\xa6\xc7\xcf\xbf\xa9 \xc3\xa2\xb0\xed\xb8\xa6 \xc1\xa4\xb8\xae\xc7\xd2 \xbc\xf6 \xc0\xd6\xbd\xc0\xb4\xcf\xb4\xd9.\n"
-			"\xc7\xca\xbf\xe4\xbe\xf8\xb4\xc2 \xbe\xc6\xc0\xcc\xc5\xdb\xc0\xbb \xbb\xe8\xc1\xa6\xc7\xcf\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-			false, true);
+	if (m_pDesc) {
+		m_pDesc->AddText(pDesc ? pDesc->m_text : "", false, true);
 	}
 }
 
-void FrDeleteItemDlg::OnItemNumInit(int param)
-{
-	m_pItemNum = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// deleteitem.cpp:56
+void FrDeleteItemDlg::OnItemInit(intptr_t param) {
+	m_pItem = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrDeleteItemDlg::OnNumInit(int param)
-{
-	m_pNum = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pNum)
-	{
+// deleteitem.cpp:61
+void FrDeleteItemDlg::OnItemOwnerDraw(int param) {
+	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
+	if (pGDI == 0) {
+		return;
+	}
+
+	WRect rect = m_pItem->GetRect();
+
+	IFF_ITEM_COMMON* pData = ItemManager()->FindCommonItem(m_delItemTypeId);
+	if (pData == 0) {
+		return;
+	}
+
+	const Bitmap* pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pData->m_icon);
+
+	if (pBitmap == 0) {
+		pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS_FASHION", pData->m_icon);
+	}
+	if (pBitmap) {
+		pGDI->DrawTexture(pBitmap, WRect(rect.x, rect.y, pBitmap->Width(), pBitmap->Height()), 0xFFFFFFFF, 0);
+	}
+
+	pGDI->Print(WPoint(rect.x + 100.0f, rect.y), 2, "\xC0\xCC\xB8\xA7:");
+	pGDI->Print(WPoint(rect.x + 110.0f, rect.y), 0, pData->m_name);
+
+	pGDI->Print(WPoint(rect.x + 100.0f, rect.y + 30.0f), 2, "\xB7\xB9\xBA\xA7:");
+
+	pBitmap = g_pFresh->GetManager()->GetBitmap("LEVELS", MakeStr("level_%03d", (pData->m_level & 0x7F) + 1));
+	if (pBitmap) {
+		pGDI->DrawTexture(pBitmap, WRect(rect.x + 110.0f, rect.y + 27.0f, pBitmap->Width(), pBitmap->Height()), 0xFFFFFFFF, 0);
+	}
+
+	pGDI->Print(WPoint(rect.x + 170.0f, rect.y + 30.0f), 0, "\xC0\xCC\xBB\xF3");
+}
+
+// deleteitem.cpp:94
+void FrDeleteItemDlg::OnDescInit(intptr_t param) {
+	m_pDesc = DYNAMIC_CAST(FrEdit, param);
+}
+
+// deleteitem.cpp:101
+void FrDeleteItemDlg::OnWarnInit(intptr_t param) {
+	FrEdit* pWarn = DYNAMIC_CAST(FrEdit, param);
+	if (pWarn) {
+		// "You can tidy up your storage by deleting items you do not need.
+		// Delete the unneeded item?"
+		pWarn->AddText("\xB3\xAA\xBF\xA1\xB0\xD4 \xC7\xCA\xBF\xE4\xBE\xF8\xB4\xC2 \xBE\xC6\xC0\xCC\xC5\xDB\xB5\xE9\xC0\xBB \xBB\xE8\xC1\xA6\xC7\xCF\xBF\xA9 \xC3\xA2\xB0\xED\xB8\xA6 \xC1\xA4\xB8\xAE\xC7\xD2 \xBC\xF6 \xC0\xD6\xBD\xC0\xB4\xCF\xB4\xD9.\n\xC7\xCA\xBF\xE4\xBE\xF8\xB4\xC2 \xBE\xC6\xC0\xCC\xC5\xDB\xC0\xBB \xBB\xE8\xC1\xA6\xC7\xCF\xBD\xC3\xB0\xDA\xBD\xC0\xB4\xCF\xB1\xEE?", false, true);
+	}
+}
+
+// deleteitem.cpp:110
+void FrDeleteItemDlg::OnItemNumInit(intptr_t param) {
+	m_pItemNum = DYNAMIC_CAST(FrEdit, param);
+}
+
+// deleteitem.cpp:115
+void FrDeleteItemDlg::OnNumInit(intptr_t param) {
+	m_pNum = DYNAMIC_CAST(FrEdit, param);
+	if (m_pNum) {
 		m_pNum->SetLine(1, "1", 0, false, 0);
 	}
 }
 
-bool FrDeleteItemDlg::OnNumEnterKey(int param)
-{
+// deleteitem.cpp:124
+bool FrDeleteItemDlg::OnNumEnterKey(int param) {
 	return false;
 }
 
-void FrDeleteItemDlg::OnNumPrevInit(int param)
-{
-	m_pNumPrev = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pNumPrev)
-	{
-		m_pNumPrev->SetPushDelay(0);
+// deleteitem.cpp:129
+void FrDeleteItemDlg::OnNumPrevInit(intptr_t param) {
+	m_pNumPrev = DYNAMIC_CAST(FrButton, param);
+	if (m_pNumPrev) {
+		m_pNumPrev->SetPushDelay(0.0f);
 	}
 }
 
-void FrDeleteItemDlg::OnNumPrevBtnUp()
-{
-	if (m_pNum)
-	{
+// deleteitem.cpp:138
+void FrDeleteItemDlg::OnNumPrevBtnUp(void) {
+	if (m_pNum) {
+
 		const char* text = m_pNum->GetLine(1, false);
 		int num = atoi(text);
 
-		if (num > 1)
+		if (num > 1) {
 			m_pNum->SetLine(1, MakeStr("%d", num - 1), 0, false, 0);
+		}
 	}
 }
 
-void FrDeleteItemDlg::OnNumNextInit(int param)
-{
-	m_pNumNext = DYNAMIC_CAST(FrButton, (FrWnd*)param);
-	if (m_pNumNext)
-	{
-		m_pNumNext->SetPushDelay(0);
+// deleteitem.cpp:150
+void FrDeleteItemDlg::OnNumNextInit(intptr_t param) {
+	m_pNumNext = DYNAMIC_CAST(FrButton, param);
+	if (m_pNumNext) {
+		m_pNumNext->SetPushDelay(0.0f);
 	}
 }
 
-void FrDeleteItemDlg::OnNumNextBtnUp()
-{
-	if (m_pNum)
-	{
+// deleteitem.cpp:159
+void FrDeleteItemDlg::OnNumNextBtnUp(void) {
+	if (m_pNum) {
+
 		const char* text = m_pNum->GetLine(1, false);
 		int num = atoi(text);
 
-		if (num < 99)
+		if (num < 99) {
 			m_pNum->SetLine(1, MakeStr("%d", num + 1), 0, false, 0);
+		}
 	}
 }
 
-void FrDeleteItemDlg::OnCheckBtnUp()
-{
+// deleteitem.cpp:171
+void FrDeleteItemDlg::OnCheckBtnUp(void) {
 	int num = atoi(m_pNum->GetLine(1, false));
-	if (num <= 0)
-	{
-		AfxGetTask()->GetMainActor() << MsgObject(NULL, 0x23,
-			(int)"\xc0\xdf\xb8\xf8\xb5\xc8 \xbc\xf6\xb7\xae\xc0\xbb \xc0\xd4\xb7\xc2\xc7\xcf\xbc\xcc\xbd\xc0\xb4\xcf\xb4\xd9.",
-			0, 0, 0, 0);
+	if (num <= 0) {
+		// "You entered an invalid quantity."
+		AfxGetTask()->PassMsgToMainActor(MsgObject(0, 0x23, (intptr_t)"\xC0\xDF\xB8\xF8\xB5\xC8 \xBC\xF6\xB7\xAE\xC0\xBB \xC0\xD4\xB7\xC2\xC7\xCF\xBC\xCC\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0));
+		return;
+	}
+	if ((unsigned long)num > m_delItemCount) {
+		// "The limit was exceeded."
+		AfxGetTask()->PassMsgToMainActor(MsgObject(0, 0x23, (intptr_t)"\xC7\xD1\xB5\xB5\xB8\xA6 \xC3\xCA\xB0\xFA \xC7\xCF\xBF\xB4\xBD\xC0\xB4\xCF\xB4\xD9.", 0, 0, 0, 0));
 		return;
 	}
 
-	if (num > m_count)
-	{
-		AfxGetTask()->GetMainActor() << MsgObject(NULL, 0x23,
-			(int)"\xc7\xd1\xb5\xb5\xb8\xa6 \xc3\xca\xb0\xfa \xc7\xcf\xbf\xb4\xbd\xc0\xb4\xcf\xb4\xd9.",
-			0, 0, 0, 0);
-		return;
-	}
-
-	FrForm* pForm =
-		CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_okcancel");
-	pForm->SetMessage(
-		"\\c0xffff0000\\c\xc1\xa4\xb8\xbb \xbb\xe8\xc1\xa6\xc7\xcf\xbd\xc3\xb0\xda\xbd\xc0\xb4\xcf\xb1\xee?",
-		false);
-	pForm->Open((FRESH_PFN_RESULT)&FrDeleteItemDlg::OnConfirmResult, 3);
+	FrForm* pForm = CreateForm<FrForm>(g_pFresh->GetManager(), this, "notify_okcancel", 0);
+	// "Do you really want to delete it?"
+	pForm->SetMessage("\\c0xffff0000\\c\xC1\xA4\xB8\xBB \xBB\xE8\xC1\xA6\xC7\xCF\xBD\xC3\xB0\xDA\xBD\xC0\xB4\xCF\xB1\xEE?", false);
+	pForm->Open((FRESH_RESULT_CALLBACK)&FrDeleteItemDlg::OnConfirmResult, 3);
 }
 
-bool FrDeleteItemDlg::OnConfirmResult(int result, FrForm* form)
-{
-	if (result == FrOK)
-	{
-		WSendPacket packet((enumClientPacket)100);
-		packet.Encode4(m_typeId);
+// deleteitem.cpp:197
+bool FrDeleteItemDlg::OnConfirmResult(int result, FrForm* pForm) {
+	if (result == 1) {
+		WSendPacket packet((enumClientPacket)0x64);
+		packet.Encode4(m_delItemTypeId);
 		packet.Encode4(atoi(m_pNum->GetLine(1, false)));
-		packet.Send(TO_GAME);
+		packet.Send(SEND_TO_DEFAULT);
 
-		AfxGetTask()->GetActor("RealMyRoom")
-			<< MsgObject(NULL, 1, 0, 0, 0, 0, 0);
+		AfxGetTask()->PassMsgToActor("RealMyRoom", MsgObject(0, 1, 0, 0, 0, 0, 0));
 		Close(FrOK, true);
 	}
 

@@ -1,104 +1,127 @@
-#include "minatl.h"
-#include "panggiftdlg.h"
+// Original: d:\build\custom\temp\code\client\projectg\panggiftdlg.cpp
+#include "PangGiftDlg.h"
+#include "ObjectFactory.h"
+#include "SharedDoc.h"
+#include "UccManager.h"
+#include "bitmap.h"
+#include "commonutil.h"
 #include "frarea.h"
 #include "fredit.h"
-#include "frwndmanager.h"
-#include "frgraphicinterface.h"
 #include "fresh.h"
-#include "commonutil.h"
+#include "frgraphicinterface.h"
+#include "frwndmanager.h"
 
-extern Fresh* g_pFresh;
+// panggiftdlg.cpp:17 (run-time type and factory registration of FrPangGiftDlg)
+const WRTTI FrPangGiftDlg::m_RTTI("FrPangGiftDlg", &FrForm::m_RTTI);
 
-IMPLEMENT_OBJECT(FrPangGiftDlg, FrForm)
-BEGIN_FRESH_MSGMAP(FrPangGiftDlg, FrForm)
-
-ON_FRESH_VI("my_pang", FRCMD_INIT, FrPangGiftDlg::OnMyPangInit)
-ON_FRESH_VI("send_pang", FRCMD_INIT, FrPangGiftDlg::OnSendPangInit)
-ON_FRESH_VI("total_pang", FRCMD_INIT, FrPangGiftDlg::OnTotalPangInit)
-ON_FRESH_VI("item", FRCMD_INIT, FrPangGiftDlg::OnItemInit)
-ON_FRESH_VI("item", FRCMD_OWNERDRAW, FrPangGiftDlg::OnItemOwnerDraw)
-
-END_FRESH_MSGMAP()
-
-FrPangGiftDlg::FrPangGiftDlg()
-{
-	m_pMyPang = NULL;
-	m_pSendPang = NULL;
-	m_pTotalPang = NULL;
-
-	m_pItemInfo = NULL;
+IObject* FrPangGiftDlgMakeInstance(void) {
+	return new FrPangGiftDlg;
 }
 
-void FrPangGiftDlg::OnMyPangInit(int param)
-{
-	m_pMyPang = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
-	if (m_pMyPang)
-		m_pMyPang->SetLine(1,
-			MakeStr("%I64d\xc6\xce", Doc()->m_myInfo.stat.i64Pang), 0, false,
-			0);
+struct __sFrPangGiftDlg {
+	__sFrPangGiftDlg(void) {
+		ObjectFactory().AddObjectFunctor(FrPangGiftDlgMakeInstance, "FrPangGiftDlg");
+	}
+};
+static __sFrPangGiftDlg s_registerFrPangGiftDlg;
+
+// panggiftdlg.cpp:18
+const sFRESH_MSGMAP* FrPangGiftDlg::GetMessageMap(void) const {
+	return &FrPangGiftDlg::_MsgMap;
 }
 
-void FrPangGiftDlg::OnSendPangInit(int param)
-{
-	m_pSendPang = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+sFRESH_MSGMAP FrPangGiftDlg::_MsgMap = { &FrForm::_MsgMap, &FrPangGiftDlg::_MsgEntries[0] };
+
+sFRESH_ENTRY FrPangGiftDlg::_MsgEntries[] = {
+	// panggiftdlg.cpp:20
+	{ "my_pang", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrPangGiftDlg::OnMyPangInit },
+	// panggiftdlg.cpp:21
+	{ "send_pang", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrPangGiftDlg::OnSendPangInit },
+	// panggiftdlg.cpp:22
+	{ "total_pang", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrPangGiftDlg::OnTotalPangInit },
+	// panggiftdlg.cpp:23
+	{ "item", FRCMD_INIT, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrPangGiftDlg::OnItemInit },
+	// panggiftdlg.cpp:24
+	{ "item", FRCMD_OWNERDRAW, FrFuncVI, (FRESH_PMSG)(FRESH_PMSGVI)&FrPangGiftDlg::OnItemOwnerDraw },
+
+	// panggiftdlg.cpp:26
+	{ 0, FRCMD_NONE, FrFuncNone, (FRESH_PMSG)0 }
+};
+
+// panggiftdlg.cpp:30
+FrPangGiftDlg::FrPangGiftDlg(void) {
+	m_pMyPangEdit = 0;
+	m_pSendPangEdit = 0;
+	m_pTotalPangEdit = 0;
+
+	m_itemInfo = 0;
 }
 
-void FrPangGiftDlg::OnTotalPangInit(int param)
-{
-	m_pTotalPang = DYNAMIC_CAST(FrEdit, (FrWnd*)param);
+// panggiftdlg.cpp:39
+void FrPangGiftDlg::OnMyPangInit(intptr_t param) {
+	m_pMyPangEdit = DYNAMIC_CAST(FrEdit, param);
+	if (m_pMyPangEdit)
+		m_pMyPangEdit->SetLine(1, MakeStr("%I64d\xC6\xCE", WSingleton<CSharedDoc>::Instance()->m_myPang), 0, false, 0);
 }
 
-void FrPangGiftDlg::SetItemInfo(sGiftInfo* info)
-{
-	if (m_pSendPang)
-	{
-		m_pSendPang->SetLine(1, MakeStr("%d\xc6\xce", info->Arg0), 0, false, 0);
+// panggiftdlg.cpp:47
+void FrPangGiftDlg::OnSendPangInit(intptr_t param) {
+	m_pSendPangEdit = DYNAMIC_CAST(FrEdit, param);
+}
+
+// panggiftdlg.cpp:53
+void FrPangGiftDlg::OnTotalPangInit(intptr_t param) {
+	m_pTotalPangEdit = DYNAMIC_CAST(FrEdit, param);
+}
+
+// panggiftdlg.cpp:58
+void FrPangGiftDlg::SetItemInfo(sGiftInfo* pInfo) {
+	if (m_pSendPangEdit) {
+		// panggiftdlg.cpp:61
+		m_pSendPangEdit->SetLine(1, MakeStr("%d\xC6\xCE", pInfo->m_pang), 0, false, 0);
 	}
 
-	if (m_pTotalPang)
-	{
-		m_pTotalPang->SetLine(1,
-			MakeStr("%I64d\xc6\xce", Doc()->m_myInfo.stat.i64Pang + info->Arg0),
-			0, false, 0);
+	if (m_pTotalPangEdit) {
+		// panggiftdlg.cpp:66
+		m_pTotalPangEdit->SetLine(1, MakeStr("%I64d\xC6\xCE", WSingleton<CSharedDoc>::Instance()->m_myPang + pInfo->m_pang), 0, false, 0);
 	}
 
-	m_pItemInfo = info;
+	m_itemInfo = pInfo;
 }
 
-void FrPangGiftDlg::OnItemInit(int param)
-{
-	m_pItem = DYNAMIC_CAST(FrArea, (FrWnd*)param);
+// panggiftdlg.cpp:73
+void FrPangGiftDlg::OnItemInit(intptr_t param) {
+	m_pItemArea = DYNAMIC_CAST(FrArea, param);
 }
 
-void FrPangGiftDlg::OnItemOwnerDraw(int param)
-{
+// panggiftdlg.cpp:78
+void FrPangGiftDlg::OnItemOwnerDraw(int param) {
 	FrGraphicInterface* pGDI = g_pFresh->GetManager()->GetGDI();
-	if (pGDI == NULL)
-		return;
+	if (pGDI) {
 
-	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(0x1A000010);
-	if (pItem == NULL)
-		return;
 
-	const Bitmap* pBitmap =
-		g_pFresh->GetManager()->GetBitmap("ITEMS", pItem->Icon);
-	if (pBitmap)
-	{
-		WRect rect(m_pItem->GetRect().x + 20.0f, m_pItem->GetRect().y + 30.0f,
-			(float)pBitmap->Width(), (float)pBitmap->Height());
-		pGDI->DrawTexture(pBitmap, rect, 0xFFFFFFFF, 0);
+		IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(0x1A000010);
+		if (pItem) {
+
+
+			const Bitmap* pBitmap = g_pFresh->GetManager()->GetBitmap("ITEMS", pItem->m_icon);
+			if (pBitmap) {
+
+				WRect rect(m_pItemArea->GetRect().x + 20.0f, m_pItemArea->GetRect().y + 30.0f, pBitmap->Width(), pBitmap->Height());
+				pGDI->DrawTexture(pBitmap, rect, 0xFFFFFFFF, 0);
+			}
+
+
+
+			pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
+			pGDI->SetTextStyle(1);
+			pGDI->Print(WPoint(m_pItemArea->GetRect().x + 175.0f, m_pItemArea->GetRect().y + 15.0f), 2, "%s", pItem->m_name);
+			pGDI->SetTextStyle(0);
+
+
+			pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
+			pGDI->SetTextStyle(0);
+			pGDI->Print(WPoint(m_pItemArea->GetRect().x + 170.0f, m_pItemArea->GetRect().y + 40.0f), 2, "%d\xC6\xCE", m_itemInfo->m_pang);
+		}
 	}
-
-	pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
-	pGDI->SetTextStyle(1);
-	pGDI->Print(WPoint(m_pItem->GetRect().x, m_pItem->GetRect().y) +
-			WPoint(175.0f, 15.0f),
-		2, "%s", pItem->Name);
-	pGDI->SetTextStyle(0);
-
-	pGDI->SetTextColor(0xFF000000, 0xFFFFFFFF);
-	pGDI->SetTextStyle(0);
-	pGDI->Print(WPoint(m_pItem->GetRect().x, m_pItem->GetRect().y) +
-			WPoint(170.0f, 40.0f),
-		2, "%d\xc6\xce", m_pItemInfo->Arg0);
 }

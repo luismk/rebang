@@ -1,92 +1,95 @@
-#include "minatl.h"
+// Original: d:\build\custom\temp\code\client\projectg\specialbox.cpp
 #include "specialbox.h"
-#include "specialboxdlg.h"
-#include "gatewayactor.h"
-#include "messagemanager.h"
+#include "SpecialBoxDlg.h"
+#include "MessageManager.h"
+#include "SharedDoc.h"
+#include "TaskManager.h"
+#include "actor.h"
+#include "commonutil.h"
 #include "fresh.h"
-extern Fresh* g_pFresh;
-using namespace _gateway;
+#include "UccManager.h"
 
-bool CSpecialBoxHandler::Initialize()
-{
-	AddFunctionType(0, FUNCTIONTYPE_VOID,
-		(void (FunctionMapper::*)())&CSpecialBoxHandler::OnReqOpenBox);
-	AddFunctionType(1, FUNCTIONTYPE_ARG,
-		(void (FunctionMapper::*)())(void (
-			CSpecialBoxHandler::*)())&CSpecialBoxHandler::OnReqWarningMsg);
+// Target actor of the "key item missing" warning.
+static const char* s_gatewayActorName = "Gateway";
 
-	return true;
-}
+namespace _gateway {
 
-bool CSpecialBoxHandler::Execute(const MsgObject& msg)
-{
-	SetFunctionType(msg.param1);
-	return Exec(this, (int)&msg);
-}
+// Type id of the special box's key item.
+static const unsigned long SPECIAL_BOX_KEY_ITEM = 0x1A00015C;
 
-bool CSpecialBoxHandler::OnSpecialBoxCloseCallback(int result, FrForm* pForm)
-{
-	m_pSpecialBoxDlg = NULL;
+// specialbox.cpp:13
+bool CSpecialBoxHandler::Initialize(void) {
+	AddFunctionType(0, FUNCTION_TYPE_VV, (FUNCTION_MAPPER_PFN)&CSpecialBoxHandler::OnReqOpenBox);
+	AddFunctionType(1, FUNCTION_TYPE_VP, (FUNCTION_MAPPER_PFN)(void (CSpecialBoxHandler::*)(void))&CSpecialBoxHandler::OnReqWarningMsg);
 
 	return true;
 }
 
-bool CSpecialBoxHandler::VerifyHaveKeyItem()
-{
-	std::list<sItemInfo>& itemList = Doc()->m_myItemList;
+// specialbox.cpp:21
+bool CSpecialBoxHandler::Execute(const MsgObject& msg) {
+	SetFunctionType(msg.m_param1);
+	// The message travels through Exec's int parameter (the original's
+	// 32-bit pointer-in-int; not portable to 64-bit).
+	return Exec(this, (intptr_t)&msg);
+}
+
+// specialbox.cpp:28
+bool CSpecialBoxHandler::OnSpecialBoxCloseCallback(int result, FrForm* pForm) {
+	m_pSpecialBoxDlg = 0;
+
+	return true;
+}
+
+// specialbox.cpp:35
+bool CSpecialBoxHandler::VerifyHaveKeyItem(void) {
+	CSharedDoc* pDoc = WSingleton<CSharedDoc>::Instance();
 	std::list<sItemInfo>::iterator it;
-	for (it = itemList.begin(); it != itemList.end(); ++it)
-	{
-		if ((*it).tid == 0x1A00015C)
-			break;
+	for (it = pDoc->m_itemInfoList.begin(); it != pDoc->m_itemInfoList.end() && (*it).m_typeId != SPECIAL_BOX_KEY_ITEM; ++it);
+	if (it != pDoc->m_itemInfoList.end()) {
+		return true;
 	}
-	return it != Doc()->m_myItemList.end() ? true : false;
+
+	return false;
 }
 
-void CSpecialBoxHandler::OnReqOpenBox()
-{
-	if (!VerifyHaveKeyItem())
-	{
-		CTaskManager::Instance()->PostMsg(NULL, s_gatewayActor[1], 630, 1,
-			0x200B3C, 0, 0);
+// specialbox.cpp:47
+void CSpecialBoxHandler::OnReqOpenBox(void) {
+	if (VerifyHaveKeyItem() == false) {
+		CTaskManager::Instance()->PostMsg(0, s_gatewayActorName, 0x276, 1, 0x200B3C, 0, 0);
 		return;
 	}
 
-	m_pSpecialBoxDlg = CreateForm<FrSpecialBoxDlg>(g_pFresh->GetManager(), this,
-		"specialBoxOpen", NULL);
+	m_pSpecialBoxDlg = CreateForm<FrSpecialBoxDlg>(g_pFresh->GetManager(), this, "specialBoxOpen", 0);
 
-	const char* msg = _systemmsg::CMessageManager::Instance()->GetMsg(
-		(_systemmsg::eMsgIdentifier)203);
+	const char* format = WSingleton<_systemmsg::CMessageManager>::Instance()->GetMsg((_systemmsg::eMsgIdentifier)0xCB);
 
-	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(0x1A00015C);
+	IFF_ITEM_COMMON* pItem = ItemManager()->FindCommonItem(SPECIAL_BOX_KEY_ITEM);
 
-	m_pSpecialBoxDlg->SetMessage(MakeStr(msg, pItem->Name));
-	m_pSpecialBoxDlg->Open(
-		(FRESH_PFN_RESULT)&CSpecialBoxHandler::OnSpecialBoxCloseCallback, 1);
+	m_pSpecialBoxDlg->SetMessage(MakeStr(format, pItem->m_name));
+	m_pSpecialBoxDlg->Open((FRESH_RESULT_CALLBACK)&CSpecialBoxHandler::OnSpecialBoxCloseCallback, 1);
 }
 
-void CSpecialBoxHandler::OnReqWarningMsg(int param)
-{
+// specialbox.cpp:68
+// param is the MsgObject's address; m_param2 the warning kind
+void CSpecialBoxHandler::OnReqWarningMsg(intptr_t param) {
 	const MsgObject* pMsg = (const MsgObject*)param;
-	int type = 0;
-
-	switch (pMsg->param2)
-	{
+	int messageType = 0;
+	switch (pMsg->m_param2) {
 	case 0x200B3B:
-		type = 200;
+		messageType = 0xC8;
 		break;
 	case 0x200B3C:
-		type = 201;
+		messageType = 0xC9;
 		break;
 	case 0x200B3D:
-		type = 202;
+		messageType = 0xCA;
 		break;
 	}
 
-	m_pSpecialBoxDlg = CreateForm<FrSpecialBoxDlg>(g_pFresh->GetManager(), this,
-		"specialBoxOpen", NULL);
-	m_pSpecialBoxDlg->SetMessageType(type);
+	m_pSpecialBoxDlg = CreateForm<FrSpecialBoxDlg>(g_pFresh->GetManager(), this, "specialBoxOpen", 0);
+	m_pSpecialBoxDlg->SetMessageType(messageType);
 	m_pSpecialBoxDlg->DisbleProgressBar();
-	m_pSpecialBoxDlg->Open(
-		(FRESH_PFN_RESULT)&CSpecialBoxHandler::OnSpecialBoxCloseCallback, 1);
+	m_pSpecialBoxDlg->Open((FRESH_RESULT_CALLBACK)&CSpecialBoxHandler::OnSpecialBoxCloseCallback, 1);
+}
+
 }

@@ -1,34 +1,46 @@
-#pragma once
+#ifndef PG_CLIENT_PROJECTG_BLOWFISH_H
+#define PG_CLIENT_PROJECTG_BLOWFISH_H
 
-#define MAXKEYBYTES 56
-#define NPASS 16
+#include "..\..\defines.h"
 
-class CBlowFish
-{
+#define MAXKEYBYTES 56 // 448 bits max
+#define NPASS 16       // SBox passes
+
+class CBlowFish {
+	LAYOUT_CHECK_FRIEND;
+
 private:
-	DWORD* PArray;
-	DWORD (*SBoxes)[256];
-	void Blowfish_encipher(DWORD* xl, DWORD* xr);
-	void Blowfish_decipher(DWORD* xl, DWORD* xr);
+	unsigned long *PArray;        // 0x00, 18 entries
+	unsigned long (*SBoxes)[256]; // 0x04, 4 boxes
+
+	void Blowfish_encipher(unsigned long *xl, unsigned long *xr);
+	void Blowfish_decipher(unsigned long *xl, unsigned long *xr);
 
 public:
 	CBlowFish();
 	~CBlowFish();
-	void Initialize(BYTE key[], int keybytes);
-	DWORD GetOutputLength(DWORD lInputLong);
-	DWORD Encode(BYTE* pInput, BYTE* pOutput, DWORD lSize);
-	void Decode(BYTE* pInput, BYTE* pOutput, DWORD lSize);
+	void Initialize(unsigned char key[], int keybytes);
+	unsigned long GetOutputLength(unsigned long lInputLong);
+	unsigned long Encode(unsigned char *pInput, unsigned char *pOutput, unsigned long lSize);
+	void Decode(unsigned char *pInput, unsigned char *pOutput, unsigned long lSize);
 };
+CHECK_SIZE(CBlowFish, 0x8);
+BEGIN_LAYOUT_CHECK(CBlowFish)
+	CHECK_FIELD(CBlowFish, PArray, 0x0);
+	CHECK_FIELD(CBlowFish, SBoxes, 0x4);
+END_LAYOUT_CHECK
 
-union aword
-{
-	DWORD dword;
-	BYTE byte[4];
-	struct
-	{
+// choose a byte order for your hardware: little-endian (Intel)
+union aword {
+	unsigned long dword;
+	unsigned char byte[4];
+	struct {
 		unsigned int byte3 : 8;
 		unsigned int byte2 : 8;
 		unsigned int byte1 : 8;
 		unsigned int byte0 : 8;
 	} w;
 };
+CHECK_SIZE(aword, 0x4);
+
+#endif // PG_CLIENT_PROJECTG_BLOWFISH_H

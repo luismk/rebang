@@ -1,13 +1,5 @@
 #pragma once
 
-template <class T>
-inline T Max(T a, T b)
-{
-	return (a < b) ? b : a;
-}
-
-template <class T>
-inline T Min(T a, T b)
-{
-	return (a > b) ? b : a;
-}
+// Min and Max are provided by wutil.h.  Keep this historical header as a
+// compatibility shim so files that include both headers see one definition.
+#include "wutil.h"
